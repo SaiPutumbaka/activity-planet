@@ -19,11 +19,11 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: {
-    default: "Activity Planet",
+    default: "Activity Planet — Find your people",
     template: "%s | Activity Planet",
   },
   description:
-    "Discover campus events, join activity hubs, and meet people who share your interests.",
+    "A social network built for the real world: join hubs around your hobbies, plan events, and turn shared interests into genuine connection.",
 };
 
 export const viewport: Viewport = {

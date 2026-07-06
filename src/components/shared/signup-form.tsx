@@ -81,7 +81,7 @@ export function SignupForm() {
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">Create your account</CardTitle>
         <CardDescription>
-          Join your campus and never miss an activity.
+          Join the beta and start turning shared interests into real plans.
         </CardDescription>
       </CardHeader>
       <CardContent>

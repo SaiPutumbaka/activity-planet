@@ -55,7 +55,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">Welcome back</CardTitle>
         <CardDescription>
-          Log in to find what&apos;s happening on campus.
+          Log in to see what&apos;s happening in your hubs.
         </CardDescription>
       </CardHeader>
       <CardContent>

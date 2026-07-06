@@ -4,9 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CirclePlus, CircleUser, Compass, Home } from "lucide-react";
 
+import { LogoWordmark } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { useUser } from "@/components/shared/user-provider";
 import { cn } from "@/lib/utils";
+
+function BetaBadge() {
+  return (
+    <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-secondary-foreground">
+      Beta
+    </span>
+  );
+}
 
 const NAV_ITEMS = [
   { href: "/home", label: "Home", icon: Home },
@@ -25,8 +34,13 @@ export function AppShell({
     <div className="min-h-dvh">
       {/* Desktop side rail */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-56 flex-col border-r bg-background md:flex">
-        <Link href="/home" className="px-6 py-5 text-lg font-bold tracking-tight">
-          Activity Planet
+        <Link
+          href="/home"
+          className="flex items-center gap-2 px-5 py-5"
+          aria-label="Activity Planet home"
+        >
+          <LogoWordmark className="text-base" markClassName="h-7 w-7" />
+          <BetaBadge />
         </Link>
         <nav aria-label="Main" className="flex flex-1 flex-col gap-1 px-3">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
@@ -57,8 +71,13 @@ export function AppShell({
 
       {/* Mobile top bar */}
       <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 px-4 py-3 backdrop-blur md:hidden">
-        <Link href="/home" className="text-lg font-bold tracking-tight">
-          Activity Planet
+        <Link
+          href="/home"
+          className="flex items-center gap-2"
+          aria-label="Activity Planet home"
+        >
+          <LogoWordmark className="text-base" markClassName="h-7 w-7" />
+          <BetaBadge />
         </Link>
         <ThemeToggle />
       </header>
