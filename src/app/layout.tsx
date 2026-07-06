@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Fraunces } from "next/font/google";
 import localFont from "next/font/local";
 
 import { ThemeProvider } from "@/components/shared/theme-provider";
@@ -16,6 +17,11 @@ const geistMono = localFont({
   variable: "--font-geist-mono",
   weight: "100 900",
 });
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  variable: "--font-display",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -30,8 +36,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+    { media: "(prefers-color-scheme: light)", color: "#f9f5ee" },
+    { media: "(prefers-color-scheme: dark)", color: "#181311" },
   ],
 };
 
@@ -43,7 +49,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-dvh bg-background font-sans antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} min-h-dvh bg-background font-sans antialiased`}
       >
         <ThemeProvider
           attribute="class"
