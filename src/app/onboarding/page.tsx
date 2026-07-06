@@ -1,0 +1,42 @@
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+
+import { OnboardingFlow } from "@/components/shared/onboarding-flow";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { createClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = {
+  title: "Welcome",
+};
+
+export default async function OnboardingPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  // Already onboarded → nothing to do here.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile) {
+    redirect("/home");
+  }
+
+  return (
+    <main className="relative flex min-h-dvh flex-col items-center justify-center gap-6 px-4 py-10">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
+      <h1 className="text-xl font-bold tracking-tight">Activity Planet</h1>
+      <OnboardingFlow />
+    </main>
+  );
+}
