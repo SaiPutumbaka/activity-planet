@@ -1,5 +1,5 @@
 /**
- * Hand-authored database types matching supabase/migrations/0001_initial_schema.sql.
+ * Hand-authored database types matching supabase/migrations/*.sql.
  * If the schema changes, update both files together (or switch to
  * `supabase gen types typescript` once the CLI is part of the workflow).
  */
@@ -17,6 +17,10 @@ export const HUBS = [
 
 export type Hub = (typeof HUBS)[number];
 
+export function isHub(value: string): value is Hub {
+  return (HUBS as readonly string[]).includes(value);
+}
+
 // These are `type` aliases, not `interface`s, on purpose: interfaces lack
 // implicit index signatures, so they fail supabase-js's
 // `Row extends Record<string, unknown>` constraint and every query would
@@ -28,6 +32,11 @@ export type ProfileRow = {
   organization: string;
   bio: string;
   selected_hobbies: string[];
+  avatar_url: string | null;
+  birthday: string | null;
+  location_text: string;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
 };
 
@@ -38,6 +47,8 @@ export type EventRow = {
   description: string;
   category: string;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
   event_timestamp: string;
   created_at: string;
 };
@@ -45,6 +56,14 @@ export type EventRow = {
 export type RsvpRow = {
   event_id: string;
   user_id: string;
+  created_at: string;
+};
+
+export type HubMessageRow = {
+  id: string;
+  hub: string;
+  sender_id: string;
+  body: string;
   created_at: string;
 };
 
@@ -60,6 +79,11 @@ export type Database = {
           organization?: string;
           bio?: string;
           selected_hobbies?: string[];
+          avatar_url?: string | null;
+          birthday?: string | null;
+          location_text?: string;
+          latitude?: number | null;
+          longitude?: number | null;
           created_at?: string;
         };
         Update: {
@@ -67,6 +91,11 @@ export type Database = {
           organization?: string;
           bio?: string;
           selected_hobbies?: string[];
+          avatar_url?: string | null;
+          birthday?: string | null;
+          location_text?: string;
+          latitude?: number | null;
+          longitude?: number | null;
         };
         Relationships: [];
       };
@@ -79,6 +108,8 @@ export type Database = {
           description?: string;
           category: string;
           location: string;
+          latitude?: number | null;
+          longitude?: number | null;
           event_timestamp: string;
           created_at?: string;
         };
@@ -87,6 +118,8 @@ export type Database = {
           description?: string;
           category?: string;
           location?: string;
+          latitude?: number | null;
+          longitude?: number | null;
           event_timestamp?: string;
         };
         Relationships: [
@@ -124,6 +157,32 @@ export type Database = {
           {
             foreignKeyName: "rsvps_user_id_fkey";
             columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      hub_messages: {
+        Row: HubMessageRow;
+        Insert: {
+          id?: string;
+          hub: string;
+          sender_id: string;
+          body: string;
+          created_at?: string;
+        };
+        // No update policy: messages are permanent once posted.
+        Update: {
+          hub?: string;
+          sender_id?: string;
+          body?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "hub_messages_sender_id_fkey";
+            columns: ["sender_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];

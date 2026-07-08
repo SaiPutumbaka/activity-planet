@@ -75,7 +75,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
                     <Input
                       type="email"
                       autoComplete="email"
-                      placeholder="you@university.edu"
+                      placeholder="your@email.account"
                       {...field}
                     />
                   </FormControl>

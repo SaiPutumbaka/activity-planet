@@ -46,6 +46,8 @@ export async function createEventAction(
     description: parsed.data.description,
     category: parsed.data.category,
     location: parsed.data.location,
+    latitude: parsed.data.latitude ?? null,
+    longitude: parsed.data.longitude ?? null,
     event_timestamp: new Date(parsed.data.eventTimestamp).toISOString(),
   });
 

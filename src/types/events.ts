@@ -5,6 +5,8 @@ export interface FeedEvent {
   description: string;
   category: string;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
   eventTimestamp: string;
   creatorUsername: string;
   attendeeCount: number;

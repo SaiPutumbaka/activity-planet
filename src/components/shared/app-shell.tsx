@@ -7,7 +7,10 @@ import { CirclePlus, CircleUser, Compass, Home } from "lucide-react";
 import { LogoWordmark } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { useUser } from "@/components/shared/user-provider";
+import { hubToSlug } from "@/lib/hub-slug";
+import { HUB_EMOJI } from "@/lib/hubs";
 import { cn } from "@/lib/utils";
+import { isHub } from "@/types/database";
 
 function BetaBadge() {
   return (
@@ -29,6 +32,7 @@ export function AppShell({
 }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
   const user = useUser();
+  const userHubs = user.selectedHobbies.filter(isHub);
 
   return (
     <div className="min-h-dvh">
@@ -42,7 +46,7 @@ export function AppShell({
           <LogoWordmark className="text-base" markClassName="h-7 w-7" />
           <BetaBadge />
         </Link>
-        <nav aria-label="Main" className="flex flex-1 flex-col gap-1 px-3">
+        <nav aria-label="Main" className="flex flex-1 flex-col gap-1 overflow-y-auto px-3">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const active = pathname.startsWith(href);
             return (
@@ -62,6 +66,36 @@ export function AppShell({
               </Link>
             );
           })}
+
+          {userHubs.length > 0 ? (
+            <>
+              <p className="mt-4 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Your hubs
+              </p>
+              {userHubs.map((hub) => {
+                const href = `/hubs/${hubToSlug(hub)}`;
+                const active = pathname.startsWith(href);
+                return (
+                  <Link
+                    key={hub}
+                    href={href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      active
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                    )}
+                  >
+                    <span className="text-base" aria-hidden>
+                      {HUB_EMOJI[hub]}
+                    </span>
+                    <span className="truncate">{hub}</span>
+                  </Link>
+                );
+              })}
+            </>
+          ) : null}
         </nav>
         <div className="flex items-center justify-between border-t px-4 py-3">
           <span className="truncate text-sm font-medium">@{user.username}</span>
@@ -70,16 +104,32 @@ export function AppShell({
       </aside>
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 px-4 py-3 backdrop-blur md:hidden">
-        <Link
-          href="/home"
-          className="flex items-center gap-2"
-          aria-label="Activity Planet home"
-        >
-          <LogoWordmark className="text-base" markClassName="h-7 w-7" />
-          <BetaBadge />
-        </Link>
-        <ThemeToggle />
+      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur md:hidden">
+        <div className="flex items-center justify-between px-4 py-3">
+          <Link
+            href="/home"
+            className="flex items-center gap-2"
+            aria-label="Activity Planet home"
+          >
+            <LogoWordmark className="text-base" markClassName="h-7 w-7" />
+            <BetaBadge />
+          </Link>
+          <ThemeToggle />
+        </div>
+        {userHubs.length > 0 ? (
+          <div className="flex gap-2 overflow-x-auto px-4 pb-3">
+            {userHubs.map((hub) => (
+              <Link
+                key={hub}
+                href={`/hubs/${hubToSlug(hub)}`}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs font-medium"
+              >
+                <span aria-hidden>{HUB_EMOJI[hub]}</span>
+                {hub}
+              </Link>
+            ))}
+          </div>
+        ) : null}
       </header>
 
       <main className="md:ml-56">

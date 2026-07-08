@@ -69,6 +69,10 @@ In the Supabase dashboard → **SQL Editor**, run the migrations in order:
    indexes, and RLS policies
 2. `supabase/migrations/0002_university_to_organization.sql` — renames
    `university` → `organization` and makes it optional
+3. `supabase/migrations/0003_profile_customization_and_hub_features.sql` —
+   avatar/birthday/location profile fields, event coordinates, the
+   `hub_messages` live chat table (with Realtime enabled), and the public
+   `avatars` storage bucket
 
 ### 4. Configure auth URLs
 

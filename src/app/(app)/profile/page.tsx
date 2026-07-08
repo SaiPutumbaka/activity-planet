@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarClock, MapPin } from "lucide-react";
+import { CalendarClock, MapPin, Pencil } from "lucide-react";
 
 import { signOutAction } from "@/actions/auth";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { calculateAge } from "@/lib/age";
 import { hubEmoji } from "@/lib/hubs";
 import { createClient } from "@/lib/supabase/server";
 
@@ -83,7 +85,9 @@ export default async function ProfilePage() {
     await Promise.all([
       supabase
         .from("profiles")
-        .select("username, email, organization, selected_hobbies, created_at")
+        .select(
+          "username, email, organization, bio, birthday, location_text, avatar_url, selected_hobbies, created_at",
+        )
         .eq("id", user.id)
         .maybeSingle(),
       supabase
@@ -114,28 +118,43 @@ export default async function ProfilePage() {
         new Date(b.event_timestamp).getTime(),
     );
 
+  const age = profile.birthday ? calculateAge(profile.birthday) : null;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Avatar className="h-16 w-16">
-          <AvatarFallback className="text-xl font-semibold uppercase">
-            {profile.username.slice(0, 2)}
-          </AvatarFallback>
-        </Avatar>
-        <div className="min-w-0">
-          <h1 className="truncate text-2xl font-bold tracking-tight">
-            @{profile.username}
-          </h1>
-          <p className="truncate text-sm text-muted-foreground">
-            {profile.email}
-          </p>
-          {profile.organization ? (
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Avatar className="h-16 w-16">
+            {profile.avatar_url ? (
+              <AvatarImage src={profile.avatar_url} alt="" />
+            ) : null}
+            <AvatarFallback className="text-xl font-semibold uppercase">
+              {profile.username.slice(0, 2)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-bold tracking-tight">
+              @{profile.username}
+            </h1>
             <p className="truncate text-sm text-muted-foreground">
-              {profile.organization}
+              {[profile.organization, age ? `${age} yrs` : null, profile.location_text]
+                .filter(Boolean)
+                .join(" · ") || profile.email}
             </p>
-          ) : null}
+          </div>
         </div>
+        <Button asChild variant="outline" size="icon" className="shrink-0">
+          <Link href="/profile/edit" aria-label="Edit profile">
+            <Pencil className="h-4 w-4" />
+          </Link>
+        </Button>
       </div>
+
+      {profile.bio ? (
+        <p className="whitespace-pre-line text-sm text-muted-foreground">
+          {profile.bio}
+        </p>
+      ) : null}
 
       <Card>
         <CardHeader className="pb-3">

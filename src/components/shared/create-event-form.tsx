@@ -1,12 +1,13 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, MapPinCheck } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { createEventAction } from "@/actions/events";
+import { UseMyLocationButton } from "@/components/shared/use-my-location-button";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -26,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import type { Coordinates } from "@/lib/geo";
 import { HUB_EMOJI } from "@/lib/hubs";
 import {
   createEventSchema,
@@ -35,6 +37,7 @@ import { HUBS } from "@/types/database";
 
 export function CreateEventForm() {
   const [isPending, startTransition] = useTransition();
+  const [coords, setCoords] = useState<Coordinates | null>(null);
 
   const form = useForm<CreateEventInput>({
     resolver: zodResolver(createEventSchema),
@@ -47,6 +50,14 @@ export function CreateEventForm() {
     },
   });
 
+  function handleLocated(next: Coordinates, place: string | null) {
+    setCoords(next);
+    if (place && !form.getValues("location")) {
+      form.setValue("location", place, { shouldValidate: true });
+    }
+    toast.success("Location pinned — it'll show on the hub map.");
+  }
+
   function onSubmit(values: CreateEventInput) {
     startTransition(async () => {
       // datetime-local strings carry no timezone; convert in the browser,
@@ -54,6 +65,8 @@ export function CreateEventForm() {
       const result = await createEventAction({
         ...values,
         eventTimestamp: new Date(values.eventTimestamp).toISOString(),
+        latitude: coords?.latitude,
+        longitude: coords?.longitude,
       });
       // Success redirects on the server and never returns.
       if (result.status === "error") {
@@ -128,12 +141,22 @@ export function CreateEventForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Location</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Student Rec Center, Court 2"
-                  {...field}
-                />
-              </FormControl>
+              <div className="flex gap-2">
+                <FormControl>
+                  <Input placeholder="Student Rec Center, Court 2" {...field} />
+                </FormControl>
+                <UseMyLocationButton onLocated={handleLocated} label="Pin here" />
+              </div>
+              <FormDescription>
+                {coords ? (
+                  <span className="flex items-center gap-1 text-primary">
+                    <MapPinCheck className="h-3.5 w-3.5" aria-hidden />
+                    Pinned — this event will show on the hub map.
+                  </span>
+                ) : (
+                  "Pin your current location so this event shows up on the hub map."
+                )}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

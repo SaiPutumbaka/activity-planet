@@ -1,29 +1,10 @@
 import { z } from "zod";
 
+import { stripControlChars } from "@/lib/validation/sanitize";
 import { HUBS } from "@/types/database";
 
-/**
- * Strips ASCII control characters, keeping tab (9), newline (10), and
- * carriage return (13), which are legitimate in multi-line descriptions.
- * Combined with React's output escaping and Supabase's parameterized
- * queries, this is the input-sanitization layer for event text.
- */
-function isControlChar(codePoint: number): boolean {
-  if (codePoint === 9 || codePoint === 10 || codePoint === 13) {
-    return false;
-  }
-  return codePoint < 32 || codePoint === 127;
-}
-
-function stripControlChars(value: string): string {
-  let result = "";
-  for (const char of value) {
-    if (!isControlChar(char.codePointAt(0) ?? 0)) {
-      result += char;
-    }
-  }
-  return result;
-}
+const latitudeSchema = z.number().min(-90).max(90);
+const longitudeSchema = z.number().min(-180).max(180);
 
 export const createEventSchema = z.object({
   title: z
@@ -55,6 +36,10 @@ export const createEventSchema = z.object({
       (value) => Date.parse(value) > Date.now() - 60_000,
       "The event must be in the future.",
     ),
+  // Optional: captured client-side via the Geolocation API so the event can
+  // appear on the hub map and factor into "near you" sorting on Home.
+  latitude: latitudeSchema.optional(),
+  longitude: longitudeSchema.optional(),
 });
 
 export type CreateEventInput = z.input<typeof createEventSchema>;
