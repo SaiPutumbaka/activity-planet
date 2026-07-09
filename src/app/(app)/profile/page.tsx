@@ -5,7 +5,6 @@ import { CalendarClock, MapPin, Pencil } from "lucide-react";
 
 import { signOutAction } from "@/actions/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,8 +13,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { calculateAge } from "@/lib/age";
+import { hubToSlug } from "@/lib/hub-slug";
 import { hubEmoji } from "@/lib/hubs";
 import { createClient } from "@/lib/supabase/server";
+import { isHub } from "@/types/database";
 
 export const metadata: Metadata = {
   title: "Profile",
@@ -86,7 +87,7 @@ export default async function ProfilePage() {
       supabase
         .from("profiles")
         .select(
-          "username, email, organization, bio, birthday, location_text, avatar_url, selected_hobbies, created_at",
+          "username, full_name, email, organization, bio, birthday, location_text, avatar_url, selected_hobbies, created_at",
         )
         .eq("id", user.id)
         .maybeSingle(),
@@ -119,60 +120,103 @@ export default async function ProfilePage() {
     );
 
   const age = profile.birthday ? calculateAge(profile.birthday) : null;
+  const hostedCount = (createdEvents ?? []).length;
+  const hubs = profile.selected_hobbies.filter(isHub);
+  const metaLine = [
+    profile.organization,
+    age ? `${age} yrs` : null,
+    profile.location_text,
+  ].filter(Boolean);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16">
-            {profile.avatar_url ? (
-              <AvatarImage src={profile.avatar_url} alt="" />
-            ) : null}
-            <AvatarFallback className="text-xl font-semibold uppercase">
-              {profile.username.slice(0, 2)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <h1 className="truncate text-2xl font-bold tracking-tight">
-              @{profile.username}
-            </h1>
-            <p className="truncate text-sm text-muted-foreground">
-              {[profile.organization, age ? `${age} yrs` : null, profile.location_text]
-                .filter(Boolean)
-                .join(" · ") || profile.email}
-            </p>
+      <div className="flex items-start gap-4 sm:gap-6">
+        <Avatar className="h-20 w-20 shrink-0 sm:h-24 sm:w-24">
+          {profile.avatar_url ? (
+            <AvatarImage src={profile.avatar_url} alt="" />
+          ) : null}
+          <AvatarFallback className="text-2xl font-semibold uppercase">
+            {profile.username.slice(0, 2)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1 pt-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">
+                {profile.full_name || `@${profile.username}`}
+              </h1>
+              {profile.full_name ? (
+                <p className="truncate text-sm text-muted-foreground">
+                  @{profile.username}
+                </p>
+              ) : null}
+            </div>
+            <Button asChild variant="outline" size="icon" className="shrink-0">
+              <Link href="/profile/edit" aria-label="Edit profile">
+                <Pencil className="h-4 w-4" />
+              </Link>
+            </Button>
           </div>
+          {metaLine.length > 0 ? (
+            <p className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+              {metaLine.map((item, index) => (
+                <span key={item}>
+                  {index > 0 ? <span className="mr-2">·</span> : null}
+                  {item}
+                </span>
+              ))}
+            </p>
+          ) : null}
         </div>
-        <Button asChild variant="outline" size="icon" className="shrink-0">
-          <Link href="/profile/edit" aria-label="Edit profile">
-            <Pencil className="h-4 w-4" />
-          </Link>
-        </Button>
       </div>
 
       {profile.bio ? (
-        <p className="whitespace-pre-line text-sm text-muted-foreground">
+        <p className="whitespace-pre-line text-sm leading-relaxed">
           {profile.bio}
         </p>
       ) : null}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Your hubs</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          {profile.selected_hobbies.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hubs selected.</p>
-          ) : (
-            profile.selected_hobbies.map((hub) => (
-              <Badge key={hub} variant="secondary" className="gap-1">
-                <span aria-hidden>{hubEmoji(hub)}</span>
+      <div className="grid grid-cols-3 divide-x rounded-xl border py-3 text-center">
+        <div>
+          <p className="text-lg font-bold">{hubs.length}</p>
+          <p className="text-xs text-muted-foreground">Hubs</p>
+        </div>
+        <div>
+          <p className="text-lg font-bold">{rsvpEvents.length}</p>
+          <p className="text-xs text-muted-foreground">Attending</p>
+        </div>
+        <div>
+          <p className="text-lg font-bold">{hostedCount}</p>
+          <p className="text-xs text-muted-foreground">Hosted</p>
+        </div>
+      </div>
+
+      {hubs.length > 0 ? (
+        <div className="flex gap-4 overflow-x-auto pb-1">
+          {hubs.map((hub) => (
+            <Link
+              key={hub}
+              href={`/hubs/${hubToSlug(hub)}`}
+              className="flex shrink-0 flex-col items-center gap-1.5"
+            >
+              <span className="flex h-14 w-14 items-center justify-center rounded-full border-2 bg-muted text-2xl">
+                {hubEmoji(hub)}
+              </span>
+              <span className="max-w-[4.5rem] truncate text-center text-[11px] text-muted-foreground">
                 {hub}
-              </Badge>
-            ))
-          )}
-        </CardContent>
-      </Card>
+              </span>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          No hubs yet —{" "}
+          <Link href="/profile/edit" className="underline underline-offset-2">
+            pick some
+          </Link>
+          .
+        </p>
+      )}
 
       <Card>
         <CardHeader className="pb-1">

@@ -9,8 +9,16 @@ import {
 import { Logo, LogoWordmark } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { HUB_EMOJI } from "@/lib/hubs";
+import { HUB_CATALOG } from "@/lib/hub-catalog";
 import { HUBS } from "@/types/database";
+
+// A diverse sample (a couple per category) rather than the full catalog —
+// with 500+ hubs, dumping every one on the landing page would be clutter.
+const HUB_HIGHLIGHT_LIMIT = 24;
+const HUB_HIGHLIGHTS = HUB_CATALOG.flatMap((group) => group.hubs.slice(0, 2)).slice(
+  0,
+  HUB_HIGHLIGHT_LIMIT,
+);
 
 /**
  * Beta community links — drop the real URLs in when the Discord server and
@@ -31,7 +39,7 @@ const PROBLEM_STATS = [
     source: "Passive consumption is not connection",
   },
   {
-    value: "8 hubs",
+    value: `${HUBS.length}+ hubs`,
     label: "ready for your first real-world meetup today",
     source: "And more on the way",
   },
@@ -231,21 +239,27 @@ export default function LandingPage() {
         <section className="border-t bg-card py-16">
           <div className="mx-auto max-w-4xl px-4 text-center">
             <p className="text-sm font-semibold uppercase tracking-widest text-primary">
-              Launch hubs
+              {HUBS.length}+ hubs
             </p>
             <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight sm:text-3xl">
               Whatever you&apos;re into, there&apos;s a hub for it
             </h2>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              {HUBS.map((hub) => (
+              {HUB_HIGHLIGHTS.map((entry) => (
                 <span
-                  key={hub}
+                  key={entry.name}
                   className="inline-flex items-center gap-2 rounded-full border bg-background px-4 py-2 text-sm font-medium"
                 >
-                  <span aria-hidden>{HUB_EMOJI[hub]}</span>
-                  {hub}
+                  <span aria-hidden>{entry.emoji}</span>
+                  {entry.name}
                 </span>
               ))}
+              <Link
+                href="/signup"
+                className="inline-flex items-center gap-1 rounded-full border border-dashed px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+              >
+                +{HUBS.length - HUB_HIGHLIGHTS.length} more
+              </Link>
             </div>
           </div>
         </section>

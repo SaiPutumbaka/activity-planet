@@ -15,15 +15,23 @@ export const usernameSchema = z
     "3–24 characters. Letters, numbers, and underscores only.",
   );
 
+export const fullNameSchema = z
+  .string()
+  .trim()
+  .max(60, "Name must be at most 60 characters.")
+  .transform(stripControlChars);
+
 export const organizationSchema = z
   .string()
   .trim()
   .max(120, "Organization must be at most 120 characters.");
 
+export const MAX_HUBS = 15;
+
 export const selectedHobbiesSchema = z
   .array(z.enum(HUBS))
   .min(1, "Pick at least one hub to get started.")
-  .max(8);
+  .max(MAX_HUBS, `Pick up to ${MAX_HUBS} hubs.`);
 
 const latitudeSchema = z.number().min(-90).max(90);
 const longitudeSchema = z.number().min(-180).max(180);
@@ -50,6 +58,7 @@ function isValidBirthday(value: string): boolean {
 export const profileDetailsSchema = z
   .object({
     username: usernameSchema,
+    fullName: fullNameSchema,
     organization: organizationSchema,
     bio: z
       .string()

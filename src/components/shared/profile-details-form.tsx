@@ -22,9 +22,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { Coordinates } from "@/lib/geo";
-import { organizationSchema, usernameSchema } from "@/lib/validation/profile";
+import {
+  fullNameSchema,
+  organizationSchema,
+  usernameSchema,
+} from "@/lib/validation/profile";
 
 const formSchema = z.object({
+  fullName: fullNameSchema,
   username: usernameSchema,
   organization: organizationSchema,
   bio: z.string().trim().max(280, "Bio must be at most 280 characters."),
@@ -35,10 +40,11 @@ const formSchema = z.object({
     .max(120, "Location must be at most 120 characters."),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.input<typeof formSchema>;
 
 interface ProfileDetailsFormProps {
   initial: {
+    fullName: string;
     username: string;
     organization: string;
     bio: string;
@@ -60,6 +66,7 @@ export function ProfileDetailsForm({ initial }: ProfileDetailsFormProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      fullName: initial.fullName,
       username: initial.username,
       organization: initial.organization,
       bio: initial.bio,
@@ -98,6 +105,22 @@ export function ProfileDetailsForm({ initial }: ProfileDetailsFormProps) {
         className="space-y-5"
         noValidate
       >
+        <FormField
+          control={form.control}
+          name="fullName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input autoComplete="name" placeholder="e.g. Sai Putumbaka" {...field} />
+              </FormControl>
+              <FormDescription>
+                Shown above your username on your profile.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="username"

@@ -32,6 +32,7 @@ export async function completeOnboardingAction(
     id: user.id,
     email: user.email,
     username: parsed.data.username,
+    full_name: parsed.data.fullName,
     organization: parsed.data.organization,
     selected_hobbies: parsed.data.selectedHobbies,
   });

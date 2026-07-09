@@ -43,6 +43,7 @@ export async function updateProfileAction(
     .from("profiles")
     .update({
       username: parsed.data.username,
+      full_name: parsed.data.fullName,
       organization: parsed.data.organization,
       bio: parsed.data.bio,
       birthday: parsed.data.birthday,

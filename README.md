@@ -73,6 +73,11 @@ In the Supabase dashboard → **SQL Editor**, run the migrations in order:
    avatar/birthday/location profile fields, event coordinates, the
    `hub_messages` live chat table (with Realtime enabled), and the public
    `avatars` storage bucket
+4. `supabase/migrations/0004_full_name_and_expanded_hub_catalog.sql` — adds
+   a display name field, and loosens the events/hub_messages category
+   checks from a hardcoded enum to a length bound (the hub catalog itself —
+   500+ entries — now lives entirely in `src/lib/hub-catalog.ts` and
+   `src/types/database.ts`; see `scripts/verify-hub-catalog.mjs`)
 
 ### 4. Configure auth URLs
 

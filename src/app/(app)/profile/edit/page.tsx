@@ -33,7 +33,7 @@ export default async function EditProfilePage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "username, organization, bio, birthday, location_text, latitude, longitude, avatar_url, selected_hobbies",
+      "username, full_name, organization, bio, birthday, location_text, latitude, longitude, avatar_url, selected_hobbies",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -78,6 +78,7 @@ export default async function EditProfilePage() {
         <CardContent>
           <ProfileDetailsForm
             initial={{
+              fullName: profile.full_name,
               username: profile.username,
               organization: profile.organization,
               bio: profile.bio,

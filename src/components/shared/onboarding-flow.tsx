@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { completeOnboardingAction } from "@/actions/onboarding";
+import { HubPicker } from "@/components/shared/hub-picker";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,13 +26,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { HUB_EMOJI } from "@/lib/hubs";
-import { cn } from "@/lib/utils";
+import { MAX_HUBS } from "@/lib/validation/profile";
 import {
   onboardingSchema,
   type OnboardingInput,
 } from "@/lib/validation/onboarding";
-import { HUBS, type Hub } from "@/types/database";
 
 export function OnboardingFlow() {
   const [step, setStep] = useState<1 | 2>(1);
@@ -41,6 +40,7 @@ export function OnboardingFlow() {
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
       username: "",
+      fullName: "",
       organization: "",
       selectedHobbies: [],
     },
@@ -49,21 +49,10 @@ export function OnboardingFlow() {
   const selectedHobbies = form.watch("selectedHobbies");
 
   async function goToStep2() {
-    const valid = await form.trigger(["username", "organization"]);
+    const valid = await form.trigger(["username", "fullName", "organization"]);
     if (valid) {
       setStep(2);
     }
-  }
-
-  function toggleHub(hub: Hub) {
-    const current = form.getValues("selectedHobbies");
-    form.setValue(
-      "selectedHobbies",
-      current.includes(hub)
-        ? current.filter((h) => h !== hub)
-        : [...current, hub],
-      { shouldValidate: true },
-    );
   }
 
   function onSubmit(values: OnboardingInput) {
@@ -87,8 +76,8 @@ export function OnboardingFlow() {
         </CardTitle>
         <CardDescription>
           {step === 1
-            ? "Choose a username and, optionally, your school or organization."
-            : "Hubs personalize your feed. Pick everything you're into."}
+            ? "Choose a username and, optionally, your name and organization."
+            : `Hubs personalize your feed. Pick up to ${MAX_HUBS} you're into.`}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -115,6 +104,26 @@ export function OnboardingFlow() {
                       </FormControl>
                       <FormDescription>
                         3–24 characters. Letters, numbers, and underscores.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          autoComplete="name"
+                          placeholder="e.g. Sai Putumbaka"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Optional — shown above your username on your profile.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -150,35 +159,18 @@ export function OnboardingFlow() {
                   name="selectedHobbies"
                   render={() => (
                     <FormItem>
-                      <div
-                        role="group"
-                        aria-label="Choose your hubs"
-                        className="grid grid-cols-2 gap-3 sm:grid-cols-4"
-                      >
-                        {HUBS.map((hub) => {
-                          const isSelected = selectedHobbies.includes(hub);
-                          return (
-                            <button
-                              key={hub}
-                              type="button"
-                              aria-pressed={isSelected}
-                              onClick={() => toggleHub(hub)}
-                              className={cn(
-                                "flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center text-sm font-medium transition-colors",
-                                "hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                                isSelected
-                                  ? "border-primary bg-primary/10 text-primary"
-                                  : "border-border text-foreground",
-                              )}
-                            >
-                              <span className="text-3xl" aria-hidden>
-                                {HUB_EMOJI[hub]}
-                              </span>
-                              {hub}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <FormControl>
+                        <HubPicker
+                          mode="multi"
+                          value={selectedHobbies}
+                          onChange={(next) =>
+                            form.setValue("selectedHobbies", next, {
+                              shouldValidate: true,
+                            })
+                          }
+                          max={MAX_HUBS}
+                        />
+                      </FormControl>
                       <FormMessage className="pt-2 text-center" />
                     </FormItem>
                   )}

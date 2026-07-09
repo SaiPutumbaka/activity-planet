@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { createEventAction } from "@/actions/events";
+import { HubPicker } from "@/components/shared/hub-picker";
 import { UseMyLocationButton } from "@/components/shared/use-my-location-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,21 +20,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { Coordinates } from "@/lib/geo";
-import { HUB_EMOJI } from "@/lib/hubs";
 import {
   createEventSchema,
   type CreateEventInput,
 } from "@/lib/validation/event";
-import { HUBS } from "@/types/database";
 
 export function CreateEventForm() {
   const [isPending, startTransition] = useTransition();
@@ -104,20 +96,13 @@ export function CreateEventForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Hub</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pick a hub" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {HUBS.map((hub) => (
-                    <SelectItem key={hub} value={hub}>
-                      {HUB_EMOJI[hub]} {hub}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <HubPicker
+                  mode="single"
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

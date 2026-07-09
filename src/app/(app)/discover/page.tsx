@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MapPin } from "lucide-react";
 
-import { HubJoinToggle } from "@/components/shared/hub-join-toggle";
+import { DiscoverHubBrowser } from "@/components/shared/discover-hub-browser";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { distanceMiles, formatDistance } from "@/lib/geo";
-import { hubToSlug } from "@/lib/hub-slug";
-import { HUB_EMOJI } from "@/lib/hubs";
+import { hubEmoji } from "@/lib/hubs";
 import { createClient } from "@/lib/supabase/server";
-import { HUBS, isHub, type Hub } from "@/types/database";
+import { isHub, type Hub } from "@/types/database";
 
 export const metadata: Metadata = {
   title: "Discover",
@@ -37,33 +35,33 @@ export default async function DiscoverPage() {
     redirect("/onboarding");
   }
 
-  const myHubs = new Set(profile.selected_hobbies.filter(isHub));
+  const myHubs = profile.selected_hobbies.filter(isHub);
+  const myHubSet = new Set(myHubs);
   const viewerLocation =
     profile.latitude !== null && profile.longitude !== null
       ? { latitude: profile.latitude, longitude: profile.longitude }
       : null;
 
-  const [{ data: peopleRows }, hubCountEntries] = await Promise.all([
+  const [{ data: peopleRows }, { data: allHobbyRows }] = await Promise.all([
     supabase
       .from("profiles")
       .select(
-        "id, username, organization, bio, avatar_url, selected_hobbies, latitude, longitude",
+        "id, username, full_name, organization, bio, avatar_url, selected_hobbies, latitude, longitude",
       )
       .neq("id", user.id)
       .order("created_at", { ascending: false })
       .limit(30),
-    Promise.all(
-      HUBS.map(async (hub) => {
-        const { count } = await supabase
-          .from("profiles")
-          .select("id", { count: "exact", head: true })
-          .contains("selected_hobbies", [hub]);
-        return [hub, count ?? 0] as const;
-      }),
-    ),
+    // One query for every profile's hub list, counted in JS — far cheaper
+    // than a per-hub count query now that the catalog has 100+ entries.
+    supabase.from("profiles").select("selected_hobbies").limit(2000),
   ]);
 
-  const hubMemberCounts = new Map<Hub, number>(hubCountEntries);
+  const hubCounts: Record<string, number> = {};
+  for (const row of allHobbyRows ?? []) {
+    for (const hub of row.selected_hobbies) {
+      hubCounts[hub] = (hubCounts[hub] ?? 0) + 1;
+    }
+  }
 
   const people = (peopleRows ?? [])
     .map((person) => ({
@@ -77,7 +75,7 @@ export default async function DiscoverPage() {
               longitude: person.longitude,
             })
           : null,
-      sharedHubs: person.selected_hobbies.filter((hub) => myHubs.has(hub as Hub)),
+      sharedHubs: person.selected_hobbies.filter((hub) => myHubSet.has(hub as Hub)),
     }))
     .sort((a, b) => {
       if (a.distance !== null && b.distance !== null) {
@@ -103,30 +101,7 @@ export default async function DiscoverPage() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Hubs to explore</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {HUBS.map((hub) => (
-            <Card key={hub}>
-              <CardContent className="flex items-center justify-between gap-3 p-4">
-                <Link
-                  href={`/hubs/${hubToSlug(hub)}`}
-                  className="flex min-w-0 items-center gap-3"
-                >
-                  <span className="text-2xl" aria-hidden>
-                    {HUB_EMOJI[hub]}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{hub}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {hubMemberCounts.get(hub) ?? 0} member
-                      {hubMemberCounts.get(hub) === 1 ? "" : "s"}
-                    </p>
-                  </div>
-                </Link>
-                <HubJoinToggle hub={hub} initialIsMember={myHubs.has(hub)} />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <DiscoverHubBrowser counts={hubCounts} myHubs={myHubs} />
       </section>
 
       <section className="space-y-3">
@@ -149,8 +124,15 @@ export default async function DiscoverPage() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                      <p className="truncate font-medium">@{person.username}</p>
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <p className="truncate font-medium">
+                        {person.full_name || `@${person.username}`}
+                      </p>
+                      {person.full_name ? (
+                        <p className="truncate text-xs text-muted-foreground">
+                          @{person.username}
+                        </p>
+                      ) : null}
                       {person.distance !== null ? (
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
                           <MapPin className="h-3 w-3" aria-hidden />
@@ -180,9 +162,7 @@ export default async function DiscoverPage() {
                             }
                             className="gap-1 text-[11px]"
                           >
-                            <span aria-hidden>
-                              {isHub(hub) ? HUB_EMOJI[hub] : "📌"}
-                            </span>
+                            <span aria-hidden>{hubEmoji(hub)}</span>
                             {hub}
                           </Badge>
                         ))}

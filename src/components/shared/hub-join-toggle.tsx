@@ -12,9 +12,14 @@ import type { Hub } from "@/types/database";
 interface HubJoinToggleProps {
   hub: Hub;
   initialIsMember: boolean;
+  size?: "default" | "sm";
 }
 
-export function HubJoinToggle({ hub, initialIsMember }: HubJoinToggleProps) {
+export function HubJoinToggle({
+  hub,
+  initialIsMember,
+  size = "default",
+}: HubJoinToggleProps) {
   const router = useRouter();
   const [isMember, setIsMember] = useState(initialIsMember);
   const [isPending, startTransition] = useTransition();
@@ -41,6 +46,8 @@ export function HubJoinToggle({ hub, initialIsMember }: HubJoinToggleProps) {
       onClick={toggle}
       disabled={isPending}
       variant={isMember ? "secondary" : "default"}
+      size={size}
+      className="shrink-0"
     >
       {isPending ? (
         <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -49,7 +56,7 @@ export function HubJoinToggle({ hub, initialIsMember }: HubJoinToggleProps) {
       ) : (
         <Plus className="h-4 w-4" aria-hidden />
       )}
-      {isMember ? "Joined" : "Join hub"}
+      {isMember ? "Joined" : "Join"}
     </Button>
   );
 }
