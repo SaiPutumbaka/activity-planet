@@ -37,6 +37,7 @@ export async function sendHubMessageAction(
   });
 
   if (error) {
+    console.error("sendHubMessageAction failed:", error.code, error.message);
     return {
       status: "error",
       message: "Join this hub to chat with other members.",

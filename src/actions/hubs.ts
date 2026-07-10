@@ -45,6 +45,9 @@ export async function joinHubAction(input: unknown): Promise<HubActionResult> {
     .maybeSingle();
 
   if (fetchError || !profile) {
+    if (fetchError) {
+      console.error("joinHubAction fetch failed:", fetchError.code, fetchError.message);
+    }
     return { status: "error", message: "Could not load your profile." };
   }
 
@@ -59,6 +62,7 @@ export async function joinHubAction(input: unknown): Promise<HubActionResult> {
     .eq("id", user.id);
 
   if (error) {
+    console.error("joinHubAction update failed:", error.code, error.message);
     return { status: "error", message: "Could not join this hub. Please try again." };
   }
 
@@ -89,6 +93,9 @@ export async function leaveHubAction(
     .maybeSingle();
 
   if (fetchError || !profile) {
+    if (fetchError) {
+      console.error("leaveHubAction fetch failed:", fetchError.code, fetchError.message);
+    }
     return { status: "error", message: "Could not load your profile." };
   }
 
@@ -109,6 +116,7 @@ export async function leaveHubAction(
     .eq("id", user.id);
 
   if (error) {
+    console.error("leaveHubAction update failed:", error.code, error.message);
     return { status: "error", message: "Could not leave this hub. Please try again." };
   }
 

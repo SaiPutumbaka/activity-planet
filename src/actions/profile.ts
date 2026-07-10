@@ -60,6 +60,7 @@ export async function updateProfileAction(
         message: "That username is already taken. Try another one.",
       };
     }
+    console.error("updateProfileAction failed:", error.code, error.message);
     return {
       status: "error",
       message: "Something went wrong saving your profile. Please try again.",
@@ -92,6 +93,7 @@ export async function updateHubsAction(
     .eq("id", user.id);
 
   if (error) {
+    console.error("updateHubsAction failed:", error.code, error.message);
     return {
       status: "error",
       message: "Could not update your hubs. Please try again.",
@@ -137,6 +139,7 @@ export async function updateAvatarAction(
     .eq("id", user.id);
 
   if (error) {
+    console.error("updateAvatarAction failed:", error.code, error.message);
     return {
       status: "error",
       message: "Could not save your photo. Please try again.",

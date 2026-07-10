@@ -52,6 +52,7 @@ export async function createEventAction(
   });
 
   if (error) {
+    console.error("createEventAction failed:", error.code, error.message);
     return {
       status: "error",
       message: "Could not create the event. Please try again.",
@@ -83,6 +84,7 @@ export async function rsvpAction(input: unknown): Promise<EventActionResult> {
     });
     // Already joined (double tap / stale UI) is not an error.
     if (error && error.code !== DUPLICATE_KEY) {
+      console.error("rsvpAction (join) failed:", error.code, error.message);
       return {
         status: "error",
         message: "Could not join this event. Please try again.",
@@ -95,6 +97,7 @@ export async function rsvpAction(input: unknown): Promise<EventActionResult> {
       .eq("event_id", parsed.data.eventId)
       .eq("user_id", user.id);
     if (error) {
+      console.error("rsvpAction (leave) failed:", error.code, error.message);
       return {
         status: "error",
         message: "Could not leave this event. Please try again.",
@@ -130,6 +133,7 @@ export async function deleteEventAction(
     .eq("id", parsed.data.eventId);
 
   if (error) {
+    console.error("deleteEventAction failed:", error.code, error.message);
     return {
       status: "error",
       message: "Could not delete the event. Please try again.",

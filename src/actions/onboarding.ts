@@ -49,6 +49,7 @@ export async function completeOnboardingAction(
         message: "That username is already taken. Try another one.",
       };
     }
+    console.error("completeOnboardingAction failed:", error.code, error.message);
     return {
       status: "error",
       message: "Something went wrong saving your profile. Please try again.",
