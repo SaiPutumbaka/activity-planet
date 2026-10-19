@@ -1,0 +1,24 @@
+name: Keep the free-tier database awake
+
+# Supabase pauses free projects after seven idle days. A request every six hours keeps it
+# active and doubles as a schema probe: /api/health selects the newest column the deployed
+# code depends on and returns 503 if a migration is missing.
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Probe production health
+        run: |
+          url="${HEALTH_URL:-https://activity-planet.vercel.app/api/health}"
+          code=$(curl -sS -o /tmp/body -w '%{http_code}' --max-time 30 "$url" || echo "000")
+          echo "HTTP $code"; cat /tmp/body; echo
+          test "$code" = "200"
+        env:
+          HEALTH_URL: ${{ vars.HEALTH_URL }}

@@ -1,0 +1,48 @@
+/*
+ * Design tokens (placeholder). Neutral, accessible defaults so both apps build and render
+ * before the design direction is chosen. The selected board from docs/design/boards replaces
+ * every value here, including the primary action color, semantic state colors, and the
+ * hub category palette. Tailwind v4 reads the @theme block to generate utilities
+ * (bg-primary, text-muted, ...).
+ */
+@theme {
+  --color-surface: #ffffff;
+  --color-surface-2: #f4f4f5;
+  --color-text: #111111;
+  --color-muted: #5b5b63;
+  --color-border: #e4e4e7;
+
+  --color-primary: #111111;
+  --color-on-primary: #ffffff;
+
+  --color-going: #15803d;
+  --color-live: #b91c1c;
+  --color-waitlist: #b45309;
+  --color-cancelled: #6b7280;
+  --color-imported: #1d4ed8;
+
+  --radius-card: 1rem;
+  --radius-control: 0.75rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-surface: #000000;
+    --color-surface-2: #161618;
+    --color-text: #f5f5f7;
+    --color-muted: #a1a1aa;
+    --color-border: #27272a;
+    --color-primary: #ffffff;
+    --color-on-primary: #000000;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-surface: #000000;
+  --color-surface-2: #161618;
+  --color-text: #f5f5f7;
+  --color-muted: #a1a1aa;
+  --color-border: #27272a;
+  --color-primary: #ffffff;
+  --color-on-primary: #000000;
+}

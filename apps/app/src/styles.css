@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@import "@ap/ui/tokens.css";
+
+html,
+body,
+#root {
+  min-height: 100dvh;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-text);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
