@@ -4,6 +4,7 @@ Claude cannot create accounts, enter payment details, or sign anything. Everythi
 
 ## This week (Oct 20 to 26)
 
+0. **Vercel, two minutes, do this first**: the repo is now a monorepo, so the existing project must build from the site folder. In vercel.com, open the `activity-planet` project, Settings, General, Root Directory, set `apps/web`, save, then Deployments, Redeploy the latest. Then add a second project for the product app: Add New, Project, import the same `SaiPutumbaka/activity-planet` repo, set Root Directory to `apps/app`, framework Vite, name it `activity-planet-app`, and under Environment Variables add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (same values as the existing project's `NEXT_PUBLIC_` ones). Claude's Vercel access can list projects but not change them.
 1. **Buy `activityplanet.app`** (about $10/yr) from the Vercel dashboard (Domains) or any registrar and point it at the Vercel project. Then start **Resend** (resend.com, free) domain verification the same day; DNS can take 24 hours.
 2. **Register a DMCA designated agent** at dmca.copyright.gov ($6; individuals can register). Needed for the safe harbor on user-uploaded photos.
 3. **Supabase**: stay on Free. Create a second free project named `activity-planet-staging` (region us-east-1) for CI migrations. Note: a free org allows two active projects, so rice-n-pie and Envi stay paused.

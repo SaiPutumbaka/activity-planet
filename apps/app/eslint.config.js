@@ -17,4 +17,10 @@ export default defineConfig([
     ],
     languageOptions: { ecmaVersion: 2022, globals: globals.browser },
   },
+  {
+    // TanStack Router file routes export a `Route` object next to a local component; the
+    // router's Vite plugin owns their refresh behavior, so the fast-refresh rule is noise here.
+    files: ["src/routes/**/*.tsx"],
+    rules: { "react-refresh/only-export-components": "off" },
+  },
 ]);

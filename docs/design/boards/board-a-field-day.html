@@ -1,0 +1,1027 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Field Day</title>
+<meta name="description" content="Direction A for Activity Planet v2: a sunny, sporty, light-first mobile system with one hot-orange Going button.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700;800&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ---------- Tokens: light (default) ---------- */
+:root{
+  --bg:#F3F5F7; --surface:#FFFFFF; --surface-2:#EDF0F3; --border:#DFE4E9; --border-input:#8A95A0;
+  --text:#141A21; --text-2:#4A5562; --text-3:#5E6A76; --ink:#141A21; --paper:#FFFFFF;
+  --primary:#F25C0A; --primary-fg:#141A21; --primary-hover:#DC5208; --primary-text:#C84800; --primary-soft:#FEEADF;
+  --going:#168447; --going-fg:#FFFFFF; --going-soft:#E3F5EA; --going-text:#116B35;
+  --live:#D81B60; --live-fg:#FFFFFF; --live-soft:#FCE4EE; --live-text:#B0124A;
+  --warn:#F59E0B; --warn-fg:#141A21; --warn-soft:#FEF3DC; --warn-text:#8A5A00;
+  --danger:#D92D20; --danger-fg:#FFFFFF; --danger-soft:#FDE8E6; --danger-text:#B42318;
+  --info:#3D6A8F; --info-soft:#E6EEF5; --info-text:#2F5A80;
+  --link:#0A6FC2;
+  --sky:#3BA7F0; --grass:#2DB15B; --sun:#F25C0A; --cover-sky:#BFE3FB; --cover-hill:#7ED29A;
+  --cat-sports:#1B8A4C; --cat-run:#0B8A8F; --cat-games:#4A5BD9; --cat-anime:#8347C8; --cat-tech:#1F7FD6;
+  --cat-career:#556573; --cat-food:#A16A00; --cat-music:#9C2F6E; --cat-culture:#B4532A; --cat-study:#2F4A7A;
+  --toast-bg:#141A21; --toast-fg:#F1F4F7;
+  --shadow:0 1px 2px rgba(20,26,33,.05),0 6px 16px rgba(20,26,33,.06);
+  --shadow-lg:0 2px 4px rgba(20,26,33,.06),0 24px 48px rgba(20,26,33,.14);
+  --r:16px; --r-sm:10px; --r-xs:6px;
+  --display:"Barlow Semi Condensed",Impact,"Arial Narrow",sans-serif;
+  --ui:Rubik,system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+/* ---------- Tokens: dark ---------- */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1013; --surface:#161A1F; --surface-2:#1F252B; --border:#2A3138; --border-input:#6B7784;
+    --text:#F1F4F7; --text-2:#AEB8C2; --text-3:#8C97A2; --paper:#161A1F;
+    --primary:#FF7A1F; --primary-fg:#141A21; --primary-hover:#FF8A3B; --primary-text:#FF8F45; --primary-soft:#33200F;
+    --going:#34C26C; --going-fg:#141A21; --going-soft:#15301F; --going-text:#5FD98E;
+    --live:#FF4D8D; --live-fg:#141A21; --live-soft:#3A1424; --live-text:#FF7FAE;
+    --warn:#FFB224; --warn-fg:#141A21; --warn-soft:#33240A; --warn-text:#FFC658;
+    --danger:#FF5C50; --danger-fg:#141A21; --danger-soft:#3A1512; --danger-text:#FF8A80;
+    --info:#6FA3D6; --info-soft:#182838; --info-text:#8FB8E0;
+    --link:#5CB0F5;
+    --sun:#FF7A1F; --cover-sky:#1E3A52; --cover-hill:#1E5C38;
+    --toast-bg:#F1F4F7; --toast-fg:#141A21;
+    --shadow:none; --shadow-lg:0 24px 48px rgba(0,0,0,.5);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1013; --surface:#161A1F; --surface-2:#1F252B; --border:#2A3138; --border-input:#6B7784;
+  --text:#F1F4F7; --text-2:#AEB8C2; --text-3:#8C97A2; --paper:#161A1F;
+  --primary:#FF7A1F; --primary-fg:#141A21; --primary-hover:#FF8A3B; --primary-text:#FF8F45; --primary-soft:#33200F;
+  --going:#34C26C; --going-fg:#141A21; --going-soft:#15301F; --going-text:#5FD98E;
+  --live:#FF4D8D; --live-fg:#141A21; --live-soft:#3A1424; --live-text:#FF7FAE;
+  --warn:#FFB224; --warn-fg:#141A21; --warn-soft:#33240A; --warn-text:#FFC658;
+  --danger:#FF5C50; --danger-fg:#141A21; --danger-soft:#3A1512; --danger-text:#FF8A80;
+  --info:#6FA3D6; --info-soft:#182838; --info-text:#8FB8E0;
+  --link:#5CB0F5;
+  --sun:#FF7A1F; --cover-sky:#1E3A52; --cover-hill:#1E5C38;
+  --toast-bg:#F1F4F7; --toast-fg:#141A21;
+  --shadow:none; --shadow-lg:0 24px 48px rgba(0,0,0,.5);
+  color-scheme:dark;
+}
+
+/* ---------- Base ---------- */
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ui);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--link)}
+svg{display:block}
+.ic{width:1.25em;height:1.25em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:1160px;margin:0 auto;padding:0 16px}
+.section{padding:56px 0;border-top:1px solid var(--border)}
+.eyebrow{font:600 12px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin:0 0 10px}
+h2{font:800 36px/1 var(--display);letter-spacing:-.005em;margin:0 0 8px;text-transform:uppercase}
+h3{font:700 22px/1.15 var(--display);margin:32px 0 12px;text-transform:uppercase;letter-spacing:.01em}
+.lede{color:var(--text-2);max-width:62ch;margin:0 0 24px}
+.note{font-size:14px;color:var(--text-3);max-width:66ch}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em;background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.ok{display:inline-flex;align-items:center;gap:4px;color:var(--going-text);font-weight:600;font-size:12px}
+.ok .ic{width:14px;height:14px;stroke-width:2.5}
+
+/* ---------- Board header ---------- */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0}
+.lockup{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text)}
+.lockup .wm{font:800 20px/1 var(--display);letter-spacing:-.01em}
+.toggle{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--border-input);background:var(--surface);color:var(--text);font:600 14px var(--ui)}
+.toggle .ic{width:18px;height:18px}
+.toggle .on-light{display:inline-flex}.toggle .on-dark{display:none}
+:root[data-theme="dark"] .toggle .on-light{display:none}
+:root[data-theme="dark"] .toggle .on-dark{display:inline-flex}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .toggle .on-light{display:none}
+  :root:not([data-theme="light"]) .toggle .on-dark{display:inline-flex}
+}
+.hero{padding:32px 0 56px}
+.hero h1{font:800 clamp(64px,12vw,128px)/.9 var(--display);letter-spacing:-.02em;margin:0 0 20px;text-transform:uppercase}
+.hero h1 .dot{color:var(--primary)}
+.thesis{font-size:clamp(18px,2.4vw,24px);line-height:1.35;max-width:34ch;margin:0 0 20px;font-weight:500}
+.adjs{display:flex;gap:8px;flex-wrap:wrap}
+.adj{font:600 14px/1 var(--ui);padding:10px 14px;border-radius:999px;background:var(--surface);border:1px solid var(--border);color:var(--text-2)}
+.adj::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--primary);margin-right:8px;vertical-align:0}
+.meta-row{display:flex;gap:24px;flex-wrap:wrap;margin-top:28px;font-size:13px;color:var(--text-3)}
+.meta-row b{color:var(--text-2);font-weight:600}
+
+/* ---------- Logo section ---------- */
+.logo-stage{display:grid;grid-template-columns:1fr;gap:24px}
+@media (min-width:800px){.logo-stage{grid-template-columns:1.4fr 1fr}}
+.logo-big{padding:40px 24px;display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;min-height:240px}
+.logo-big .wm{font:800 clamp(40px,8vw,72px)/1 var(--display);letter-spacing:-.02em;text-transform:uppercase}
+.logo-sizes{padding:24px;display:grid;gap:20px}
+.logo-sizes .row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo-sizes .lab{font-size:13px;color:var(--text-3);min-width:88px}
+.appicon{border-radius:22.5%;overflow:hidden;flex:none;box-shadow:var(--shadow)}
+.nav-demo{display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 12px;border-radius:12px;background:var(--surface-2)}
+.nav-demo .wm{font:800 17px/1 var(--display);letter-spacing:-.01em;text-transform:uppercase}
+.idea{padding:0;margin:20px 0 0;max-width:66ch;color:var(--text-2)}
+
+/* ---------- Palette ---------- */
+.sw{padding:12px;display:grid;gap:10px}
+.sw .blocks{display:grid;grid-template-columns:1fr 1fr;gap:6px;height:64px}
+.sw .blk{border-radius:var(--r-sm);border:1px solid var(--border);display:flex;align-items:flex-end;padding:6px 8px;font:600 11px/1 ui-monospace,Menlo,Consolas,monospace}
+.sw .role{font-weight:600;font-size:14px}
+.sw .ratio{font-size:12px;color:var(--text-3);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.sw .ratio b{color:var(--text-2);font-weight:600}
+.pair{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:var(--r-sm);border:1px solid var(--border)}
+.pair .sample{font-weight:600}
+.pair .r{font:600 13px ui-monospace,Menlo,Consolas,monospace}
+.state-row{display:grid;grid-template-columns:120px 1fr 1fr;gap:10px;align-items:stretch;padding:12px;border-bottom:1px solid var(--border)}
+.state-row:last-child{border-bottom:0}
+.state-row .nm{font-weight:600;font-size:14px;display:flex;flex-direction:column;justify-content:center;gap:4px}
+.state-row .nm small{font-weight:400;color:var(--text-3);font-size:12px}
+.state-row .cell{border-radius:var(--r-sm);padding:10px 12px;display:grid;gap:4px;font-size:13px;line-height:1.25}
+.state-row .cell b{font-size:14px}
+.state-row .cell small{opacity:.85;font-size:11px;font-family:ui-monospace,Menlo,Consolas,monospace}
+@media (max-width:560px){.state-row{grid-template-columns:1fr}.state-row .nm{flex-direction:row;justify-content:flex-start;gap:8px}}
+.cat{display:flex;align-items:center;gap:12px;padding:10px 12px}
+.cat .tile{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:#fff;flex:none}
+.cat .tile .ic{width:22px;height:22px}
+.cat .t{font-weight:600;font-size:14px;line-height:1.2}
+.cat .h{font:500 12px ui-monospace,Menlo,Consolas,monospace;color:var(--text-3);margin-top:3px}
+
+/* ---------- Type ---------- */
+.type-row{display:grid;grid-template-columns:150px 1fr;gap:16px;padding:18px 0;border-bottom:1px solid var(--border);align-items:baseline}
+.type-row:last-child{border-bottom:0}
+.type-row .spec{font-size:12px;color:var(--text-3);line-height:1.5}
+.type-row .spec b{display:block;color:var(--text);font-size:13px}
+@media (max-width:560px){.type-row{grid-template-columns:1fr;gap:6px}}
+.t-display{font:800 34px/1.05 var(--display);letter-spacing:-.01em}
+.t-title{font:700 22px/1.2 var(--display)}
+.t-head{font:600 17px/1.3 var(--ui)}
+.t-body{font:400 15px/1.47 var(--ui)}
+.t-label{font:600 15px/1.33 var(--ui)}
+.t-caption{font:400 13px/1.4 var(--ui);color:var(--text-2)}
+.t-micro{font:500 11px/1.3 var(--ui);letter-spacing:.02em;color:var(--text-3)}
+.fam{padding:20px}
+.fam .big{font-size:44px;line-height:1;margin-bottom:8px}
+.fam .glyphs{color:var(--text-3);font-size:18px;letter-spacing:.02em;word-break:break-all}
+
+/* ---------- App components (shared by component sheet and phone screens) ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border-radius:999px;border:1.5px solid transparent;font:600 15px/1 var(--ui);color:var(--text);background:var(--surface-2);white-space:nowrap;transition:transform .09s ease-out,background .12s}
+.btn:active{transform:scale(.97)}
+.btn .ic{width:18px;height:18px}
+.btn-sm{height:38px;padding:0 14px;font-size:14px}
+.btn-xs{height:32px;padding:0 12px;font-size:13px}
+.btn-block{width:100%}
+.btn-primary{background:var(--primary);color:var(--primary-fg)}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-secondary{background:transparent;border-color:var(--text);color:var(--text)}
+.btn-ghost{background:transparent;color:var(--text-2)}
+.btn-ghost:hover{background:var(--surface-2)}
+.btn-going{background:var(--going);color:var(--going-fg)}
+.btn-interested{background:transparent;border-color:var(--border-input);color:var(--text)}
+.btn-wait{background:var(--warn-soft);color:var(--warn-text)}
+.btn-full{background:transparent;border-color:var(--warn-text);color:var(--warn-text)}
+.btn-cancel{background:var(--danger-soft);color:var(--danger-text);cursor:not-allowed}
+.btn-live{background:var(--live);color:var(--live-fg)}
+.btn-icon{width:44px;height:44px;padding:0;border-radius:50%;background:transparent;color:var(--text)}
+.btn-icon .ic{width:22px;height:22px}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+.pulse{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.6);opacity:.55}}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none}.btn{transition:none}}
+
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;font:500 12px/1 var(--ui);background:var(--surface-2);color:var(--text-2);white-space:nowrap}
+.chip .sw-dot{width:8px;height:8px;border-radius:50%;flex:none}
+.chip-hub{background:var(--surface-2);color:var(--text)}
+.chip-hub .mini{width:16px;height:16px;border-radius:5px;display:grid;place-items:center;color:#fff}
+.chip-hub .mini .ic{width:11px;height:11px;stroke-width:2.5}
+.chip-imported{background:var(--info-soft);color:var(--info-text)}
+.chip-imported .ic{width:12px;height:12px;stroke-width:2.5}
+.chip-going{background:var(--going-soft);color:var(--going-text)}
+.chip-live{background:var(--live-soft);color:var(--live-text);font-weight:600}
+.chip-warn{background:var(--warn-soft);color:var(--warn-text)}
+.chip-danger{background:var(--danger-soft);color:var(--danger-text)}
+
+.av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#fff;font:600 11px/1 var(--ui);flex:none;border:2px solid var(--surface);box-sizing:content-box}
+.av-lg{width:40px;height:40px;font-size:14px}
+.av-xl{width:48px;height:48px;font-size:16px}
+.stack{display:flex}
+.stack .av{margin-left:-8px}
+.stack .av:first-child{margin-left:0}
+.stack .more{background:var(--surface-2);color:var(--text-2);font-size:10px}
+
+.tile{border-radius:12px;display:grid;place-items:center;color:#fff;flex:none}
+.tile .ic{width:55%;height:55%}
+
+.ev{padding:14px;display:grid;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)}
+.ev .top{display:flex;gap:12px;align-items:flex-start}
+.ev .tile{width:44px;height:44px}
+.ev .ttl{font:600 17px/1.25 var(--ui);margin:0}
+.ev .meta{font-size:13px;color:var(--text-2);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ev .meta .ic{width:14px;height:14px}
+.ev .foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ev .count{font-size:13px;color:var(--text-2);display:flex;align-items:center;gap:8px}
+.ev .count b{color:var(--text);font-weight:600}
+.ev .chips{display:flex;gap:6px;flex-wrap:wrap}
+.bar{height:4px;border-radius:2px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--going);border-radius:2px}
+
+.hub{padding:14px;display:flex;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)}
+.hub .tile{width:56px;height:56px;border-radius:16px}
+.hub .n{font:600 16px/1.2 var(--ui)}
+.hub .s{font-size:13px;color:var(--text-2);margin-top:3px}
+.hub .grow{flex:1;min-width:0}
+
+.tabbar{display:flex;align-items:flex-start;justify-content:space-around;padding:8px 6px 0;border-top:1px solid var(--border);background:var(--surface)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;width:64px;padding:4px 0;color:var(--text-3);font:500 11px/1 var(--ui);background:none;border:0;position:relative;border-radius:8px}
+.tab .ic{width:26px;height:26px;stroke-width:1.75}
+.tab.active{color:var(--text)}
+.tab.active .ic{fill:var(--text);stroke:var(--text)}
+.tab .badge{position:absolute;top:0;left:50%;margin-left:6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--primary);color:var(--primary-fg);font:700 11px/18px var(--ui);text-align:center}
+
+.field{display:grid;gap:6px}
+.field label{font:600 13px/1 var(--ui);color:var(--text-2)}
+.input{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px;border-radius:12px;border:1.5px solid var(--border-input);background:var(--surface);color:var(--text);font:400 15px var(--ui)}
+.input input{border:0;background:transparent;color:inherit;font:inherit;flex:1;min-width:0;outline:0}
+.input input::placeholder{color:var(--text-3)}
+.input .ic{color:var(--text-3);width:18px;height:18px}
+.input.focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.help{font-size:12px;color:var(--text-3)}
+
+.toast{display:inline-flex;align-items:center;gap:10px;padding:12px 16px 12px 12px;border-radius:14px;background:var(--toast-bg);color:var(--toast-fg);font:500 14px/1.3 var(--ui);box-shadow:var(--shadow-lg);max-width:100%}
+.toast .chk{width:24px;height:24px;border-radius:50%;background:var(--going);display:grid;place-items:center;color:var(--going-fg);flex:none}
+.toast .chk .ic{width:14px;height:14px;stroke-width:3}
+.toast a{color:inherit;font-weight:600;margin-left:auto;text-decoration:none;white-space:nowrap}
+
+/* component sheet */
+.comp{padding:20px;display:grid;gap:14px;align-content:start}
+.comp h4{margin:0;font:600 12px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
+.comp .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.comp .lbl{font-size:12px;color:var(--text-3);width:100%}
+.states{display:grid;gap:10px}
+.states .st{display:grid;grid-template-columns:1fr 150px;gap:12px;align-items:center;font-size:13px;color:var(--text-2)}
+.states .st b{display:block;color:var(--text);font-weight:600;font-size:14px}
+.states .btn{width:100%}
+@media (max-width:420px){.states .st{grid-template-columns:1fr}}
+
+/* ---------- Phones ---------- */
+.phones{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(375px,100%),375px));justify-content:center;gap:28px}
+.phone{width:375px;max-width:100%;height:812px;border-radius:44px;background:var(--bg);border:1px solid var(--border);box-shadow:var(--shadow-lg);overflow:hidden;position:relative;display:flex;flex-direction:column;font-size:15px}
+.phone .cap{position:absolute;top:0;left:0;right:0;text-align:center;font:600 11px/1 var(--ui);color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;top:-28px}
+.phones>div{position:relative;padding-top:28px}
+.status{height:48px;display:flex;align-items:center;justify-content:space-between;padding:10px 28px 0;font:600 15px var(--ui);flex:none}
+.status .r{display:flex;gap:6px;align-items:center}
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;position:relative}
+.screen::-webkit-scrollbar{display:none}
+.phone .tabbar{flex:none;padding-bottom:22px}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 16px 10px;gap:8px}
+.loc{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 12px 0 10px;border-radius:999px;background:var(--surface);border:1px solid var(--border);font:600 15px var(--ui);color:var(--text)}
+.loc .ic{width:18px;height:18px}
+.loc .ic.pin{color:var(--primary)}
+.stories{display:flex;gap:14px;padding:4px 16px 14px;overflow-x:auto;scrollbar-width:none}
+.stories::-webkit-scrollbar{display:none}
+.story{display:flex;flex-direction:column;align-items:center;gap:6px;width:62px;flex:none;font:500 11px/1.2 var(--ui);color:var(--text-2);text-align:center}
+.story .ring{width:62px;height:62px;border-radius:50%;padding:3px;border:2.5px solid transparent;display:grid;place-items:center}
+.story .ring.new{border-color:var(--primary)}
+.story .tile{width:100%;height:100%;border-radius:50%}
+.story .tile .ic{width:26px;height:26px}
+.story .add{background:var(--surface);border:1.5px dashed var(--border-input);color:var(--text-2)}
+.sec{display:flex;align-items:baseline;justify-content:space-between;padding:8px 16px 10px}
+.sec h5{margin:0;font:700 22px/1 var(--display);text-transform:uppercase;letter-spacing:.01em}
+.sec h5 small{font:500 13px var(--ui);text-transform:none;color:var(--text-3);margin-left:8px;letter-spacing:0}
+.sec a{font:500 13px var(--ui);color:var(--link);text-decoration:none}
+.feed{display:grid;gap:12px;padding:0 16px 16px}
+
+/* event page */
+.cover{position:relative;height:200px;overflow:hidden}
+.cover svg{width:100%;height:100%}
+.cover .nav{position:absolute;top:6px;left:8px;right:8px;display:flex;justify-content:space-between}
+.cover .nav .btn-icon{background:var(--surface);color:var(--text);width:40px;height:40px;box-shadow:var(--shadow)}
+.cover .hubtile{position:absolute;left:16px;bottom:-20px;width:56px;height:56px;border-radius:16px;border:3px solid var(--bg)}
+.evp{padding:30px 16px 0;display:grid;gap:14px}
+.evp .chips{display:flex;gap:6px;flex-wrap:wrap}
+.evp h1{margin:0;font:800 30px/1.02 var(--display);letter-spacing:-.01em}
+.line{display:flex;gap:12px;align-items:flex-start}
+.line .ic{width:20px;height:20px;color:var(--text-2);margin-top:2px}
+.line .t{flex:1;min-width:0}
+.line .t b{display:block;font-weight:600}
+.line .t span{display:block;font-size:13px;color:var(--text-2)}
+.line a{font:500 13px var(--ui);text-decoration:none;white-space:nowrap;margin-top:3px}
+.hostcard{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:var(--surface);border:1px solid var(--border)}
+.hostcard .tile{width:44px;height:44px}
+.hostcard .t{flex:1;min-width:0}
+.hostcard .t b{display:block;font-weight:600;font-size:15px}
+.hostcard .t span{display:block;font-size:13px;color:var(--text-2)}
+.hostcard .ic.chev{color:var(--text-3);width:20px;height:20px}
+.people{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.people::-webkit-scrollbar{display:none}
+.person{display:flex;flex-direction:column;align-items:center;gap:6px;font:500 12px var(--ui);color:var(--text-2);flex:none}
+.person .av{border:0}
+.person .spot{background:var(--surface);border:1.5px dashed var(--border-input);color:var(--text-3);font-size:11px}
+.actions{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center}
+.actions .btn-icon{background:var(--surface);border:1px solid var(--border)}
+.chatbox{border-radius:14px;background:var(--surface);border:1px solid var(--border);overflow:hidden}
+.chatbox .h{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);font-weight:600}
+.chatbox .h span{font-size:12px;color:var(--text-3);font-weight:500}
+.msgs{padding:12px 14px;display:grid;gap:10px}
+.msg{display:flex;gap:8px;align-items:flex-end}
+.msg .av{width:24px;height:24px;font-size:10px;border:0}
+.msg .b{background:var(--surface-2);padding:8px 12px;border-radius:16px 16px 16px 4px;font-size:14px;line-height:1.35;max-width:80%}
+.msg .b small{display:block;font-size:11px;color:var(--text-3);margin-bottom:2px}
+.msg.me{flex-direction:row-reverse}
+.msg.me .b{background:var(--primary-soft);color:var(--text);border-radius:16px 16px 4px 16px}
+.composer{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);align-items:center}
+.composer .input{flex:1;height:40px;border-radius:999px;border-color:var(--border)}
+.composer .send{width:40px;height:40px;border-radius:50%;background:var(--primary);color:var(--primary-fg);display:grid;place-items:center;border:0}
+.composer .send .ic{width:18px;height:18px}
+.nudge{display:flex;gap:12px;padding:12px 14px;border-radius:14px;background:var(--info-soft);color:var(--info-text);align-items:flex-start;font-size:13px;line-height:1.4}
+.nudge .ic{width:20px;height:20px;flex:none;margin-top:1px}
+.nudge b{display:block;font-weight:600;color:var(--info-text);font-size:14px}
+.sticky{flex:none;border-top:1px solid var(--border);background:var(--surface);padding:10px 16px 26px;display:flex;gap:10px;align-items:center}
+.sticky .btn{flex:1}
+.sticky .btn-icon{background:var(--surface-2)}
+
+/* hub page */
+.hubhead{padding:4px 16px 0;display:grid;gap:12px}
+.hubhead .id{display:flex;gap:14px;align-items:center}
+.hubhead .tile{width:72px;height:72px;border-radius:20px}
+.hubhead .tile .ic{width:38px;height:38px}
+.hubhead h1{margin:0;font:800 32px/.98 var(--display);letter-spacing:-.01em}
+.hubhead .chap{font:600 15px var(--ui);color:var(--text-2);margin-top:4px}
+.hubhead .stats{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)}
+.hubhead .stats b{color:var(--text);font-weight:600}
+.hubhead .cta{display:grid;grid-template-columns:1fr auto;gap:10px}
+.tabs{display:flex;gap:0;padding:0 16px;border-bottom:1px solid var(--border);margin-top:14px}
+.tabs button{background:none;border:0;padding:10px 0 12px;margin-right:22px;font:600 15px var(--ui);color:var(--text-3);position:relative}
+.tabs button.on{color:var(--text)}
+.tabs button.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--text);border-radius:2px}
+.tabs button .ud{position:absolute;top:8px;right:-10px;width:8px;height:8px;border-radius:50%;background:var(--primary)}
+.cap-row{display:flex;gap:10px;padding:0 16px}
+.capt{flex:1;display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;background:var(--surface);border:1px solid var(--border);min-width:0}
+.capt .t{min-width:0;flex:1}
+.capt .t b{display:block;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.capt .t span{display:block;font-size:12px;color:var(--text-2)}
+.evl{display:grid;gap:10px;padding:0 16px 16px}
+.evi{display:flex;gap:12px;padding:12px;border-radius:14px;background:var(--surface);border:1px solid var(--border);align-items:center}
+.evi .date{width:46px;flex:none;text-align:center;border-radius:10px;background:var(--surface-2);padding:6px 0}
+.evi .date small{display:block;font:600 10px/1 var(--ui);letter-spacing:.08em;color:var(--text-3)}
+.evi .date b{display:block;font:800 22px/1 var(--display);margin-top:3px}
+.evi .t{flex:1;min-width:0}
+.evi .t b{display:block;font:600 15px/1.25 var(--ui)}
+.evi .t span{display:block;font-size:12px;color:var(--text-2);margin-top:3px}
+.evi .t .s{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px}
+.evi .btn{flex:none}
+
+/* ---------- Motion + closing ---------- */
+.motion{padding:18px;display:grid;gap:6px}
+.motion b{font:700 18px/1.15 var(--display);text-transform:uppercase}
+.motion .spec{font:600 12px ui-monospace,Menlo,Consolas,monospace;color:var(--primary-text);word-break:break-word}
+.motion p{margin:0;font-size:14px;color:var(--text-2)}
+.closing{font-size:17px;line-height:1.55;max-width:72ch;margin:0}
+.closing b{font-weight:600}
+footer{padding:32px 0 56px;font-size:13px;color:var(--text-3)}
+</style>
+</head>
+<body>
+
+<!-- ======================= SVG symbol library ======================= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-hubs" viewBox="0 0 24 24"><circle cx="7" cy="7" r="3.2"/><circle cx="17" cy="7" r="3.2"/><circle cx="7" cy="17" r="3.2"/><circle cx="17" cy="17" r="3.2"/></symbol>
+    <symbol id="i-plans" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="m9 15.5 2 2 4-4"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 15a2 2 0 0 1-2 2H9l-5 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/></symbol>
+    <symbol id="i-you" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-chev-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-chev-right" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.9 6.4.8-4.7 4.4 1.2 6.3L12 17.3 6.3 20.4l1.2-6.3L2.8 9.7l6.4-.8z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></symbol>
+    <symbol id="i-cal-plus" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3 10 14M21 3l-7 18-4-8-8-4z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-5-6.3"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+    <symbol id="i-chatline" viewBox="0 0 24 24"><path d="M20 15a2 2 0 0 1-2 2H9l-5 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 12.5h5"/></symbol>
+    <!-- category glyphs -->
+    <symbol id="c-sports" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M4.2 9.6c3.8 1.4 5.9 4.3 6.8 10.6M19.8 9.6c-3.8 1.4-5.9 4.3-6.8 10.6M5.6 6.6c3.2 2.8 9.6 2.8 12.8 0"/></symbol>
+    <symbol id="c-pingpong" viewBox="0 0 24 24"><circle cx="10.5" cy="9.5" r="6.5"/><path d="M15.2 14.2 19 19.5"/><circle cx="18.3" cy="5.7" r="1.9" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="c-pool" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.6" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="c-run" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.3 16.6C14 15.2 10 8.2 15.8 7.3"/></symbol>
+    <symbol id="c-games" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="8.6" cy="8.6" r="1.5" fill="currentColor" stroke="none"/><circle cx="15.4" cy="15.4" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="c-anime" viewBox="0 0 24 24"><path d="M4 10h16v10H4zM4 10l1.5-5h13L20 10M9.5 5 8 10M15 5l-1.5 5"/></symbol>
+    <symbol id="c-tech" viewBox="0 0 24 24"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></symbol>
+    <symbol id="c-career" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 12h18"/></symbol>
+    <symbol id="c-food" viewBox="0 0 24 24"><path d="M12 21 3 6.5a16 16 0 0 1 18 0z"/><circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none"/><circle cx="14.2" cy="10.2" r="1.4" fill="currentColor" stroke="none"/><circle cx="11.6" cy="14.4" r="1.4" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="c-music" viewBox="0 0 24 24"><path d="M9 18V5l10-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></symbol>
+    <symbol id="c-culture" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></symbol>
+    <symbol id="c-study" viewBox="0 0 24 24"><path d="M3 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H3zM21 5h-6a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h7z"/></symbol>
+    <!-- the mark -->
+    <symbol id="mark" viewBox="0 0 64 64">
+      <clipPath id="mark-clip"><circle cx="32" cy="32" r="30"/></clipPath>
+      <g clip-path="url(#mark-clip)">
+        <rect width="64" height="64" fill="var(--sky)"/>
+        <circle cx="26" cy="78" r="40" fill="var(--grass)"/>
+      </g>
+      <circle cx="41" cy="32" r="9" fill="var(--sun)"/>
+    </symbol>
+    <symbol id="mark-mono" viewBox="0 0 64 64">
+      <clipPath id="mark-clip-m"><circle cx="32" cy="32" r="30"/></clipPath>
+      <g clip-path="url(#mark-clip-m)">
+        <rect width="64" height="64" fill="currentColor"/>
+        <circle cx="26" cy="78" r="40" fill="var(--paper)"/>
+        <circle cx="26" cy="78" r="36.5" fill="currentColor"/>
+      </g>
+      <circle cx="41" cy="32" r="9" fill="var(--paper)"/>
+      <circle cx="41" cy="32" r="6" fill="currentColor"/>
+    </symbol>
+    <symbol id="appicon" viewBox="0 0 64 64">
+      <rect width="64" height="64" fill="var(--sky)"/>
+      <circle cx="24" cy="86" r="52" fill="var(--grass)"/>
+      <circle cx="46" cy="30" r="11" fill="var(--sun)"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ======================= 1. HEADER ======================= -->
+<header class="wrap">
+  <div class="topbar">
+    <a class="lockup" href="#top" aria-label="Activity Planet">
+      <svg width="32" height="32" aria-hidden="true"><use href="#mark"/></svg>
+      <span class="wm">Activity Planet</span>
+    </a>
+    <button class="toggle" id="themeToggle" type="button" aria-label="Toggle light or dark theme">
+      <span class="on-light"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span>
+      <span class="on-dark"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span>
+      <span class="on-light">Dark</span><span class="on-dark">Light</span>
+    </button>
+  </div>
+  <div class="hero" id="top">
+    <p class="eyebrow">Direction A · Visual board · Activity Planet v2</p>
+    <h1>Field<br>Day<span class="dot">.</span></h1>
+    <p class="thesis">A sunny rec-center afternoon turned into an app: white courts, one hot-orange whistle, and sky-blue lines you can read from across the gym.</p>
+    <div class="adjs"><span class="adj">Sunny</span><span class="adj">Sporty</span><span class="adj">Direct</span></div>
+    <div class="meta-row">
+      <span><b>Primary</b> Sun orange #F25C0A (light) · #FF7A1F (dark)</span>
+      <span><b>Surfaces</b> #FFFFFF on #F3F5F7 · #161A1F on #0D1013</span>
+      <span><b>Type</b> Barlow Semi Condensed + Rubik</span>
+      <span><b>First market</b> Georgia State, downtown Atlanta, Jan 2027</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ======================= 2. LOGO ======================= -->
+<section class="section" id="logo">
+  <p class="eyebrow">02 · Logo</p>
+  <h2>The field planet</h2>
+  <p class="lede">A planet that is just sky, a hill, and a ball resting on it. No birds, no mountains, no gradient; the three old-logo colors are kept, the illustration is not.</p>
+  <div class="logo-stage">
+    <div class="card logo-big">
+      <svg width="120" height="120" role="img" aria-label="Activity Planet mark: a round planet, blue sky above a green hill, with an orange ball resting on the hill"><use href="#mark"/></svg>
+      <svg class="wordmark" width="420" height="80" viewBox="0 0 420 80" role="img" aria-label="Activity Planet wordmark" style="max-width:100%;height:auto">
+        <text x="0" y="62" font-family="Barlow Semi Condensed, Impact, sans-serif" font-weight="800" font-size="68" letter-spacing="-1.4" fill="currentColor">ACTIVITY PLANET</text>
+      </svg>
+    </div>
+    <div class="card logo-sizes">
+      <div class="row"><span class="lab">24 px nav</span>
+        <span class="nav-demo"><svg width="24" height="24" aria-hidden="true"><use href="#mark"/></svg><span class="wm">Activity Planet</span></span>
+        <svg width="24" height="24" aria-hidden="true"><use href="#mark"/></svg>
+        <svg width="16" height="16" aria-hidden="true"><use href="#mark"/></svg>
+      </div>
+      <div class="row"><span class="lab">One color</span>
+        <svg width="40" height="40" style="color:var(--text)" aria-hidden="true"><use href="#mark-mono"/></svg>
+        <svg width="24" height="24" style="color:var(--text)" aria-hidden="true"><use href="#mark-mono"/></svg>
+        <svg width="24" height="24" style="color:var(--primary)" aria-hidden="true"><use href="#mark-mono"/></svg>
+      </div>
+      <div class="row"><span class="lab">App icon</span>
+        <svg class="appicon" width="96" height="96" role="img" aria-label="App icon: the planet landscape filling a rounded square"><use href="#appicon"/></svg>
+        <svg class="appicon" width="60" height="60" aria-hidden="true"><use href="#appicon"/></svg>
+        <svg class="appicon" width="40" height="40" aria-hidden="true"><use href="#appicon"/></svg>
+        <svg class="appicon" width="29" height="29" aria-hidden="true"><use href="#appicon"/></svg>
+      </div>
+    </div>
+  </div>
+  <p class="idea">The mark is the view from the ground on a good day: sky on top, a hill in the lower third, a ball sitting on the crest where you would actually be standing. On the app icon the same scene fills the whole tile, so the icon reads as a place rather than a badge, and the ball lands in the spot a notification would.</p>
+</section>
+
+<!-- ======================= 3. PALETTE ======================= -->
+<section class="section" id="palette">
+  <p class="eyebrow">03 · Palette</p>
+  <h2>Chalk, asphalt, one whistle</h2>
+  <p class="lede">White cards on a faint grey court. Near-black ink. Sun orange is reserved for the action you take and the ring that says a hub has something new. Each swatch shows light and dark values and the WCAG 2.1 ratio for every text/background pair the UI relies on.</p>
+
+  <h3>Surfaces, text, borders</h3>
+  <div class="grid g4">
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#F3F5F7;color:#141A21">F3F5F7</div><div class="blk" style="background:#0D1013;color:#F1F4F7">0D1013</div></div><div class="role">Background</div><div class="ratio">Page behind cards. Light · Dark</div></div>
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#FFFFFF;color:#141A21">FFFFFF</div><div class="blk" style="background:#161A1F;color:#F1F4F7">161A1F</div></div><div class="role">Surface</div><div class="ratio">Cards, sheets, tab bar</div></div>
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#EDF0F3;color:#141A21">EDF0F3</div><div class="blk" style="background:#1F252B;color:#F1F4F7">1F252B</div></div><div class="role">Surface 2</div><div class="ratio">Chips, secondary buttons, bubbles</div></div>
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#DFE4E9;color:#141A21">DFE4E9</div><div class="blk" style="background:#2A3138;color:#F1F4F7">2A3138</div></div><div class="role">Border</div><div class="ratio">Hairlines, card edges</div></div>
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#8A95A0;color:#141A21">8A95A0</div><div class="blk" style="background:#6B7784;color:#F1F4F7">6B7784</div></div><div class="role">Input border</div><div class="ratio"><b>3.05</b> vs surface · <b>3.83</b> dark <span class="ok"><svg class="ic"><use href="#i-check"/></svg>1.4.11</span></div></div>
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#141A21;color:#F1F4F7">141A21</div><div class="blk" style="background:#F1F4F7;color:#141A21">F1F4F7</div></div><div class="role">Text</div><div class="ratio">on surface <b>17.51</b> · <b>15.83</b> <span class="ok"><svg class="ic"><use href="#i-check"/></svg>AAA</span></div></div>
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#4A5562;color:#F1F4F7">4A5562</div><div class="blk" style="background:#AEB8C2;color:#141A21">AEB8C2</div></div><div class="role">Text 2</div><div class="ratio">on surface <b>7.59</b> · <b>8.68</b> <span class="ok"><svg class="ic"><use href="#i-check"/></svg>AAA</span></div></div>
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#5E6A76;color:#F1F4F7">5E6A76</div><div class="blk" style="background:#8C97A2;color:#141A21">8C97A2</div></div><div class="role">Text 3</div><div class="ratio">on surface <b>5.53</b> · <b>5.94</b>; on surface 2 <b>4.83</b> · <b>5.20</b> <span class="ok"><svg class="ic"><use href="#i-check"/></svg>AA</span></div></div>
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#0A6FC2;color:#F1F4F7">0A6FC2</div><div class="blk" style="background:#5CB0F5;color:#141A21">5CB0F5</div></div><div class="role">Link</div><div class="ratio">on surface <b>5.17</b> · <b>7.48</b> <span class="ok"><svg class="ic"><use href="#i-check"/></svg>AA</span></div></div>
+  </div>
+
+  <h3>Primary action</h3>
+  <div class="grid g3">
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#F25C0A;color:#141A21">F25C0A</div><div class="blk" style="background:#FF7A1F;color:#141A21">FF7A1F</div></div><div class="role">Sun orange · the Going button, the new-ring, the send button</div><div class="ratio">ink on orange <b>5.26</b> · <b>6.72</b> <span class="ok"><svg class="ic"><use href="#i-check"/></svg>AA</span></div><div class="ratio">orange vs surface (non-text) <b>3.33</b> · <b>6.70</b> <span class="ok"><svg class="ic"><use href="#i-check"/></svg>1.4.11</span></div></div>
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#141A21;color:#F1F4F7">141A21</div><div class="blk" style="background:#141A21;color:#F1F4F7">141A21</div></div><div class="role">Text on primary: ink, both themes</div><div class="ratio">White-on-orange would be 3.33 / 2.61 and fail. Ink on orange is the basketball, the referee shirt, the high-vis vest. Deliberate.</div></div>
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#C84800;color:#F1F4F7">C84800</div><div class="blk" style="background:#FF8F45;color:#141A21">FF8F45</div></div><div class="role">Primary as text (links to actions, motion specs)</div><div class="ratio">on surface <b>4.79</b> · <b>7.71</b> <span class="ok"><svg class="ic"><use href="#i-check"/></svg>AA</span></div></div>
+  </div>
+
+  <h3>Semantic states</h3>
+  <div class="card" style="overflow:hidden">
+    <div class="state-row">
+      <div class="nm">Going<small>success</small></div>
+      <div class="cell" style="background:var(--going);color:var(--going-fg)"><b>Going ✓</b><small>L #168447 + white 4.75 · D #34C26C + ink 7.57</small></div>
+      <div class="cell" style="background:var(--going-soft);color:var(--going-text)"><b>4 of 6 going · it's on</b><small>L #E3F5EA + #116B35 5.83 · D #15301F + #5FD98E 8.00</small></div>
+    </div>
+    <div class="state-row">
+      <div class="nm">Live now<small>happening</small></div>
+      <div class="cell" style="background:var(--live);color:var(--live-fg)"><b>● Live · Join now</b><small>L #D81B60 + white 4.95 · D #FF4D8D + ink 5.58</small></div>
+      <div class="cell" style="background:var(--live-soft);color:var(--live-text)"><b>Started 2:00 PM · 11 here</b><small>L #FCE4EE + #B0124A 5.76 · D #3A1424 + #FF7FAE 6.82</small></div>
+    </div>
+    <div class="state-row">
+      <div class="nm">Full / waitlist<small>warning</small></div>
+      <div class="cell" style="background:var(--warn);color:var(--warn-fg)"><b>Full</b><small>L #F59E0B + ink 8.15 · D #FFB224 + ink 9.71</small></div>
+      <div class="cell" style="background:var(--warn-soft);color:var(--warn-text)"><b>Waitlisted · you're #3</b><small>L #FEF3DC + #8A5A00 5.38 · D #33240A + #FFC658 9.64</small></div>
+    </div>
+    <div class="state-row">
+      <div class="nm">Cancelled<small>destructive</small></div>
+      <div class="cell" style="background:var(--danger);color:var(--danger-fg)"><b>Cancel event</b><small>L #D92D20 + white 4.83 · D #FF5C50 + ink 5.75</small></div>
+      <div class="cell" style="background:var(--danger-soft);color:var(--danger-text)"><b>Cancelled · rain</b><small>L #FDE8E6 + #B42318 5.59 · D #3A1512 + #FF8A80 7.10</small></div>
+    </div>
+    <div class="state-row">
+      <div class="nm">Imported<small>info / neutral</small></div>
+      <div class="cell" style="background:var(--info);color:#fff"><b>From PIN</b><small>L #3D6A8F · D #6FA3D6 (dots and icons only)</small></div>
+      <div class="cell" style="background:var(--info-soft);color:var(--info-text)"><b>Register on PIN ↗</b><small>L #E6EEF5 + #2F5A80 6.19 · D #182838 + #8FB8E0 7.22</small></div>
+    </div>
+  </div>
+  <p class="note" style="margin-top:12px">Five hues, five jobs. Green is only ever "you're in". Raspberry is only ever "happening right now". Amber is capacity. Red is the end of something. Steel blue is "this came from somewhere else".</p>
+
+  <h3>Category set · 10 hues, each with a glyph</h3>
+  <p class="note" style="margin-bottom:14px">Hub tiles never depend on emoji. Each category owns a hue and a two-stroke glyph; white on every tile clears 3:1 for non-text contrast (ratios shown).</p>
+  <div class="grid g4">
+    <div class="card cat"><div class="tile" style="background:var(--cat-sports)"><svg class="ic"><use href="#c-sports"/></svg></div><div><div class="t">Sports &amp; Rec</div><div class="h">#1B8A4C · 4.39</div></div></div>
+    <div class="card cat"><div class="tile" style="background:var(--cat-run)"><svg class="ic"><use href="#c-run"/></svg></div><div><div class="t">Running &amp; Outdoors</div><div class="h">#0B8A8F · 4.16</div></div></div>
+    <div class="card cat"><div class="tile" style="background:var(--cat-games)"><svg class="ic"><use href="#c-games"/></svg></div><div><div class="t">Games &amp; Tabletop</div><div class="h">#4A5BD9 · 5.54</div></div></div>
+    <div class="card cat"><div class="tile" style="background:var(--cat-anime)"><svg class="ic"><use href="#c-anime"/></svg></div><div><div class="t">Anime, Film &amp; Fandom</div><div class="h">#8347C8 · 5.68</div></div></div>
+    <div class="card cat"><div class="tile" style="background:var(--cat-tech)"><svg class="ic"><use href="#c-tech"/></svg></div><div><div class="t">Tech &amp; Coding</div><div class="h">#1F7FD6 · 4.15</div></div></div>
+    <div class="card cat"><div class="tile" style="background:var(--cat-career)"><svg class="ic"><use href="#c-career"/></svg></div><div><div class="t">Career &amp; Networking</div><div class="h">#556573 · 6.01</div></div></div>
+    <div class="card cat"><div class="tile" style="background:var(--cat-food)"><svg class="ic"><use href="#c-food"/></svg></div><div><div class="t">Food &amp; Free Food</div><div class="h">#A16A00 · 4.59</div></div></div>
+    <div class="card cat"><div class="tile" style="background:var(--cat-music)"><svg class="ic"><use href="#c-music"/></svg></div><div><div class="t">Music &amp; Arts</div><div class="h">#9C2F6E · 6.90</div></div></div>
+    <div class="card cat"><div class="tile" style="background:var(--cat-culture)"><svg class="ic"><use href="#c-culture"/></svg></div><div><div class="t">Faith, Culture &amp; Identity</div><div class="h">#B4532A · 4.99</div></div></div>
+    <div class="card cat"><div class="tile" style="background:var(--cat-study)"><svg class="ic"><use href="#c-study"/></svg></div><div><div class="t">Study &amp; Academics</div><div class="h">#2F4A7A · 8.82</div></div></div>
+  </div>
+
+  <h3>Brand-only colors</h3>
+  <div class="grid g3">
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#3BA7F0;color:#141A21">3BA7F0</div><div class="blk" style="background:#3BA7F0;color:#141A21">3BA7F0</div></div><div class="role">Sky</div><div class="ratio">Logo and the field cover only. Never text.</div></div>
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#2DB15B;color:#141A21">2DB15B</div><div class="blk" style="background:#2DB15B;color:#141A21">2DB15B</div></div><div class="role">Grass</div><div class="ratio">Logo and the field cover only. Never text.</div></div>
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#BFE3FB;color:#141A21">BFE3FB</div><div class="blk" style="background:#1E3A52;color:#F1F4F7">1E3A52</div></div><div class="role">Cover sky / cover hill</div><div class="ratio">Default event cover when there is no photo. Ink on cover sky <b>13.0</b>; hill #7ED29A / #1E5C38.</div></div>
+  </div>
+</section>
+
+<!-- ======================= 4. TYPE ======================= -->
+<section class="section" id="type">
+  <p class="eyebrow">04 · Type</p>
+  <h2>Scoreboard + jersey</h2>
+  <p class="lede">Barlow Semi Condensed for anything you read from a distance: event titles, section headers, the date block. Rubik for everything you read up close: body, labels, chat. Both from Google Fonts; both have the squared-off friendliness of a gym sign, so they look like one voice at two volumes.</p>
+  <div class="grid g2">
+    <div class="card fam"><div class="big" style="font:800 44px/1 var(--display)">Barlow Semi Condensed</div><div class="glyphs" style="font:700 18px var(--display)">ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 &amp;?!</div><p class="note" style="margin-top:12px">Display. Weights 600, 700, 800. Uppercase for section labels, sentence case for titles. Never below 18px.</p></div>
+    <div class="card fam"><div class="big" style="font:600 44px/1 var(--ui)">Rubik</div><div class="glyphs" style="font:400 18px var(--ui)">abcdefghijklmnopqrstuvwxyz 0123456789 @#$%</div><p class="note" style="margin-top:12px">UI. Weights 400, 500, 600, 700. Large x-height and soft corners hold up at 13px on a phone outdoors.</p></div>
+  </div>
+  <div class="card" style="padding:4px 20px;margin-top:16px">
+    <div class="type-row"><div class="spec"><b>Display · 34/36</b>Barlow Semi Condensed 800, -1%</div><div class="t-display">Table Tennis open play</div></div>
+    <div class="type-row"><div class="spec"><b>Title · 22/26</b>Barlow Semi Condensed 700, uppercase</div><div class="t-title" style="text-transform:uppercase">Today · Wed, Jan 20</div></div>
+    <div class="type-row"><div class="spec"><b>Headline · 17/22</b>Rubik 600</div><div class="t-head">Frieren S2 watch party</div></div>
+    <div class="type-row"><div class="spec"><b>Body · 15/22</b>Rubik 400</div><div class="t-body">Bring a paddle if you have one; the Rec Center desk has loaners. We rotate every 11 points so nobody waits long.</div></div>
+    <div class="type-row"><div class="spec"><b>Label · 15/20</b>Rubik 600, buttons, tabs, names</div><div class="t-label">Going &nbsp;·&nbsp; Register on PIN &nbsp;·&nbsp; Join hub</div></div>
+    <div class="type-row"><div class="spec"><b>Caption · 13/18</b>Rubik 400, text-2</div><div class="t-caption">4 of 6 going · happens at 4 · Student Rec Center, 3rd floor</div></div>
+    <div class="type-row"><div class="spec"><b>Micro · 11/14</b>Rubik 500, tab labels and hub names only</div><div class="t-micro">Home &nbsp; Hubs &nbsp; Plans &nbsp; Chats &nbsp; You</div></div>
+  </div>
+</section>
+
+<!-- ======================= 5. COMPONENTS ======================= -->
+<section class="section" id="components">
+  <p class="eyebrow">05 · Components</p>
+  <h2>The kit</h2>
+  <p class="lede">Pill buttons, 16px cards, 12px tiles. Everything a thumb touches is at least 44px tall. The orange button is the only solid orange on any screen.</p>
+  <div class="grid g2">
+
+    <div class="card comp">
+      <h4>Buttons</h4>
+      <div class="row"><button class="btn btn-primary">Going</button><button class="btn btn-secondary"><svg class="ic"><use href="#i-ext"/></svg>Register on PIN</button><button class="btn btn-ghost">Not this time</button></div>
+      <div class="row"><button class="btn btn-sm btn-primary">Join hub</button><button class="btn btn-sm btn-secondary">Message</button><button class="btn btn-sm btn-ghost"><svg class="ic"><use href="#i-share"/></svg>Share</button><button class="btn btn-icon" aria-label="More"><svg class="ic"><use href="#i-more"/></svg></button></div>
+      <span class="lbl">Primary = sun orange with ink text. Secondary = ink outline. Ghost = text only, surface-2 on hover.</span>
+    </div>
+
+    <div class="card comp">
+      <h4>Going button · every RSVP state</h4>
+      <div class="states">
+        <div class="st"><div><b>Default</b>Not yet responded. The only orange on the card.</div><button class="btn btn-sm btn-primary">Going</button></div>
+        <div class="st"><div><b>Going</b>You're in. Tapping again asks "Change to not going?"</div><button class="btn btn-sm btn-going"><svg class="ic"><use href="#i-check"/></svg>Going</button></div>
+        <div class="st"><div><b>Interested</b>Soft yes. Gets reminders, counts separately.</div><button class="btn btn-sm btn-interested"><svg class="ic"><use href="#i-star"/></svg>Interested</button></div>
+        <div class="st"><div><b>Waitlisted</b>Shows your place in line.</div><button class="btn btn-sm btn-wait">Waitlisted · #3</button></div>
+        <div class="st"><div><b>Full</b>Capacity reached; one tap joins the waitlist.</div><button class="btn btn-sm btn-full">Full · Join waitlist</button></div>
+        <div class="st"><div><b>Cancelled</b>Disabled, with the reason beside the title.</div><button class="btn btn-sm btn-cancel" disabled aria-disabled="true">Cancelled</button></div>
+        <div class="st"><div><b>Live now</b>The event is on. Label changes from a promise to a move.</div><button class="btn btn-sm btn-live"><span class="dot pulse"></span>Join now</button></div>
+      </div>
+    </div>
+
+    <div class="card comp">
+      <h4>Chips</h4>
+      <div class="row">
+        <span class="chip chip-hub"><span class="mini" style="background:var(--cat-sports)"><svg class="ic"><use href="#c-pingpong"/></svg></span>Table Tennis at GSU</span>
+        <span class="chip"><span class="sw-dot" style="background:var(--cat-anime)"></span>Anime, Film &amp; Fandom</span>
+        <span class="chip"><span class="sw-dot" style="background:var(--cat-food)"></span>Free food</span>
+        <span class="chip chip-imported"><svg class="ic"><use href="#i-ext"/></svg>From PIN</span>
+      </div>
+      <div class="row">
+        <span class="chip chip-going"><svg class="ic" style="width:12px;height:12px;stroke-width:2.5"><use href="#i-check"/></svg>You're going</span>
+        <span class="chip chip-live"><span class="dot pulse"></span>Live</span>
+        <span class="chip chip-warn">2 spots left</span>
+        <span class="chip chip-danger">Cancelled</span>
+        <span class="chip">Member-posted</span>
+      </div>
+      <span class="lbl">Hub chip carries the hub's tile; category chip carries only the hue dot; imported chip is the single place steel blue appears as a fill.</span>
+    </div>
+
+    <div class="card comp">
+      <h4>Avatar stack · input · toast</h4>
+      <div class="row">
+        <div class="stack"><span class="av" style="background:var(--cat-tech)">PN</span><span class="av" style="background:var(--cat-music)">MH</span><span class="av" style="background:var(--cat-run)">JK</span><span class="av" style="background:var(--cat-games)">DR</span><span class="av more">+2</span></div>
+        <span style="font-size:13px;color:var(--text-2)"><b style="color:var(--text);font-weight:600">4 of 6 going</b> · happens at 4</span>
+      </div>
+      <div class="field"><label for="where">Where are you meeting?</label><div class="input focus"><svg class="ic"><use href="#i-pin"/></svg><input id="where" value="Student Rec Center, 3rd floor" aria-describedby="where-help"></div><span class="help" id="where-help">Be specific: floor, court, table, or the name on the door.</span></div>
+      <div class="toast"><span class="chk"><svg class="ic"><use href="#i-check"/></svg></span><span>You're going. The event chat is open.</span><a href="#event">Open</a></div>
+    </div>
+
+    <div class="card comp" style="padding:0;overflow:hidden">
+      <div style="padding:20px 20px 0"><h4>Event card</h4></div>
+      <div style="padding:14px 20px 20px">
+        <article class="ev">
+          <div class="top">
+            <div class="tile" style="background:var(--cat-sports)"><svg class="ic"><use href="#c-pingpong"/></svg></div>
+            <div style="flex:1;min-width:0">
+              <h5 class="ttl">Table Tennis open play</h5>
+              <div class="meta"><svg class="ic"><use href="#i-clock"/></svg>4:00 PM<span>·</span><svg class="ic"><use href="#i-pin"/></svg>Rec Center, 3rd floor</div>
+            </div>
+          </div>
+          <div class="chips"><span class="chip chip-hub"><span class="mini" style="background:var(--cat-sports)"><svg class="ic"><use href="#c-pingpong"/></svg></span>Table Tennis at GSU</span><span class="chip">Chapter-hosted</span></div>
+          <div class="bar"><i style="width:66.6%"></i></div>
+          <div class="foot">
+            <div class="count"><div class="stack"><span class="av" style="background:var(--cat-tech)">P</span><span class="av" style="background:var(--cat-music)">M</span><span class="av" style="background:var(--cat-run)">J</span><span class="av" style="background:var(--cat-games)">D</span></div><span><b>4 of 6 going</b> · happens at 4</span></div>
+            <button class="btn btn-sm btn-primary">Going</button>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="card comp" style="padding:0;overflow:hidden">
+      <div style="padding:20px 20px 0"><h4>Hub card · tab bar</h4></div>
+      <div style="padding:14px 20px 20px;display:grid;gap:14px">
+        <article class="hub">
+          <div class="tile" style="background:var(--cat-sports)"><svg class="ic"><use href="#c-pingpong"/></svg></div>
+          <div class="grow"><div class="n">Table Tennis at Georgia State Atlanta</div><div class="s">128 members · 3 events this week</div></div>
+          <button class="btn btn-sm btn-primary">Join</button>
+        </article>
+        <nav class="tabbar" style="border:1px solid var(--border);border-radius:14px;padding-bottom:8px" aria-label="Demo tab bar">
+          <button class="tab active"><svg class="ic"><use href="#i-home"/></svg>Home</button>
+          <button class="tab"><svg class="ic"><use href="#i-hubs"/></svg>Hubs</button>
+          <button class="tab"><svg class="ic"><use href="#i-plans"/></svg>Plans</button>
+          <button class="tab"><svg class="ic"><use href="#i-chat"/></svg>Chats<span class="badge">2</span></button>
+          <button class="tab"><svg class="ic"><use href="#i-you"/></svg>You</button>
+        </nav>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 6. SCREENS ======================= -->
+<section class="section" id="screens">
+  <p class="eyebrow">06 · Screens</p>
+  <h2>Wednesday, January 20, 2027</h2>
+  <p class="lede">Three screens for a Georgia State student in the second week of spring semester. Scroll inside each phone.</p>
+  <div class="phones">
+
+    <!-- ---------- HOME ---------- -->
+    <div>
+      <div class="phone" aria-label="Home screen">
+        <div class="cap">Home</div>
+        <div class="status"><span>9:41</span><span class="r"><svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="1" fill="currentColor"/><rect x="5" y="5" width="3" height="7" rx="1" fill="currentColor"/><rect x="10" y="2.5" width="3" height="9.5" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg><svg width="26" height="12" viewBox="0 0 26 12" aria-hidden="true"><rect x="0.5" y="0.5" width="22" height="11" rx="3" fill="none" stroke="currentColor"/><rect x="2" y="2" width="17" height="8" rx="1.5" fill="currentColor"/><rect x="23.5" y="4" width="2" height="4" rx="1" fill="currentColor"/></svg></span></div>
+        <div class="screen">
+          <div class="hdr">
+            <button class="loc"><svg class="ic pin"><use href="#i-pin"/></svg>Downtown Atlanta<svg class="ic"><use href="#i-chev-down"/></svg></button>
+            <div style="display:flex;gap:2px">
+              <button class="btn btn-icon" aria-label="Search"><svg class="ic"><use href="#i-search"/></svg></button>
+              <button class="btn btn-icon" aria-label="Notifications"><svg class="ic"><use href="#i-bell"/></svg></button>
+            </div>
+          </div>
+          <div class="stories">
+            <div class="story"><div class="ring"><div class="tile add"><svg class="ic"><use href="#i-plus"/></svg></div></div>Add</div>
+            <div class="story"><div class="ring new"><div class="tile" style="background:var(--cat-sports)"><svg class="ic"><use href="#c-pingpong"/></svg></div></div>Table Tennis</div>
+            <div class="story"><div class="ring new"><div class="tile" style="background:var(--cat-sports)"><svg class="ic"><use href="#c-sports"/></svg></div></div>Pickup Hoops</div>
+            <div class="story"><div class="ring new"><div class="tile" style="background:var(--cat-anime)"><svg class="ic"><use href="#c-anime"/></svg></div></div>Anime Night</div>
+            <div class="story"><div class="ring"><div class="tile" style="background:var(--cat-food)"><svg class="ic"><use href="#c-food"/></svg></div></div>Free Food</div>
+            <div class="story"><div class="ring"><div class="tile" style="background:var(--cat-games)"><svg class="ic"><use href="#c-pool"/></svg></div></div>Pool</div>
+            <div class="story"><div class="ring new"><div class="tile" style="background:var(--cat-run)"><svg class="ic"><use href="#c-run"/></svg></div></div>Run Club</div>
+            <div class="story"><div class="ring"><div class="tile" style="background:var(--cat-tech)"><svg class="ic"><use href="#c-tech"/></svg></div></div>Code</div>
+          </div>
+
+          <div class="sec"><h5>Today<small>Wed, Jan 20</small></h5><a href="#screens">Map</a></div>
+          <div class="feed">
+            <article class="ev">
+              <div class="top">
+                <div class="tile" style="background:var(--cat-sports)"><svg class="ic"><use href="#c-sports"/></svg></div>
+                <div style="flex:1;min-width:0">
+                  <div class="chips" style="margin-bottom:6px"><span class="chip chip-live"><span class="dot pulse"></span>Live</span></div>
+                  <h5 class="ttl">Open gym · pickup 5v5</h5>
+                  <div class="meta"><svg class="ic"><use href="#i-pin"/></svg>Rec Center, Court 2<span>·</span>started 2:00 PM</div>
+                </div>
+              </div>
+              <div class="foot">
+                <div class="count"><div class="stack"><span class="av" style="background:var(--cat-culture)">T</span><span class="av" style="background:var(--cat-study)">A</span><span class="av" style="background:var(--cat-run)">K</span><span class="av more">+8</span></div><span><b>11 here</b> now</span></div>
+                <button class="btn btn-sm btn-live"><span class="dot pulse"></span>Join now</button>
+              </div>
+            </article>
+
+            <article class="ev">
+              <div class="top">
+                <div class="tile" style="background:var(--cat-sports)"><svg class="ic"><use href="#c-pingpong"/></svg></div>
+                <div style="flex:1;min-width:0">
+                  <h5 class="ttl">Table Tennis open play</h5>
+                  <div class="meta"><svg class="ic"><use href="#i-clock"/></svg>4:00 PM<span>·</span><svg class="ic"><use href="#i-pin"/></svg>Rec Center, 3rd floor</div>
+                </div>
+              </div>
+              <div class="chips"><span class="chip chip-hub"><span class="mini" style="background:var(--cat-sports)"><svg class="ic"><use href="#c-pingpong"/></svg></span>Table Tennis at GSU</span><span class="chip">Chapter-hosted</span></div>
+              <div class="bar"><i style="width:66.6%"></i></div>
+              <div class="foot">
+                <div class="count"><div class="stack"><span class="av" style="background:var(--cat-tech)">P</span><span class="av" style="background:var(--cat-music)">M</span><span class="av" style="background:var(--cat-run)">J</span><span class="av" style="background:var(--cat-games)">D</span></div><span><b>4 of 6 going</b> · happens at 4</span></div>
+                <button class="btn btn-sm btn-primary">Going</button>
+              </div>
+            </article>
+
+            <article class="ev">
+              <div class="top">
+                <div class="tile" style="background:var(--cat-career)"><svg class="ic"><use href="#c-career"/></svg></div>
+                <div style="flex:1;min-width:0">
+                  <div class="chips" style="margin-bottom:6px"><span class="chip chip-imported"><svg class="ic"><use href="#i-ext"/></svg>From PIN</span></div>
+                  <h5 class="ttl">Spring Involvement Fair</h5>
+                  <div class="meta"><svg class="ic"><use href="#i-clock"/></svg>11:00 AM – 2:00 PM<span>·</span>Student Center Ballroom</div>
+                </div>
+              </div>
+              <div class="count" style="font-size:13px;color:var(--text-2)">Student Engagement · 9 people from your hubs are interested</div>
+              <div class="foot" style="display:grid;grid-template-columns:1fr auto;gap:8px">
+                <button class="btn btn-sm btn-secondary"><svg class="ic"><use href="#i-ext"/></svg>Register on PIN</button>
+                <button class="btn btn-sm btn-interested"><svg class="ic"><use href="#i-star"/></svg>Interested</button>
+              </div>
+            </article>
+          </div>
+
+          <div class="sec"><h5>This week</h5><a href="#screens">Calendar</a></div>
+          <div class="feed">
+            <article class="ev">
+              <div class="top">
+                <div class="tile" style="background:var(--cat-anime)"><svg class="ic"><use href="#c-anime"/></svg></div>
+                <div style="flex:1;min-width:0">
+                  <h5 class="ttl">Frieren S2 watch party</h5>
+                  <div class="meta"><svg class="ic"><use href="#i-clock"/></svg>Thu 7:00 PM<span>·</span>Classroom South 200</div>
+                </div>
+              </div>
+              <div class="foot">
+                <div class="count"><div class="stack"><span class="av" style="background:var(--cat-anime)">S</span><span class="av" style="background:var(--cat-tech)">R</span><span class="av" style="background:var(--cat-food)">N</span><span class="av more">+9</span></div><span><b>12 going</b></span></div>
+                <button class="btn btn-sm btn-going"><svg class="ic"><use href="#i-check"/></svg>Going</button>
+              </div>
+            </article>
+            <article class="ev">
+              <div class="top">
+                <div class="tile" style="background:var(--cat-food)"><svg class="ic"><use href="#c-food"/></svg></div>
+                <div style="flex:1;min-width:0">
+                  <h5 class="ttl">Free pizza + CS career panel</h5>
+                  <div class="meta"><svg class="ic"><use href="#i-clock"/></svg>Fri 12:30 PM<span>·</span>25 Park Place, Rm 1225</div>
+                </div>
+              </div>
+              <div class="chips"><span class="chip"><span class="sw-dot" style="background:var(--cat-food)"></span>Free food</span><span class="chip"><span class="sw-dot" style="background:var(--cat-career)"></span>Career</span><span class="chip">Posted by Aisha</span></div>
+              <div class="foot">
+                <div class="count"><div class="stack"><span class="av" style="background:var(--cat-career)">A</span><span class="av" style="background:var(--cat-study)">L</span><span class="av more">+6</span></div><span><b>8 going</b></span></div>
+                <button class="btn btn-sm btn-primary">Going</button>
+              </div>
+            </article>
+            <article class="ev">
+              <div class="top">
+                <div class="tile" style="background:var(--cat-run)"><svg class="ic"><use href="#c-run"/></svg></div>
+                <div style="flex:1;min-width:0">
+                  <h5 class="ttl">Long run · Beltline Eastside</h5>
+                  <div class="meta"><svg class="ic"><use href="#i-clock"/></svg>Sat 9:00 AM<span>·</span>Meet at Hurt Park</div>
+                </div>
+              </div>
+              <div class="foot">
+                <div class="count"><div class="stack"><span class="av" style="background:var(--cat-run)">K</span><span class="av" style="background:var(--cat-sports)">E</span><span class="av more">+4</span></div><span><b>6 going</b> · 6 mi, easy pace</span></div>
+                <button class="btn btn-sm btn-primary">Going</button>
+              </div>
+            </article>
+          </div>
+        </div>
+        <nav class="tabbar" aria-label="Tabs">
+          <button class="tab active"><svg class="ic"><use href="#i-home"/></svg>Home</button>
+          <button class="tab"><svg class="ic"><use href="#i-hubs"/></svg>Hubs</button>
+          <button class="tab"><svg class="ic"><use href="#i-plans"/></svg>Plans</button>
+          <button class="tab"><svg class="ic"><use href="#i-chat"/></svg>Chats<span class="badge">2</span></button>
+          <button class="tab"><svg class="ic"><use href="#i-you"/></svg>You</button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- ---------- EVENT ---------- -->
+    <div>
+      <div class="phone" id="event" aria-label="Event page">
+        <div class="cap">Event</div>
+        <div class="status"><span>9:41</span><span class="r"><svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="1" fill="currentColor"/><rect x="5" y="5" width="3" height="7" rx="1" fill="currentColor"/><rect x="10" y="2.5" width="3" height="9.5" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg><svg width="26" height="12" viewBox="0 0 26 12" aria-hidden="true"><rect x="0.5" y="0.5" width="22" height="11" rx="3" fill="none" stroke="currentColor"/><rect x="2" y="2" width="17" height="8" rx="1.5" fill="currentColor"/><rect x="23.5" y="4" width="2" height="4" rx="1" fill="currentColor"/></svg></span></div>
+        <div class="screen">
+          <div class="cover">
+            <svg viewBox="0 0 375 200" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+              <rect width="375" height="200" fill="var(--cover-sky)"/>
+              <circle cx="190" cy="340" r="230" fill="var(--cover-hill)"/>
+              <circle cx="300" cy="140" r="22" fill="var(--sun)"/>
+            </svg>
+            <div class="nav">
+              <button class="btn btn-icon" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+              <div style="display:flex;gap:6px"><button class="btn btn-icon" aria-label="Share"><svg class="ic"><use href="#i-share"/></svg></button><button class="btn btn-icon" aria-label="More"><svg class="ic"><use href="#i-more"/></svg></button></div>
+            </div>
+            <div class="tile hubtile" style="background:var(--cat-sports)"><svg class="ic"><use href="#c-pingpong"/></svg></div>
+          </div>
+          <div class="evp">
+            <div class="chips"><span class="chip">Chapter-hosted</span><span class="chip chip-going"><svg class="ic" style="width:12px;height:12px;stroke-width:2.5"><use href="#i-check"/></svg>Happens at 4 · it's on</span></div>
+            <h1>Table Tennis open play</h1>
+            <div class="line"><svg class="ic"><use href="#i-clock"/></svg><div class="t"><b>Today, Wed Jan 20</b><span>4:00 – 6:00 PM · in 3 hours</span></div><a href="#event">Add to calendar</a></div>
+            <div class="line"><svg class="ic"><use href="#i-pin"/></svg><div class="t"><b>Student Rec Center</b><span>3rd floor, tables 1–3 · 0.2 mi</span></div><a href="#event">Directions</a></div>
+            <a class="hostcard" href="#hub" style="text-decoration:none;color:inherit">
+              <div class="tile" style="background:var(--cat-sports)"><svg class="ic"><use href="#c-pingpong"/></svg></div>
+              <div class="t"><b>Table Tennis at Georgia State Atlanta</b><span>Hosted by Priya · Captain · 128 members</span></div>
+              <svg class="ic chev"><use href="#i-chev-right"/></svg>
+            </a>
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><b style="font:700 18px var(--display);text-transform:uppercase">Going · 4 of 6</b><span style="font-size:13px;color:var(--text-2)">2 spots left</span></div>
+              <div class="people">
+                <div class="person"><span class="av av-xl" style="background:var(--cat-tech)">PN</span>Priya</div>
+                <div class="person"><span class="av av-xl" style="background:var(--cat-music)">MH</span>Marcus</div>
+                <div class="person"><span class="av av-xl" style="background:var(--cat-run)">JK</span>Jun</div>
+                <div class="person"><span class="av av-xl" style="background:var(--cat-games)">DR</span>Daniela</div>
+                <div class="person"><span class="av av-xl spot">open</span>&nbsp;</div>
+                <div class="person"><span class="av av-xl spot">open</span>&nbsp;</div>
+              </div>
+            </div>
+            <p style="margin:0;font-size:15px;line-height:1.47;color:var(--text-2)">Bring a paddle if you have one; the desk has loaners. We rotate every 11 points so nobody waits long. All levels, honestly.</p>
+            <div class="chatbox">
+              <div class="h">Event chat <span>4 people · 2 new</span></div>
+              <div class="msgs">
+                <div class="msg"><span class="av" style="background:var(--cat-music)">M</span><div class="b"><small>Marcus</small>bringing 2 extra paddles if anyone needs one</div></div>
+                <div class="msg"><span class="av" style="background:var(--cat-run)">J</span><div class="b"><small>Jun</small>food after? there's a $5 bowl place on Decatur St</div></div>
+              </div>
+              <div class="composer"><div class="input"><input placeholder="Message the group" aria-label="Message the group"></div><button class="send" aria-label="Send"><svg class="ic"><use href="#i-send"/></svg></button></div>
+            </div>
+            <div class="nudge"><svg class="ic"><use href="#i-shield"/></svg><div><b>Meet in a public place</b>The Rec Center front desk checks PantherCards. Bring yours, and tell a friend where you'll be.</div></div>
+            <div style="height:8px"></div>
+          </div>
+        </div>
+        <div class="sticky">
+          <button class="btn btn-primary">Going</button>
+          <button class="btn btn-icon" aria-label="Add to calendar"><svg class="ic"><use href="#i-cal-plus"/></svg></button>
+          <button class="btn btn-icon" aria-label="Share"><svg class="ic"><use href="#i-share"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- HUB ---------- -->
+    <div>
+      <div class="phone" id="hub" aria-label="Hub page">
+        <div class="cap">Hub</div>
+        <div class="status"><span>9:41</span><span class="r"><svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="1" fill="currentColor"/><rect x="5" y="5" width="3" height="7" rx="1" fill="currentColor"/><rect x="10" y="2.5" width="3" height="9.5" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg><svg width="26" height="12" viewBox="0 0 26 12" aria-hidden="true"><rect x="0.5" y="0.5" width="22" height="11" rx="3" fill="none" stroke="currentColor"/><rect x="2" y="2" width="17" height="8" rx="1.5" fill="currentColor"/><rect x="23.5" y="4" width="2" height="4" rx="1" fill="currentColor"/></svg></span></div>
+        <div class="screen">
+          <div class="hdr">
+            <button class="btn btn-icon" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+            <div style="display:flex;gap:2px"><button class="btn btn-icon" aria-label="Share"><svg class="ic"><use href="#i-share"/></svg></button><button class="btn btn-icon" aria-label="More"><svg class="ic"><use href="#i-more"/></svg></button></div>
+          </div>
+          <div class="hubhead">
+            <div class="id">
+              <div class="tile" style="background:var(--cat-sports)"><svg class="ic"><use href="#c-pingpong"/></svg></div>
+              <div><h1>Table Tennis</h1><div class="chap">at Georgia State Atlanta</div></div>
+            </div>
+            <div class="stats">
+              <div class="stack"><span class="av" style="background:var(--cat-tech)">P</span><span class="av" style="background:var(--cat-music)">M</span><span class="av" style="background:var(--cat-games)">D</span></div>
+              <span><b>128 members</b> · <b>3 events</b> this week · 2 captains</span>
+            </div>
+            <div class="cta"><button class="btn btn-primary"><svg class="ic"><use href="#i-plus"/></svg>Join hub</button><button class="btn btn-secondary">Message</button></div>
+          </div>
+          <div class="tabs">
+            <button class="on">Events</button>
+            <button>Chat<span class="ud" aria-label="unread"></span></button>
+            <button>Members</button>
+            <button>About</button>
+          </div>
+          <div style="padding:14px 16px 8px;font:700 18px var(--display);text-transform:uppercase">Captains</div>
+          <div class="cap-row">
+            <div class="capt"><span class="av av-lg" style="background:var(--cat-tech)">PN</span><div class="t"><b>Priya Nair</b><span>Captain · CS '27</span></div></div>
+            <div class="capt"><span class="av av-lg" style="background:var(--cat-music)">MH</span><div class="t"><b>Marcus Hill</b><span>Captain · Biz '26</span></div></div>
+          </div>
+          <div style="padding:18px 16px 8px;display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 18px var(--display);text-transform:uppercase">Next up</span><a href="#hub" style="font:500 13px var(--ui);text-decoration:none">All events</a></div>
+          <div class="evl">
+            <div class="evi">
+              <div class="date"><small>WED</small><b>20</b></div>
+              <div class="t"><b>Open play</b><span>4:00 PM · Rec Center, 3rd floor</span><div class="s"><span class="chip chip-going" style="height:22px;font-size:11px">4 of 6 going</span></div></div>
+              <button class="btn btn-xs btn-primary">Going</button>
+            </div>
+            <div class="evi">
+              <div class="date"><small>FRI</small><b>22</b></div>
+              <div class="t"><b>Beginner clinic with Coach Lin</b><span>6:00 PM · Rec Center, 3rd floor · $8</span><div class="s"><span class="chip chip-warn" style="height:22px;font-size:11px">12 of 12 · full</span></div></div>
+              <button class="btn btn-xs btn-full">Waitlist</button>
+            </div>
+            <div class="evi">
+              <div class="date"><small>SAT</small><b>30</b></div>
+              <div class="t"><b>Friendly vs Georgia Tech</b><span>1:00 PM · GT Campus Rec Center</span><div class="s"><span class="chip" style="height:22px;font-size:11px">9 going · 4 interested</span></div></div>
+              <button class="btn btn-xs btn-interested"><svg class="ic" style="width:14px;height:14px"><use href="#i-star"/></svg>Interested</button>
+            </div>
+            <div class="evi">
+              <div class="date"><small>TUE</small><b>26</b></div>
+              <div class="t"><b>Ladder night</b><span>7:00 PM · Rec Center, 3rd floor</span><div class="s"><span class="chip chip-danger" style="height:22px;font-size:11px">Cancelled · facility closed</span></div></div>
+              <button class="btn btn-xs btn-cancel" disabled aria-disabled="true">Cancelled</button>
+            </div>
+          </div>
+          <div style="padding:0 16px 16px">
+            <div class="hostcard" style="background:var(--surface-2);border:0">
+              <span class="av av-lg" style="background:var(--cat-study);border:0">CL</span>
+              <div class="t"><b>Coach Lin</b><span>Book 30 min · $15 · next open Thu 5 PM</span></div>
+              <button class="btn btn-xs btn-secondary">Book</button>
+            </div>
+          </div>
+        </div>
+        <nav class="tabbar" aria-label="Tabs">
+          <button class="tab"><svg class="ic"><use href="#i-home"/></svg>Home</button>
+          <button class="tab active"><svg class="ic"><use href="#i-hubs"/></svg>Hubs</button>
+          <button class="tab"><svg class="ic"><use href="#i-plans"/></svg>Plans</button>
+          <button class="tab"><svg class="ic"><use href="#i-chat"/></svg>Chats<span class="badge">2</span></button>
+          <button class="tab"><svg class="ic"><use href="#i-you"/></svg>You</button>
+        </nav>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 7. MOTION ======================= -->
+<section class="section" id="motion">
+  <p class="eyebrow">07 · Motion</p>
+  <h2>Fast, physical, quiet</h2>
+  <p class="lede">Nothing floats, nothing glows. Motion exists to confirm that a tap landed and to make the next thing appear where your eye already is. Everything respects <code>prefers-reduced-motion</code>, which replaces every transform with an instant swap and keeps the color change.</p>
+  <div class="grid g3">
+    <div class="card motion"><b>Press</b><div class="spec">scale 1 → 0.97 · 90 ms ease-out on touch-down · back to 1 in 180 ms cubic-bezier(.2,.8,.2,1)</div><p>Every button and card. No color flash on press; the shrink is the feedback. Haptic light on release for Going only.</p></div>
+    <div class="card motion"><b>RSVP success</b><div class="spec">fill orange → green 220 ms ease-in-out · check draws in 180 ms · count ticks 4 → 5 in 240 ms · your avatar slides into the stack 260 ms cubic-bezier(.34,1.56,.64,1)</div><p>The button changes color in place, never size. The one overshoot in the system is your avatar arriving, because that is the moment the product is about.</p></div>
+    <div class="card motion"><b>Tab switch</b><div class="spec">outgoing view fades 0 → 1 over 120 ms linear · icon outline → fill 120 ms · no horizontal slide · scroll position restored per tab</div><p>Instant, like Instagram. A slide would imply the tabs are a sequence; they are not.</p></div>
+    <div class="card motion"><b>Pull to refresh</b><div class="spec">the mark's horizon tilts with pull distance, up to 18° at 72 px · on release the ball rolls down the hill in a 600 ms loop until data lands · settle 200 ms ease-out</div><p>The logo is the spinner, which is the only place the brand animates. The loop is linear so it never looks like it is about to finish.</p></div>
+    <div class="card motion"><b>Chat send</b><div class="spec">bubble appears from the composer: translateY 12 → 0 px and opacity 0 → 1 over 200 ms cubic-bezier(.2,.8,.2,1) · composer clears instantly · send button fills orange 120 ms when text exists, back to surface-2 when empty</div><p>Optimistic, no spinner. If the send fails the bubble gets a "Tap to retry" in danger text under it, still in place.</p></div>
+  </div>
+</section>
+
+<!-- ======================= 8. WHY ======================= -->
+<section class="section" id="why">
+  <p class="eyebrow">08 · Why this is not AI slop</p>
+  <h2>Choices you can point at</h2>
+  <p class="closing">The Going button is <b>ink on orange</b>, not white on a gradient; that is the basketball and the referee's shirt, and it is also why it passes AA while white text would not. The logo is <b>three flat shapes</b> with a story (sky, hill, a ball you could pick up) instead of a swoosh, and the same scene becomes the <b>default event cover</b> so a chapter with no photos still looks like it belongs. The display face is <b>Barlow Semi Condensed</b>, a jersey number, not a tech-startup grotesk; the UI face is Rubik because its soft corners read on a phone in daylight. There are <b>no glows, no blur orbs, no marquee</b>, no hero stats; the only ring on the page means "this hub has a new event this week". Hubs get <b>ten named hues with two-stroke glyphs</b> so a Table Tennis chapter is not a paddle emoji in a grey circle. Every state has a <b>separate hue and a separate word</b>: green only means you're in, raspberry only means it's happening, amber is capacity, red is the end of something, steel blue is "came from PIN". The copy uses real rooms (Classroom South 200, 25 Park Place) and real numbers (4 of 6, happens at 4) because a plan with a room number is a plan you show up to. Dark mode is cool near-black, not navy, not purple, with the orange turned up one stop so it stays the loudest thing on screen. And the one gradient the brief allowed is not used at all.</p>
+</section>
+
+</main>
+<footer class="wrap">Field Day · Direction A for Activity Planet v2 · Light-first, strong dark · All ratios computed with WCAG 2.1 relative luminance.</footer>
+
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('themeToggle');
+  try{var saved=localStorage.getItem('ap-board-theme'); if(saved==='light'||saved==='dark'){root.setAttribute('data-theme',saved);}}catch(e){}
+  function current(){
+    var t=root.getAttribute('data-theme');
+    if(t) return t;
+    return (window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  }
+  btn.addEventListener('click',function(){
+    var next=current()==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('ap-board-theme',next);}catch(e){}
+  });
+})();
+</script>
+</body>
+</html>
