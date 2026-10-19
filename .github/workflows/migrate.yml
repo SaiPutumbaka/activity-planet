@@ -1,0 +1,79 @@
+name: Migrate database then deploy
+
+# Code must never reach production ahead of its migration (the July 2026 outage class).
+# On push to main: apply supabase/migrations to staging, then to production, then trigger
+# the Vercel deploy hooks. Turned on by setting the repository variable MIGRATIONS_ENABLED
+# to "true" once these secrets exist:
+#   SUPABASE_ACCESS_TOKEN        personal access token (Supabase dashboard, Account, Access Tokens)
+#   SUPABASE_STAGING_DB_PASSWORD database password of activity-planet-staging
+#   SUPABASE_PROD_DB_PASSWORD    database password of the production project
+#   VERCEL_DEPLOY_HOOK_WEB       deploy hook URL for the apps/web Vercel project
+#   VERCEL_DEPLOY_HOOK_APP       deploy hook URL for the apps/app Vercel project
+# Until then migrations are applied through the Supabase management API and Vercel deploys on push.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/seed/**"
+      - ".github/workflows/migrate.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: migrate-main
+  cancel-in-progress: false
+
+env:
+  STAGING_PROJECT_REF: gzrscndzzggxmcwnvvcq
+  PROD_PROJECT_REF: gtesfiqxqontescqpllo
+
+jobs:
+  migrate:
+    if: vars.MIGRATIONS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Staging, push migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+        run: |
+          supabase link --project-ref "$STAGING_PROJECT_REF"
+          supabase db push --include-all
+
+      - name: Staging, seed hubs
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+        run: |
+          supabase db query --linked --file supabase/seed/hubs.sql
+
+      - name: Production, push migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
+        run: |
+          supabase link --project-ref "$PROD_PROJECT_REF"
+          supabase db push --include-all
+
+      - name: Production, seed hubs
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
+        run: |
+          supabase db query --linked --file supabase/seed/hubs.sql
+
+      - name: Deploy web and app
+        if: secrets.VERCEL_DEPLOY_HOOK_WEB != ''
+        env:
+          HOOK_WEB: ${{ secrets.VERCEL_DEPLOY_HOOK_WEB }}
+          HOOK_APP: ${{ secrets.VERCEL_DEPLOY_HOOK_APP }}
+        run: |
+          curl -fsS -X POST "$HOOK_WEB" >/dev/null
+          if [ -n "$HOOK_APP" ]; then curl -fsS -X POST "$HOOK_APP" >/dev/null; fi
