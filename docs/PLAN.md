@@ -21,10 +21,10 @@ Wedge: Georgia State University's Atlanta campus, Spring 2027. Open to anyone wi
 | 2 | Event supply | Founder does not host. Supply = student-org chapters and verified captains (primary), member-posted events, and an imported "also happening" shelf from licensed feeds. |
 | 3 | Founder presence | None on campus day to day. Product must work without the founder in the room. |
 | 4 | Campus permission | Plan around events that need no permission. One sponsoring student org is needed for tabling and PIN listings (see 8.4). GSU administration partnership is an outreach track, not a dependency. |
-| 5 | Identity | Any email can sign up. `.edu` verification plus declared campus required for campus spaces. Account age minimum pending (D-018 options); events carry 18+ and 21+ flags. |
+| 5 | Identity | Any email can sign up. `.edu` verification plus declared campus required for campus spaces. 18+ accounts at launch (16+ with teen protections after the evidence test); events carry 18+ and 21+ flags. |
 | 6 | Messaging | Everything: DMs, group chats, event chats, hub chats. The app is the destination, not a layer on GroupMe. |
 | 7 | Scope | Coaching marketplace, payments, and AI are in. Sequenced so the show-up loop ships first; cut order pre-agreed in section 11. |
-| 8 | Platform | Web, installable PWA, and App Store / Play listings at launch via a Capacitor app (architecture pending Sai's pick; see 4.10 and D-013). Individual Apple account, personal Play account with the closed test; LLC deferred (D-016). |
+| 8 | Platform | Web and installable PWA at launch; App Store and Play listings after the evidence test, from the same bundled client app via Capacitor (D-013, option C). LLC deferred (D-016). |
 | 9 | Metrics | All of them, with human-hosted and imported events reported separately. |
 | 10 | Accelerator | Main Street Foundry was missed in 2026. Cohort 7 application is expected to open around Jan 18 to 30, 2027; draft it in December. |
 | 11 | Database | Restore the existing Supabase project (done 2026-10-19; healthy; 5 test users). |
@@ -116,15 +116,13 @@ What "AI matching" means here, in three layers:
 - **A** In-app inbox, email (Resend from `activityplanet.app`, registered with Apple's private email relay so Hide My Email users receive mail), push (APNs/FCM via `push_devices`; web push for installed PWA). RSVP confirmation plus calendar file, day-before and 2-hour reminders, "someone joined your event," "new event in your hub this week," message notifications, post-event check-in prompt, weekly digest (with postal address, per CAN-SPAM).
 
 ### 4.10 Mobile and the stores
-- **A** Installable PWA at `app.activityplanet.app`.
-- **A** iOS and Android apps built with **Capacitor** around a bundled client build of the product (not a remote web view): native tab bar feel, offline shell, native Sign in with Apple and Google, push, share sheet, camera, Universal Links / App Links from share URLs, in-app browser for outbound registration links, account deletion in two taps. Built on GitHub Actions macOS runners (free for the public repo) with fastlane; reviewed on Sai's iPhone via TestFlight from week 3.
-- **A/B** Two store reviews: build A (events, chapters, messaging, trust and safety, deletion; no payments) submitted Dec 8; build B (coaching payments, recommendations, assistant) submitted by Jan 4. Reviewed builds match what is live, behind feature flags.
-- **A** Store identity: an individual Apple developer account ($99; the seller shows Sai's name) and a personal Google Play account ($25; Play requires a 12-tester, 14-day closed test before production, started in week 4 with friends as testers). The LLC takes over both accounts when it exists (D-016).
+- **A** Installable PWA at `app.activityplanet.app`: manifest, icons, offline shell, add-to-home-screen prompt in onboarding, web push (iPhone after installation; email as the fallback for reminders).
+- **P (after the evidence test)** iOS and Android apps built with **Capacitor** around the same bundled client app: native Sign in with Apple and Google, push, share sheet, camera, Universal Links / App Links, in-app browser for outbound links, account deletion in two taps. Built on GitHub Actions macOS runners (free for the public repo). Store accounts (Apple individual $99, Play personal $25 with its 12-tester closed test) are opened when the evidence test passes; the LLC takes them over later (D-016). The store compliance items in `TRUST-SAFETY-LEGAL.md` are built into the web product now so the store submission is packaging, not rework.
 - **P** A React Native client only if store data says the Capacitor app is the bottleneck.
 
 ### 4.11 Trust, safety, legal
 Full checklist in `TRUST-SAFETY-LEGAL.md`. Headlines:
-- **A** Account age minimum: Sai's pick pending (D-018 options: 18+, or 16+ with teen protections). Events carry 18+ and 21+ flags; 21+ events live outside the campus space. Community Guidelines (with child-safety and 21+ language) accepted at first RSVP. "Meet in public places" plus a Safety Center page linked from every event and the DM composer. Report and block everywhere. Moderator role for Sai and a named second moderator; 24-hour response target on reports; 48-hour removal for non-consensual intimate imagery with a public request page; NCMEC reporting runbook; DMCA agent registered; public Child Safety Standards page (Google Play requirement).
+- **A** 18+ accounts at launch (neutral date-of-birth entry); 16+ with teen protections is a post-evidence project. Events carry 18+ and 21+ flags; 21+ events live outside the campus space. Community Guidelines (with child-safety and 21+ language) accepted at first RSVP. "Meet in public places" plus a Safety Center page linked from every event and the DM composer. Report and block everywhere. Moderator role for Sai and a named second moderator; 24-hour response target on reports; 48-hour removal for non-consensual intimate imagery with a public request page; NCMEC reporting runbook; DMCA agent registered; public Child Safety Standards page (Google Play requirement).
 - **A** Public profile shows no email, no birthday, no exact location; distance shown in bands; private data split from public at the database level; PostHog session replay off; Sentry PII scrubbing on.
 - **A** Documents live on the domain by Nov 16: Terms, Privacy, Community Guidelines, Child Safety Standards, NCII Removal, Support/Contact, Account Deletion page; by week 9: Coach Terms and Refund/Cancellation Policy; Captain Program agreement by week 4. Attorney review of the set and of Georgia's social media age law before launch.
 - **A** Georgia State's name used nominatively only ("at Georgia State"), never in the app name, icon, screenshots or keywords; disclaimer shown until written permission.
@@ -214,6 +212,7 @@ If we slip, cut in this order, never the reverse: (1) the AI assistant moves to 
 
 Answered on 2026-10-19 and recorded in `DECISIONS.md`: market, supply, messaging, scope, database, name, LLC timing, coaching fee, 21+ events, budget posture, design references, time commitment, iPhone (yes). Still open:
 
-1. **Mobile architecture** (D-013): bundled client app via the monorepo, remote web view, PWA first with stores later, or a separate native app. Options explained in the conversation of 2026-10-19.
-2. **Account age minimum** (D-018): 18+, or 16+ with teen protections (adults and minors cannot message each other unless they share a chapter event, no location sharing or coaching for minors, 18+ and 21+ event flags). Under 16 is out regardless.
-3. **Second moderator**: not yet named; required before soft launch (week 11).
+1. **Second moderator**: not yet named; required before soft launch (week 11).
+2. **Names of current GSU students** Sai can reach, and which clubs they are near (needed for week 2 outreach).
+
+Decided 2026-10-19 after the options were explained: mobile architecture is option C (D-013) and the account minimum is 18+ at launch (D-018).
