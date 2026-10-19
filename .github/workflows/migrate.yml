@@ -70,10 +70,11 @@ jobs:
           supabase db query --linked --file supabase/seed/hubs.sql
 
       - name: Deploy web and app
-        if: secrets.VERCEL_DEPLOY_HOOK_WEB != ''
         env:
           HOOK_WEB: ${{ secrets.VERCEL_DEPLOY_HOOK_WEB }}
           HOOK_APP: ${{ secrets.VERCEL_DEPLOY_HOOK_APP }}
         run: |
+          # Secrets cannot be tested in an `if:` expression, so the check lives in the shell.
+          if [ -z "$HOOK_WEB" ]; then echo "No deploy hooks configured; skipping."; exit 0; fi
           curl -fsS -X POST "$HOOK_WEB" >/dev/null
           if [ -n "$HOOK_APP" ]; then curl -fsS -X POST "$HOOK_APP" >/dev/null; fi
