@@ -1,0 +1,1018 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Air</title>
+<meta name="description" content="Activity Planet v2 visual direction C, clean social: white surfaces, one electric blue for Going, warmth from people not color.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+<style>
+/* ---------- tokens ---------- */
+:root{
+  color-scheme:light;
+  --bg:#FFFFFF; --surface:#FFFFFF; --surface-2:#F4F4F5; --surface-3:#E9E9EC; --stage:#F4F4F5;
+  --border:#E4E4E7; --border-strong:#CFCFD4;
+  --text:#0A0A0A; --text-2:#52525B; --text-3:#6B6B75; --text-inverse:#FFFFFF; --inverse:#0A0A0A;
+  --primary:#1D5BFF; --primary-hover:#0F4BE6; --primary-text:#1D5BFF; --primary-tint:#EAF0FF; --on-primary:#FFFFFF;
+  --success:#15803D; --success-text:#166534; --success-tint:#DCFCE7; --on-success:#FFFFFF;
+  --live:#E0157F; --live-text:#B0105F; --live-tint:#FFE1F0; --on-live:#FFFFFF;
+  --warning:#F5B400; --warning-text:#7A4F00; --warning-tint:#FFF3CC; --on-warning:#0A0A0A;
+  --danger:#DC2626; --danger-text:#B42318; --danger-tint:#FEE4E2; --on-danger:#FFFFFF;
+  --info:#64748B; --info-text:#475569; --info-tint:#F1F5F9; --on-info:#FFFFFF;
+  --c-sports:#B53E0B; --c-sports-tint:#FFEDD5;
+  --c-food:#3F6212; --c-food-tint:#ECFCCB;
+  --c-outdoors:#166534; --c-outdoors-tint:#DCFCE7;
+  --c-wellness:#0F766E; --c-wellness-tint:#CCFBF1;
+  --c-tech:#0369A1; --c-tech-tint:#E0F2FE;
+  --c-career:#3730A3; --c-career-tint:#E0E7FF;
+  --c-games:#6D28D9; --c-games-tint:#EDE9FE;
+  --c-anime:#A21CAF; --c-anime-tint:#FAE8FF;
+  --c-music:#BE123C; --c-music-tint:#FFE4E6;
+  --c-study:#57534E; --c-study-tint:#F5F5F4;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.04),0 1px 3px rgba(0,0,0,.04);
+  --shadow-md:0 2px 6px rgba(0,0,0,.05),0 10px 28px rgba(0,0,0,.07);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.14);
+  --ring:0 0 0 3px rgba(29,91,255,.32);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#000000; --surface:#000000; --surface-2:#141416; --surface-3:#1F1F23; --stage:#0A0A0B;
+    --border:#27272A; --border-strong:#3F3F46;
+    --text:#FAFAFA; --text-2:#A1A1AA; --text-3:#85858E; --text-inverse:#0A0A0A; --inverse:#FAFAFA;
+    --primary:#1D5BFF; --primary-hover:#1549D6; --primary-text:#6D9BFF; --primary-tint:#0E1B3F; --on-primary:#FFFFFF;
+    --success:#22C55E; --success-text:#4ADE80; --success-tint:#0A2414; --on-success:#0A0A0A;
+    --live:#F0338F; --live-text:#FF7AB8; --live-tint:#33081C; --on-live:#0A0A0A;
+    --warning:#FACC15; --warning-text:#FCD34D; --warning-tint:#2C2105; --on-warning:#0A0A0A;
+    --danger:#EF4444; --danger-text:#F87171; --danger-tint:#320C0C; --on-danger:#0A0A0A;
+    --info:#94A3B8; --info-text:#AEBBCC; --info-tint:#171C24; --on-info:#0A0A0A;
+    --c-sports:#FDBA74; --c-sports-tint:#2B1407;
+    --c-food:#BEF264; --c-food-tint:#15210A;
+    --c-outdoors:#86EFAC; --c-outdoors-tint:#0C2415;
+    --c-wellness:#5EEAD4; --c-wellness-tint:#06201E;
+    --c-tech:#7DD3FC; --c-tech-tint:#07192A;
+    --c-career:#A5B4FC; --c-career-tint:#14143A;
+    --c-games:#C4B5FD; --c-games-tint:#1E1239;
+    --c-anime:#F0ABFC; --c-anime-tint:#2A0F2E;
+    --c-music:#FDA4AF; --c-music-tint:#2E0A12;
+    --c-study:#D6D3D1; --c-study-tint:#1C1B1A;
+    --shadow-sm:none; --shadow-md:none; --shadow-lg:0 12px 40px rgba(0,0,0,.6);
+    --ring:0 0 0 3px rgba(109,155,255,.45);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#000000; --surface:#000000; --surface-2:#141416; --surface-3:#1F1F23; --stage:#0A0A0B;
+  --border:#27272A; --border-strong:#3F3F46;
+  --text:#FAFAFA; --text-2:#A1A1AA; --text-3:#85858E; --text-inverse:#0A0A0A; --inverse:#FAFAFA;
+  --primary:#1D5BFF; --primary-hover:#1549D6; --primary-text:#6D9BFF; --primary-tint:#0E1B3F; --on-primary:#FFFFFF;
+  --success:#22C55E; --success-text:#4ADE80; --success-tint:#0A2414; --on-success:#0A0A0A;
+  --live:#F0338F; --live-text:#FF7AB8; --live-tint:#33081C; --on-live:#0A0A0A;
+  --warning:#FACC15; --warning-text:#FCD34D; --warning-tint:#2C2105; --on-warning:#0A0A0A;
+  --danger:#EF4444; --danger-text:#F87171; --danger-tint:#320C0C; --on-danger:#0A0A0A;
+  --info:#94A3B8; --info-text:#AEBBCC; --info-tint:#171C24; --on-info:#0A0A0A;
+  --c-sports:#FDBA74; --c-sports-tint:#2B1407;
+  --c-food:#BEF264; --c-food-tint:#15210A;
+  --c-outdoors:#86EFAC; --c-outdoors-tint:#0C2415;
+  --c-wellness:#5EEAD4; --c-wellness-tint:#06201E;
+  --c-tech:#7DD3FC; --c-tech-tint:#07192A;
+  --c-career:#A5B4FC; --c-career-tint:#14143A;
+  --c-games:#C4B5FD; --c-games-tint:#1E1239;
+  --c-anime:#F0ABFC; --c-anime-tint:#2A0F2E;
+  --c-music:#FDA4AF; --c-music-tint:#2E0A12;
+  --c-study:#D6D3D1; --c-study-tint:#1C1B1A;
+  --shadow-sm:none; --shadow-md:none; --shadow-lg:0 12px 40px rgba(0,0,0,.6);
+  --ring:0 0 0 3px rgba(109,155,255,.45);
+}
+/* category hooks: any element with data-cat resolves --cat / --cat-tint for its subtree */
+[data-cat="sports"]{--cat:var(--c-sports);--cat-tint:var(--c-sports-tint)}
+[data-cat="food"]{--cat:var(--c-food);--cat-tint:var(--c-food-tint)}
+[data-cat="outdoors"]{--cat:var(--c-outdoors);--cat-tint:var(--c-outdoors-tint)}
+[data-cat="wellness"]{--cat:var(--c-wellness);--cat-tint:var(--c-wellness-tint)}
+[data-cat="tech"]{--cat:var(--c-tech);--cat-tint:var(--c-tech-tint)}
+[data-cat="career"]{--cat:var(--c-career);--cat-tint:var(--c-career-tint)}
+[data-cat="games"]{--cat:var(--c-games);--cat-tint:var(--c-games-tint)}
+[data-cat="anime"]{--cat:var(--c-anime);--cat-tint:var(--c-anime-tint)}
+[data-cat="music"]{--cat:var(--c-music);--cat-tint:var(--c-music-tint)}
+[data-cat="study"]{--cat:var(--c-study);--cat-tint:var(--c-study-tint)}
+[data-cat="you"]{--cat:var(--primary-text);--cat-tint:var(--primary-tint)}
+
+/* ---------- base ---------- */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:hidden}
+h1,h2,h3,h4,p{margin:0}
+svg{display:block}
+.ic{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-sm{width:18px;height:18px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:none;box-shadow:var(--ring)}
+.wrap{max-width:1200px;margin:0 auto;padding:0 16px}
+.topbar{position:sticky;top:0;z-index:40;background:var(--bg);border-bottom:1px solid var(--border)}
+.topbar .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;color:var(--text);font-weight:700;font-size:15px;letter-spacing:-.005em;min-width:0}
+.brand .mk{width:26px;height:26px;color:var(--primary);flex:none}
+.brand .meta{color:var(--text-3);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px 0 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:14px;font-weight:600;transition:transform .12s ease,background .15s ease;flex:none}
+.tbtn:hover{background:var(--surface-2)}
+.tbtn:active{transform:scale(.97)}
+.tbtn .sun,.tbtn .moon{display:none}
+.tbtn[data-mode="light"] .sun{display:block}
+.tbtn[data-mode="dark"] .moon{display:block}
+
+/* ---------- board sections ---------- */
+.hero{padding:64px 0 48px}
+.eyebrow{font-size:13px;font-weight:600;color:var(--text-3);letter-spacing:.01em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.eyebrow .dotsep{width:4px;height:4px;border-radius:50%;background:var(--border-strong)}
+.hero h1{font-size:clamp(48px,9vw,96px);line-height:.98;font-weight:800;letter-spacing:-.04em;margin-top:14px}
+.hero h1 em{font-style:normal;color:var(--primary-text)}
+.thesis{font-size:clamp(18px,2.2vw,22px);line-height:1.4;color:var(--text-2);max-width:680px;margin-top:22px;letter-spacing:-.005em}
+.adjs{display:flex;gap:8px;margin-top:24px;flex-wrap:wrap}
+.adj{height:34px;display:inline-flex;align-items:center;padding:0 14px;border-radius:999px;background:var(--surface-2);font-size:14px;font-weight:600}
+.sec{padding:56px 0;border-top:1px solid var(--border)}
+.sec-grid{display:grid;grid-template-columns:1fr;gap:28px}
+@media (min-width:900px){.sec-grid{grid-template-columns:220px minmax(0,1fr);gap:48px}.sec-side{position:sticky;top:76px;align-self:start}}
+.sec-label{font-size:13px;font-weight:600;color:var(--text-3)}
+.sec-title{font-size:26px;line-height:1.15;font-weight:700;letter-spacing:-.02em;margin-top:6px}
+.sec-desc{font-size:15px;line-height:1.5;color:var(--text-2);margin-top:10px}
+.sub{font-size:13px;font-weight:600;color:var(--text-3);margin:0 0 12px}
+.note{font-size:14px;line-height:1.5;color:var(--text-2)}
+.note strong{color:var(--text);font-weight:600}
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mt24{margin-top:24px}.mt32{margin-top:32px}.mt40{margin-top:40px}
+
+/* ---------- logo ---------- */
+.logo-grid{display:grid;grid-template-columns:1fr;gap:16px}
+@media (min-width:760px){.logo-grid{grid-template-columns:1.35fr 1fr}}
+.logo-hero{display:flex;align-items:center;justify-content:center;min-height:280px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 24px}
+.lockup{display:flex;align-items:center;gap:16px;color:var(--text);max-width:100%}
+.lockup .mk{width:76px;height:76px;color:var(--primary);flex:none}
+.lockup .wm{height:44px;width:auto;max-width:calc(100% - 92px);color:var(--text)}
+.logo-small{display:flex;flex-direction:column;gap:12px}
+.logo-tile{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:18px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.logo-tile .lab{font-size:13px;color:var(--text-3);font-weight:600;min-width:64px}
+.lockup-24{display:flex;align-items:center;gap:7px;color:var(--text)}
+.lockup-24 .mk{width:24px;height:24px;color:var(--primary)}
+.lockup-24 .wm{height:14px;width:auto}
+.appicon{width:88px;height:88px;border-radius:22px;background:var(--primary);color:#fff;--knock:var(--primary);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);flex:none}
+.appicon svg{width:66px;height:66px}
+.appicon-sm{width:40px;height:40px;border-radius:10px;background:var(--primary);color:#fff;--knock:var(--primary);display:flex;align-items:center;justify-content:center;flex:none}
+.appicon-sm svg{width:30px;height:30px}
+.mark-row{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.mark-row .cell{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px;color:var(--text-3);font-weight:600}
+.mark-row .cell svg{color:var(--primary)}
+.mark-row .cell.ink svg{color:var(--text)}
+
+/* ---------- palette ---------- */
+.sw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.sw{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;min-width:0}
+.sw-c{height:64px;border-radius:9px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;letter-spacing:-.02em}
+.sw-role{font-size:13px;font-weight:700;margin-top:10px;letter-spacing:-.005em}
+.sw-use{font-size:12px;color:var(--text-2);margin-top:2px;line-height:1.35}
+.sw-hex{font-size:12px;color:var(--text-2);margin-top:5px;font-variant-numeric:tabular-nums}
+.sw-hex b{font-weight:600;color:var(--text)}
+.sw-ratio{font-size:12px;color:var(--text-3);margin-top:3px;line-height:1.4;font-variant-numeric:tabular-nums}
+.sw-ratio em{font-style:normal;color:var(--success-text);font-weight:700}
+.sem-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media (min-width:760px){.sem-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sem{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;display:grid;grid-template-columns:1fr;gap:12px;min-width:0}
+@media (min-width:520px){.sem{grid-template-columns:150px minmax(0,1fr);align-items:start}}
+.sem-demo{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.sem-fill{height:36px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
+.sem-tint{height:28px;padding:0 10px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
+.sem h4{font-size:15px;font-weight:700;letter-spacing:-.005em}
+.sem .use{font-size:13px;color:var(--text-2);margin-top:2px;line-height:1.4}
+.sem table{border-collapse:collapse;margin-top:8px;font-size:12px;width:100%;font-variant-numeric:tabular-nums}
+.sem td{padding:3px 0;vertical-align:top;color:var(--text-2);line-height:1.4}
+.sem td:first-child{color:var(--text-3);width:52px;padding-right:6px}
+.sem td b{font-weight:600;color:var(--text)}
+.sem td em{font-style:normal;color:var(--success-text);font-weight:700}
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.cat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;min-width:0}
+.cat-c{height:64px;border-radius:9px;background:var(--cat-tint);color:var(--cat);display:flex;align-items:center;justify-content:center;gap:10px;font-weight:700;font-size:15px}
+.cat-c .ic{width:26px;height:26px}
+
+/* ---------- type ---------- */
+.families{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:28px}
+@media (min-width:760px){.families{grid-template-columns:1fr 1fr}}
+.family{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px}
+.family .big{font-size:44px;line-height:1;font-weight:800;letter-spacing:-.035em}
+.family .wts{font-size:14px;color:var(--text-2);margin-top:12px;line-height:1.55}
+.family .wts b{color:var(--text);font-weight:700}
+.type-row{display:grid;grid-template-columns:1fr;gap:6px;padding:18px 0;border-top:1px solid var(--border)}
+.type-row:first-of-type{border-top:0;padding-top:0}
+@media (min-width:700px){.type-row{grid-template-columns:210px minmax(0,1fr);gap:24px;align-items:baseline}}
+.type-meta{font-size:12px;color:var(--text-3);font-weight:600;line-height:1.5;font-variant-numeric:tabular-nums}
+.type-meta b{display:block;color:var(--text);font-size:13px;font-weight:700}
+.t-display{font-size:32px;line-height:36px;font-weight:800;letter-spacing:-.025em}
+.t-title1{font-size:24px;line-height:28px;font-weight:700;letter-spacing:-.02em}
+.t-title2{font-size:20px;line-height:24px;font-weight:700;letter-spacing:-.012em}
+.t-headline{font-size:17px;line-height:22px;font-weight:600;letter-spacing:-.006em}
+.t-body{font-size:15px;line-height:20px;font-weight:400}
+.t-body-strong{font-size:15px;line-height:20px;font-weight:600}
+.t-caption{font-size:13px;line-height:16px;font-weight:500;color:var(--text-2)}
+.t-label{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.01em}
+
+/* ---------- design-system components ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border-radius:999px;font-size:16px;font-weight:600;letter-spacing:-.005em;border:0;cursor:pointer;color:var(--text);background:var(--surface-2);white-space:nowrap;transition:transform .12s cubic-bezier(.2,.8,.2,1),background .15s ease,color .15s ease;-webkit-tap-highlight-color:transparent;user-select:none}
+.btn:hover{background:var(--surface-3)}
+.btn:active{transform:scale(.97)}
+.btn .ic{width:20px;height:20px}
+.btn-primary{background:var(--primary);color:var(--on-primary)}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-secondary{background:var(--surface-2);color:var(--text)}
+.btn-ghost{background:transparent;color:var(--primary-text)}
+.btn-ghost:hover{background:var(--primary-tint)}
+.btn-inverse{background:var(--inverse);color:var(--text-inverse)}
+.btn-inverse:hover{background:var(--inverse);opacity:.88}
+.btn-sm{height:36px;padding:0 14px;font-size:14px;gap:6px}
+.btn-sm .ic{width:18px;height:18px}
+.btn-block{width:100%}
+.btn-icon{width:48px;padding:0;border-radius:50%;flex:none}
+.btn-icon.btn-sm{width:36px}
+.btn-going{background:var(--success-tint);color:var(--success-text)}
+.btn-going:hover{background:var(--success-tint)}
+.btn-waitlisted{background:var(--warning-tint);color:var(--warning-text)}
+.btn-waitlisted:hover{background:var(--warning-tint)}
+.btn-cancelled{background:var(--danger-tint);color:var(--danger-text);cursor:not-allowed}
+.btn-cancelled:hover{background:var(--danger-tint)}
+.btn-cancelled:active{transform:none}
+.btn-live .pulse{width:8px;height:8px}
+.pulse{width:7px;height:7px;border-radius:50%;background:currentColor;position:relative;flex:none}
+.pulse::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid currentColor;opacity:0;animation:pulse 1.6s cubic-bezier(.2,.8,.2,1) infinite}
+@keyframes pulse{0%{transform:scale(.5);opacity:.75}100%{transform:scale(1.25);opacity:0}}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;font-size:13px;font-weight:600;background:var(--surface-2);color:var(--text-2);white-space:nowrap;letter-spacing:-.003em;flex:none}
+.chip .ic{width:14px;height:14px;stroke-width:2.4}
+.chip-cat{background:var(--cat-tint);color:var(--cat)}
+.chip-imported{background:var(--info-tint);color:var(--info-text)}
+.chip-live{background:var(--live-tint);color:var(--live-text)}
+.chip-going{background:var(--success-tint);color:var(--success-text)}
+.chip-warn{background:var(--warning-tint);color:var(--warning-text)}
+.chip-danger{background:var(--danger-tint);color:var(--danger-text)}
+.chip-active{background:var(--primary-tint);color:var(--primary-text)}
+.chip-hub{padding-left:4px;background:transparent;color:var(--text);border:1px solid var(--border);min-width:0;flex:1 1 auto;overflow:hidden}
+.chip-hub span.t{overflow:hidden;text-overflow:ellipsis}
+.chip-hub .hubav{width:20px;height:20px;border-radius:50%}
+.chip-hub .hubav .ic{width:12px;height:12px;stroke-width:2.4}
+.av{width:32px;height:32px;border-radius:50%;background:var(--cat-tint,var(--surface-2));color:var(--cat,var(--text-2));display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;letter-spacing:-.01em;flex:none;overflow:hidden}
+.av-24{width:24px;height:24px;font-size:10px}
+.av-40{width:40px;height:40px;font-size:14px}
+.av-56{width:56px;height:56px;font-size:19px}
+.stack{display:inline-flex;align-items:center;flex:none}
+.stack .av{margin-left:-8px;box-shadow:0 0 0 2px var(--surface)}
+.stack .av:first-child{margin-left:0}
+.stack .more{margin-left:-8px;width:32px;height:32px;border-radius:50%;background:var(--surface-2);color:var(--text-2);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--surface)}
+.stack.sm .av,.stack.sm .more{width:24px;height:24px;font-size:9px;margin-left:-6px}
+.stack.sm .av:first-child{margin-left:0}
+.hubav{width:40px;height:40px;border-radius:50%;background:var(--cat-tint);color:var(--cat);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.hubav .ic{width:22px;height:22px}
+.hubav-48{width:48px;height:48px;border-radius:14px}
+.hubav-48 .ic{width:26px;height:26px}
+.hubav-64{width:64px;height:64px}
+.hubav-64 .ic{width:30px;height:30px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--shadow-sm);min-width:0}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.card-t{font-size:17px;line-height:22px;font-weight:700;letter-spacing:-.012em;margin-top:10px}
+.card-t.struck{text-decoration:line-through;color:var(--text-2);text-decoration-thickness:1.5px}
+.meta{display:flex;flex-direction:column;gap:4px;margin-top:8px;font-size:13px;line-height:16px;font-weight:500;color:var(--text-2)}
+.meta div{display:flex;align-items:flex-start;gap:6px}
+.meta .ic{width:15px;height:15px;color:var(--text-3);margin-top:.5px}
+.card-f{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.who{display:flex;align-items:center;gap:8px;min-width:0}
+.who .txt{font-size:13px;font-weight:600;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-flex;align-items:center;gap:6px}
+.who .txt b{color:var(--text);font-weight:700}
+.seats{display:inline-flex;gap:3px;align-items:center}
+.seat{width:6px;height:6px;border-radius:50%;background:var(--border-strong)}
+.seat.on{background:var(--success)}
+.seat-th{width:1.5px;height:10px;background:var(--text-3);border-radius:1px;margin:0 1px}
+.iconbtn{width:36px;height:36px;border-radius:50%;border:0;background:transparent;color:var(--text);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .12s ease,background .15s ease;flex:none;position:relative}
+.iconbtn:hover{background:var(--surface-2)}
+.iconbtn:active{transform:scale(.94)}
+.iconbtn.lite{background:var(--bg);box-shadow:var(--shadow-sm)}
+.iconbtn .badge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--live);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg)}
+.field{display:flex;flex-direction:column;gap:6px;width:100%}
+.field label{font-size:14px;font-weight:600}
+.input{display:flex;align-items:center;gap:10px;height:48px;border-radius:14px;background:var(--surface-2);border:1px solid transparent;padding:0 14px;color:var(--text);font-size:16px;transition:box-shadow .15s ease,border-color .15s ease;width:100%}
+.input .ic{color:var(--text-3);width:20px;height:20px}
+.input input{flex:1;min-width:0;border:0;background:transparent;font:inherit;color:inherit;outline:none}
+.input input::placeholder{color:var(--text-3)}
+.input.focus,.input:focus-within{border-color:var(--primary);box-shadow:var(--ring);background:var(--surface)}
+.help{font-size:13px;color:var(--text-3)}
+.toast{display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 8px 0 14px;border-radius:999px;background:var(--inverse);color:var(--text-inverse);font-size:15px;font-weight:600;box-shadow:var(--shadow-lg);max-width:100%}
+.toast .ic{width:20px;height:20px;color:var(--success);stroke-width:2.6}
+.toast .undo{height:32px;padding:0 12px;border-radius:999px;background:rgba(128,128,128,.25);border:0;color:inherit;font-size:14px;font-weight:700;cursor:pointer;flex:none}
+.tabbar{display:grid;grid-template-columns:repeat(5,1fr);height:50px;border-top:1px solid var(--border);background:var(--bg)}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--text-2);font-size:10px;font-weight:600;letter-spacing:.01em;cursor:pointer}
+.tab .ic{width:26px;height:26px}
+.tab.on{color:var(--primary-text)}
+.tab.on .ic{stroke-width:2.5}
+.tab .plus{width:28px;height:28px;border-radius:9px;border:2.2px solid currentColor;display:flex;align-items:center;justify-content:center}
+.tab .plus .ic{width:16px;height:16px;stroke-width:2.6}
+.tab .icw{position:relative;display:flex}
+.tab .badge{position:absolute;top:-4px;right:-7px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--live);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg)}
+
+/* component showcase layout */
+.spec-grid{display:grid;grid-template-columns:1fr;gap:16px}
+@media (min-width:760px){.spec-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1100px){.spec-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.spec{background:var(--stage);border-radius:20px;padding:20px;min-width:0}
+.spec h4{font-size:13px;font-weight:600;color:var(--text-3);margin-bottom:14px}
+.spec .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.spec .col{display:flex;flex-direction:column;gap:10px;align-items:flex-start;width:100%}
+.spec .cap{font-size:12px;color:var(--text-3);margin-top:12px;line-height:1.45}
+.spec .pw{width:100%;max-width:343px}
+.rsvp-list{display:grid;grid-template-columns:1fr;gap:10px;width:100%}
+.rsvp-list .r{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.rsvp-list .r span{font-size:13px;color:var(--text-2);font-weight:500}
+.avrow{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+
+/* ---------- phones ---------- */
+.phones{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;align-items:flex-start}
+.phone-col{display:flex;flex-direction:column;align-items:center;gap:12px;width:375px;max-width:100%}
+.phone-cap{font-size:13px;font-weight:600;color:var(--text-3);text-align:center}
+.phone-cap b{color:var(--text);font-weight:700}
+.phone{width:375px;max-width:100%;height:812px;border-radius:44px;background:var(--bg);border:1px solid var(--border-strong);box-shadow:var(--shadow-md);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.p-status{height:50px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 8px 34px;font-size:15px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.p-status .r{display:flex;align-items:center;gap:6px}
+.p-status svg{fill:currentColor}
+.p-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.p-scroll::-webkit-scrollbar{display:none}
+.p-tabbar{flex:none}
+.p-indicator{width:134px;height:5px;border-radius:3px;background:var(--text);opacity:.85;margin:9px auto 8px}
+.p-bottom{flex:none;border-top:1px solid var(--border);background:var(--bg)}
+.p-top{display:flex;align-items:center;justify-content:space-between;padding:4px 12px 8px 16px}
+.locpill{display:inline-flex;align-items:center;gap:4px;font-size:19px;font-weight:800;letter-spacing:-.02em;cursor:pointer;padding:4px 0;line-height:1}
+.locpill .ic{width:20px;height:20px;color:var(--primary-text)}
+.locpill .chev{width:18px;height:18px;color:var(--text-3)}
+.locsub{font-size:12px;color:var(--text-3);font-weight:500;padding:0 16px;margin-top:-6px}
+.stories{display:flex;gap:12px;padding:12px 16px 4px;overflow-x:auto;scrollbar-width:none}
+.stories::-webkit-scrollbar{display:none}
+.story{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;width:66px;cursor:pointer}
+.story .ringw{width:66px;height:66px;border-radius:50%;padding:3px;border:2.5px solid transparent;display:flex}
+.story.new .ringw{border-color:var(--primary)}
+.story .hubav{width:100%;height:100%}
+.story .hubav .ic{width:28px;height:28px}
+.story span{font-size:11px;font-weight:600;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:66px}
+.story.new span{color:var(--text)}
+.sechead{display:flex;align-items:baseline;justify-content:space-between;padding:16px 16px 10px}
+.sechead h3{font-size:22px;font-weight:800;letter-spacing:-.022em;line-height:1.1}
+.sechead span{font-size:13px;color:var(--text-3);font-weight:600}
+.feed{display:flex;flex-direction:column;gap:12px;padding:0 16px}
+.p-end{padding:24px 16px 20px;text-align:center;font-size:13px;color:var(--text-3);font-weight:500;line-height:1.5}
+.p-end b{color:var(--primary-text);font-weight:700}
+.cover{height:200px;background:var(--cat-tint);color:var(--cat);position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.cover .big{width:150px;height:150px;opacity:.32;stroke-width:1.3}
+.cover .ovl{position:absolute;top:6px;left:12px;right:12px;display:flex;justify-content:space-between}
+.cover .ovl .iconbtn{background:var(--bg);color:var(--text);box-shadow:var(--shadow-sm)}
+.cover .ovl .grp{display:flex;gap:8px}
+.ev-head{padding:14px 16px 0}
+.ev-title{font-size:28px;line-height:32px;font-weight:800;letter-spacing:-.025em;margin-top:10px}
+.ev-rows{margin-top:14px;display:flex;flex-direction:column;gap:12px}
+.ev-row{display:flex;gap:12px;align-items:flex-start}
+.ev-row .ic{width:22px;height:22px;color:var(--text-2);margin-top:0}
+.ev-row .l1{font-size:15px;font-weight:600;line-height:20px;letter-spacing:-.005em}
+.ev-row .l2{font-size:13px;color:var(--text-2);line-height:16px;margin-top:2px;font-weight:500}
+.ev-row .l2 a{color:var(--primary-text);text-decoration:none;font-weight:600}
+.host{display:flex;align-items:center;gap:12px;margin:16px 16px 0;padding:12px;border:1px solid var(--border);border-radius:16px}
+.host .n{font-size:15px;font-weight:700;letter-spacing:-.005em;line-height:18px}
+.host .s{font-size:13px;color:var(--text-2);margin-top:2px;font-weight:500}
+.host .grow{flex:1;min-width:0}
+.blk{padding:20px 16px 0}
+.blk h4{font-size:17px;font-weight:700;letter-spacing:-.012em;display:flex;align-items:baseline;justify-content:space-between}
+.blk h4 span{font-size:13px;color:var(--text-3);font-weight:600}
+.blk p.about{font-size:14px;line-height:19px;color:var(--text-2);margin-top:8px}
+.people{display:flex;gap:12px;margin-top:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.people::-webkit-scrollbar{display:none}
+.person{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;width:56px}
+.person span{font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap}
+.person.open .av-56{background:transparent;border:1.5px dashed var(--border-strong);color:var(--text-3);font-size:12px;font-weight:600}
+.chat{margin-top:12px;border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.msg{display:flex;gap:10px;padding:10px 12px;align-items:flex-start}
+.msg + .msg{border-top:1px solid var(--border)}
+.msg .n{font-size:13px;font-weight:700}
+.msg .n span{color:var(--text-3);font-weight:500;margin-left:6px}
+.msg .t{font-size:14px;line-height:18px;margin-top:1px;color:var(--text)}
+.chat .composer{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 12px;background:var(--surface-2);border-top:1px solid var(--border);color:var(--text-3);font-size:14px;font-weight:500}
+.chat .composer .send{margin-left:auto;width:32px;height:32px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:flex;align-items:center;justify-content:center;flex:none}
+.chat .composer .send .ic{width:16px;height:16px}
+.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.act{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:14px;background:var(--surface-2);font-size:12px;font-weight:600;color:var(--text);cursor:pointer;text-align:center}
+.act .ic{width:22px;height:22px}
+.nudge{display:flex;gap:12px;align-items:flex-start;margin:16px 16px 0;padding:12px;border-radius:16px;background:var(--surface-2)}
+.nudge .ic{width:22px;height:22px;color:var(--success-text);flex:none;margin-top:1px}
+.nudge .n{font-size:14px;font-weight:700;letter-spacing:-.005em}
+.nudge .s{font-size:13px;color:var(--text-2);line-height:17px;margin-top:2px;font-weight:500}
+.p-cta{display:flex;gap:10px;padding:10px 16px 0}
+.p-cta .btn-primary{flex:1}
+.hub-cover{height:96px;background:var(--cat-tint);position:relative}
+.hub-cover .ovl{position:absolute;top:6px;left:12px;right:12px;display:flex;justify-content:space-between}
+.hub-cover .ovl .iconbtn{background:var(--bg);color:var(--text);box-shadow:var(--shadow-sm)}
+.hub-head{padding:0 16px;margin-top:-34px;position:relative}
+.hub-head .hubav-64{border:3px solid var(--bg);width:72px;height:72px}
+.hub-head .hubav-64 .ic{width:34px;height:34px}
+.hub-name{font-size:24px;line-height:27px;font-weight:800;letter-spacing:-.025em;margin-top:10px}
+.hub-sub{font-size:14px;color:var(--text-2);font-weight:500;margin-top:4px}
+.hub-stats{display:flex;gap:18px;margin-top:12px}
+.hub-stats div{font-size:12px;color:var(--text-2);font-weight:500}
+.hub-stats b{display:block;font-size:18px;color:var(--text);font-weight:800;letter-spacing:-.015em;line-height:20px;font-variant-numeric:tabular-nums}
+.hub-actions{display:flex;gap:8px;margin-top:14px}
+.hub-actions .btn-primary{flex:1}
+.ptabs{display:flex;margin-top:18px;border-bottom:1px solid var(--border);padding:0 8px}
+.ptab{flex:1;text-align:center;padding:10px 0 11px;font-size:14px;font-weight:600;color:var(--text-2);position:relative;cursor:pointer;white-space:nowrap}
+.ptab.on{color:var(--text)}
+.ptab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2px;background:var(--text);border-radius:2px}
+.ptab .cnt{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--primary);color:#fff;font-size:11px;font-weight:700;margin-left:5px;vertical-align:1px}
+.ev-list{margin-top:6px;display:flex;flex-direction:column}
+.ev-item{display:flex;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--border)}
+.ev-item:first-child{border-top:0}
+.datetile{width:48px;height:52px;border-radius:12px;background:var(--surface-2);display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none}
+.datetile .d{font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.04em;text-transform:uppercase}
+.datetile .n{font-size:20px;font-weight:800;letter-spacing:-.02em;line-height:22px}
+.datetile.today{background:var(--primary-tint)}
+.datetile.today .d,.datetile.today .n{color:var(--primary-text)}
+.ev-item .grow{flex:1;min-width:0}
+.ev-item .n{font-size:15px;font-weight:700;letter-spacing:-.008em;line-height:19px}
+.ev-item .s{font-size:13px;color:var(--text-2);font-weight:500;margin-top:2px}
+.captains{display:flex;gap:10px;margin-top:12px}
+.captain{flex:1;display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:14px;min-width:0}
+.captain .grow{min-width:0}
+.captain .n{font-size:14px;font-weight:700;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.captain .s{font-size:12px;color:var(--text-3);font-weight:500;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.members-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+.members-row .txt{font-size:14px;color:var(--text-2);font-weight:500}
+.members-row .txt b{color:var(--text);font-weight:700}
+
+/* ---------- motion & closing ---------- */
+.motion-list{display:grid;grid-template-columns:1fr;gap:12px}
+@media (min-width:760px){.motion-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mo{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px}
+.mo h4{font-size:16px;font-weight:700;letter-spacing:-.01em}
+.mo p{font-size:14px;line-height:1.5;color:var(--text-2);margin-top:6px}
+.mo .spec-l{font-size:12px;font-weight:600;color:var(--text-3);margin-top:10px;font-variant-numeric:tabular-nums;line-height:1.5}
+.mo .spec-l b{color:var(--primary-text);font-weight:700}
+.prose{font-size:17px;line-height:1.55;max-width:760px;letter-spacing:-.004em}
+.prose b{font-weight:700}
+footer{padding:32px 0 64px;border-top:1px solid var(--border);font-size:13px;color:var(--text-3);line-height:1.6}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar"><div class="wrap">
+  <div class="brand"><svg class="mk" aria-hidden="true"><use href="#mark"/></svg><span>Activity Planet</span><span class="meta">· Direction C · Clean social</span></div>
+  <button class="tbtn" id="theme-btn" type="button" data-mode="light" aria-label="Switch to dark mode"><svg class="ic ic-sm sun" aria-hidden="true"><use href="#i-sun"/></svg><svg class="ic ic-sm moon" aria-hidden="true"><use href="#i-moon"/></svg><span class="tb-label">Light</span></button>
+</div></header>
+
+<main>
+
+<!-- 1. Header -->
+<section class="hero"><div class="wrap">
+  <div class="eyebrow">Activity Planet v2 <span class="dotsep"></span> Visual direction C <span class="dotsep"></span> Georgia State, January 2027</div>
+  <h1>Open <em>Air</em></h1>
+  <p class="thesis">A white room where the people are the color: one electric blue owns every Going, and everything else steps back so names, faces and places carry the warmth.</p>
+  <div class="adjs"><span class="adj">Quiet</span><span class="adj">Native</span><span class="adj">Warm</span></div>
+</div></section>
+
+<!-- 2. Logo -->
+<section class="sec" id="logo"><div class="wrap sec-grid">
+  <div class="sec-side">
+    <div class="sec-label">Logo</div>
+    <h2 class="sec-title">A planet with company</h2>
+    <p class="sec-desc">The mark is a planet with a moon that has just arrived: two circles and one knockout, so it reads as "not alone" at a 24&nbsp;px tab icon and a 1024&nbsp;px App Store tile without being redrawn. The wordmark is drawn, not typed, as a lowercase geometric monoline whose bowls are the same circle as the planet, so the whole identity is one circle and one stroke weight.</p>
+  </div>
+  <div>
+    <div class="logo-grid">
+      <div class="logo-hero">
+        <div class="lockup">
+          <svg class="mk" role="img" aria-label="Activity Planet mark"><use href="#mark"/></svg>
+          <svg class="wm" viewBox="0 -2 276 44" role="img" aria-label="activity planet wordmark"><use href="#wordmark"/></svg>
+        </div>
+      </div>
+      <div class="logo-small">
+        <div class="logo-tile"><span class="lab">24 px</span>
+          <div class="lockup-24"><svg class="mk" aria-hidden="true"><use href="#mark"/></svg><svg class="wm" viewBox="0 -2 276 44" aria-hidden="true"><use href="#wordmark"/></svg></div>
+        </div>
+        <div class="logo-tile"><span class="lab">App icon</span>
+          <div class="appicon"><svg aria-hidden="true"><use href="#mark"/></svg></div>
+          <div class="appicon-sm"><svg aria-hidden="true"><use href="#mark"/></svg></div>
+        </div>
+        <div class="logo-tile"><span class="lab">Sizes</span>
+          <div class="mark-row">
+            <div class="cell"><svg width="48" height="48" aria-hidden="true"><use href="#mark"/></svg>48</div>
+            <div class="cell"><svg width="32" height="32" aria-hidden="true"><use href="#mark"/></svg>32</div>
+            <div class="cell"><svg width="24" height="24" aria-hidden="true"><use href="#mark"/></svg>24</div>
+            <div class="cell"><svg width="16" height="16" aria-hidden="true"><use href="#mark"/></svg>16</div>
+            <div class="cell ink"><svg width="32" height="32" aria-hidden="true"><use href="#mark"/></svg>ink</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note mt16"><strong>Construction.</strong> Planet r&nbsp;17, moon r&nbsp;7.5, knockout r&nbsp;10.5 on a 48 grid; the knockout is always moon&nbsp;+&nbsp;3 so the gap scales with the mark. Wordmark: x-height 20, stroke 4.4, round caps, lowercase only, the circle of the a, p and e is the planet's circle. Clear space is one moon diameter. The mark is always one color (primary on light and dark, white on the icon tile, ink in print); never two colors, never a gradient.</p>
+  </div>
+</div></section>
+
+<!-- 3. Palette -->
+<section class="sec" id="palette"><div class="wrap sec-grid">
+  <div class="sec-side">
+    <div class="sec-label">Palette</div>
+    <h2 class="sec-title">Black, white, one blue</h2>
+    <p class="sec-desc">#1D5BFF is the only brand color on a screen. It is the one hue that stays fully saturated and still clears 4.5:1 with white text, so the Going button is identical in light and dark. Every ratio below is computed (WCAG 2.1, relative luminance); the first number is light, the second dark.</p>
+  </div>
+  <div>
+    <p class="sub">Surfaces and borders</p>
+    <div class="sw-grid">
+      <div class="sw"><div class="sw-c" style="background:var(--bg)"></div><div class="sw-role">Background</div><div class="sw-use">Feed, sheets, cards. True black in dark.</div><div class="sw-hex"><b>#FFFFFF</b> · #000000</div></div>
+      <div class="sw"><div class="sw-c" style="background:var(--surface-2)"></div><div class="sw-role">Surface 2</div><div class="sw-use">Inputs, chips, secondary buttons, date tiles.</div><div class="sw-hex"><b>#F4F4F5</b> · #141416</div></div>
+      <div class="sw"><div class="sw-c" style="background:var(--surface-3)"></div><div class="sw-role">Surface 3</div><div class="sw-use">Pressed secondary.</div><div class="sw-hex"><b>#E9E9EC</b> · #1F1F23</div></div>
+      <div class="sw"><div class="sw-c" style="background:var(--border)"></div><div class="sw-role">Border</div><div class="sw-use">Card hairline, dividers. Decorative only, never the sole boundary.</div><div class="sw-hex"><b>#E4E4E7</b> · #27272A</div></div>
+      <div class="sw"><div class="sw-c" style="background:var(--border-strong)"></div><div class="sw-role">Border strong</div><div class="sw-use">Empty seats, phone frames, dashed open slots.</div><div class="sw-hex"><b>#CFCFD4</b> · #3F3F46</div></div>
+    </div>
+
+    <p class="sub mt32">Text</p>
+    <div class="sw-grid">
+      <div class="sw"><div class="sw-c" style="background:var(--bg);color:var(--text)">Aa</div><div class="sw-role">Text</div><div class="sw-use">Titles, names, body.</div><div class="sw-hex"><b>#0A0A0A</b> · #FAFAFA</div><div class="sw-ratio">on background <em>19.8</em> · <em>20.1</em> AAA<br>on surface 2 <em>18.0</em> · <em>17.6</em> AAA</div></div>
+      <div class="sw"><div class="sw-c" style="background:var(--bg);color:var(--text-2)">Aa</div><div class="sw-role">Text 2</div><div class="sw-use">Times, venues, captions, tab labels.</div><div class="sw-hex"><b>#52525B</b> · #A1A1AA</div><div class="sw-ratio">on background <em>7.7</em> · <em>8.2</em> AAA<br>on surface 2 <em>7.0</em> · <em>7.2</em> AAA</div></div>
+      <div class="sw"><div class="sw-c" style="background:var(--bg);color:var(--text-3)">Aa</div><div class="sw-role">Text 3</div><div class="sw-use">Timestamps, helper text, placeholders. Never below 13&nbsp;px.</div><div class="sw-hex"><b>#6B6B75</b> · #85858E</div><div class="sw-ratio">on background <em>5.3</em> · <em>5.7</em> AA<br>on surface 2 <em>4.8</em> · <em>5.0</em> AA</div></div>
+      <div class="sw"><div class="sw-c" style="background:var(--inverse);color:var(--text-inverse);border-color:transparent">Aa</div><div class="sw-role">Inverse</div><div class="sw-use">Toasts, Register-at-source button.</div><div class="sw-hex"><b>#FFFFFF on #0A0A0A</b> · flipped</div><div class="sw-ratio">text on inverse <em>19.8</em> · <em>20.1</em> AAA</div></div>
+    </div>
+
+    <p class="sub mt32">Primary action</p>
+    <div class="sw-grid">
+      <div class="sw"><div class="sw-c" style="background:var(--primary);color:var(--on-primary);border-color:transparent">Going</div><div class="sw-role">Primary</div><div class="sw-use">The Going button, the + tab, send. Nothing else is filled blue.</div><div class="sw-hex"><b>#1D5BFF</b> · #1D5BFF</div><div class="sw-ratio">white label <em>5.3</em> · <em>5.3</em> AA<br>against background 5.3 · 4.0 (non-text)</div></div>
+      <div class="sw"><div class="sw-c" style="background:var(--primary-hover);color:#fff;border-color:transparent">Going</div><div class="sw-role">Primary pressed</div><div class="sw-use">Darker on press in both themes.</div><div class="sw-hex"><b>#0F4BE6</b> · #1549D6</div><div class="sw-ratio">white label <em>6.6</em> · <em>7.1</em> AA</div></div>
+      <div class="sw"><div class="sw-c" style="background:var(--bg);color:var(--primary-text)">Link</div><div class="sw-role">Primary text</div><div class="sw-use">Links, active tab icon, the location pin, today's date.</div><div class="sw-hex"><b>#1D5BFF</b> · #6D9BFF</div><div class="sw-ratio">on background <em>5.3</em> · <em>7.8</em> AA<br>on surface 2 <em>4.8</em> · <em>6.8</em> AA</div></div>
+      <div class="sw"><div class="sw-c" style="background:var(--primary-tint);color:var(--primary-text)">Today</div><div class="sw-role">Primary tint</div><div class="sw-use">Active filter chip, today's date tile, ghost hover.</div><div class="sw-hex"><b>#EAF0FF</b> · #0E1B3F</div><div class="sw-ratio">primary text on tint <em>4.6</em> · <em>6.2</em> AA</div></div>
+    </div>
+
+    <p class="sub mt32">Semantic states</p>
+    <div class="sem-grid">
+      <div class="sem">
+        <div class="sem-demo"><span class="sem-fill" style="background:var(--success);color:var(--on-success)"><svg class="ic" style="width:16px;height:16px;stroke-width:2.6"><use href="#i-check"/></svg>Going</span><span class="sem-tint" style="background:var(--success-tint);color:var(--success-text)"><svg class="ic" style="width:14px;height:14px;stroke-width:2.6"><use href="#i-check"/></svg>You're going</span></div>
+        <div><h4>Going · success</h4><div class="use">Confirmed RSVP, filled seats, "It's on" at quorum, the safety nudge icon.</div>
+          <table><tr><td>fill</td><td><b>#15803D</b> · #22C55E, label <b>white</b> · #0A0A0A, <em>5.0</em> · <em>8.7</em> AA</td></tr><tr><td>text</td><td><b>#166534</b> · #4ADE80 on tint <b>#DCFCE7</b> · #0A2414, <em>6.5</em> · <em>9.5</em> AA</td></tr></table></div>
+      </div>
+      <div class="sem">
+        <div class="sem-demo"><span class="sem-fill" style="background:var(--live);color:var(--on-live)"><span class="pulse"></span>Live</span><span class="sem-tint" style="background:var(--live-tint);color:var(--live-text)"><span class="pulse"></span>Live now</span></div>
+        <div><h4>Live now</h4><div class="use">An event in progress, unread badges on Chats. Pink, not red, so it never reads as an error.</div>
+          <table><tr><td>fill</td><td><b>#E0157F</b> · #F0338F, label <b>white</b> · #0A0A0A, <em>4.6</em> · <em>5.3</em> AA</td></tr><tr><td>text</td><td><b>#B0105F</b> · #FF7AB8 on tint <b>#FFE1F0</b> · #33081C, <em>5.6</em> · <em>7.3</em> AA</td></tr></table></div>
+      </div>
+      <div class="sem">
+        <div class="sem-demo"><span class="sem-fill" style="background:var(--warning);color:var(--on-warning)">Full</span><span class="sem-tint" style="background:var(--warning-tint);color:var(--warning-text)">Waitlisted · 3rd</span></div>
+        <div><h4>Full / waitlist · warning</h4><div class="use">Capacity reached, waitlist position, "starts in 5 min" if you are far away. Label is always ink on yellow.</div>
+          <table><tr><td>fill</td><td><b>#F5B400</b> · #FACC15, label <b>#0A0A0A</b>, <em>10.8</em> · <em>12.9</em> AAA</td></tr><tr><td>text</td><td><b>#7A4F00</b> · #FCD34D on tint <b>#FFF3CC</b> · #2C2105, <em>6.4</em> · <em>11.0</em> AA</td></tr></table></div>
+      </div>
+      <div class="sem">
+        <div class="sem-demo"><span class="sem-fill" style="background:var(--danger);color:var(--on-danger)">Leave event</span><span class="sem-tint" style="background:var(--danger-tint);color:var(--danger-text)">Cancelled</span></div>
+        <div><h4>Cancelled · destructive</h4><div class="use">Cancelled events, Leave, Delete, Report. Title gets a strike, card stays so people see why.</div>
+          <table><tr><td>fill</td><td><b>#DC2626</b> · #EF4444, label <b>white</b> · #0A0A0A, <em>4.8</em> · <em>5.3</em> AA</td></tr><tr><td>text</td><td><b>#B42318</b> · #F87171 on tint <b>#FEE4E2</b> · #320C0C, <em>5.5</em> · <em>6.4</em> AA</td></tr></table></div>
+      </div>
+      <div class="sem">
+        <div class="sem-demo"><span class="sem-fill" style="background:var(--info);color:var(--on-info)"><svg class="ic" style="width:16px;height:16px"><use href="#i-ext"/></svg>From PIN</span><span class="sem-tint" style="background:var(--info-tint);color:var(--info-text)"><svg class="ic" style="width:14px;height:14px;stroke-width:2.4"><use href="#i-ext"/></svg>From PIN</span></div>
+        <div><h4>Imported · info</h4><div class="use">Events pulled from the campus feed (PIN). A cool slate, so an imported card looks slightly "behind glass" next to a chapter's own.</div>
+          <table><tr><td>fill</td><td><b>#64748B</b> · #94A3B8, label <b>white</b> · #0A0A0A, <em>4.8</em> · <em>7.7</em> AA</td></tr><tr><td>text</td><td><b>#475569</b> · #AEBBCC on tint <b>#F1F5F9</b> · #171C24, <em>6.9</em> · <em>8.8</em> AA</td></tr></table></div>
+      </div>
+    </div>
+
+    <p class="sub mt32">Hub categories · 10 hues, each a tint plus a text color</p>
+    <div class="cat-grid">
+      <div class="cat" data-cat="sports"><div class="cat-c"><svg class="ic"><use href="#i-ball"/></svg>Sports</div><div class="sw-hex"><b>#B53E0B</b> on #FFEDD5</div><div class="sw-hex">#FDBA74 on #2B1407</div><div class="sw-ratio"><em>5.0</em> · <em>10.3</em> AA</div></div>
+      <div class="cat" data-cat="food"><div class="cat-c"><svg class="ic"><use href="#i-pizza"/></svg>Food</div><div class="sw-hex"><b>#3F6212</b> on #ECFCCB</div><div class="sw-hex">#BEF264 on #15210A</div><div class="sw-ratio"><em>6.5</em> · <em>12.8</em> AA</div></div>
+      <div class="cat" data-cat="outdoors"><div class="cat-c"><svg class="ic"><use href="#i-leaf"/></svg>Outdoors</div><div class="sw-hex"><b>#166534</b> on #DCFCE7</div><div class="sw-hex">#86EFAC on #0C2415</div><div class="sw-ratio"><em>6.5</em> · <em>11.7</em> AA</div></div>
+      <div class="cat" data-cat="wellness"><div class="cat-c"><svg class="ic"><use href="#i-heart"/></svg>Wellness</div><div class="sw-hex"><b>#0F766E</b> on #CCFBF1</div><div class="sw-hex">#5EEAD4 on #06201E</div><div class="sw-ratio"><em>4.9</em> · <em>11.5</em> AA</div></div>
+      <div class="cat" data-cat="tech"><div class="cat-c"><svg class="ic"><use href="#i-code"/></svg>Tech</div><div class="sw-hex"><b>#0369A1</b> on #E0F2FE</div><div class="sw-hex">#7DD3FC on #07192A</div><div class="sw-ratio"><em>5.2</em> · <em>10.7</em> AA</div></div>
+      <div class="cat" data-cat="career"><div class="cat-c"><svg class="ic"><use href="#i-case"/></svg>Career</div><div class="sw-hex"><b>#3730A3</b> on #E0E7FF</div><div class="sw-hex">#A5B4FC on #14143A</div><div class="sw-ratio"><em>8.1</em> · <em>8.9</em> AAA</div></div>
+      <div class="cat" data-cat="games"><div class="cat-c"><svg class="ic"><use href="#i-dice"/></svg>Games</div><div class="sw-hex"><b>#6D28D9</b> on #EDE9FE</div><div class="sw-hex">#C4B5FD on #1E1239</div><div class="sw-ratio"><em>6.0</em> · <em>9.5</em> AA</div></div>
+      <div class="cat" data-cat="anime"><div class="cat-c"><svg class="ic"><use href="#i-film"/></svg>Anime &amp; film</div><div class="sw-hex"><b>#A21CAF</b> on #FAE8FF</div><div class="sw-hex">#F0ABFC on #2A0F2E</div><div class="sw-ratio"><em>5.4</em> · <em>9.9</em> AA</div></div>
+      <div class="cat" data-cat="music"><div class="cat-c"><svg class="ic"><use href="#i-music"/></svg>Music &amp; arts</div><div class="sw-hex"><b>#BE123C</b> on #FFE4E6</div><div class="sw-hex">#FDA4AF on #2E0A12</div><div class="sw-ratio"><em>5.2</em> · <em>9.5</em> AA</div></div>
+      <div class="cat" data-cat="study"><div class="cat-c"><svg class="ic"><use href="#i-book"/></svg>Study</div><div class="sw-hex"><b>#57534E</b> on #F5F5F4</div><div class="sw-hex">#D6D3D1 on #1C1B1A</div><div class="sw-ratio"><em>7.0</em> · <em>11.6</em> AAA</div></div>
+    </div>
+    <p class="note mt16">A category color only ever appears as a tint behind an icon or a monogram, never as a fill behind white text and never on a button. People avatars borrow the same ten tints for their initials, so a card full of people looks warm without a single photo. Outdoors shares the success green on purpose: the check and the word "Going" do the disambiguating, not the hue.</p>
+  </div>
+</div></section>
+
+<!-- 4. Type -->
+<section class="sec" id="type"><div class="wrap sec-grid">
+  <div class="sec-side">
+    <div class="sec-label">Type</div>
+    <h2 class="sec-title">One family, a weight ramp</h2>
+    <p class="sec-desc">Figtree for everything. Instagram and Snapchat ship on the system font and feel native because the type has no voice of its own beyond weight and size; Figtree gives us that with a warmer, rounder lowercase that matches the drawn wordmark. Tracking tightens as size grows. Numbers are tabular so times and counts line up in lists.</p>
+  </div>
+  <div>
+    <div class="families">
+      <div class="family"><div class="big">Figtree</div><div class="wts"><b>UI and display.</b> 500 captions · 600 buttons, names, meta · 700 titles · 800 screen titles and the hero word. Google Fonts, variable, one request. Fallback: system-ui.</div></div>
+      <div class="family"><div class="big" style="font-variant-numeric:tabular-nums">4:00 · 212 · 0.3 mi</div><div class="wts"><b>Numbers.</b> <code style="font:inherit;font-weight:600">font-variant-numeric: tabular-nums</code> on times, counts, distances and date tiles. Sentence case everywhere; the only uppercase in the app is the weekday on a date tile.</div></div>
+    </div>
+    <div class="type-row"><div class="type-meta"><b>Display</b>32 / 36 · 800 · −2.5%<br>Event page title, hub name</div><div class="t-display">Table Tennis open play</div></div>
+    <div class="type-row"><div class="type-meta"><b>Title 1</b>24 / 28 · 700 · −2%<br>Section heads on Home, sheet titles</div><div class="t-title1">Today near Georgia State</div></div>
+    <div class="type-row"><div class="type-meta"><b>Title 2</b>20 / 24 · 700 · −1.2%<br>Date in a header, group chat name</div><div class="t-title2">Tuesday, January 20</div></div>
+    <div class="type-row"><div class="type-meta"><b>Headline</b>17 / 22 · 600 · −0.6%<br>Card titles, list rows, buttons at 48</div><div class="t-headline">Open run, Court 2 · 9 playing right now</div></div>
+    <div class="type-row"><div class="type-meta"><b>Body</b>15 / 20 · 400<br>Chat messages, descriptions</div><div class="t-body">Bringing an extra paddle if anyone needs one. Coming from Classroom South, might be five minutes late, save me a table?</div></div>
+    <div class="type-row"><div class="type-meta"><b>Body strong</b>15 / 20 · 600<br>Counts that matter, names in chat</div><div class="t-body-strong">4 of 6 going · happens at 4</div></div>
+    <div class="type-row"><div class="type-meta"><b>Caption</b>13 / 16 · 500 · Text 2<br>Time, venue, distance, timestamps</div><div class="t-caption">4:00–6:00 PM · Student Center East, Room 220 · 0.3 mi</div></div>
+    <div class="type-row"><div class="type-meta"><b>Label</b>12 / 16 · 600 · +1%<br>Chips, tab labels, date tile weekday</div><div class="t-label">From PIN · Live now · Full · Cancelled · Chapter</div></div>
+  </div>
+</div></section>
+
+<!-- 5. Components -->
+<section class="sec" id="components"><div class="wrap sec-grid">
+  <div class="sec-side">
+    <div class="sec-label">Components</div>
+    <h2 class="sec-title">Pills, hairlines, circles</h2>
+    <p class="sec-desc">Buttons are pills; cards are 16&nbsp;px with a hairline and a 1&nbsp;px shadow; avatars are circles; hub tiles are circles in rows and rounded squares in lists. State is encoded three ways at once: hue, icon, word.</p>
+  </div>
+  <div class="spec-grid">
+
+    <div class="spec"><h4>Buttons</h4>
+      <div class="col">
+        <div class="row"><button class="btn btn-primary" type="button">Going</button><button class="btn btn-secondary" type="button">Interested</button><button class="btn btn-ghost" type="button">See all</button></div>
+        <div class="row"><button class="btn btn-primary btn-sm" type="button">Going</button><button class="btn btn-secondary btn-sm" type="button">Interested</button><button class="btn btn-ghost btn-sm" type="button">See all</button><button class="btn btn-inverse btn-sm" type="button">Register on PIN<svg class="ic"><use href="#i-ext"/></svg></button></div>
+      </div>
+      <p class="cap">48 px and 36 px. 600 weight, no borders, no icon unless the icon is the state. Primary is the only blue fill in the product; inverse (ink) is reserved for leaving the app.</p>
+    </div>
+
+    <div class="spec"><h4>The Going button, every RSVP state</h4>
+      <div class="rsvp-list">
+        <div class="r"><span>Not responded</span><button class="btn btn-primary btn-sm" type="button">Going</button></div>
+        <div class="r"><span>Going</span><button class="btn btn-going btn-sm" type="button"><svg class="ic" style="stroke-width:2.6"><use href="#i-check"/></svg>Going</button></div>
+        <div class="r"><span>Interested</span><button class="btn btn-secondary btn-sm" type="button"><svg class="ic"><use href="#i-star"/></svg>Interested</button></div>
+        <div class="r"><span>Waitlisted</span><button class="btn btn-waitlisted btn-sm" type="button">Waitlisted · 3rd</button></div>
+        <div class="r"><span>Full</span><span class="row" style="gap:6px"><span class="chip chip-warn">Full · 12 of 12</span><button class="btn btn-secondary btn-sm" type="button">Join waitlist</button></span></div>
+        <div class="r"><span>Cancelled</span><button class="btn btn-cancelled btn-sm" type="button" disabled>Cancelled</button></div>
+        <div class="r"><span>Live now</span><button class="btn btn-primary btn-sm btn-live" type="button"><span class="pulse"></span>Join now</button></div>
+        <div class="r"><span>Imported</span><button class="btn btn-inverse btn-sm" type="button">Register on PIN<svg class="ic"><use href="#i-ext"/></svg></button></div>
+      </div>
+      <p class="cap">The verb stays "Going" through the whole flow: tap Going, the pill turns green and says Going with a check, the toast says "You're going". Only imported events change the verb, because the action leaves the app.</p>
+    </div>
+
+    <div class="spec"><h4>Chips</h4>
+      <div class="col">
+        <div class="row"><span class="chip chip-hub" data-cat="sports"><span class="hubav"><svg class="ic"><use href="#i-paddle"/></svg></span><span class="t">Table Tennis at GSU</span></span><span class="chip chip-hub" data-cat="anime"><span class="hubav"><svg class="ic"><use href="#i-film"/></svg></span><span class="t">Anime Club at GSU</span></span></div>
+        <div class="row"><span class="chip chip-cat" data-cat="sports"><svg class="ic"><use href="#i-ball"/></svg>Sports</span><span class="chip chip-cat" data-cat="games"><svg class="ic"><use href="#i-dice"/></svg>Games</span><span class="chip chip-cat" data-cat="food"><svg class="ic"><use href="#i-pizza"/></svg>Free food</span><span class="chip chip-cat" data-cat="tech"><svg class="ic"><use href="#i-code"/></svg>Coding</span></div>
+        <div class="row"><span class="chip chip-imported"><svg class="ic"><use href="#i-ext"/></svg>From PIN</span><span class="chip">Chapter</span><span class="chip">Posted by Devon</span><span class="chip chip-active">Today</span></div>
+        <div class="row"><span class="chip chip-live"><span class="pulse"></span>Live now</span><span class="chip chip-going"><svg class="ic" style="stroke-width:2.6"><use href="#i-check"/></svg>Going</span><span class="chip chip-warn">Full · 12 of 12</span><span class="chip chip-danger">Cancelled</span></div>
+      </div>
+      <p class="cap">Hub chip (outlined, with the hub's tile), category chip (tinted), imported chip (slate), neutral facts, the active filter (primary tint), and the four state chips.</p>
+    </div>
+
+    <div class="spec"><h4>Event card</h4>
+      <article class="card pw" data-cat="sports">
+        <div class="card-h"><span class="chip chip-hub"><span class="hubav"><svg class="ic"><use href="#i-paddle"/></svg></span><span class="t">Table Tennis at GSU</span></span><span class="chip">Chapter</span></div>
+        <h3 class="card-t">Table Tennis open play</h3>
+        <div class="meta"><div><svg class="ic"><use href="#i-clock"/></svg>Today 4:00–6:00 PM</div><div><svg class="ic"><use href="#i-pin"/></svg>Student Center East, Room 220 · 0.3 mi</div></div>
+        <div class="card-f"><div class="who"><span class="stack sm"><span class="av" data-cat="music">M</span><span class="av" data-cat="tech">D</span><span class="av" data-cat="games">P</span><span class="av" data-cat="wellness">J</span></span><span class="txt"><b>4 of 6</b><span class="seats"><span class="seat on"></span><span class="seat on"></span><span class="seat on"></span><span class="seat on"></span><span class="seat-th"></span><span class="seat"></span><span class="seat"></span></span></span></div><button class="btn btn-primary btn-sm" type="button">Going</button></div>
+      </article>
+      <p class="cap">Top row says who is hosting and what kind of event it is. The seat meter is the product's quorum mechanic drawn literally: six seats, the tick is where "happens at" sits, green dots are people who said yes.</p>
+    </div>
+
+    <div class="spec"><h4>Hub card</h4>
+      <div class="card pw" data-cat="sports">
+        <div style="display:flex;gap:12px;align-items:center"><span class="hubav hubav-48"><svg class="ic"><use href="#i-paddle"/></svg></span><div style="flex:1;min-width:0"><div class="card-t" style="margin:0;font-size:16px;line-height:20px">Table Tennis at Georgia State Atlanta</div><div class="meta" style="margin-top:3px"><div>212 members · 3 events this week</div></div></div><button class="btn btn-primary btn-sm" type="button">Join</button></div>
+        <div class="row" style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="chip chip-cat"><svg class="ic"><use href="#i-ball"/></svg>Sports</span><span class="chip">Chapter</span><span class="stack sm"><span class="av" data-cat="music">M</span><span class="av" data-cat="tech">D</span><span class="av" data-cat="career">MT</span><span class="more">+9</span></span><span class="t-caption">friends in it</span></div>
+      </div>
+      <p class="cap">Rounded-square tile in lists, circle in the story row. Member count and this week's event count are the two numbers that predict whether showing up will be worth it.</p>
+    </div>
+
+    <div class="spec"><h4>Avatars and stacks</h4>
+      <div class="col">
+        <div class="avrow"><span class="av av-56" data-cat="music">M</span><span class="av av-40" data-cat="tech">D</span><span class="av" data-cat="games">P</span><span class="av av-24" data-cat="wellness">J</span><span class="av av-40" data-cat="you">You</span></div>
+        <div class="row"><span class="stack"><span class="av" data-cat="music">M</span><span class="av" data-cat="tech">D</span><span class="av" data-cat="games">P</span><span class="av" data-cat="wellness">J</span><span class="more">+5</span></span><span class="stack sm"><span class="av" data-cat="food">S</span><span class="av" data-cat="anime">A</span><span class="av" data-cat="sports">T</span></span></div>
+        <div class="row" style="gap:14px">
+          <div class="story new"><div class="ringw"><span class="hubav" data-cat="sports"><svg class="ic"><use href="#i-paddle"/></svg></span></div><span>Table Tennis</span></div>
+          <div class="story"><div class="ringw"><span class="hubav" data-cat="games"><svg class="ic"><use href="#i-dice"/></svg></span></div><span>Board Games</span></div>
+        </div>
+      </div>
+      <p class="cap">Initials on a category tint until the person adds a photo. Stacks overlap by 8 px with a 2 px surface ring. A story ring in primary means the hub posted a new event since you last looked.</p>
+    </div>
+
+    <div class="spec"><h4>Bottom tab bar</h4>
+      <div class="pw" style="border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--bg)">
+        <div class="tabbar">
+          <div class="tab on"><span class="icw"><svg class="ic"><use href="#i-home"/></svg></span>Home</div>
+          <div class="tab"><span class="icw"><svg class="ic"><use href="#i-hubs"/></svg></span>Hubs</div>
+          <div class="tab"><span class="plus"><svg class="ic"><use href="#i-plus"/></svg></span>Plan</div>
+          <div class="tab"><span class="icw"><svg class="ic"><use href="#i-chat"/></svg><span class="badge">2</span></span>Chats</div>
+          <div class="tab"><span class="icw"><svg class="ic"><use href="#i-user"/></svg></span>Me</div>
+        </div>
+        <div class="p-indicator"></div>
+      </div>
+      <p class="cap">Five tabs, 26 px line icons, the active one in primary with a heavier stroke rather than a fill. The middle tab is Plan, because posting a plan is the thing a member does. Unread counts use the live pink.</p>
+    </div>
+
+    <div class="spec"><h4>Inputs</h4>
+      <div class="col">
+        <div class="input"><svg class="ic"><use href="#i-search"/></svg><input type="search" placeholder="Search hubs, events, people" aria-label="Search"></div>
+        <div class="field"><label for="where">Where should people meet?</label><div class="input focus"><svg class="ic" style="color:var(--primary-text)"><use href="#i-pin"/></svg><input id="where" type="text" value="Student Center East, Room 220"></div><div class="help">Pick a public spot on or near campus.</div></div>
+      </div>
+      <p class="cap">Filled, no border at rest; on focus the border turns primary with a soft ring and the field goes white. 16 px text so iOS never zooms.</p>
+    </div>
+
+    <div class="spec"><h4>Toast</h4>
+      <div class="col">
+        <div class="toast" role="status"><svg class="ic"><use href="#i-check"/></svg>You're going. Added to Plans.<button class="undo" type="button">Undo</button></div>
+        <div class="toast" role="status"><span class="pulse" style="color:var(--live)"></span>Open run just went live</div>
+      </div>
+      <p class="cap">Inverse pill, bottom center, 48 px, clears in 4 s or on swipe. The one place ink is used as a fill.</p>
+    </div>
+
+  </div>
+</div></section>
+
+<!-- 6. Screens -->
+<section class="sec" id="screens"><div class="wrap">
+  <div class="sec-label">Screens</div>
+  <h2 class="sec-title">Tuesday, January 20, 2027 · 2:37 PM · downtown Atlanta</h2>
+  <p class="sec-desc" style="max-width:720px">Three screens from one afternoon. The feed scrolls inside the frame. Everything you see is the token set above; nothing is styled ad hoc.</p>
+
+  <div class="phones mt32">
+
+    <!-- Home -->
+    <div class="phone-col">
+      <div class="phone-cap"><b>Home</b> · location first, Today then This week</div>
+      <div class="phone" data-screen="home">
+        <div class="p-status"><span>2:37</span><span class="r"><svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true"><path d="M8 11.4 5.9 9.2a3 3 0 0 1 4.2 0zM3.5 6.6a6.4 6.4 0 0 1 9 0L11 8.1a4.3 4.3 0 0 0-6 0zM1 4.1a10 10 0 0 1 14 0l-1.5 1.5a8 8 0 0 0-11 0z"/></svg><svg width="27" height="13" viewBox="0 0 27 13" aria-hidden="true"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="20" height="9" rx="2"/><path d="M25 4.5v4a2 2 0 0 0 0-4z" opacity=".4"/></svg></span></div>
+        <div class="p-scroll">
+          <div class="p-top"><div class="locpill"><svg class="ic"><use href="#i-pin"/></svg>Downtown Atlanta<svg class="ic chev"><use href="#i-chev-d"/></svg></div><button class="iconbtn" type="button" aria-label="Notifications"><svg class="ic"><use href="#i-bell"/></svg><span class="badge">3</span></button></div>
+          <div class="locsub">Within 1 mile of Georgia State · 9 hubs you follow</div>
+          <div class="stories">
+            <div class="story new" data-cat="sports"><div class="ringw"><span class="hubav"><svg class="ic"><use href="#i-paddle"/></svg></span></div><span>Table Tennis</span></div>
+            <div class="story new" data-cat="sports"><div class="ringw"><span class="hubav"><svg class="ic"><use href="#i-ball"/></svg></span></div><span>Pickup Hoops</span></div>
+            <div class="story" data-cat="anime"><div class="ringw"><span class="hubav"><svg class="ic"><use href="#i-film"/></svg></span></div><span>Anime Club</span></div>
+            <div class="story new" data-cat="games"><div class="ringw"><span class="hubav"><svg class="ic"><use href="#i-dice"/></svg></span></div><span>Board Games</span></div>
+            <div class="story" data-cat="outdoors"><div class="ringw"><span class="hubav"><svg class="ic"><use href="#i-timer"/></svg></span></div><span>Run Club</span></div>
+            <div class="story" data-cat="food"><div class="ringw"><span class="hubav"><svg class="ic"><use href="#i-pizza"/></svg></span></div><span>Free Food</span></div>
+            <div class="story" data-cat="tech"><div class="ringw"><span class="hubav"><svg class="ic"><use href="#i-code"/></svg></span></div><span>CS Hangs</span></div>
+            <div class="story" data-cat="games"><div class="ringw"><span class="hubav"><svg class="ic"><use href="#i-eight"/></svg></span></div><span>8-Ball</span></div>
+          </div>
+
+          <div class="sechead"><h3>Today</h3><span>Tue, Jan 20</span></div>
+          <div class="feed">
+            <article class="card" data-cat="sports">
+              <div class="card-h"><span class="chip chip-hub"><span class="hubav"><svg class="ic"><use href="#i-ball"/></svg></span><span class="t">Pickup Hoops at GSU</span></span><span class="chip chip-live"><span class="pulse"></span>Live now</span></div>
+              <h3 class="card-t">Open run, Court 2</h3>
+              <div class="meta"><div><svg class="ic"><use href="#i-clock"/></svg>Started 2:00 PM · runs till 4</div><div><svg class="ic"><use href="#i-pin"/></svg>Rec Center, 2nd floor courts · 0.4 mi</div></div>
+              <div class="card-f"><div class="who"><span class="stack sm"><span class="av" data-cat="sports">T</span><span class="av" data-cat="career">MT</span><span class="av" data-cat="food">S</span><span class="more">+6</span></span><span class="txt"><b>9 playing</b> · Theo just got there</span></div><button class="btn btn-primary btn-sm btn-live" type="button"><span class="pulse"></span>Join now</button></div>
+            </article>
+
+            <article class="card" data-cat="sports">
+              <div class="card-h"><span class="chip chip-hub"><span class="hubav"><svg class="ic"><use href="#i-paddle"/></svg></span><span class="t">Table Tennis at GSU</span></span><span class="chip">Chapter</span></div>
+              <h3 class="card-t">Table Tennis open play</h3>
+              <div class="meta"><div><svg class="ic"><use href="#i-clock"/></svg>4:00–6:00 PM · starts in 1 h 23 m</div><div><svg class="ic"><use href="#i-pin"/></svg>Student Center East, Room 220 · 0.3 mi</div></div>
+              <div class="card-f"><div class="who"><span class="stack sm"><span class="av" data-cat="music">M</span><span class="av" data-cat="tech">D</span><span class="av" data-cat="games">P</span><span class="av" data-cat="wellness">J</span></span><span class="txt"><b>4 of 6 going</b> · happens at 4</span></div><button class="btn btn-primary btn-sm" type="button">Going</button></div>
+            </article>
+
+            <article class="card" data-cat="career">
+              <div class="card-h"><span class="chip chip-hub"><span class="hubav"><svg class="ic"><use href="#i-case"/></svg></span><span class="t">Career at GSU</span></span><span class="chip chip-imported"><svg class="ic"><use href="#i-ext"/></svg>From PIN</span></div>
+              <h3 class="card-t">Spring Involvement Fair</h3>
+              <div class="meta"><div><svg class="ic"><use href="#i-clock"/></svg>6:00–8:00 PM</div><div><svg class="ic"><use href="#i-pin"/></svg>Student Center Ballroom · 0.3 mi</div><div><svg class="ic"><use href="#i-users"/></svg>Hosted by Student Engagement · imported, details can change</div></div>
+              <div class="card-f"><div class="who"><span class="txt">12 interested from your hubs</span></div><div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm btn-icon" type="button" aria-label="Interested"><svg class="ic"><use href="#i-star"/></svg></button><button class="btn btn-inverse btn-sm" type="button">Register on PIN<svg class="ic"><use href="#i-ext"/></svg></button></div></div>
+            </article>
+          </div>
+
+          <div class="sechead"><h3>This week</h3><span>Wed–Sun</span></div>
+          <div class="feed">
+            <article class="card" data-cat="games">
+              <div class="card-h"><span class="chip chip-hub"><span class="hubav"><svg class="ic"><use href="#i-dice"/></svg></span><span class="t">Board Games at GSU</span></span><span class="chip">Wed</span></div>
+              <h3 class="card-t">Board game night, bring one or play ours</h3>
+              <div class="meta"><div><svg class="ic"><use href="#i-clock"/></svg>Wed 7:00 PM</div><div><svg class="ic"><use href="#i-pin"/></svg>Student Center West, lounge · 0.2 mi</div></div>
+              <div class="card-f"><div class="who"><span class="stack sm"><span class="av" data-cat="games">P</span><span class="av" data-cat="anime">A</span><span class="av" data-cat="study">R</span><span class="more">+5</span></span><span class="txt"><b>8 going</b> · you went last week</span></div><button class="btn btn-primary btn-sm" type="button">Going</button></div>
+            </article>
+
+            <article class="card" data-cat="food">
+              <div class="card-h"><span class="who"><span class="av av-24" data-cat="tech">D</span><span class="txt">Devon posted in <b>Pickup Hoops</b></span></span><span class="chip">Fri</span></div>
+              <h3 class="card-t">Waffle House after the Panthers game?</h3>
+              <div class="meta"><div><svg class="ic"><use href="#i-clock"/></svg>Fri 10:30 PM, after the final buzzer</div><div><svg class="ic"><use href="#i-pin"/></svg>Waffle House, Peachtree St · 0.6 mi</div></div>
+              <div class="card-f"><div class="who"><span class="stack sm"><span class="av" data-cat="tech">D</span><span class="av" data-cat="sports">T</span><span class="av" data-cat="food">S</span></span><span class="txt"><b>3 going</b> · happens at 3</span></div><button class="btn btn-primary btn-sm" type="button">Going</button></div>
+            </article>
+
+            <article class="card" data-cat="anime">
+              <div class="card-h"><span class="chip chip-hub"><span class="hubav"><svg class="ic"><use href="#i-film"/></svg></span><span class="t">Anime Club at GSU</span></span><span class="chip chip-warn">Full · 12 of 12</span></div>
+              <h3 class="card-t">Frieren season 2 watch party</h3>
+              <div class="meta"><div><svg class="ic"><use href="#i-clock"/></svg>Thu 7:00 PM</div><div><svg class="ic"><use href="#i-pin"/></svg>Library North, 3rd floor study room</div></div>
+              <div class="card-f"><div class="who"><span class="stack sm"><span class="av" data-cat="anime">A</span><span class="av" data-cat="music">M</span><span class="av" data-cat="study">R</span><span class="more">+9</span></span><span class="txt"><b>2 on the waitlist</b></span></div><button class="btn btn-waitlisted btn-sm" type="button">Join waitlist</button></div>
+            </article>
+
+            <article class="card" data-cat="outdoors">
+              <div class="card-h"><span class="chip chip-hub"><span class="hubav"><svg class="ic"><use href="#i-timer"/></svg></span><span class="t">Run Club at GSU</span></span><span class="chip chip-danger">Cancelled</span></div>
+              <h3 class="card-t struck">Sunrise run, Freedom Park Trail</h3>
+              <div class="meta"><div><svg class="ic"><use href="#i-clock"/></svg>Sat 7:30 AM</div><div><svg class="ic"><use href="#i-users"/></svg>Priya cancelled: ice on the trail. Same time next Saturday.</div></div>
+              <div class="card-f"><div class="who"><span class="txt">You were going · removed from Plans</span></div><button class="btn btn-cancelled btn-sm" type="button" disabled>Cancelled</button></div>
+            </article>
+          </div>
+          <div class="p-end">That's everything within 1 mile this week.<br><b>Widen to 3 miles</b></div>
+        </div>
+        <nav class="p-tabbar" aria-label="Tabs">
+          <div class="tabbar">
+            <div class="tab on"><span class="icw"><svg class="ic"><use href="#i-home"/></svg></span>Home</div>
+            <div class="tab"><span class="icw"><svg class="ic"><use href="#i-hubs"/></svg></span>Hubs</div>
+            <div class="tab"><span class="plus"><svg class="ic"><use href="#i-plus"/></svg></span>Plan</div>
+            <div class="tab"><span class="icw"><svg class="ic"><use href="#i-chat"/></svg><span class="badge">2</span></span>Chats</div>
+            <div class="tab"><span class="icw"><svg class="ic"><use href="#i-user"/></svg></span>Me</div>
+          </div>
+          <div class="p-indicator"></div>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Event -->
+    <div class="phone-col">
+      <div class="phone-cap"><b>Event</b> · chapter-hosted, 4 of 6 going</div>
+      <div class="phone" data-screen="event">
+        <div class="p-status"><span>2:37</span><span class="r"><svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true"><path d="M8 11.4 5.9 9.2a3 3 0 0 1 4.2 0zM3.5 6.6a6.4 6.4 0 0 1 9 0L11 8.1a4.3 4.3 0 0 0-6 0zM1 4.1a10 10 0 0 1 14 0l-1.5 1.5a8 8 0 0 0-11 0z"/></svg><svg width="27" height="13" viewBox="0 0 27 13" aria-hidden="true"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="20" height="9" rx="2"/><path d="M25 4.5v4a2 2 0 0 0 0-4z" opacity=".4"/></svg></span></div>
+        <div class="p-scroll">
+          <div class="cover" data-cat="sports">
+            <svg class="ic big" aria-hidden="true"><use href="#i-paddle"/></svg>
+            <div class="ovl"><button class="iconbtn" type="button" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button><div class="grp"><button class="iconbtn" type="button" aria-label="Share"><svg class="ic"><use href="#i-share"/></svg></button><button class="iconbtn" type="button" aria-label="More"><svg class="ic"><use href="#i-more"/></svg></button></div></div>
+          </div>
+          <div class="ev-head">
+            <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip chip-cat" data-cat="sports"><svg class="ic"><use href="#i-paddle"/></svg>Sports</span><span class="chip">Chapter event</span><span class="chip chip-going"><svg class="ic" style="stroke-width:2.6"><use href="#i-check"/></svg>It's on</span></div>
+            <h2 class="ev-title">Table Tennis open play</h2>
+            <div class="ev-rows">
+              <div class="ev-row"><svg class="ic"><use href="#i-cal"/></svg><div><div class="l1">Today, Tuesday January 20</div><div class="l2">4:00–6:00 PM · starts in 1 h 23 m</div></div></div>
+              <div class="ev-row"><svg class="ic"><use href="#i-pin"/></svg><div><div class="l1">Student Center East, Room 220</div><div class="l2">55 Gilmer St SE · 0.3 mi · <a href="#screens">Directions</a></div></div></div>
+            </div>
+          </div>
+          <div class="host" data-cat="sports"><span class="hubav"><svg class="ic"><use href="#i-paddle"/></svg></span><div class="grow"><div class="n">Table Tennis at Georgia State Atlanta</div><div class="s">Chapter · 212 members · hosted by Priya R.</div></div><button class="btn btn-secondary btn-sm" type="button">View</button></div>
+
+          <div class="blk"><h4>Who's going <span>4 of 6 · happens at 4</span></h4>
+            <div class="people">
+              <div class="person"><span class="av av-56" data-cat="music">M</span><span>Maya</span></div>
+              <div class="person"><span class="av av-56" data-cat="tech">D</span><span>Devon</span></div>
+              <div class="person"><span class="av av-56" data-cat="games">P</span><span>Priya</span></div>
+              <div class="person"><span class="av av-56" data-cat="wellness">J</span><span>Jalen</span></div>
+              <div class="person open"><span class="av av-56">open</span><span>&nbsp;</span></div>
+              <div class="person open"><span class="av av-56">open</span><span>&nbsp;</span></div>
+            </div>
+          </div>
+
+          <div class="blk"><h4>Event chat <span>12 messages</span></h4>
+            <div class="chat">
+              <div class="msg"><span class="av" data-cat="music">M</span><div><div class="n">Maya<span>2:14 PM</span></div><div class="t">Bringing an extra paddle if anyone needs one</div></div></div>
+              <div class="msg"><span class="av" data-cat="tech">D</span><div><div class="n">Devon<span>2:31 PM</span></div><div class="t">Coming from Classroom South, might be 5 min late. Save me a table?</div></div></div>
+              <div class="composer">Say hi to the group<span class="send"><svg class="ic"><use href="#i-send"/></svg></span></div>
+            </div>
+          </div>
+
+          <div class="blk">
+            <div class="acts"><div class="act"><svg class="ic"><use href="#i-share"/></svg>Share</div><div class="act"><svg class="ic"><use href="#i-cal"/></svg>Add to Calendar</div><div class="act"><svg class="ic"><use href="#i-nav"/></svg>Directions</div></div>
+          </div>
+
+          <div class="nudge"><svg class="ic"><use href="#i-shield"/></svg><div><div class="n">Meet in a public place</div><div class="s">Room 220 is a staffed campus space. Tell a friend where you're headed; this chat stays open until 9 PM tonight.</div></div></div>
+          <div class="p-end">Posted Friday by Priya R. · <b>Report this event</b></div>
+        </div>
+        <div class="p-bottom">
+          <div class="p-cta"><button class="btn btn-secondary" type="button"><svg class="ic"><use href="#i-star"/></svg>Interested</button><button class="btn btn-primary" type="button">Going</button></div>
+          <div class="p-indicator"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hub -->
+    <div class="phone-col">
+      <div class="phone-cap"><b>Hub</b> · a chapter page, Events tab</div>
+      <div class="phone" data-screen="hub">
+        <div class="p-status"><span>2:37</span><span class="r"><svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true"><path d="M8 11.4 5.9 9.2a3 3 0 0 1 4.2 0zM3.5 6.6a6.4 6.4 0 0 1 9 0L11 8.1a4.3 4.3 0 0 0-6 0zM1 4.1a10 10 0 0 1 14 0l-1.5 1.5a8 8 0 0 0-11 0z"/></svg><svg width="27" height="13" viewBox="0 0 27 13" aria-hidden="true"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="20" height="9" rx="2"/><path d="M25 4.5v4a2 2 0 0 0 0-4z" opacity=".4"/></svg></span></div>
+        <div class="p-scroll" data-cat="sports">
+          <div class="hub-cover"><div class="ovl"><button class="iconbtn" type="button" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button><button class="iconbtn" type="button" aria-label="Share"><svg class="ic"><use href="#i-share"/></svg></button></div></div>
+          <div class="hub-head">
+            <span class="hubav hubav-64"><svg class="ic"><use href="#i-paddle"/></svg></span>
+            <h2 class="hub-name">Table Tennis at Georgia State Atlanta</h2>
+            <div class="hub-sub">Chapter of Table Tennis · Downtown Atlanta</div>
+            <div class="hub-stats"><div><b>212</b>members</div><div><b>3</b>events this week</div><div><b>48</b>showed up last week</div></div>
+            <div class="hub-actions"><button class="btn btn-primary" type="button">Join</button><button class="btn btn-secondary btn-icon" type="button" aria-label="Share hub"><svg class="ic"><use href="#i-share"/></svg></button></div>
+          </div>
+          <div class="ptabs"><div class="ptab on">Events</div><div class="ptab">Chat<span class="cnt">3</span></div><div class="ptab">Members</div><div class="ptab">About</div></div>
+
+          <div class="blk" style="padding-top:12px"><h4>Next up</h4>
+            <div class="ev-list">
+              <div class="ev-item"><div class="datetile today"><span class="d">Tue</span><span class="n">20</span></div><div class="grow"><div class="n">Open play</div><div class="s">4:00 PM · Student Center East 220 · 4 going</div></div><button class="btn btn-going btn-sm" type="button"><svg class="ic" style="stroke-width:2.6"><use href="#i-check"/></svg>Going</button></div>
+              <div class="ev-item"><div class="datetile"><span class="d">Thu</span><span class="n">22</span></div><div class="grow"><div class="n">Beginner clinic with Marcus</div><div class="s">6:00 PM · Rec Center, Room 110 · 7 going</div></div><button class="btn btn-primary btn-sm" type="button">Going</button></div>
+              <div class="ev-item"><div class="datetile"><span class="d">Sat</span><span class="n">24</span></div><div class="grow"><div class="n">Ladder night</div><div class="s">2:00 PM · Student Center East 220 · 11 going</div></div><button class="btn btn-primary btn-sm" type="button">Going</button></div>
+            </div>
+          </div>
+
+          <div class="blk"><h4>Captains</h4>
+            <div class="captains">
+              <div class="captain"><span class="av av-40" data-cat="games">P</span><div class="grow"><div class="n">Priya R.</div><div class="s">Captain since Aug 2026</div></div></div>
+              <div class="captain"><span class="av av-40" data-cat="career">MT</span><div class="grow"><div class="n">Marcus T.</div><div class="s">Runs Thursday clinics</div></div></div>
+            </div>
+          </div>
+
+          <div class="blk"><h4>Members <span>212</span></h4>
+            <div class="members-row"><span class="stack"><span class="av" data-cat="music">M</span><span class="av" data-cat="tech">D</span><span class="av" data-cat="wellness">J</span><span class="av" data-cat="food">S</span><span class="more">+208</span></span><span class="txt"><b>Maya, Devon</b> and 210 others</span></div>
+          </div>
+
+          <div class="blk"><h4>About</h4>
+            <p class="about">Open play twice a week, a beginner clinic on Thursdays, a ladder on Saturdays. Paddles provided. All levels, no tryouts, no dues. Part of the Table Tennis hub, 14 chapters nationwide.</p>
+          </div>
+          <div class="p-end">Chapter started Aug 2026 · <b>Message the captains</b></div>
+        </div>
+        <nav class="p-tabbar" aria-label="Tabs">
+          <div class="tabbar">
+            <div class="tab"><span class="icw"><svg class="ic"><use href="#i-home"/></svg></span>Home</div>
+            <div class="tab on"><span class="icw"><svg class="ic"><use href="#i-hubs"/></svg></span>Hubs</div>
+            <div class="tab"><span class="plus"><svg class="ic"><use href="#i-plus"/></svg></span>Plan</div>
+            <div class="tab"><span class="icw"><svg class="ic"><use href="#i-chat"/></svg><span class="badge">2</span></span>Chats</div>
+            <div class="tab"><span class="icw"><svg class="ic"><use href="#i-user"/></svg></span>Me</div>
+          </div>
+          <div class="p-indicator"></div>
+        </nav>
+      </div>
+    </div>
+
+  </div>
+</div></section>
+
+<!-- 7. Motion -->
+<section class="sec" id="motion"><div class="wrap sec-grid">
+  <div class="sec-side">
+    <div class="sec-label">Motion</div>
+    <h2 class="sec-title">Fast, physical, quiet</h2>
+    <p class="sec-desc">Nothing floats, nothing glows. Motion confirms a touch or moves a thing from where it was to where it is now, in under 300&nbsp;ms, on one easing curve. With reduced motion on, everything below becomes a 120&nbsp;ms crossfade.</p>
+  </div>
+  <div class="motion-list">
+    <div class="mo"><h4>Press</h4><p>Every tappable surface compresses to 97% on pointer-down and springs back on release. No color flash, no ripple; the compression is the feedback. Try any button on this board.</p><div class="spec-l">down <b>120 ms</b> ease-out · up <b>180 ms</b> cubic-bezier(.2,.8,.2,1)</div></div>
+    <div class="mo"><h4>RSVP success</h4><p>The Going pill crossfades blue to green tint while the check draws itself left to right; your avatar slides into the stack from the right and the seat meter fills one more dot; the toast rises. One light haptic on the color change, not on the tap.</p><div class="spec-l">color <b>220 ms</b> · check draw <b>260 ms</b> ease-out · avatar in <b>240 ms</b> · toast <b>200 ms</b> rise from +12 px</div></div>
+    <div class="mo"><h4>Tab switch</h4><p>No horizontal slide between tabs. The old screen fades under the new one while the tapped icon pops from 0.9 to 1.0 and its stroke thickens. Scroll position is kept per tab.</p><div class="spec-l">crossfade <b>150 ms</b> ease-in-out · icon <b>200 ms</b> cubic-bezier(.34,1.56,.64,1)</div></div>
+    <div class="mo"><h4>Pull to refresh</h4><p>The mark sits above the feed. As you pull, the moon travels around the planet in step with your finger at 0.55 resistance; on release it finishes one orbit and the feed settles back with the new cards.</p><div class="spec-l">follow finger · release orbit <b>600 ms</b> linear · settle <b>200 ms</b> ease-out</div></div>
+    <div class="mo"><h4>Chat send</h4><p>The bubble leaves the composer at 96% scale and rises into the thread; the composer clears on the same frame; a short tick haptic. Incoming messages fade in with no movement so a busy chat never jiggles.</p><div class="spec-l">send <b>180 ms</b> cubic-bezier(.2,.8,.2,1) · receive <b>120 ms</b> fade</div></div>
+    <div class="mo"><h4>Live dot</h4><p>The only looping animation in the app: a ring expands from the Live dot and fades, slow enough to notice and never to distract. It stops under reduced motion.</p><div class="spec-l">ring <b>1.6 s</b> cubic-bezier(.2,.8,.2,1) infinite · scale .5 → 1.25 · opacity .75 → 0</div></div>
+  </div>
+</div></section>
+
+<!-- 8. Why -->
+<section class="sec" id="why"><div class="wrap sec-grid">
+  <div class="sec-side">
+    <div class="sec-label">Why this is not AI slop</div>
+    <h2 class="sec-title">The choices, named</h2>
+  </div>
+  <div class="prose">
+    <p>There is no gradient, no glow, no blur, no hero number with a tiny label; the only color on a screen is one blue pill and whatever the people are wearing. The blue is <b>#1D5BFF</b> because it is the single hue that stays fully saturated and still clears 4.5:1 with white text, which is why the Going button is pixel-identical in light and dark instead of being a "dark mode variant". Text is near-black on white with a three-step grey ramp that never drops below 4.8:1, not the foggy muted-foreground grey that makes generated mockups look unfinished. Cards get a hairline and a one-pixel shadow; dark mode is true black separated by borders, the way Instagram does it, not elevated grey slabs. The type is one family and a weight ramp with tracking that tightens as size grows; nothing is uppercase except the weekday on a date tile, and every number is tabular. State is encoded three ways at once (hue, icon, word) so a colorblind student still reads Full and Cancelled, and live is pink rather than red so it never looks like an error. The seat meter draws the product's actual quorum rule, "happens at 4", rather than decorating the card. The copy is the first market's own vocabulary: PIN, Student Center East Room 220, Freedom Park Trail, the Panthers game, Waffle House on Peachtree. The imported card keeps a different verb because the action genuinely leaves the app. And the logo is two circles and a knockout that reads as "not alone" at 24&nbsp;px, drawn in the same stroke as the wordmark, so the identity is one idea rather than a mascot plus a font.</p>
+  </div>
+</div></section>
+
+</main>
+
+<footer><div class="wrap">Open Air · Activity Planet v2 visual direction C · Tokens in this file are the source of truth: copy the <code style="font:inherit;font-weight:600">:root</code> block into the app's global stylesheet as is. Fonts: Figtree via Google Fonts. No scripts beyond the theme toggle, no images, no external assets.</div></footer>
+
+<!-- icon sprite -->
+<svg width="0" height="0" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">
+<defs>
+<symbol id="mark" viewBox="0 0 48 48"><circle cx="21" cy="27" r="17" fill="currentColor"/><circle cx="37" cy="12" r="10.5" fill="var(--knock,var(--bg))"/><circle cx="37" cy="12" r="7.5" fill="currentColor"/></symbol>
+<symbol id="wordmark" viewBox="0 -2 276 44"><g fill="none" stroke="currentColor" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="20" r="10"/><path d="M23 10v20"/><path d="M46.9 13.3A10 10 0 1 0 46.9 26.7"/><path d="M59 4v26M54 10h10"/><path d="M70.5 10v20"/><path d="M77 10l7 20 7-20"/><path d="M97.5 10v20"/><path d="M109 4v26M104 10h10"/><path d="M120.5 10l7 20M134.5 10l-10 28"/><path d="M148.5 10v28"/><circle cx="158.5" cy="20" r="10"/><path d="M175 2v28"/><circle cx="191.5" cy="20" r="10"/><path d="M201.5 10v20"/><path d="M208 30V20a10 10 0 0 1 20 0v10"/><path d="M234.5 20h20M254.5 20A10 10 0 1 0 251.6 27.1"/><path d="M266 4v26M261 10h10"/></g><g fill="currentColor"><circle cx="70.5" cy="2.6" r="2.6"/><circle cx="97.5" cy="2.6" r="2.6"/></g></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></symbol>
+<symbol id="i-hubs" viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="2.2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2.2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2.2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2.2"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H9l-5 4z"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 21a2 2 0 0 0 4 0"/></symbol>
+<symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+<symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></symbol>
+<symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.4 6.3 20.5l1.2-6.4L2.8 9.7l6.4-.8z"/></symbol>
+<symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8.2 8 9 4.5-.8 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></g></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20a7 7 0 0 1 14 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 4 6"/></symbol>
+<symbol id="i-nav" viewBox="0 0 24 24"><path d="M3 11 21 3l-8 18-2-8z"/></symbol>
+<symbol id="i-paddle" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6.5"/><path d="m14.6 14.6 5 5" stroke-width="3"/></symbol>
+<symbol id="i-ball" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3v18M5.6 5.6c3.2 2.2 3.2 10.6 0 12.8M18.4 5.6c-3.2 2.2-3.2 10.6 0 12.8"/></symbol>
+<symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></symbol>
+<symbol id="i-dice" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><g fill="currentColor" stroke="none"><circle cx="8" cy="8" r="1.6"/><circle cx="16" cy="8" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="8" cy="16" r="1.6"/><circle cx="16" cy="16" r="1.6"/></g></symbol>
+<symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6M12 2v3"/></symbol>
+<symbol id="i-pizza" viewBox="0 0 24 24"><path d="M3 5.5c6-2.8 12-2.8 18 0L12 21z"/><path d="M4.6 9c4.8-1.8 10-1.8 14.8 0"/><g fill="currentColor" stroke="none"><circle cx="10" cy="12" r="1.4"/><circle cx="14" cy="13.5" r="1.4"/><circle cx="12" cy="16.5" r="1.2"/></g></symbol>
+<symbol id="i-code" viewBox="0 0 24 24"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></symbol>
+<symbol id="i-eight" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3"/></symbol>
+<symbol id="i-case" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2M3 12.5h18"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4h6a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4zM20 4h-6a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h7z"/></symbol>
+<symbol id="i-leaf" viewBox="0 0 24 24"><path d="M4 20c0-9 5-14 16-16-1 11-6 16-15 16M4 20l8-8"/></symbol>
+<symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+</defs>
+</svg>
+
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('theme-btn');
+  var mq=window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : {matches:false};
+  function current(){ var t=root.getAttribute('data-theme'); return t||(mq.matches?'dark':'light'); }
+  function paint(){ var c=current(); btn.setAttribute('data-mode',c); btn.setAttribute('aria-label', c==='dark'?'Switch to light mode':'Switch to dark mode'); btn.querySelector('.tb-label').textContent = c==='dark'?'Dark':'Light'; }
+  try{ var s=localStorage.getItem('ap-board-c-theme'); if(s==='dark'||s==='light') root.setAttribute('data-theme',s); }catch(e){}
+  btn.addEventListener('click',function(){ var n=current()==='dark'?'light':'dark'; root.setAttribute('data-theme',n); try{ localStorage.setItem('ap-board-c-theme',n); }catch(e){} paint(); });
+  if(mq.addEventListener){ mq.addEventListener('change',paint); }
+  paint();
+})();
+</script>
+</body>
+</html>

@@ -17,9 +17,13 @@ export async function GET() {
   }
 
   const supabase = createClient(url, key, { auth: { persistSession: false } });
-  // PostgREST validates requested columns against the schema before RLS filters rows, so a
-  // 42703 here means "column missing" even though the anon role reads zero rows.
-  const { error } = await supabase.from("profiles").select("id").limit(1);
+  // public.meta is readable by anon and carries the schema version written by each migration,
+  // so a deploy that outruns its migration shows up here as a version mismatch.
+  const { data, error } = await supabase
+    .from("meta")
+    .select("value")
+    .eq("key", "schema_version")
+    .maybeSingle();
 
   if (error) {
     return NextResponse.json(
@@ -27,5 +31,11 @@ export async function GET() {
       { status: 503 },
     );
   }
-  return NextResponse.json({ ok: true, schema: "v1", checkedAt: new Date().toISOString() });
+  const schema = data?.value ?? null;
+  const expected = process.env.EXPECTED_SCHEMA_VERSION ?? null;
+  const ok = schema !== null && (expected === null || schema === expected);
+  return NextResponse.json(
+    { ok, schema, expected, checkedAt: new Date().toISOString() },
+    { status: ok ? 200 : 503 },
+  );
 }

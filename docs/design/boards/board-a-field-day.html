@@ -74,7 +74,7 @@ svg{display:block}
 .ic{width:1.25em;height:1.25em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 button{font-family:inherit;cursor:pointer}
-.wrap{max-width:1160px;margin:0 auto;padding:0 16px}
+.wrap{max-width:1240px;margin:0 auto;padding:0 16px}
 .section{padding:56px 0;border-top:1px solid var(--border)}
 .eyebrow{font:600 12px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin:0 0 10px}
 h2{font:800 36px/1 var(--display);letter-spacing:-.005em;margin:0 0 8px;text-transform:uppercase}
@@ -84,7 +84,9 @@ h3{font:700 22px/1.15 var(--display);margin:32px 0 12px;text-transform:uppercase
 code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em;background:var(--surface-2);padding:1px 5px;border-radius:4px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)}
 .grid{display:grid;gap:16px}
-.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:680px){.g2{grid-template-columns:minmax(0,1fr)}}
+.comp .ev,.comp .hub,.comp .tabbar,.comp .toast,.comp .field{max-width:420px}
 .g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
 .g4{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
 .ok{display:inline-flex;align-items:center;gap:4px;color:var(--going-text);font-weight:600;font-size:12px}
@@ -105,7 +107,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 }
 .hero{padding:32px 0 56px}
 .hero h1{font:800 clamp(64px,12vw,128px)/.9 var(--display);letter-spacing:-.02em;margin:0 0 20px;text-transform:uppercase}
-.hero h1 .dot{color:var(--primary)}
+.hero h1 .ball{display:inline-block;width:.2em;height:.2em;border-radius:50%;background:var(--primary);margin-left:.06em;vertical-align:0}
 .thesis{font-size:clamp(18px,2.4vw,24px);line-height:1.35;max-width:34ch;margin:0 0 20px;font-weight:500}
 .adjs{display:flex;gap:8px;flex-wrap:wrap}
 .adj{font:600 14px/1 var(--ui);padding:10px 14px;border-radius:999px;background:var(--surface);border:1px solid var(--border);color:var(--text-2)}
@@ -235,7 +237,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .hub .grow{flex:1;min-width:0}
 
 .tabbar{display:flex;align-items:flex-start;justify-content:space-around;padding:8px 6px 0;border-top:1px solid var(--border);background:var(--surface)}
-.tab{display:flex;flex-direction:column;align-items:center;gap:3px;width:64px;padding:4px 0;color:var(--text-3);font:500 11px/1 var(--ui);background:none;border:0;position:relative;border-radius:8px}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1 1 0;min-width:0;max-width:76px;padding:4px 0;color:var(--text-3);font:500 11px/1 var(--ui);background:none;border:0;position:relative;border-radius:8px}
 .tab .ic{width:26px;height:26px;stroke-width:1.75}
 .tab.active{color:var(--text)}
 .tab.active .ic{fill:var(--text);stroke:var(--text)}
@@ -256,7 +258,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .toast a{color:inherit;font-weight:600;margin-left:auto;text-decoration:none;white-space:nowrap}
 
 /* component sheet */
-.comp{padding:20px;display:grid;gap:14px;align-content:start}
+.comp{padding:20px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-content:start}
 .comp h4{margin:0;font:600 12px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
 .comp .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .comp .lbl{font-size:12px;color:var(--text-3);width:100%}
@@ -267,7 +269,9 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 @media (max-width:420px){.states .st{grid-template-columns:1fr}}
 
 /* ---------- Phones ---------- */
-.phones{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(375px,100%),375px));justify-content:center;gap:28px}
+.phones{display:flex;flex-wrap:wrap;justify-content:center;gap:28px}
+.phones>div{width:375px;max-width:100%}
+.feed,.evl,.evp,.hubhead,.msgs{grid-template-columns:minmax(0,1fr)}
 .phone{width:375px;max-width:100%;height:812px;border-radius:44px;background:var(--bg);border:1px solid var(--border);box-shadow:var(--shadow-lg);overflow:hidden;position:relative;display:flex;flex-direction:column;font-size:15px}
 .phone .cap{position:absolute;top:0;left:0;right:0;text-align:center;font:600 11px/1 var(--ui);color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;top:-28px}
 .phones>div{position:relative;padding-top:28px}
@@ -470,7 +474,7 @@ footer{padding:32px 0 56px;font-size:13px;color:var(--text-3)}
   </div>
   <div class="hero" id="top">
     <p class="eyebrow">Direction A · Visual board · Activity Planet v2</p>
-    <h1>Field<br>Day<span class="dot">.</span></h1>
+    <h1>Field<br>Day<span class="ball" aria-hidden="true"></span></h1>
     <p class="thesis">A sunny rec-center afternoon turned into an app: white courts, one hot-orange whistle, and sky-blue lines you can read from across the gym.</p>
     <div class="adjs"><span class="adj">Sunny</span><span class="adj">Sporty</span><span class="adj">Direct</span></div>
     <div class="meta-row">
@@ -492,7 +496,7 @@ footer{padding:32px 0 56px;font-size:13px;color:var(--text-3)}
   <div class="logo-stage">
     <div class="card logo-big">
       <svg width="120" height="120" role="img" aria-label="Activity Planet mark: a round planet, blue sky above a green hill, with an orange ball resting on the hill"><use href="#mark"/></svg>
-      <svg class="wordmark" width="420" height="80" viewBox="0 0 420 80" role="img" aria-label="Activity Planet wordmark" style="max-width:100%;height:auto">
+      <svg class="wordmark" width="490" height="80" viewBox="0 0 490 80" role="img" aria-label="Activity Planet wordmark" style="max-width:100%;height:auto">
         <text x="0" y="62" font-family="Barlow Semi Condensed, Impact, sans-serif" font-weight="800" font-size="68" letter-spacing="-1.4" fill="currentColor">ACTIVITY PLANET</text>
       </svg>
     </div>
@@ -533,7 +537,7 @@ footer{padding:32px 0 56px;font-size:13px;color:var(--text-3)}
     <div class="card sw"><div class="blocks"><div class="blk" style="background:#8A95A0;color:#141A21">8A95A0</div><div class="blk" style="background:#6B7784;color:#F1F4F7">6B7784</div></div><div class="role">Input border</div><div class="ratio"><b>3.05</b> vs surface · <b>3.83</b> dark <span class="ok"><svg class="ic"><use href="#i-check"/></svg>1.4.11</span></div></div>
     <div class="card sw"><div class="blocks"><div class="blk" style="background:#141A21;color:#F1F4F7">141A21</div><div class="blk" style="background:#F1F4F7;color:#141A21">F1F4F7</div></div><div class="role">Text</div><div class="ratio">on surface <b>17.51</b> · <b>15.83</b> <span class="ok"><svg class="ic"><use href="#i-check"/></svg>AAA</span></div></div>
     <div class="card sw"><div class="blocks"><div class="blk" style="background:#4A5562;color:#F1F4F7">4A5562</div><div class="blk" style="background:#AEB8C2;color:#141A21">AEB8C2</div></div><div class="role">Text 2</div><div class="ratio">on surface <b>7.59</b> · <b>8.68</b> <span class="ok"><svg class="ic"><use href="#i-check"/></svg>AAA</span></div></div>
-    <div class="card sw"><div class="blocks"><div class="blk" style="background:#5E6A76;color:#F1F4F7">5E6A76</div><div class="blk" style="background:#8C97A2;color:#141A21">8C97A2</div></div><div class="role">Text 3</div><div class="ratio">on surface <b>5.53</b> · <b>5.94</b>; on surface 2 <b>4.83</b> · <b>5.20</b> <span class="ok"><svg class="ic"><use href="#i-check"/></svg>AA</span></div></div>
+    <div class="card sw"><div class="blocks"><div class="blk" style="background:#5E6A76;color:#F1F4F7">5E6A76</div><div class="blk" style="background:#8C97A2;color:#141A21">8C97A2</div></div><div class="role">Text 3</div><div class="ratio">on surface <b>5.53</b> · <b>5.88</b>; on surface 2 <b>4.83</b> · <b>5.20</b> <span class="ok"><svg class="ic"><use href="#i-check"/></svg>AA</span></div></div>
     <div class="card sw"><div class="blocks"><div class="blk" style="background:#0A6FC2;color:#F1F4F7">0A6FC2</div><div class="blk" style="background:#5CB0F5;color:#141A21">5CB0F5</div></div><div class="role">Link</div><div class="ratio">on surface <b>5.17</b> · <b>7.48</b> <span class="ok"><svg class="ic"><use href="#i-check"/></svg>AA</span></div></div>
   </div>
 
