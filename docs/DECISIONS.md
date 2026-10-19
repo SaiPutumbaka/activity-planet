@@ -24,7 +24,7 @@ Sai's call. Sequenced to weeks 9 and 10 so the show-up loop ships first. Stripe 
 Sai wants App Store and Play listings before launch. Considered: Expo/React Native client (second codebase, months), PWA only (no store presence). Capacitor wraps the same Next.js app with native push, share, camera and account deletion. Revisit only if store data shows the wrapper is the bottleneck.
 
 ## D-008 — Restore the existing Supabase project rather than start fresh (2026-10-19)
-Sai's call; restored 2026-10-19 via the Supabase API. It stays in us-west-2 (cross-country from Vercel's default region and Atlanta users). Mitigation: upgrade to Pro so it never pauses, minimize serial round-trips per page. If latency is measurable at beta, migrate to a fresh us-east-1 project during a quiet week; schema v2 makes that cheap.
+Sai's call; restored 2026-10-19 via the Supabase API and verified healthy. Contents at restore: 5 auth users, 4 profiles, 1 event, 0 RSVPs, 2 chat messages; all four v1 migrations are applied (the July notes saying 0004 was missing are out of date). It stays in us-west-2 (cross-country from Vercel's default region and Atlanta users). Mitigation: upgrade to Pro so it never pauses, minimize serial round-trips per page. If latency is measurable at beta, migrate to a fresh us-east-1 project during a quiet week; schema v2 makes that cheap.
 
 ## D-009 — Work on `main`, publish continuously (2026-10-19)
 Sai chose no feature branch. Every change set is verified (typecheck, lint, build) then committed and pushed; Vercel deploys main. During the rebuild, production will show work in progress; the public launch gets its own go/no-go.
@@ -37,3 +37,33 @@ v1 is Next 15.5, Tailwind 3.4, late-2024 shadcn. Rebuilding once on current vers
 
 ## D-012 — Measure everything from day one (2026-10-19)
 PostHog plus Sentry plus an admin scorecard ship in week 1. The July outage was invisible for days because nothing was measured.
+
+## D-013 — Mobile architecture: bundled client app in Capacitor via a monorepo (proposed 2026-10-19, pending Sai)
+Next.js static export cannot include server actions, middleware, cookies or dynamic route handlers, so "wrap the same Next.js app" meant a remote web view, which is the artifact Apple's guideline 4.2 rejects and which breaks Google sign-in inside the web view. Chose: `apps/web` (Next.js: marketing, public share pages with OG, legal, webhooks, cron), `apps/app` (Vite + React + TanStack Router: the logged-in product, served as a PWA and bundled into Capacitor with native sign-in, push, share, camera, offline shell, Universal Links), `packages/core` and `packages/ui`. Mutations go through RLS, Postgres RPC and Edge Functions instead of server actions. Considered: remote-URL Capacitor (rejection risk, broken OAuth), PWA-only launch with stores in February (Sai wants stores at launch), a React Native client (second codebase). Supersedes the "same Next.js app" wording of D-007.
+
+## D-014 — Importer licensing posture: syndication feeds and organizer-connected sources only (2026-10-19)
+Verified 2026-10-19: PIN's `robots.txt` disallows `/api/`; its `events.rss` is a Campus Labs Engage syndication feed with 370 upcoming items and a 60-day window; the GSU calendar's Localist API answers anonymously. Eventbrite retired public event search in 2020; Luma's and Meetup's APIs are gated behind paid tiers. Chose three lanes: institution syndication feeds (PIN RSS, Localist API) polled politely and cached; organizer-connected feeds (ICS URL, Eventbrite organization OAuth); IMLeagues if a feed exists. Imported text stays verbatim (facts, short excerpt, link); the LLM emits tags only; organizers get one-click claim or takedown. Imported events are an "also happening" shelf below human-hosted events, with a kill criterion (under 2% click-through after four weeks hides the shelf). Supersedes the connector list in the first draft of PLAN.md 4.4.
+
+## D-015 — Supply model: student-org chapters first, launch gate on human-hosted events (2026-10-19)
+PIN's upcoming events on 2026-10-19 contained 3 Athletics items and zero matches for basketball, pickup, pool, anime, pickleball or soccer, so the importer cannot make the mission real. Chose: RSO officers claim chapters as the primary supply, recruited through Sai's current-student friends before Nov 24 and again after Jan 11; chapter tools ship in week 4; one sponsoring RSO handles tabling and PIN listings. Launch gate on Jan 4: 10 recurring human-hosted events for each of the weeks of Jan 11 and Jan 19 and 5 chapters live, else chapter-only soft launch Jan 11 and public push Jan 19. Launch hubs come from RSOs that exist (basketball, volleyball, swim, running, table tennis, tennis, tabletop and TCG, anime, chess, film, dance, esports, coding and robotics), not from the 577 catalog; pickleball is an intown hub, not a campus one.
+
+## D-016 — Store seller identity: Activity Planet LLC, with a dated fallback (proposed 2026-10-19, pending Sai)
+Google Play personal accounts must run a 12-tester, 14-day closed test before production and display the developer's legal address when monetizing; Apple prefers a legal entity for apps collecting sensitive data. Chose: file the LLC expedited in week 1, request the D-U-N-S immediately, enroll Apple and Play as the LLC in weeks 2 to 3. Fallback if the D-U-N-S has not arrived by Nov 13: enroll Apple as an individual and move Android to February.
+
+## D-017 — Two store reviews (2026-10-19)
+Build A (events, chapters, messaging, trust and safety, deletion; no payments) submitted Dec 8 after a Dec 5 feature freeze; build B (coaching payments, recommendations, assistant) submitted by Jan 4. Reviewed builds match production behind feature flags. Avoids both Apple's "changed after review" and "incomplete features" rejections and gives a rejection round of slack before the Dec 20 to 26 slowdown.
+
+## D-018 — 18+ only (proposed 2026-10-19, pending Sai)
+A strangers-meet-in-person product with open messaging, plus Georgia's social-media age law (reported enforceable as of Oct 15, 2026; attorney to confirm), makes minors a liability with no upside for a college wedge. Neutral DOB entry, no hint, no retention of failed attempts. Closes question 2 of the first plan draft.
+
+## D-019 — Coaching listing shapes at launch (2026-10-19)
+In-person one-on-one, in-person group, online one-on-one. Online group sessions are an in-app-purchase product under Apple 3.1.3(d) and are either web checkout in the system browser or post-launch. Enforced by a database constraint and stated in Coach Terms and App Review notes. Payments ship in store build B (week 10); cut-list item 2 is "pay the coach directly" at launch if build B slips.
+
+## D-020 — Stripe Connect Express with a 12% plus $3 minimum fee (proposed 2026-10-19, pending Sai)
+Express fees ($2 per active connected account per month plus 0.25% and $0.25 per payout) make a flat 12% on a $40 lesson net about $3.30; a $3 minimum keeps small bookings from being free to host. The platform, not the coach, is the party of record for disputes and negative balances; Coach Terms and the Refund Policy allocate that. Considered Standard accounts (no monthly fee, coach sees Stripe's dashboard); revisit after the first month of bookings.
+
+## D-021 — Trust and safety ships with messaging, not after it (2026-10-19)
+Image classification on every upload, message requests, symmetric blocks, report, moderator tools, a second moderator, a 48-hour NCII removal flow, an NCMEC runbook, a DMCA agent, a Child Safety Standards page and a Safety Center are launch requirements (Apple 1.2, Google Play UGC and Child Safety Standards, the Take It Down Act). Full list in `TRUST-SAFETY-LEGAL.md`.
+
+## D-022 — Georgia State's name is used nominatively only until written permission (2026-10-19)
+Chapters are "X at Georgia State Atlanta"; no "GSU" or Panther imagery in the app name, icon, screenshots or keywords; a not-affiliated line on the campus space, landing page and listings; permission is an explicit ask in the week-3 Student Engagement email. Apple 5.2.1 and the university's trademark program make this the cheapest way to keep the partnership conversation alive.
