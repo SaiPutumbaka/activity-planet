@@ -12,6 +12,8 @@ Claude cannot create accounts, enter payment details, or sign anything. Everythi
 5. **Free accounts, keys into `.env.local`** (never into chat): PostHog (us.posthog.com), Sentry (sentry.io), Anthropic (console.anthropic.com; add a small prepaid credit, $5 to 10), Geoapify (geoapify.com), Sightengine (sightengine.com).
 6. **Your GSU friends**: write down each current student you can reach and whether they are in or near one of these clubs: Basketball Club, Men's Volleyball Club, Swim Club, Run Club at GSU, Table Tennis at GSU, tennis clubs, Tabletop Club, Trading Card Game Club, Anime Club, Chess Club, Film Society, dance clubs, esports, PantherDev, Robotics Club. Claude pulls the PIN org directory and drafts the outreach; you send it.
 7. **GitHub secrets for the migration pipeline** (Claude will tell you exactly which three values and where): a Supabase access token and the database passwords for production and staging, added under the repo's Settings, Secrets and variables, Actions. Keep the repo public.
+8. **Supabase Auth settings, staging first** (15 minutes, unblocks end-to-end testing): follow `docs/ops/supabase-auth.md`. Redirect URLs for `http://localhost:3001/**`, the four email templates switched to `token_hash` links, leaked-password protection on. Supabase's built-in mailer only delivers to organization members and two emails an hour, so until Resend SMTP is set, sign up on staging with your own Gmail.
+9. **Try the app**: `pnpm dev:app` then `http://localhost:3001` (it points at staging). Create an account with your own email, open the link, walk onboarding (birthday, name and handle, hubs, campus) and tell Claude everything that feels wrong. This is the first thing you can hold in your hand.
 
 ## Next two weeks (Oct 27 to Nov 9)
 

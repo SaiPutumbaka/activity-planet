@@ -1,5 +1,5 @@
 /**
- * Shared UI package. Components arrive with the chosen design board (docs/design/boards).
- * Today it exports the token stylesheet (./tokens.css) and nothing else.
+ * Shared UI package: the token stylesheet (./tokens.css) and the brand components (./brand).
+ * Interactive components stay in the apps until a second consumer needs them.
  */
-export const UI_PACKAGE_VERSION = "0.0.0";
+export * from "./brand/index";
