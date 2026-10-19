@@ -136,6 +136,7 @@ ul{padding:0;list-style:none}
 :focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
 .d{font-family:var(--font-display);font-stretch:125%;font-weight:800;letter-spacing:-.01em;line-height:1;font-variant-numeric:tabular-nums}
 .wrap{max-width:1160px;margin:0 auto;padding:0 16px}
+.wrap-wide{max-width:1240px}
 .sec{padding:56px 0}
 @media (min-width:900px){.sec{padding:88px 0}}
 .sec+.sec{border-top:1px solid var(--border)}
@@ -144,7 +145,7 @@ ul{padding:0;list-style:none}
 @media (min-width:900px){.sec-title{font-size:40px}}
 .sec-lede{font-size:17px;color:var(--text-2);line-height:1.5}
 .note{font-size:13px;color:var(--text-3);line-height:1.45}
-.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:20px;min-width:0;container-type:inline-size}
 .card>h3{font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:16px}
 .ico{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
@@ -357,8 +358,8 @@ ul{padding:0;list-style:none}
 .htile-lg .ico{font-size:32px}
 .hub-name{font-size:16px;font-weight:700;line-height:20px}
 .hub-sub{font-size:13px;color:var(--text-2);line-height:17px;margin-top:2px}
-.hub-next{font-size:12.5px;color:var(--text-3);margin-top:4px;display:flex;align-items:center;gap:5px}
-.hub-next b{color:var(--primary-text);font-weight:600}
+.hub-next{font-size:12.5px;color:var(--text-3);margin-top:4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.hub-next b{color:var(--primary-text);font-weight:600;white-space:nowrap}
 .hub .btn{height:36px;padding:0 14px;font-size:14px}
 
 /* tab bar */
@@ -392,11 +393,11 @@ ul{padding:0;list-style:none}
 .toast .act{margin-left:6px;height:32px;padding:0 12px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--inverse-fg) 12%,transparent);font-weight:700;font-size:13px;color:var(--inverse-fg)}
 
 /* ---------- phones ---------- */
-.phones{display:grid;gap:28px;grid-template-columns:repeat(auto-fit,minmax(0,375px));justify-content:center;max-width:1200px;margin:0 auto}
-.phone-wrap{display:grid;gap:12px;justify-items:center;min-width:0}
+.phones{display:flex;flex-wrap:wrap;gap:28px;justify-content:center;max-width:1200px;margin:0 auto}
+.phone-wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;justify-items:center;width:375px;max-width:100%;min-width:0}
 .phone-cap{font-size:13px;color:var(--text-2);text-align:center;max-width:340px;line-height:1.45}
 .phone-cap b{color:var(--text);font-weight:600}
-.phone{width:375px;max-width:100%;height:812px;border-radius:44px;background:var(--bg);color:var(--text);box-shadow:0 0 0 1px var(--border-strong),0 0 0 9px var(--surface),0 0 0 10px var(--border);overflow:hidden;position:relative;display:flex;flex-direction:column;font-family:var(--font-ui);font-size:15px;line-height:1.4}
+.phone{width:100%;max-width:375px;height:812px;border-radius:44px;background:var(--bg);color:var(--text);box-shadow:0 0 0 1px var(--border-strong),0 0 0 9px var(--surface),0 0 0 10px var(--border);overflow:hidden;position:relative;display:flex;flex-direction:column;font-family:var(--font-ui);font-size:15px;line-height:1.4}
 .sbar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:10px 28px 0 30px;font-size:15px;font-weight:600;flex:none}
 .sbar .sys{display:flex;align-items:center;gap:6px}
 .sbar svg{height:12px;width:auto}
@@ -860,7 +861,7 @@ ul{padding:0;list-style:none}
 </div></section>
 
 <!-- 6. SCREENS -->
-<section class="sec" id="screens"><div class="wrap">
+<section class="sec" id="screens"><div class="wrap wrap-wide">
   <div class="sec-head">
     <h2 class="sec-title d">Screens</h2>
     <p class="sec-lede">Three screens for a Georgia State student on a Thursday night in January. The third phone always shows the opposite mode of this page, so light and dark are on screen together; flip the toggle to swap them.</p>
@@ -903,7 +904,7 @@ ul{padding:0;list-style:none}
                 <p class="ev-meta">Rec Center &middot; Court 2 &middot; 0.3 mi</p>
                 <div class="ev-foot">
                   <div class="ev-people">
-                    <div class="avs"><span class="av" style="--c:var(--cat-sports)">T</span><span class="av" style="--c:var(--cat-career)">A</span><span class="av av-more">+9</span></div>
+                    <div class="avs"><span class="av" style="--c:var(--cat-sports)">T</span><span class="av av-more">+10</span></div>
                     <div class="ev-count"><span>11 there now</span><span style="color:var(--text-3);font-weight:500">runs till 11</span></div>
                   </div>
                   <button class="rsvp">On my way</button>
