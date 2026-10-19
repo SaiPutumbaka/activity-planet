@@ -1,0 +1,1173 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>After Dark</title>
+<meta name="description" content="Activity Planet v2, visual direction B: dark-first surfaces, one streetlight-orange action color, a check that leaves orbit.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Figtree:wght@400..800&display=swap" rel="stylesheet">
+<style>
+/* ---------- tokens: light is the base, dark overrides ---------- */
+:root{
+  color-scheme:light;
+  --font-ui:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-display:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+
+  --bg:#FFFFFF;
+  --surface:#F4F4F5;
+  --surface-2:#FFFFFF;
+  --border:#E4E4E7;
+  --border-strong:#86868F;
+  --text:#0B0B0C;
+  --text-2:#52525B;
+  --text-3:#6B6B74;
+
+  --primary:#FF7A00;
+  --on-primary:#0B0B0C;
+  --primary-text:#B4480A;
+  --primary-tint:rgba(255,122,0,.14);
+
+  --success:#0A7A38;      --success-fill:#3DDC84;  --success-tint:rgba(61,220,132,.22);
+  --live:#0E7490;         --live-fill:#22D3EE;     --live-tint:rgba(34,211,238,.22);
+  --warning:#8A6100;      --warning-fill:#FFD233;  --warning-tint:rgba(255,210,51,.30);
+  --danger:#CC2929;                                --danger-tint:rgba(204,41,41,.12);
+  --info:#5B6472;                                  --info-tint:rgba(91,100,114,.12);
+
+  --inverse-bg:#0B0B0C; --inverse-fg:#FFFFFF; --inverse-success:#3DDC84;
+
+  --cat-sports:#1A56DB; --cat-fit:#4A7400; --cat-games:#C21E7A; --cat-fandom:#6B3FD6;
+  --cat-tech:#0B7D6A;  --cat-career:#8C5C00; --cat-food:#C73E2B; --cat-outdoors:#187A33; --cat-study:#3F3F46;
+  --cat-alpha:12%;
+
+  --r-card:20px; --r-tile:14px; --r-pill:999px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0B0B0C; --surface:#151517; --surface-2:#1F1F23; --border:#2C2C32; --border-strong:#62626B;
+    --text:#F5F5F7; --text-2:#A6A6AE; --text-3:#8A8A93;
+    --primary:#FF7A00; --on-primary:#0B0B0C; --primary-text:#FF7A00; --primary-tint:rgba(255,122,0,.14);
+    --success:#3DDC84; --success-tint:rgba(61,220,132,.14);
+    --live:#22D3EE; --live-tint:rgba(34,211,238,.14);
+    --warning:#FFD233; --warning-tint:rgba(255,210,51,.14);
+    --danger:#FF5C5C; --danger-tint:rgba(255,92,92,.14);
+    --info:#9AA3B2; --info-tint:rgba(154,163,178,.14);
+    --inverse-bg:#F5F5F7; --inverse-fg:#0B0B0C; --inverse-success:#0A7A38;
+    --cat-sports:#4D8DFF; --cat-fit:#B8F03A; --cat-games:#FF4FB0; --cat-fandom:#B08CFF;
+    --cat-tech:#2ED3B7; --cat-career:#F2C14E; --cat-food:#FF6B57; --cat-outdoors:#5DD36E; --cat-study:#D4D4D8;
+    --cat-alpha:16%;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0B0B0C; --surface:#151517; --surface-2:#1F1F23; --border:#2C2C32; --border-strong:#62626B;
+  --text:#F5F5F7; --text-2:#A6A6AE; --text-3:#8A8A93;
+  --primary:#FF7A00; --on-primary:#0B0B0C; --primary-text:#FF7A00; --primary-tint:rgba(255,122,0,.14);
+  --success:#3DDC84; --success-tint:rgba(61,220,132,.14);
+  --live:#22D3EE; --live-tint:rgba(34,211,238,.14);
+  --warning:#FFD233; --warning-tint:rgba(255,210,51,.14);
+  --danger:#FF5C5C; --danger-tint:rgba(255,92,92,.14);
+  --info:#9AA3B2; --info-tint:rgba(154,163,178,.14);
+  --inverse-bg:#F5F5F7; --inverse-fg:#0B0B0C; --inverse-success:#0A7A38;
+  --cat-sports:#4D8DFF; --cat-fit:#B8F03A; --cat-games:#FF4FB0; --cat-fandom:#B08CFF;
+  --cat-tech:#2ED3B7; --cat-career:#F2C14E; --cat-food:#FF6B57; --cat-outdoors:#5DD36E; --cat-study:#D4D4D8;
+  --cat-alpha:16%;
+}
+/* .alt scopes always show the OTHER mode, so both modes are on screen at once */
+.alt{
+  color-scheme:dark;
+  --bg:#0B0B0C; --surface:#151517; --surface-2:#1F1F23; --border:#2C2C32; --border-strong:#62626B;
+  --text:#F5F5F7; --text-2:#A6A6AE; --text-3:#8A8A93;
+  --primary:#FF7A00; --on-primary:#0B0B0C; --primary-text:#FF7A00; --primary-tint:rgba(255,122,0,.14);
+  --success:#3DDC84; --success-tint:rgba(61,220,132,.14);
+  --live:#22D3EE; --live-tint:rgba(34,211,238,.14);
+  --warning:#FFD233; --warning-tint:rgba(255,210,51,.14);
+  --danger:#FF5C5C; --danger-tint:rgba(255,92,92,.14);
+  --info:#9AA3B2; --info-tint:rgba(154,163,178,.14);
+  --inverse-bg:#F5F5F7; --inverse-fg:#0B0B0C; --inverse-success:#0A7A38;
+  --cat-sports:#4D8DFF; --cat-fit:#B8F03A; --cat-games:#FF4FB0; --cat-fandom:#B08CFF;
+  --cat-tech:#2ED3B7; --cat-career:#F2C14E; --cat-food:#FF6B57; --cat-outdoors:#5DD36E; --cat-study:#D4D4D8;
+  --cat-alpha:16%;
+}
+:root[data-theme="dark"] .alt{
+  color-scheme:light;
+  --bg:#FFFFFF; --surface:#F4F4F5; --surface-2:#FFFFFF; --border:#E4E4E7; --border-strong:#86868F;
+  --text:#0B0B0C; --text-2:#52525B; --text-3:#6B6B74;
+  --primary:#FF7A00; --on-primary:#0B0B0C; --primary-text:#B4480A; --primary-tint:rgba(255,122,0,.14);
+  --success:#0A7A38; --success-tint:rgba(61,220,132,.22);
+  --live:#0E7490; --live-tint:rgba(34,211,238,.22);
+  --warning:#8A6100; --warning-tint:rgba(255,210,51,.30);
+  --danger:#CC2929; --danger-tint:rgba(204,41,41,.12);
+  --info:#5B6472; --info-tint:rgba(91,100,114,.12);
+  --inverse-bg:#0B0B0C; --inverse-fg:#FFFFFF; --inverse-success:#3DDC84;
+  --cat-sports:#1A56DB; --cat-fit:#4A7400; --cat-games:#C21E7A; --cat-fandom:#6B3FD6;
+  --cat-tech:#0B7D6A; --cat-career:#8C5C00; --cat-food:#C73E2B; --cat-outdoors:#187A33; --cat-study:#3F3F46;
+  --cat-alpha:12%;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .alt{
+    color-scheme:light;
+    --bg:#FFFFFF; --surface:#F4F4F5; --surface-2:#FFFFFF; --border:#E4E4E7; --border-strong:#86868F;
+    --text:#0B0B0C; --text-2:#52525B; --text-3:#6B6B74;
+    --primary:#FF7A00; --on-primary:#0B0B0C; --primary-text:#B4480A; --primary-tint:rgba(255,122,0,.14);
+    --success:#0A7A38; --success-tint:rgba(61,220,132,.22);
+    --live:#0E7490; --live-tint:rgba(34,211,238,.22);
+    --warning:#8A6100; --warning-tint:rgba(255,210,51,.30);
+    --danger:#CC2929; --danger-tint:rgba(204,41,41,.12);
+    --info:#5B6472; --info-tint:rgba(91,100,114,.12);
+    --inverse-bg:#0B0B0C; --inverse-fg:#FFFFFF; --inverse-success:#3DDC84;
+    --cat-sports:#1A56DB; --cat-fit:#4A7400; --cat-games:#C21E7A; --cat-fandom:#6B3FD6;
+    --cat-tech:#0B7D6A; --cat-career:#8C5C00; --cat-food:#C73E2B; --cat-outdoors:#187A33; --cat-study:#3F3F46;
+    --cat-alpha:12%;
+  }
+}
+
+/* ---------- base ---------- */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.5 var(--font-ui);-webkit-font-smoothing:antialiased;overflow-x:hidden;overflow-wrap:break-word}
+svg{display:block}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+a{color:inherit}
+h1,h2,h3,h4,p,ul{margin:0}
+ul{padding:0;list-style:none}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
+.d{font-family:var(--font-display);font-stretch:125%;font-weight:800;letter-spacing:-.01em;line-height:1;font-variant-numeric:tabular-nums}
+.wrap{max-width:1160px;margin:0 auto;padding:0 16px}
+.sec{padding:56px 0}
+@media (min-width:900px){.sec{padding:88px 0}}
+.sec+.sec{border-top:1px solid var(--border)}
+.sec-head{margin-bottom:28px;max-width:720px}
+.sec-title{font-size:30px;margin-bottom:10px}
+@media (min-width:900px){.sec-title{font-size:40px}}
+.sec-lede{font-size:17px;color:var(--text-2);line-height:1.5}
+.note{font-size:13px;color:var(--text-3);line-height:1.45}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:20px;min-width:0;container-type:inline-size}
+.card>h3{font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:16px}
+.ico{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ico.f{fill:currentColor;stroke:none}
+
+/* ---------- top bar ---------- */
+.topbar{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:saturate(1.2) blur(10px);-webkit-backdrop-filter:saturate(1.2) blur(10px);border-bottom:1px solid var(--border)}
+.topbar .wrap{display:flex;align-items:center;gap:14px;height:56px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;white-space:nowrap}
+.brand .mark{width:24px;height:24px}
+.brand small{color:var(--text-3);font-weight:500}
+.topnav{display:none;gap:4px;margin-left:auto;overflow-x:auto}
+.topnav a{font-size:13px;font-weight:600;color:var(--text-2);text-decoration:none;padding:6px 10px;border-radius:var(--r-pill);white-space:nowrap}
+.topnav a:hover{color:var(--text);background:var(--surface)}
+@media (min-width:900px){.topnav{display:flex}}
+.toggle{margin-left:auto;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px 0 10px;border-radius:var(--r-pill);border:1px solid var(--border-strong);font-size:13px;font-weight:600;color:var(--text)}
+@media (min-width:900px){.toggle{margin-left:8px}}
+.toggle .ico{font-size:16px}
+.toggle .i-moon{display:none}
+:root[data-theme="dark"] .toggle .i-sun{display:none}
+:root[data-theme="dark"] .toggle .i-moon{display:block}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .toggle .i-sun{display:none}
+  :root:not([data-theme="light"]) .toggle .i-moon{display:block}
+}
+
+/* ---------- hero ---------- */
+.hero{padding:64px 0 56px}
+@media (min-width:900px){.hero{padding:112px 0 96px}}
+.hero-kicker{font-size:13px;font-weight:600;color:var(--text-3);margin-bottom:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.hero-kicker i{width:6px;height:6px;border-radius:50%;background:var(--primary);display:inline-block}
+.hero h1{font-size:clamp(56px,13vw,148px);line-height:.92;letter-spacing:-.025em;margin-bottom:28px}
+.hero h1 span{color:var(--primary)}
+.thesis{font-size:clamp(19px,2.4vw,26px);line-height:1.35;font-weight:500;max-width:30em;margin-bottom:36px;text-wrap:pretty}
+.adjs{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:baseline;font-size:clamp(22px,3vw,32px)}
+.adjs i{width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block;align-self:center}
+
+/* ---------- logo ---------- */
+.mark path{fill:none;stroke-width:9;stroke-linecap:round;stroke-linejoin:round}
+.mark .mk-tail{stroke:var(--text)}
+.mark .mk-disc{fill:var(--primary)}
+.mark .mk-in{stroke:var(--on-primary)}
+.lockup{width:100%;max-width:620px;height:auto;overflow:visible}
+.lockup text{font-family:var(--font-display);font-stretch:125%;font-weight:800;font-size:46px;letter-spacing:-.02em;fill:var(--text)}
+.logo-stage{display:grid;gap:16px;grid-template-columns:1fr}
+@media (min-width:900px){.logo-stage{grid-template-columns:1.4fr 1fr}}
+.logo-big{display:flex;align-items:center;min-height:260px;padding:32px}
+.logo-rows{display:grid;gap:16px}
+.logo-24{display:flex;align-items:center;gap:8px;height:24px}
+.logo-24 .mark{width:24px;height:24px}
+.logo-24 .lockup{width:auto;height:24px}
+.tiles{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap}
+.tile{border-radius:22.5%;display:grid;place-items:center;flex:none}
+.tile .mark{width:66%;height:66%}
+.tile-dark{background:#0B0B0C;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.tile-dark .mk-tail{stroke:#F5F5F7}.tile-dark .mk-disc{fill:#FF7A00}.tile-dark .mk-in{stroke:#0B0B0C}
+.tile-orange{background:#FF7A00}
+.tile-orange .mk-tail{stroke:#0B0B0C}.tile-orange .mk-disc{fill:#0B0B0C}.tile-orange .mk-in{stroke:#FF7A00}
+.tile-120{width:120px;height:120px}.tile-60{width:60px;height:60px}.tile-29{width:29px;height:29px;border-radius:7px}
+.logo-copy{font-size:17px;line-height:1.5;max-width:60ch;margin-top:24px;color:var(--text-2)}
+.logo-copy b{color:var(--text);font-weight:600}
+
+/* ---------- palette ---------- */
+.pal-group{margin-bottom:36px}
+.pal-group h3{font-size:15px;font-weight:700;margin-bottom:12px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.pal-group h3 span{font-size:13px;font-weight:500;color:var(--text-3)}
+.sws{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.sw{border-radius:16px;overflow:hidden;border:1px solid var(--border);background:var(--surface);min-width:0}
+.sw-chip{height:76px;display:flex;align-items:center;justify-content:center;font-size:30px;position:relative}
+.sw-chip.on-bg{background:var(--bg);border-bottom:1px solid var(--border)}
+.sw-chip.on-card{background:var(--surface);border-bottom:1px solid var(--border)}
+.sw-body{padding:10px 12px 12px;display:grid;gap:3px}
+.sw-role{font-size:13px;font-weight:700;line-height:1.2}
+.sw-hex{font-size:12px;color:var(--text-2);font-variant-numeric:tabular-nums;line-height:1.35}
+.sw-cr{font-size:11.5px;color:var(--text-3);line-height:1.35;font-variant-numeric:tabular-nums}
+.sw-cr b{color:var(--text-2);font-weight:600}
+.sw-cat .sw-chip{background:color-mix(in srgb,var(--c) var(--cat-alpha),var(--surface));color:var(--c)}
+.sw-cat .sw-chip .ico{font-size:30px;stroke-width:1.8}
+.sw-cat .sw-chip::after{content:"";position:absolute;right:10px;bottom:10px;width:14px;height:14px;border-radius:50%;background:var(--c)}
+.rule{font-size:14px;color:var(--text-2);line-height:1.5;max-width:70ch;margin-top:8px}
+.rule b{color:var(--text);font-weight:600}
+
+/* ---------- type ---------- */
+.type-fam{display:grid;gap:16px;grid-template-columns:1fr}
+@media (min-width:900px){.type-fam{grid-template-columns:1fr 1fr}}
+.fam-sample{font-size:56px;line-height:1;margin:6px 0 14px}
+.fam-sample.ui{font-weight:700;letter-spacing:-.02em}
+.fam-meta{font-size:13px;color:var(--text-2);line-height:1.5}
+.fam-meta b{color:var(--text);font-weight:600}
+.scale{margin-top:16px;border:1px solid var(--border);border-radius:var(--r-card);background:var(--surface);overflow:hidden}
+.scale-row{display:grid;grid-template-columns:1fr;gap:8px;padding:18px 20px;border-top:1px solid var(--border)}
+.scale-row:first-child{border-top:0}
+@media (min-width:720px){.scale-row{grid-template-columns:200px 1fr;gap:24px;align-items:baseline}}
+.scale-spec{font-size:12px;color:var(--text-3);line-height:1.5;font-variant-numeric:tabular-nums}
+.scale-spec b{display:block;color:var(--text);font-size:13px;font-weight:700}
+.t-display-xl{font-size:40px;line-height:1}
+.t-display{font-size:28px;line-height:32px}
+.t-title{font-size:20px;line-height:26px;font-weight:700;letter-spacing:-.01em}
+.t-title-s{font-size:17px;line-height:22px;font-weight:700}
+.t-body{font-size:16px;line-height:24px}
+.t-body-strong{font-size:16px;line-height:24px;font-weight:600}
+.t-caption{font-size:13px;line-height:18px;font-weight:500;color:var(--text-2)}
+.t-label{font-size:11px;line-height:14px;font-weight:600;color:var(--text-3)}
+
+/* ---------- components ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border-radius:var(--r-pill);font-weight:700;font-size:16px;line-height:1;white-space:nowrap;transition:transform .16s cubic-bezier(.2,.8,.2,1),filter .16s;user-select:none}
+.btn:active{transform:scale(.97);filter:brightness(.96)}
+.btn .ico{font-size:18px}
+.btn-primary{background:var(--primary);color:var(--on-primary)}
+.btn-secondary{border:1.5px solid var(--border-strong);color:var(--text)}
+.btn-ghost{color:var(--primary-text);padding:0 12px}
+.btn-inverse{background:var(--inverse-bg);color:var(--inverse-fg)}
+.btn-tonal{background:var(--surface-2);color:var(--text);border:1px solid var(--border)}
+.btn-sm{height:40px;padding:0 16px;font-size:15px}
+.btn-xs{height:34px;padding:0 14px;font-size:14px}
+.btn-lg{height:54px;padding:0 24px;font-size:17px}
+.btn-block{width:100%}
+.btn-icon{width:48px;padding:0}
+.btn-icon.btn-sm{width:40px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.col{display:grid;gap:12px}
+
+/* RSVP button states */
+.rsvp{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:40px;padding:0 16px;border-radius:var(--r-pill);font-weight:700;font-size:15px;line-height:1;white-space:nowrap;background:var(--primary);color:var(--on-primary);transition:transform .16s cubic-bezier(.2,.8,.2,1),background-color .18s,color .18s}
+.rsvp:active{transform:scale(.97)}
+.rsvp .ico{font-size:17px}
+.rsvp.is-going{background:var(--success-fill);color:#0B0B0C}
+.rsvp.is-interested{background:transparent;color:var(--text);box-shadow:inset 0 0 0 1.5px var(--border-strong)}
+.rsvp.is-waitlisted{background:var(--warning-tint);color:var(--warning)}
+.rsvp.is-full{background:var(--warning-tint);color:var(--warning)}
+.rsvp.is-cancelled{background:var(--danger-tint);color:var(--danger);pointer-events:none}
+.rsvp.is-imported{background:var(--inverse-bg);color:var(--inverse-fg)}
+.rsvp.rsvp-lg{height:52px;padding:0 24px;font-size:17px}
+.state-list{display:grid;gap:10px}
+.state-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;min-width:0}
+.state-row .lbl{font-size:13px;color:var(--text-2);line-height:1.35}
+.state-row .lbl b{display:block;color:var(--text);font-weight:600;font-size:14px}
+
+/* badges + chips */
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:var(--r-pill);font-size:11.5px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+.badge-live{background:var(--live-tint);color:var(--live)}
+.badge-live i{width:7px;height:7px;border-radius:50%;background:var(--live);animation:pulse 1.6s ease-in-out infinite}
+.badge-going{background:var(--success-tint);color:var(--success)}
+.badge-warn{background:var(--warning-tint);color:var(--warning)}
+.badge-cancel{background:var(--danger-tint);color:var(--danger)}
+.badge-info{background:var(--info-tint);color:var(--info)}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.6);opacity:.55}}
+.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px 0 9px;border-radius:var(--r-pill);font-size:13px;font-weight:600;white-space:nowrap;line-height:1}
+.chip .ico{font-size:15px}
+.chip-cat{background:color-mix(in srgb,var(--c) var(--cat-alpha),transparent);color:var(--text)}
+.chip-cat .ico{color:var(--c)}
+.chip-hub{background:var(--surface-2);border:1px solid var(--border);padding-left:4px}
+.chip-hub .av{width:22px;height:22px;font-size:9px}
+.chip-imp{background:var(--info-tint);color:var(--info)}
+.chip-imp .ico{font-size:13px}
+.chip-sm{height:24px;font-size:11.5px;padding:0 9px 0 7px;gap:5px}
+.chip-sm .ico{font-size:13px}
+.chip-sel{background:var(--text);color:var(--bg)}
+
+/* avatars */
+.av{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--text);background:color-mix(in srgb,var(--c,var(--cat-sports)) 28%,var(--surface-2));flex:none;letter-spacing:.01em}
+.av-lg{width:44px;height:44px;font-size:15px}
+.av-xl{width:56px;height:56px;font-size:18px}
+.avs{display:flex}
+.avs .av{box-shadow:0 0 0 2px var(--surface);margin-left:-8px}
+.avs .av:first-child{margin-left:0}
+.avs .av-more{background:var(--surface-2);color:var(--text-2);font-size:11px}
+.named{display:flex;gap:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.named::-webkit-scrollbar{display:none}
+.named li{display:grid;justify-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text-2);flex:none}
+.named .open{background:transparent;border:1.5px dashed var(--border-strong);color:var(--text-3)}
+
+/* seat row */
+.seats{display:flex;gap:3px}
+.seats i{width:14px;height:6px;border-radius:3px;background:var(--border-strong);opacity:.55}
+.seats i.on{background:var(--primary);opacity:1}
+.seats.full i.on{background:var(--warning-fill)}
+.seats i.you{background:var(--success-fill);opacity:1}
+
+/* event card */
+.ev{display:grid;grid-template-columns:60px 1fr;gap:12px;background:var(--surface);border-radius:var(--r-card);padding:14px;min-width:0}
+.ev-time{display:grid;align-content:start;gap:3px;padding-top:3px}
+.ev-h{font-size:16px;line-height:1;letter-spacing:-.02em;white-space:nowrap}
+.ev-m{font-size:11px;font-weight:600;color:var(--text-3);line-height:1.2;white-space:nowrap}
+.ev-h.live{color:var(--live);display:flex;align-items:center;gap:4px;font-size:12.5px}
+.ev-h.live i{width:7px;height:7px;border-radius:50%;background:var(--live);animation:pulse 1.6s ease-in-out infinite}
+.ev-body{display:grid;gap:6px;min-width:0}
+.ev-tags{display:flex;gap:6px;flex-wrap:wrap}
+.ev-title{font-size:17px;line-height:22px;font-weight:700;letter-spacing:-.005em}
+.ev-meta{font-size:13.5px;line-height:18px;color:var(--text-2)}
+.ev-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;min-width:0}
+.ev-people{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 auto}
+.ev-count{display:grid;gap:4px;font-size:12.5px;font-weight:600;color:var(--text-2);line-height:1.2;white-space:nowrap;min-width:0}
+.ev .av{width:28px;height:28px;font-size:11px}
+.ev .avs .av{margin-left:-7px}
+.ev .avs .av:first-child{margin-left:0}
+.ev .rsvp{height:36px;padding:0 14px;font-size:14px;margin-left:auto}
+.ev .rsvp .ico{font-size:16px}
+.ev-card{border:1px solid var(--border)}
+@container (max-width:360px){
+  .hub{grid-template-columns:52px 1fr}
+  .hub .btn{grid-column:2;justify-self:start}
+}
+
+/* hub card */
+.hub{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;background:var(--surface);border-radius:var(--r-card);padding:14px;min-width:0}
+.htile{width:52px;height:52px;border-radius:var(--r-tile);display:grid;place-items:center;background:color-mix(in srgb,var(--c) var(--cat-alpha),var(--surface-2));color:var(--c)}
+.htile .ico{font-size:26px;stroke-width:1.9}
+.htile-lg{width:64px;height:64px;border-radius:18px}
+.htile-lg .ico{font-size:32px}
+.hub-name{font-size:16px;font-weight:700;line-height:20px}
+.hub-sub{font-size:13px;color:var(--text-2);line-height:17px;margin-top:2px}
+.hub-next{font-size:12.5px;color:var(--text-3);margin-top:4px;display:flex;align-items:center;gap:5px}
+.hub-next b{color:var(--primary-text);font-weight:600}
+.hub .btn{height:36px;padding:0 14px;font-size:14px}
+
+/* tab bar */
+.tabbar{display:flex;align-items:flex-start;justify-content:space-between;padding:8px 10px 0;border-top:1px solid var(--border);background:var(--bg)}
+.tab{display:grid;justify-items:center;gap:3px;flex:1;color:var(--text-3);font-size:11px;font-weight:600;position:relative;padding-top:2px}
+.tab .ico{font-size:26px;stroke-width:1.9}
+.tab.on{color:var(--text)}
+.tab.on .ico{fill:currentColor}
+.tab .dot{position:absolute;top:0;left:calc(50% + 6px);width:8px;height:8px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 2px var(--bg)}
+.tab-plus{flex:1;display:grid;justify-items:center}
+.tab-plus span{width:44px;height:44px;border-radius:50%;background:var(--inverse-bg);color:var(--inverse-fg);display:grid;place-items:center;margin-top:-2px}
+.tab-plus .ico{font-size:24px;stroke-width:2.4}
+.homebar{height:34px;display:grid;place-items:center}
+.homebar i{width:134px;height:5px;border-radius:3px;background:var(--text);opacity:.9}
+
+/* inputs */
+.field{display:grid;gap:6px}
+.field label{font-size:13px;font-weight:600;color:var(--text-2)}
+.input{display:flex;align-items:center;gap:10px;height:48px;border-radius:14px;background:var(--surface-2);border:1px solid var(--border-strong);padding:0 14px;color:var(--text);font-size:16px;font-weight:500}
+.input .ico{font-size:18px;color:var(--text-3)}
+.input .ph{color:var(--text-3);font-weight:500}
+.input.focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-tint)}
+.input.pill{border-radius:var(--r-pill);height:44px;border-color:var(--border)}
+.input .send{margin-left:auto;width:32px;height:32px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:grid;place-items:center}
+.input .send .ico{font-size:16px;color:inherit}
+.hint{font-size:12px;color:var(--text-3)}
+
+/* toast */
+.toast{display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 8px 0 14px;border-radius:var(--r-pill);background:var(--inverse-bg);color:var(--inverse-fg);font-size:14px;font-weight:600;max-width:100%}
+.toast .ico{font-size:18px;color:var(--inverse-success)}
+.toast .act{margin-left:6px;height:32px;padding:0 12px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--inverse-fg) 12%,transparent);font-weight:700;font-size:13px;color:var(--inverse-fg)}
+
+/* ---------- phones ---------- */
+.phones{display:grid;gap:28px;grid-template-columns:repeat(auto-fit,minmax(0,375px));justify-content:center;max-width:1200px;margin:0 auto}
+.phone-wrap{display:grid;gap:12px;justify-items:center;min-width:0}
+.phone-cap{font-size:13px;color:var(--text-2);text-align:center;max-width:340px;line-height:1.45}
+.phone-cap b{color:var(--text);font-weight:600}
+.phone{width:375px;max-width:100%;height:812px;border-radius:44px;background:var(--bg);color:var(--text);box-shadow:0 0 0 1px var(--border-strong),0 0 0 9px var(--surface),0 0 0 10px var(--border);overflow:hidden;position:relative;display:flex;flex-direction:column;font-family:var(--font-ui);font-size:15px;line-height:1.4}
+.sbar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:10px 28px 0 30px;font-size:15px;font-weight:600;flex:none}
+.sbar .sys{display:flex;align-items:center;gap:6px}
+.sbar svg{height:12px;width:auto}
+.screen{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;display:flex;flex-direction:column}
+.screen>*{flex:none}
+.screen::-webkit-scrollbar{display:none}
+.phone .tabbar{flex:none}
+.appbar{height:48px;display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;flex:none}
+.appbar .loc{display:flex;align-items:center;gap:6px;font-weight:700;font-size:17px;letter-spacing:-.01em}
+.appbar .loc .ico{font-size:18px;color:var(--primary-text)}
+.appbar .loc .chev{font-size:16px;color:var(--text-3)}
+.appbar .sp{flex:1}
+.ibtn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--text);position:relative}
+.ibtn .ico{font-size:22px;stroke-width:1.9}
+.ibtn .dot{position:absolute;top:7px;right:7px;width:9px;height:9px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 2px var(--bg)}
+.stories{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding:6px 16px 2px}
+.stories::-webkit-scrollbar{display:none}
+.story{display:grid;justify-items:center;gap:6px;flex:none;width:64px;font-size:11px;font-weight:600;color:var(--text-2);text-align:center;line-height:1.15}
+.sring{width:62px;height:62px;border-radius:50%;padding:3px;border:2px solid var(--c)}
+.sring.seen{border-color:var(--border-strong)}
+.sface{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 18%,var(--surface));color:var(--c)}
+.sface .ico{font-size:24px;stroke-width:1.9}
+.sring.add{border:1.5px dashed var(--border-strong)}
+.sring.add .sface{background:var(--surface);color:var(--text-2)}
+.shead{display:flex;align-items:baseline;justify-content:space-between;padding:18px 16px 10px}
+.shead .d{font-size:22px}
+.shead span{font-size:13px;font-weight:600;color:var(--text-3)}
+.feed{display:grid;gap:10px;padding:0 16px 16px}
+.cover{height:168px;position:relative;overflow:hidden;background:color-mix(in srgb,var(--c) 22%,var(--surface));flex:none}
+.cover .big{position:absolute;right:-26px;bottom:-30px;width:210px;height:210px;color:var(--c);opacity:.5;stroke-width:1.2}
+.cover .chip{position:absolute;left:16px;bottom:14px;background:var(--bg)}
+.cover .appbar{position:absolute;left:0;right:0;top:0}
+.cover .ibtn{background:color-mix(in srgb,var(--bg) 82%,transparent)}
+.ev-page{display:grid;gap:16px;padding:16px 16px 20px}
+.ev-page h1{font-size:26px;line-height:30px;font-weight:800;letter-spacing:-.02em}
+.meta{display:grid;gap:8px}
+.meta li{display:flex;gap:10px;align-items:flex-start;font-size:15px;line-height:20px}
+.meta .ico{font-size:20px;color:var(--text-3);stroke-width:1.9}
+.meta b{font-weight:600}
+.meta span{color:var(--text-2)}
+.panel{background:var(--surface);border-radius:var(--r-card);padding:14px}
+.panel-h{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:10px}
+.panel-h a{font-size:13px;font-weight:700;color:var(--primary-text);text-decoration:none}
+.host{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center}
+.host .n{font-size:15px;font-weight:700;line-height:19px}
+.host .s{font-size:13px;color:var(--text-2);line-height:17px}
+.going-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.going-head .d{font-size:22px}
+.going-head .d small{font-family:var(--font-ui);font-stretch:100%;font-weight:600;font-size:13px;color:var(--text-2);letter-spacing:0;margin-left:6px}
+.msgs{display:grid;gap:8px}
+.msg{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:start}
+.msg .av{width:28px;height:28px;font-size:10px}
+.msg .b{font-size:14px;line-height:19px}
+.msg .b b{font-weight:700;margin-right:4px}
+.msg .t{font-size:11px;color:var(--text-3);margin-left:6px;font-weight:500}
+.nudge{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;padding:12px 14px;border:1px solid var(--border);border-radius:16px;font-size:13px;line-height:18px;color:var(--text-2)}
+.nudge .ico{font-size:22px;color:var(--success);stroke-width:1.9}
+.nudge b{display:block;color:var(--text);font-weight:700;font-size:14px;margin-bottom:1px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sticky-cta{flex:none;display:flex;align-items:center;gap:12px;padding:10px 16px 0;border-top:1px solid var(--border);background:var(--bg)}
+.sticky-cta .cnt{display:grid;gap:4px;font-size:12.5px;font-weight:600;color:var(--text-2);line-height:1.2;white-space:nowrap}
+.sticky-cta .rsvp{flex:1}
+.hubhead{display:grid;gap:14px;padding:4px 16px 0}
+.hubhead h1{font-size:24px;line-height:28px;font-weight:800;letter-spacing:-.02em}
+.hubhead .parent{font-size:13px;font-weight:600;color:var(--text-3);margin-bottom:4px}
+.hubhead .stats{font-size:14px;color:var(--text-2);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.hubhead .stats b{color:var(--text);font-weight:700}
+.hubhead .stats i{width:3px;height:3px;border-radius:50%;background:var(--text-3);display:inline-block}
+.tabs{display:flex;gap:4px;padding:0 16px;border-bottom:1px solid var(--border);margin-top:4px}
+.tabs button{position:relative;height:42px;padding:0 10px;font-size:15px;font-weight:600;color:var(--text-3);display:flex;align-items:center;gap:6px}
+.tabs button.on{color:var(--text)}
+.tabs button.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2.5px;border-radius:2px;background:var(--text)}
+.tabs .pill{height:18px;padding:0 6px;border-radius:var(--r-pill);background:var(--primary);color:var(--on-primary);font-size:11px;font-weight:800;display:grid;place-items:center}
+.list{display:grid}
+.lrow{display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);min-width:0}
+.lrow:last-child{border-bottom:0}
+.lrow .when{display:grid;gap:2px}
+.lrow .when .d{font-size:16px;white-space:nowrap}
+.lrow .when span{font-size:11px;font-weight:600;color:var(--text-3)}
+.lrow .what{min-width:0}
+.lrow .what b{display:block;font-size:15px;font-weight:700;line-height:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow .what span{font-size:13px;color:var(--text-2);line-height:17px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow .rsvp{height:34px;padding:0 13px;font-size:13.5px}
+.cap{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;padding:10px 16px}
+.cap .n{font-size:15px;font-weight:700;line-height:19px}
+.cap .s{font-size:13px;color:var(--text-2);line-height:17px}
+
+/* ---------- motion + why ---------- */
+.motion{display:grid;gap:12px}
+.mrow{display:grid;grid-template-columns:1fr;gap:6px 24px;padding:18px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card)}
+@media (min-width:720px){.mrow{grid-template-columns:180px 1fr 200px;align-items:start}}
+.mrow h3{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.mrow p{font-size:15px;line-height:1.5;color:var(--text-2)}
+.mrow code{font:600 12px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--text);display:block;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 10px;white-space:pre-wrap}
+.why{font-size:18px;line-height:1.55;max-width:66ch;text-wrap:pretty}
+.why b{font-weight:700}
+.why p+p{margin-top:16px}
+.foot{padding:32px 0 56px;border-top:1px solid var(--border);font-size:13px;color:var(--text-3);display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.foot .mark{width:18px;height:18px}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.3-7-11.5a7 7 0 0 1 14 0C19 14.7 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 11v9h14v-9"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.4 6.3 20.5l1.2-6.4L2.8 9.7l6.4-.8z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-hubs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><path d="M3.5 14.5c3 2.5 14 2.5 17-3M20.5 9.5c-3-2.5-14-2.5-17 3"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4z"/></symbol>
+  <symbol id="i-me" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.5"/><path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17" cy="10" r="2.5"/><path d="M16 14.5c3 0 5.5 2 5.5 5"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+  <symbol id="c-ball" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M6 6c2 2 2.5 4.5 2.5 6s-.5 4-2.5 6M18 6c-2 2-2.5 4.5-2.5 6s.5 4 2.5 6"/></symbol>
+  <symbol id="c-paddle" viewBox="0 0 24 24"><circle cx="10" cy="9.5" r="6.5"/><path d="M15.37 12.61l4.6 4.6-2.26 2.26-4.6-4.6"/><circle cx="19.5" cy="4.5" r="1.8"/></symbol>
+  <symbol id="c-dice" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none"/><circle cx="16" cy="8" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="8" cy="16" r="1.5" fill="currentColor" stroke="none"/><circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="c-sparkle" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M12 2C12.8 8 16 11.2 22 12 16 12.8 12.8 16 12 22 11.2 16 8 12.8 2 12 8 11.2 11.2 8 12 2Z"/></symbol>
+  <symbol id="c-code" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></symbol>
+  <symbol id="c-brief" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2.5"/><path d="M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/></symbol>
+  <symbol id="c-pizza" viewBox="0 0 24 24"><path d="M12 21L4 6.5c4.8-3 11.2-3 16 0L12 21z"/><circle cx="10" cy="9.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="14.2" cy="11.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="11.2" cy="14.5" r="1.3" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="c-mountain" viewBox="0 0 24 24"><path d="M3 19l6-9 4 6 2-3 6 6H3z"/><circle cx="18" cy="6" r="2"/></symbol>
+  <symbol id="c-watch" viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M12 13V9.5M10 3h4M12 3v3M18.5 7.5l1.5-1.5"/></symbol>
+  <symbol id="c-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20"/></symbol>
+</svg>
+
+<nav class="topbar" aria-label="Board sections">
+  <div class="wrap">
+    <a class="brand" href="#top" style="text-decoration:none">
+      <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="ck-top"><circle cx="27" cy="35" r="21"/></clipPath></defs><path class="mk-tail" d="M15 37 26 48 58 16"/><circle class="mk-disc" cx="27" cy="35" r="21"/><path class="mk-in" d="M15 37 26 48 58 16" clip-path="url(#ck-top)"/></svg>
+      After Dark <small>Direction B</small>
+    </a>
+    <div class="topnav">
+      <a href="#logo">Logo</a><a href="#palette">Palette</a><a href="#type">Type</a><a href="#components">Components</a><a href="#screens">Screens</a><a href="#motion">Motion</a><a href="#why">Why</a>
+    </div>
+    <button class="toggle" id="theme-toggle" type="button" aria-label="Switch color theme">
+      <svg class="ico i-sun"><use href="#i-sun"/></svg>
+      <svg class="ico i-moon"><use href="#i-moon"/></svg>
+      <span class="tg-label">Dark</span>
+    </button>
+  </div>
+</nav>
+
+<main id="top">
+
+<!-- 1. HEADER -->
+<header class="hero wrap">
+  <p class="hero-kicker"><i></i>Activity Planet v2 &middot; Direction B &middot; Georgia State, January 2027</p>
+  <h1 class="d">After<br>Dark</h1>
+  <p class="thesis">Plans get made at 9 p.m., so the screen is near-black, the only bright thing on it is the button that says you're in, and the type is big enough to read from across a dorm room.</p>
+  <p class="adjs d"><span>Confident</span><i></i><span>Playful</span><i></i><span>Awake</span></p>
+</header>
+
+<!-- 2. LOGO -->
+<section class="sec" id="logo"><div class="wrap">
+  <div class="sec-head">
+    <h2 class="sec-title d">Logo</h2>
+    <p class="sec-lede">The Check-Orbit: a planet, and a check that doesn't stop at the edge.</p>
+  </div>
+  <div class="logo-stage">
+    <div class="card logo-big">
+      <svg class="lockup" viewBox="0 0 640 64" aria-label="Activity Planet">
+        <defs><clipPath id="ck-big"><circle cx="27" cy="35" r="21"/></clipPath></defs>
+        <g class="mark"><path class="mk-tail" d="M15 37 26 48 58 16"/><circle class="mk-disc" cx="27" cy="35" r="21"/><path class="mk-in" d="M15 37 26 48 58 16" clip-path="url(#ck-big)"/></g>
+        <text x="84" y="52">Activity Planet</text>
+      </svg>
+    </div>
+    <div class="logo-rows">
+      <div class="card">
+        <h3>At 24px, where it lives most of the time</h3>
+        <div class="logo-24">
+          <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="ck-24"><circle cx="27" cy="35" r="21"/></clipPath></defs><path class="mk-tail" d="M15 37 26 48 58 16"/><circle class="mk-disc" cx="27" cy="35" r="21"/><path class="mk-in" d="M15 37 26 48 58 16" clip-path="url(#ck-24)"/></svg>
+          <svg class="lockup" viewBox="64 0 576 64" aria-hidden="true"><text x="84" y="52">Activity Planet</text></svg>
+        </div>
+        <p class="note" style="margin-top:14px">Mark alone in the tab bar and on notifications; mark plus wordmark on the sign-in screen and share cards. The check's long stroke is 9 units on a 64 grid, so at 24px it is still a 3.4px line.</p>
+      </div>
+      <div class="card">
+        <h3>App icon</h3>
+        <div class="tiles">
+          <div class="tile tile-dark tile-120"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="ck-t120"><circle cx="27" cy="35" r="21"/></clipPath></defs><path class="mk-tail" d="M15 37 26 48 58 16"/><circle class="mk-disc" cx="27" cy="35" r="21"/><path class="mk-in" d="M15 37 26 48 58 16" clip-path="url(#ck-t120)"/></svg></div>
+          <div class="tile tile-orange tile-60"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="ck-t60"><circle cx="27" cy="35" r="21"/></clipPath></defs><path class="mk-tail" d="M15 37 26 48 58 16"/><circle class="mk-disc" cx="27" cy="35" r="21"/><path class="mk-in" d="M15 37 26 48 58 16" clip-path="url(#ck-t60)"/></svg></div>
+          <div class="tile tile-dark tile-29"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="ck-t29"><circle cx="27" cy="35" r="21"/></clipPath></defs><path class="mk-tail" d="M15 37 26 48 58 16"/><circle class="mk-disc" cx="27" cy="35" r="21"/><path class="mk-in" d="M15 37 26 48 58 16" clip-path="url(#ck-t29)"/></svg></div>
+        </div>
+        <p class="note" style="margin-top:14px">Default icon is near-black with the orange disc. The orange tile is the alternate icon offered in settings, and the only place the mark inverts.</p>
+      </div>
+    </div>
+  </div>
+  <p class="logo-copy">The mark is a planet with a check whose long stroke <b>leaves orbit</b>, because the whole point of the app is that a tap turns into leaving the room. Inside the disc the check is ink, outside it takes the text color, so one drawing works on near-black, on white, and as a flat orange disc on a home screen, with no gradient anywhere.</p>
+</div></section>
+
+<!-- 3. PALETTE -->
+<section class="sec" id="palette"><div class="wrap">
+  <div class="sec-head">
+    <h2 class="sec-title d">Palette</h2>
+    <p class="sec-lede">Neutral near-black, not navy. One action color, Streetlight, that only ever means "commit inside the app". Fills never change between modes; text colors do. Ratios are WCAG 2.1 computed, shown as dark / light.</p>
+  </div>
+
+  <div class="pal-group">
+    <h3>Surfaces <span>three steps, each one level of elevation</span></h3>
+    <div class="sws">
+      <div class="sw"><div class="sw-chip" style="background:var(--bg)"></div><div class="sw-body"><div class="sw-role">Background</div><div class="sw-hex">D #0B0B0C <br>L #FFFFFF</div><div class="sw-cr">base of every screen</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:var(--surface)"></div><div class="sw-body"><div class="sw-role">Card</div><div class="sw-hex">D #151517 <br>L #F4F4F5</div><div class="sw-cr">event cards, panels, tab bar</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:var(--surface-2);border-bottom:1px solid var(--border)"></div><div class="sw-body"><div class="sw-role">Raised</div><div class="sw-hex">D #1F1F23 <br>L #FFFFFF</div><div class="sw-cr">inputs, sheets, avatars</div></div></div>
+    </div>
+  </div>
+
+  <div class="pal-group">
+    <h3>Text <span>three levels; tertiary still clears 4.5:1 on cards</span></h3>
+    <div class="sws">
+      <div class="sw"><div class="sw-chip on-bg d" style="color:var(--text)">Aa</div><div class="sw-body"><div class="sw-role">Text</div><div class="sw-hex">D #F5F5F7 <br>L #0B0B0C</div><div class="sw-cr">on bg <b>18.1</b> / <b>19.7</b></div><div class="sw-cr">on card <b>16.8</b> / <b>17.9</b></div></div></div>
+      <div class="sw"><div class="sw-chip on-bg d" style="color:var(--text-2)">Aa</div><div class="sw-body"><div class="sw-role">Text 2</div><div class="sw-hex">D #A6A6AE <br>L #52525B</div><div class="sw-cr">on bg <b>8.1</b> / <b>7.7</b></div><div class="sw-cr">on card <b>7.5</b> / <b>7.0</b></div></div></div>
+      <div class="sw"><div class="sw-chip on-bg d" style="color:var(--text-3)">Aa</div><div class="sw-body"><div class="sw-role">Text 3</div><div class="sw-hex">D #8A8A93 <br>L #6B6B74</div><div class="sw-cr">on bg <b>5.8</b> / <b>5.3</b></div><div class="sw-cr">on card <b>5.3</b> / <b>4.8</b></div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:var(--inverse-bg);color:var(--inverse-fg)"><span class="d">Aa</span></div><div class="sw-body"><div class="sw-role">Inverse</div><div class="sw-hex">D #F5F5F7 on #0B0B0C <br>L flipped</div><div class="sw-cr">toasts, the + tab, Register-at-source</div><div class="sw-cr"><b>18.1</b> / <b>19.7</b></div></div></div>
+    </div>
+  </div>
+
+  <div class="pal-group">
+    <h3>Borders <span>hairlines separate; strong borders define controls</span></h3>
+    <div class="sws">
+      <div class="sw"><div class="sw-chip on-bg"><div style="width:80%;height:0;border-top:1px solid var(--border)"></div></div><div class="sw-body"><div class="sw-role">Hairline</div><div class="sw-hex">D #2C2C32 <br>L #E4E4E7</div><div class="sw-cr">dividers only, never relied on &middot; <b>1.4</b> / <b>1.3</b></div></div></div>
+      <div class="sw"><div class="sw-chip on-bg"><div style="width:120px;height:40px;border-radius:999px;border:1.5px solid var(--border-strong)"></div></div><div class="sw-body"><div class="sw-role">Strong</div><div class="sw-hex">D #62626B <br>L #86868F</div><div class="sw-cr">outlined buttons, inputs, seats</div><div class="sw-cr">on bg <b>3.3</b> / <b>3.6</b> &middot; on card <b>3.0</b> / <b>3.3</b></div></div></div>
+    </div>
+  </div>
+
+  <div class="pal-group">
+    <h3>Primary action <span>Streetlight. Same hex in both modes, always with ink on top</span></h3>
+    <div class="sws">
+      <div class="sw"><div class="sw-chip" style="background:var(--primary)"></div><div class="sw-body"><div class="sw-role">Streetlight</div><div class="sw-hex">#FF7A00 &middot; both modes</div><div class="sw-cr">Going, Join, send, focus ring, unread dot</div></div></div>
+      <div class="sw"><div class="sw-chip d" style="background:var(--primary);color:var(--on-primary)">Going</div><div class="sw-body"><div class="sw-role">Ink on Streetlight</div><div class="sw-hex">#0B0B0C on #FF7A00</div><div class="sw-cr"><b>7.5</b> both modes &middot; the button label</div></div></div>
+      <div class="sw"><div class="sw-chip on-bg d" style="color:var(--primary-text)">Aa</div><div class="sw-body"><div class="sw-role">Streetlight as text</div><div class="sw-hex">D #FF7A00 <br>L #B4480A</div><div class="sw-cr">on bg <b>7.5</b> / <b>5.4</b></div><div class="sw-cr">on card <b>7.0</b> / <b>4.9</b></div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#FF7A00;color:#FFFFFF;font:700 16px/1 var(--font-ui);text-decoration:line-through">white on orange</div><div class="sw-body"><div class="sw-role">Never</div><div class="sw-hex">#FFFFFF on #FF7A00</div><div class="sw-cr"><b>2.6</b> fails AA. No white text on the primary, ever.</div></div></div>
+    </div>
+  </div>
+
+  <div class="pal-group">
+    <h3>States <span>five hues that never share a job with the primary</span></h3>
+    <div class="sws">
+      <div class="sw"><div class="sw-chip" style="background:var(--success-fill);color:#0B0B0C;font:700 15px/1 var(--font-ui)"><svg class="ico" style="font-size:18px;margin-right:6px"><use href="#i-check"/></svg>Going</div><div class="sw-body"><div class="sw-role">Going</div><div class="sw-hex">fill #3DDC84 &middot; ink on it <b>11.0</b></div><div class="sw-hex">text D #3DDC84 <br>L #0A7A38</div><div class="sw-cr">on card <b>10.2</b> / <b>5.0</b></div></div></div>
+      <div class="sw"><div class="sw-chip on-card"><span class="badge badge-live" style="font-size:13px;height:28px;padding:0 12px"><i></i>LIVE</span></div><div class="sw-body"><div class="sw-role">Live now</div><div class="sw-hex">fill #22D3EE &middot; ink on it <b>10.9</b></div><div class="sw-hex">text D #22D3EE <br>L #0E7490</div><div class="sw-cr">on card <b>10.1</b> / <b>4.9</b></div></div></div>
+      <div class="sw"><div class="sw-chip on-card"><span class="badge badge-warn" style="font-size:13px;height:28px;padding:0 12px">Full &middot; waitlist</span></div><div class="sw-body"><div class="sw-role">Full / waitlist</div><div class="sw-hex">fill #FFD233 &middot; ink on it <b>13.6</b></div><div class="sw-hex">text D #FFD233 <br>L #8A6100</div><div class="sw-cr">on card <b>12.6</b> / <b>5.0</b></div></div></div>
+      <div class="sw"><div class="sw-chip on-card"><span class="badge badge-cancel" style="font-size:13px;height:28px;padding:0 12px">Cancelled</span></div><div class="sw-body"><div class="sw-role">Cancelled</div><div class="sw-hex">text D #FF5C5C <br>L #CC2929</div><div class="sw-cr">on bg <b>6.5</b> / <b>5.4</b> &middot; on card <b>6.0</b> / <b>4.9</b></div><div class="sw-cr">tonal only, never a fill</div></div></div>
+      <div class="sw"><div class="sw-chip on-card"><span class="chip chip-imp"><svg class="ico"><use href="#i-ext"/></svg>via PIN</span></div><div class="sw-body"><div class="sw-role">Imported</div><div class="sw-hex">text D #9AA3B2 <br>L #5B6472</div><div class="sw-cr">on bg <b>7.7</b> / <b>6.0</b> &middot; on card <b>7.2</b> / <b>5.4</b></div><div class="sw-cr">neutral on purpose: it's someone else's event</div></div></div>
+    </div>
+  </div>
+
+  <div class="pal-group">
+    <h3>Categories <span>nine hues, each with its own drawn glyph, so no hub needs an emoji</span></h3>
+    <div class="sws">
+      <div class="sw sw-cat" style="--c:var(--cat-sports)"><div class="sw-chip"><svg class="ico"><use href="#c-ball"/></svg></div><div class="sw-body"><div class="sw-role">Sports &amp; pickup</div><div class="sw-hex">D #4D8DFF <br>L #1A56DB</div><div class="sw-cr">glyph on card <b>5.7</b> / <b>5.6</b></div></div></div>
+      <div class="sw sw-cat" style="--c:var(--cat-fit)"><div class="sw-chip"><svg class="ico"><use href="#c-watch"/></svg></div><div class="sw-body"><div class="sw-role">Running &amp; fitness</div><div class="sw-hex">D #B8F03A <br>L #4A7400</div><div class="sw-cr">glyph on card <b>13.5</b> / <b>5.0</b></div></div></div>
+      <div class="sw sw-cat" style="--c:var(--cat-games)"><div class="sw-chip"><svg class="ico"><use href="#c-dice"/></svg></div><div class="sw-body"><div class="sw-role">Games &amp; tabletop</div><div class="sw-hex">D #FF4FB0 <br>L #C21E7A</div><div class="sw-cr">glyph on card <b>6.1</b> / <b>5.1</b></div></div></div>
+      <div class="sw sw-cat" style="--c:var(--cat-fandom)"><div class="sw-chip"><svg class="ico"><use href="#c-sparkle"/></svg></div><div class="sw-body"><div class="sw-role">Anime &amp; fandom</div><div class="sw-hex">D #B08CFF <br>L #6B3FD6</div><div class="sw-cr">glyph on card <b>7.0</b> / <b>5.8</b></div></div></div>
+      <div class="sw sw-cat" style="--c:var(--cat-tech)"><div class="sw-chip"><svg class="ico"><use href="#c-code"/></svg></div><div class="sw-body"><div class="sw-role">Coding &amp; tech</div><div class="sw-hex">D #2ED3B7 <br>L #0B7D6A</div><div class="sw-cr">glyph on card <b>9.7</b> / <b>4.6</b></div></div></div>
+      <div class="sw sw-cat" style="--c:var(--cat-career)"><div class="sw-chip"><svg class="ico"><use href="#c-brief"/></svg></div><div class="sw-body"><div class="sw-role">Career</div><div class="sw-hex">D #F2C14E <br>L #8C5C00</div><div class="sw-cr">glyph on card <b>10.9</b> / <b>5.2</b></div></div></div>
+      <div class="sw sw-cat" style="--c:var(--cat-food)"><div class="sw-chip"><svg class="ico"><use href="#c-pizza"/></svg></div><div class="sw-body"><div class="sw-role">Free food</div><div class="sw-hex">D #FF6B57 <br>L #C73E2B</div><div class="sw-cr">glyph on card <b>6.5</b> / <b>4.6</b></div></div></div>
+      <div class="sw sw-cat" style="--c:var(--cat-outdoors)"><div class="sw-chip"><svg class="ico"><use href="#c-mountain"/></svg></div><div class="sw-body"><div class="sw-role">Outdoors &amp; trips</div><div class="sw-hex">D #5DD36E <br>L #187A33</div><div class="sw-cr">glyph on card <b>9.6</b> / <b>4.9</b></div></div></div>
+      <div class="sw sw-cat" style="--c:var(--cat-study)"><div class="sw-chip"><svg class="ico"><use href="#c-book"/></svg></div><div class="sw-body"><div class="sw-role">Study &amp; academics</div><div class="sw-hex">D #D4D4D8 <br>L #3F3F46</div><div class="sw-cr">glyph on card <b>12.3</b> / <b>9.5</b> &middot; the one neutral</div></div></div>
+    </div>
+    <p class="rule"><b>Rules.</b> Category color appears as a 12&ndash;16% tint behind a glyph and as a ring on a hub avatar; it is never a button and never body text, so a green category can't be mistaken for "going". State colors are solid and come with a word. Streetlight has exactly one meaning. No gradients anywhere on the product: the brand signature is a flat disc and doesn't need one.</p>
+  </div>
+</div></section>
+
+<!-- 4. TYPE -->
+<section class="sec" id="type"><div class="wrap">
+  <div class="sec-head">
+    <h2 class="sec-title d">Type</h2>
+    <p class="sec-lede">Two Google families. Archivo at its widest for the few words that need to be read across a room; Figtree for everything you actually read.</p>
+  </div>
+  <div class="type-fam">
+    <div class="card">
+      <h3>Display &middot; Archivo, width 125, weight 800</h3>
+      <div class="fam-sample d">Tonight<br>4 of 6</div>
+      <p class="fam-meta"><b>Where:</b> screen titles, the time rail on cards, headcounts, the wordmark. Tabular numerals on. <b>Never:</b> body text, long titles, or anything over four words. Variable font, loaded once: <b>wdth 62&ndash;125, wght 500&ndash;900</b>.</p>
+    </div>
+    <div class="card">
+      <h3>UI &middot; Figtree, 400&ndash;800</h3>
+      <div class="fam-sample ui">Table tennis doubles</div>
+      <p class="fam-meta"><b>Where:</b> titles, body, buttons, chips, labels. Weights 500/600/700 do the work; 400 only for paragraphs. Rounded enough to feel like a phone, not a dashboard. Minimum size anywhere in the app: <b>11px at weight 600</b>, tab labels only.</p>
+    </div>
+  </div>
+  <div class="scale">
+    <div class="scale-row"><div class="scale-spec"><b>Display XL</b>Archivo 125 &middot; 800 &middot; 40/40 &middot; -0.01em<br>sign-in, empty states</div><div class="d t-display-xl">Who's down tonight?</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Display</b>Archivo 125 &middot; 800 &middot; 28/32<br>screen titles, headcounts</div><div class="d t-display">This week</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Title</b>Figtree 700 &middot; 20/26 &middot; -0.01em<br>event page, hub page</div><div class="t-title">Table tennis doubles</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Title S</b>Figtree 700 &middot; 17/22<br>card titles</div><div class="t-title-s">Frieren marathon, ep 1&ndash;4</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Body</b>Figtree 400 &middot; 16/24<br>descriptions, chat</div><div class="t-body">Rec Center, 3rd floor. Six tables, we usually get three. Bring a paddle if you have one; we have spares and nobody is good.</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Body strong</b>Figtree 600 &middot; 16/24<br>names, counts inline</div><div class="t-body-strong">4 of 6 going &middot; Priya, Marcus, Dani, Jae</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Caption</b>Figtree 500 &middot; 13/18 &middot; text-2<br>meta lines, timestamps</div><div class="t-caption">Fri 4:00&ndash;6:00 PM &middot; 0.4 mi &middot; Chapter event</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Label</b>Figtree 600 &middot; 11/14 &middot; text-3<br>tab bar, time-rail meridian</div><div class="t-label">Home &nbsp;&nbsp; Hubs &nbsp;&nbsp; Chats &nbsp;&nbsp; Me &nbsp;&nbsp;&nbsp;&nbsp; PM &middot; FRI</div></div>
+  </div>
+</div></section>
+
+<!-- 5. COMPONENTS -->
+<section class="sec" id="components"><div class="wrap">
+  <div class="sec-head">
+    <h2 class="sec-title d">Components</h2>
+    <p class="sec-lede">Pills for actions, 20px corners for cards, 14px for tiles. One filled orange button per screen; everything else is outlined, tonal, or inverse.</p>
+  </div>
+  <div class="grid">
+
+    <div class="card">
+      <h3>Buttons</h3>
+      <div class="col">
+        <div class="row"><button class="btn btn-primary">Going</button><button class="btn btn-secondary">Interested</button><button class="btn btn-ghost">Not this time</button></div>
+        <div class="row"><button class="btn btn-inverse"><svg class="ico"><use href="#i-ext"/></svg>Register on PIN</button><button class="btn btn-tonal">Add to calendar</button></div>
+        <div class="row"><button class="btn btn-primary btn-sm">Join hub</button><button class="btn btn-secondary btn-sm">Message</button><button class="btn btn-secondary btn-sm btn-icon" aria-label="Share"><svg class="ico"><use href="#i-share"/></svg></button><button class="btn btn-primary btn-xs">Going</button></div>
+      </div>
+      <p class="note" style="margin-top:16px">Primary = commit inside the app. Inverse = leaves the app (register at source, open in Maps). Secondary and ghost never carry the decision. Press: scale .97 in 90 ms, back in 160 ms.</p>
+    </div>
+
+    <div class="card">
+      <h3>The Going button, every RSVP state</h3>
+      <div class="state-list">
+        <div class="state-row"><div class="lbl"><b>Default</b>Not going yet. The only orange fill on the card.</div><button class="rsvp">Going</button></div>
+        <div class="state-row"><div class="lbl"><b>Going</b>Flips to the success fill; the check draws in.</div><button class="rsvp is-going"><svg class="ico"><use href="#i-check"/></svg>Going</button></div>
+        <div class="state-row"><div class="lbl"><b>Interested</b>Soft yes. Outlined, text color, no fill.</div><button class="rsvp is-interested"><svg class="ico"><use href="#i-star"/></svg>Interested</button></div>
+        <div class="state-row"><div class="lbl"><b>Waitlisted</b>Warning tint with your place in line.</div><button class="rsvp is-waitlisted">Waitlist &middot; 2nd</button></div>
+        <div class="state-row"><div class="lbl"><b>Full</b>Event state. The action becomes joining the list.</div><button class="rsvp is-full">Join waitlist</button></div>
+        <div class="state-row"><div class="lbl"><b>Cancelled</b>Destructive tint, not tappable.</div><button class="rsvp is-cancelled" aria-disabled="true">Cancelled</button></div>
+        <div class="state-row"><div class="lbl"><b>Live now</b>Badge carries the state; the button says the useful thing.</div><div class="row" style="gap:8px"><span class="badge badge-live"><i></i>LIVE</span><button class="rsvp">On my way</button></div></div>
+        <div class="state-row"><div class="lbl"><b>Imported</b>Campus-feed event. Register where it lives.</div><button class="rsvp is-imported">Register on PIN<svg class="ico"><use href="#i-ext"/></svg></button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Chips</h3>
+      <div class="col">
+        <div class="row">
+          <span class="chip chip-hub"><span class="av" style="--c:var(--cat-sports)"><svg class="ico" style="font-size:12px"><use href="#c-paddle"/></svg></span>Table Tennis at GSU</span>
+          <span class="chip chip-hub"><span class="av" style="--c:var(--cat-fandom)"><svg class="ico" style="font-size:12px"><use href="#c-sparkle"/></svg></span>Anime Club</span>
+        </div>
+        <div class="row">
+          <span class="chip chip-cat" style="--c:var(--cat-sports)"><svg class="ico"><use href="#c-ball"/></svg>Sports</span>
+          <span class="chip chip-cat" style="--c:var(--cat-games)"><svg class="ico"><use href="#c-dice"/></svg>Games</span>
+          <span class="chip chip-cat" style="--c:var(--cat-food)"><svg class="ico"><use href="#c-pizza"/></svg>Free food</span>
+          <span class="chip chip-cat" style="--c:var(--cat-tech)"><svg class="ico"><use href="#c-code"/></svg>Coding</span>
+          <span class="chip chip-cat" style="--c:var(--cat-career)"><svg class="ico"><use href="#c-brief"/></svg>Career</span>
+        </div>
+        <div class="row">
+          <span class="chip chip-imp"><svg class="ico"><use href="#i-ext"/></svg>via PIN</span>
+          <span class="chip chip-imp"><svg class="ico"><use href="#i-ext"/></svg>via GSU Athletics</span>
+          <span class="chip chip-sel">This week</span>
+          <span class="chip chip-cat chip-sm" style="--c:var(--cat-fit)"><svg class="ico"><use href="#c-watch"/></svg>Run club</span>
+        </div>
+      </div>
+      <p class="note" style="margin-top:16px">Hub chips carry the hub's own avatar. Category chips get a drawn glyph in the category color and a label in text color. Imported chips are the quiet gray of a citation: the event is real, it's just not ours.</p>
+    </div>
+
+    <div class="card">
+      <h3>Event card</h3>
+      <article class="ev ev-card" style="background:var(--bg)">
+        <div class="ev-time"><span class="ev-h d">4:00</span><span class="ev-m">PM &middot; FRI</span></div>
+        <div class="ev-body">
+          <div class="ev-tags"><span class="chip chip-cat chip-sm" style="--c:var(--cat-sports)"><svg class="ico"><use href="#c-paddle"/></svg>Table tennis</span></div>
+          <h4 class="ev-title">Table tennis doubles</h4>
+          <p class="ev-meta">Rec Center &middot; 3rd floor tables &middot; 0.4 mi</p>
+          <div class="ev-foot">
+            <div class="ev-people">
+              <div class="avs"><span class="av" style="--c:var(--cat-games)">P</span><span class="av" style="--c:var(--cat-tech)">M</span><span class="av av-more">+2</span></div>
+              <div class="ev-count"><span>4 of 6 going</span><div class="seats"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
+            </div>
+            <button class="rsvp">Going</button>
+          </div>
+        </div>
+      </article>
+      <p class="note" style="margin-top:16px">Time rail first, because a plan is a time before it is a title. The seat row is the signature: six seats, four lit, readable at arm's length without parsing a sentence. Capped events get seats; open events get a count.</p>
+    </div>
+
+    <div class="card">
+      <h3>Hub card</h3>
+      <div class="col">
+        <div class="hub" style="background:var(--bg)">
+          <div class="htile" style="--c:var(--cat-sports)"><svg class="ico"><use href="#c-paddle"/></svg></div>
+          <div>
+            <div class="hub-name">Table Tennis</div>
+            <div class="hub-sub">Georgia State &middot; Atlanta &middot; 128 members</div>
+            <div class="hub-next"><svg class="ico" style="font-size:13px"><use href="#i-clock"/></svg><b>Fri 4:00 PM</b> doubles &middot; 4 of 6</div>
+          </div>
+          <button class="btn btn-primary">Join</button>
+        </div>
+        <div class="hub" style="background:var(--bg)">
+          <div class="htile" style="--c:var(--cat-tech)"><svg class="ico"><use href="#c-code"/></svg></div>
+          <div>
+            <div class="hub-name">Code Nights</div>
+            <div class="hub-sub">Georgia State &middot; Atlanta &middot; 64 members</div>
+            <div class="hub-next"><svg class="ico" style="font-size:13px"><use href="#i-clock"/></svg><b>Wed 7:00 PM</b> build night &middot; 12 going</div>
+          </div>
+          <button class="btn btn-secondary"><svg class="ico"><use href="#i-check"/></svg>Joined</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Avatars</h3>
+      <div class="col" style="gap:18px">
+        <div class="row" style="gap:16px">
+          <div class="avs"><span class="av" style="--c:var(--cat-games)">P</span><span class="av" style="--c:var(--cat-tech)">M</span><span class="av" style="--c:var(--cat-food)">D</span><span class="av" style="--c:var(--cat-sports)">J</span><span class="av av-more">+7</span></div>
+          <span class="t-caption">11 there now</span>
+        </div>
+        <ul class="named">
+          <li><span class="av av-lg" style="--c:var(--cat-games)">P</span>Priya</li>
+          <li><span class="av av-lg" style="--c:var(--cat-tech)">M</span>Marcus</li>
+          <li><span class="av av-lg" style="--c:var(--cat-food)">D</span>Dani</li>
+          <li><span class="av av-lg" style="--c:var(--cat-sports)">J</span>Jae</li>
+          <li><span class="av av-lg open"><svg class="ico" style="font-size:18px"><use href="#i-plus"/></svg></span>Open</li>
+          <li><span class="av av-lg open"><svg class="ico" style="font-size:18px"><use href="#i-plus"/></svg></span>Open</li>
+        </ul>
+        <p class="note">First names only until you're in the same chat. Initials sit on a 28% tint of a category color picked from the person's first hub; open seats are dashed. Photos replace initials, never the ring.</p>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <h3 style="padding:20px 20px 0">Bottom tab bar</h3>
+      <div style="padding:0 20px 16px"><p class="note">Active tab fills its outline in text color. Orange is not used for navigation; the only orange here is the unread dot. The + opens "Post a plan".</p></div>
+      <div class="tabbar">
+        <div class="tab on"><svg class="ico"><use href="#i-home"/></svg>Home</div>
+        <div class="tab"><svg class="ico"><use href="#i-hubs"/></svg>Hubs</div>
+        <div class="tab-plus"><span><svg class="ico"><use href="#i-plus"/></svg></span></div>
+        <div class="tab"><i class="dot"></i><svg class="ico"><use href="#i-chat"/></svg>Chats</div>
+        <div class="tab"><svg class="ico"><use href="#i-me"/></svg>Me</div>
+      </div>
+      <div class="homebar"><i></i></div>
+    </div>
+
+    <div class="card">
+      <h3>Inputs</h3>
+      <div class="col" style="gap:16px">
+        <div class="field"><label>Where is it happening?</label><div class="input"><svg class="ico"><use href="#i-pin"/></svg><span class="ph">Search a place on or near campus</span></div></div>
+        <div class="field"><label>Where is it happening?</label><div class="input focus"><svg class="ico"><use href="#i-pin"/></svg><span>Student Recreation Center, 3rd fl</span></div><span class="hint">Focus: 1px Streetlight border plus a 3px 14% ring. Visible with a keyboard too.</span></div>
+        <div class="input pill"><span class="ph">Message the group</span><span class="send"><svg class="ico"><use href="#i-send"/></svg></span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Toast</h3>
+      <div class="col">
+        <div class="toast"><svg class="ico"><use href="#i-check"/></svg>You're going. Added to your calendar.<button class="act">Undo</button></div>
+        <div class="toast"><svg class="ico" style="color:var(--inverse-fg)"><use href="#i-chat"/></svg>Marcus: bringing two extra paddles<button class="act">Reply</button></div>
+      </div>
+      <p class="note" style="margin-top:16px">Inverse surface so it reads on either mode. Same verb as the button that caused it: tap "Going", the toast says "You're going". Four seconds, swipe to dismiss.</p>
+    </div>
+
+  </div>
+</div></section>
+
+<!-- 6. SCREENS -->
+<section class="sec" id="screens"><div class="wrap">
+  <div class="sec-head">
+    <h2 class="sec-title d">Screens</h2>
+    <p class="sec-lede">Three screens for a Georgia State student on a Thursday night in January. The third phone always shows the opposite mode of this page, so light and dark are on screen together; flip the toggle to swap them.</p>
+  </div>
+  <div class="phones">
+
+    <!-- a. HOME -->
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="sbar"><span>9:41</span><span class="sys">
+          <svg viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg>
+          <svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1 4a10 10 0 0 1 14 0M3.5 6.8a6.5 6.5 0 0 1 9 0M6 9.5a3 3 0 0 1 4 0"/><circle cx="8" cy="11" r=".6" fill="currentColor"/></svg>
+          <svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="22" height="11" rx="3" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="19" height="8" rx="1.8" fill="currentColor"/><path d="M24.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity=".4"/></svg>
+        </span></div>
+        <div class="screen">
+          <div class="appbar">
+            <div class="loc"><svg class="ico"><use href="#i-pin"/></svg>Downtown Atlanta<svg class="ico chev"><use href="#i-chev-d"/></svg></div>
+            <span class="sp"></span>
+            <button class="ibtn" aria-label="Search"><svg class="ico"><use href="#i-search"/></svg></button>
+            <button class="ibtn" aria-label="Notifications"><svg class="ico"><use href="#i-bell"/></svg><i class="dot"></i></button>
+          </div>
+          <div class="stories">
+            <div class="story"><div class="sring add"><div class="sface"><svg class="ico"><use href="#i-plus"/></svg></div></div>Interests</div>
+            <div class="story" style="--c:var(--cat-sports)"><div class="sring"><div class="sface"><svg class="ico"><use href="#c-paddle"/></svg></div></div>Table tennis</div>
+            <div class="story" style="--c:var(--cat-sports)"><div class="sring"><div class="sface"><svg class="ico"><use href="#c-ball"/></svg></div></div>Pickup ball</div>
+            <div class="story" style="--c:var(--cat-fandom)"><div class="sring"><div class="sface"><svg class="ico"><use href="#c-sparkle"/></svg></div></div>Anime Club</div>
+            <div class="story" style="--c:var(--cat-games)"><div class="sring seen"><div class="sface"><svg class="ico"><use href="#c-dice"/></svg></div></div>Board games</div>
+            <div class="story" style="--c:var(--cat-fit)"><div class="sring seen"><div class="sface"><svg class="ico"><use href="#c-watch"/></svg></div></div>Run club</div>
+            <div class="story" style="--c:var(--cat-tech)"><div class="sring seen"><div class="sface"><svg class="ico"><use href="#c-code"/></svg></div></div>Code nights</div>
+            <div class="story" style="--c:var(--cat-food)"><div class="sring seen"><div class="sface"><svg class="ico"><use href="#c-pizza"/></svg></div></div>Free food</div>
+          </div>
+
+          <div class="shead"><h2 class="d">Tonight</h2><span>Thu, Jan 21</span></div>
+          <div class="feed">
+            <article class="ev">
+              <div class="ev-time"><span class="ev-h live d"><i></i>LIVE</span><span class="ev-m">since 9:00</span></div>
+              <div class="ev-body">
+                <div class="ev-tags"><span class="chip chip-cat chip-sm" style="--c:var(--cat-sports)"><svg class="ico"><use href="#c-ball"/></svg>Pickup ball</span></div>
+                <h4 class="ev-title">Pickup basketball, full court</h4>
+                <p class="ev-meta">Rec Center &middot; Court 2 &middot; 0.3 mi</p>
+                <div class="ev-foot">
+                  <div class="ev-people">
+                    <div class="avs"><span class="av" style="--c:var(--cat-sports)">T</span><span class="av" style="--c:var(--cat-career)">A</span><span class="av av-more">+9</span></div>
+                    <div class="ev-count"><span>11 there now</span><span style="color:var(--text-3);font-weight:500">runs till 11</span></div>
+                  </div>
+                  <button class="rsvp">On my way</button>
+                </div>
+              </div>
+            </article>
+            <article class="ev">
+              <div class="ev-time"><span class="ev-h d">10:00</span><span class="ev-m">PM</span></div>
+              <div class="ev-body">
+                <div class="ev-tags"><span class="chip chip-cat chip-sm" style="--c:var(--cat-fandom)"><svg class="ico"><use href="#c-sparkle"/></svg>Anime Club</span></div>
+                <h4 class="ev-title">Frieren marathon, ep 1&ndash;4</h4>
+                <p class="ev-meta">Piedmont Central &middot; 2nd floor lounge &middot; posted by Noor</p>
+                <div class="ev-foot">
+                  <div class="ev-people">
+                    <div class="avs"><span class="av" style="--c:var(--cat-fandom)">N</span><span class="av" style="--c:var(--cat-games)">L</span><span class="av av-more">+5</span></div>
+                    <div class="ev-count"><span>7 going</span><span style="color:var(--text-3);font-weight:500">snacks covered</span></div>
+                  </div>
+                  <button class="rsvp">Going</button>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="shead"><h2 class="d">This week</h2><span>Jan 22&ndash;28</span></div>
+          <div class="feed">
+            <article class="ev">
+              <div class="ev-time"><span class="ev-h d">4:00</span><span class="ev-m">PM &middot; FRI</span></div>
+              <div class="ev-body">
+                <div class="ev-tags"><span class="chip chip-cat chip-sm" style="--c:var(--cat-sports)"><svg class="ico"><use href="#c-paddle"/></svg>Table tennis</span></div>
+                <h4 class="ev-title">Table tennis doubles</h4>
+                <p class="ev-meta">Rec Center &middot; 3rd floor tables &middot; 0.4 mi</p>
+                <div class="ev-foot">
+                  <div class="ev-people">
+                    <div class="avs"><span class="av" style="--c:var(--cat-games)">P</span><span class="av" style="--c:var(--cat-tech)">M</span><span class="av av-more">+2</span></div>
+                    <div class="ev-count"><span>4 of 6 going</span><div class="seats"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
+                  </div>
+                  <button class="rsvp">Going</button>
+                </div>
+              </div>
+            </article>
+            <article class="ev">
+              <div class="ev-time"><span class="ev-h d">12:00</span><span class="ev-m">PM &middot; TUE</span></div>
+              <div class="ev-body">
+                <div class="ev-tags"><span class="chip chip-imp chip-sm"><svg class="ico"><use href="#i-ext"/></svg>via PIN</span><span class="chip chip-cat chip-sm" style="--c:var(--cat-career)"><svg class="ico"><use href="#c-brief"/></svg>Career</span></div>
+                <h4 class="ev-title">Career Fair prep: fix your resume in 30 min</h4>
+                <p class="ev-meta">Student Center East, Ballroom &middot; University Career Services</p>
+                <div class="ev-foot">
+                  <div class="ev-people"><div class="ev-count"><span>23 interested</span><span style="color:var(--text-3);font-weight:500">free pizza, apparently</span></div></div>
+                  <button class="rsvp is-imported">Register on PIN<svg class="ico"><use href="#i-ext"/></svg></button>
+                </div>
+              </div>
+            </article>
+            <article class="ev">
+              <div class="ev-time"><span class="ev-h d">7:00</span><span class="ev-m">PM &middot; SAT</span></div>
+              <div class="ev-body">
+                <div class="ev-tags"><span class="chip chip-cat chip-sm" style="--c:var(--cat-games)"><svg class="ico"><use href="#c-dice"/></svg>Board games</span></div>
+                <h4 class="ev-title">Catan &amp; Codenames night</h4>
+                <p class="ev-meta">Student Center West &middot; Room 270</p>
+                <div class="ev-foot">
+                  <div class="ev-people">
+                    <div class="avs"><span class="av" style="--c:var(--cat-games)">R</span><span class="av av-more">+11</span></div>
+                    <div class="ev-count"><span style="color:var(--warning)">Full &middot; 12 of 12</span><div class="seats full"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+                  </div>
+                  <button class="rsvp is-full">Join waitlist</button>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab on"><svg class="ico"><use href="#i-home"/></svg>Home</div>
+          <div class="tab"><svg class="ico"><use href="#i-hubs"/></svg>Hubs</div>
+          <div class="tab-plus"><span><svg class="ico"><use href="#i-plus"/></svg></span></div>
+          <div class="tab"><i class="dot"></i><svg class="ico"><use href="#i-chat"/></svg>Chats</div>
+          <div class="tab"><svg class="ico"><use href="#i-me"/></svg>Me</div>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+      <p class="phone-cap"><b>Home.</b> Where you are, then what's on. Tonight before This week, time before title. Scroll the phone: the imported card and the full one are below the fold.</p>
+    </div>
+
+    <!-- b. EVENT -->
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="sbar"><span>9:41</span><span class="sys">
+          <svg viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg>
+          <svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1 4a10 10 0 0 1 14 0M3.5 6.8a6.5 6.5 0 0 1 9 0M6 9.5a3 3 0 0 1 4 0"/><circle cx="8" cy="11" r=".6" fill="currentColor"/></svg>
+          <svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="22" height="11" rx="3" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="19" height="8" rx="1.8" fill="currentColor"/><path d="M24.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity=".4"/></svg>
+        </span></div>
+        <div class="screen">
+          <div class="cover" style="--c:var(--cat-sports)">
+            <svg class="ico big"><use href="#c-paddle"/></svg>
+            <div class="appbar">
+              <button class="ibtn" aria-label="Back"><svg class="ico"><use href="#i-chev-l"/></svg></button><span class="sp"></span>
+              <button class="ibtn" aria-label="Share"><svg class="ico"><use href="#i-share"/></svg></button>
+              <button class="ibtn" aria-label="More"><svg class="ico"><use href="#i-more"/></svg></button>
+            </div>
+            <span class="chip chip-cat chip-sm" style="--c:var(--cat-sports)"><svg class="ico"><use href="#c-paddle"/></svg>Table tennis &middot; Chapter event</span>
+          </div>
+          <div class="ev-page">
+            <h1>Table tennis doubles</h1>
+            <ul class="meta">
+              <li><svg class="ico"><use href="#i-cal"/></svg><div><b>Friday, Jan 22 &middot; 4:00&ndash;6:00 PM</b><br><span>Tomorrow. Two hours, leave whenever.</span></div></li>
+              <li><svg class="ico"><use href="#i-pin"/></svg><div><b>Student Recreation Center, 3rd floor</b><br><span>101 Piedmont Ave SE &middot; 0.4 mi &middot; 6 min walk</span></div></li>
+            </ul>
+            <div class="panel">
+              <div class="host">
+                <div class="htile" style="--c:var(--cat-sports);width:44px;height:44px;border-radius:12px"><svg class="ico" style="font-size:22px"><use href="#c-paddle"/></svg></div>
+                <div><div class="n">Table Tennis at Georgia State Atlanta</div><div class="s">Hosted by Priya, captain &middot; 128 members</div></div>
+                <button class="btn btn-secondary btn-xs">View</button>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="going-head"><div class="d">4 of 6<small>going &middot; 2 spots left</small></div><div class="seats"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
+              <ul class="named">
+                <li><span class="av av-lg" style="--c:var(--cat-games)">P</span>Priya</li>
+                <li><span class="av av-lg" style="--c:var(--cat-tech)">M</span>Marcus</li>
+                <li><span class="av av-lg" style="--c:var(--cat-food)">D</span>Dani</li>
+                <li><span class="av av-lg" style="--c:var(--cat-sports)">J</span>Jae</li>
+                <li><span class="av av-lg open"><svg class="ico" style="font-size:18px"><use href="#i-plus"/></svg></span>Open</li>
+                <li><span class="av av-lg open"><svg class="ico" style="font-size:18px"><use href="#i-plus"/></svg></span>Open</li>
+              </ul>
+            </div>
+            <div class="actions">
+              <button class="btn btn-secondary btn-sm"><svg class="ico"><use href="#i-cal"/></svg>Add to calendar</button>
+              <button class="btn btn-secondary btn-sm"><svg class="ico"><use href="#i-share"/></svg>Share</button>
+            </div>
+            <div class="panel">
+              <div class="panel-h">Event chat &middot; 4 people<a href="#screens">Open</a></div>
+              <div class="msgs">
+                <div class="msg"><span class="av" style="--c:var(--cat-tech)">M</span><div class="b"><b>Marcus</b>bringing two extra paddles<span class="t">8:52 PM</span></div></div>
+                <div class="msg"><span class="av" style="--c:var(--cat-food)">D</span><div class="b"><b>Dani</b>running 5 late, start without me<span class="t">9:10 PM</span></div></div>
+                <div class="msg"><span class="av" style="--c:var(--cat-games)">P</span><div class="b"><b>Priya</b>tables 4&ndash;6 are ours, say my name at the desk<span class="t">9:14 PM</span></div></div>
+              </div>
+              <div class="input pill" style="margin-top:12px"><span class="ph">Message the group</span><span class="send"><svg class="ico"><use href="#i-send"/></svg></span></div>
+            </div>
+            <div class="nudge"><svg class="ico"><use href="#i-shield"/></svg><div><b>Meet in a public place</b>The Rec Center is a staffed campus building. Keep first meetups in spots like this, and tell a friend where you're headed.</div></div>
+          </div>
+        </div>
+        <div class="sticky-cta">
+          <div class="cnt"><span>4 of 6 going</span><div class="seats"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
+          <button class="rsvp rsvp-lg">Going</button>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+      <p class="phone-cap"><b>Event.</b> The decision screen: when, where, who's hosting, who's going, one button that stays pinned. Chat lives on the event, so "running 5 late" reaches the people who care.</p>
+    </div>
+
+    <!-- c. HUB (opposite mode) -->
+    <div class="phone-wrap">
+      <div class="phone alt">
+        <div class="sbar"><span>9:41</span><span class="sys">
+          <svg viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg>
+          <svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1 4a10 10 0 0 1 14 0M3.5 6.8a6.5 6.5 0 0 1 9 0M6 9.5a3 3 0 0 1 4 0"/><circle cx="8" cy="11" r=".6" fill="currentColor"/></svg>
+          <svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="22" height="11" rx="3" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="19" height="8" rx="1.8" fill="currentColor"/><path d="M24.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity=".4"/></svg>
+        </span></div>
+        <div class="screen">
+          <div class="appbar">
+            <button class="ibtn" aria-label="Back"><svg class="ico"><use href="#i-chev-l"/></svg></button><span class="sp"></span>
+            <button class="ibtn" aria-label="Share"><svg class="ico"><use href="#i-share"/></svg></button>
+            <button class="ibtn" aria-label="More"><svg class="ico"><use href="#i-more"/></svg></button>
+          </div>
+          <div class="hubhead">
+            <div style="display:flex;gap:14px;align-items:center">
+              <div class="htile htile-lg" style="--c:var(--cat-sports)"><svg class="ico"><use href="#c-paddle"/></svg></div>
+              <div><div class="parent">Table Tennis &middot; chapter</div><h1>Table Tennis at Georgia State Atlanta</h1></div>
+            </div>
+            <div class="stats">
+              <div class="avs"><span class="av" style="--c:var(--cat-games)">P</span><span class="av" style="--c:var(--cat-sports)">J</span><span class="av" style="--c:var(--cat-tech)">M</span></div>
+              <b>128 members</b><i></i><span>3 events this week</span><i></i><span>Rec Center</span>
+            </div>
+            <div class="row" style="gap:10px;flex-wrap:nowrap">
+              <button class="btn btn-primary btn-sm" style="flex:1">Join</button>
+              <button class="btn btn-secondary btn-sm btn-icon" aria-label="Notifications"><svg class="ico"><use href="#i-bell"/></svg></button>
+            </div>
+          </div>
+          <div class="tabs">
+            <button class="on">Events</button>
+            <button>Chat<span class="pill">3</span></button>
+            <button>Members</button>
+            <button>About</button>
+          </div>
+          <div class="shead" style="padding-top:14px"><h2 class="d" style="font-size:18px">Next up</h2><span>captains host every one</span></div>
+          <div class="list">
+            <div class="lrow"><div class="when"><span class="d">4:00</span><span>PM &middot; FRI</span></div><div class="what"><b>Table tennis doubles</b><span>4 of 6 going &middot; 3rd floor tables</span></div><button class="rsvp is-going"><svg class="ico"><use href="#i-check"/></svg>Going</button></div>
+            <div class="lrow"><div class="when"><span class="d">6:30</span><span>PM &middot; MON</span></div><div class="what"><b>Open play</b><span>9 going &middot; all levels, 3rd floor</span></div><button class="rsvp">Going</button></div>
+            <div class="lrow"><div class="when"><span class="d">5:00</span><span>PM &middot; WED</span></div><div class="what"><b>Beginner clinic with Coach Lin</b><span>$8 &middot; 6 spots &middot; book through the hub</span></div><button class="rsvp is-interested">Book</button></div>
+          </div>
+          <div class="shead"><h2 class="d" style="font-size:18px">Captains</h2><span>2</span></div>
+          <div class="cap"><span class="av av-lg" style="--c:var(--cat-games)">P</span><div><div class="n">Priya K.</div><div class="s">Captain &middot; started the chapter in Aug 2026</div></div><button class="btn btn-secondary btn-xs">Message</button></div>
+          <div class="cap"><span class="av av-lg" style="--c:var(--cat-sports)">J</span><div><div class="n">Jae</div><div class="s">Co-captain &middot; runs Monday open play</div></div><button class="btn btn-secondary btn-xs">Message</button></div>
+          <div style="height:16px"></div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><svg class="ico"><use href="#i-home"/></svg>Home</div>
+          <div class="tab on"><svg class="ico"><use href="#i-hubs"/></svg>Hubs</div>
+          <div class="tab-plus"><span><svg class="ico"><use href="#i-plus"/></svg></span></div>
+          <div class="tab"><i class="dot"></i><svg class="ico"><use href="#i-chat"/></svg>Chats</div>
+          <div class="tab"><svg class="ico"><use href="#i-me"/></svg>Me</div>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+      <p class="phone-cap"><b>Hub chapter, opposite mode.</b> Same tokens: light mode darkens the text colors instead of inverting the fills, so Streetlight, the Going green and the seat row look identical in both.</p>
+    </div>
+
+  </div>
+</div></section>
+
+<!-- 7. MOTION -->
+<section class="sec" id="motion"><div class="wrap">
+  <div class="sec-head">
+    <h2 class="sec-title d">Motion</h2>
+    <p class="sec-lede">Fast, physical, and quiet. Nothing moves on its own except the live dot. Everything respects reduced motion.</p>
+  </div>
+  <div class="motion">
+    <div class="mrow"><h3>Press</h3><p>Every tappable surface scales to .97 and darkens 4% on pointer-down, then releases with a touch of overshoot. No ripple, no color flash. The button feels like it has weight before anything else happens.</p><code>down 90ms ease-out
+up 160ms cubic-bezier(.2,.8,.2,1)</code></div>
+    <div class="mrow"><h3>RSVP success</h3><p>Tap Going: the pill crossfades Streetlight to the success fill while the check draws left to right. The newly lit seat in the row pops in with a small spring, the headcount rolls from 4 to 5, one medium haptic fires, and the Undo toast slides up. Reverse plays at half the duration.</p><code>fill 180ms ease-out
+check draw 200ms, 40ms delay
+seat spring 320ms (stiffness 380, damping 24)
+count roll 240ms cubic-bezier(.2,.8,.2,1)</code></div>
+    <div class="mrow"><h3>Tab switch</h3><p>Content crossfades, it never slides. The active icon fills its outline, the label weight stays the same so nothing jumps, and each tab keeps its own scroll position. Tapping the active tab scrolls to top.</p><code>crossfade 160ms linear
+icon fill 120ms ease-out
+scroll-to-top 300ms cubic-bezier(.2,.8,.2,1)</code></div>
+    <div class="mrow"><h3>Pull to refresh</h3><p>The feed follows the finger at half speed. At 72px the Check-Orbit mark fades in and its tail sweeps a full turn while loading, which is the one time the logo moves. On release the list snaps back and new cards settle in from 8px below.</p><code>resistance 0.5, threshold 72px
+tail spin 900ms linear, repeat
+snap back 260ms cubic-bezier(.2,.8,.2,1)
+new cards 200ms, stagger 30ms</code></div>
+    <div class="mrow"><h3>Chat send</h3><p>The input clears the instant you tap send. The bubble rises out of the input's position into the list; the delivered tick fades in once the server answers. The list stays pinned to the bottom, and incoming messages push up with the same curve.</p><code>bubble rise 200ms cubic-bezier(.2,.9,.3,1)
+tick fade 150ms ease-out
+incoming push 180ms cubic-bezier(.2,.8,.2,1)</code></div>
+  </div>
+</div></section>
+
+<!-- 8. WHY -->
+<section class="sec" id="why"><div class="wrap">
+  <div class="sec-head">
+    <h2 class="sec-title d">Why this is not AI slop</h2>
+  </div>
+  <div class="why">
+    <p>Every dark UI a model draws right now has an acid-green or vermilion accent on charcoal. This one has <b>Streetlight</b>, an orange chosen because that's the color of downtown Atlanta at 9 p.m. and because the 2025 logo was orange too, and it is spent on exactly one job: committing inside the app. Text on it is <b>ink, never white</b>, because white on this orange is 2.6:1 and ink is 7.5:1, and that single rule makes the Going button look like Activity Planet instead of like a Shopify checkout. Leaving the app (Register on PIN) gets an <b>inverse button</b>, so the two kinds of yes never look alike.</p>
+    <p>Cards lead with the <b>time in an expanded grotesk</b> because a plan is a time before it is a title, and the <b>seat row</b> turns "4 of 6" into six marks you can read at arm's length. The near-black is neutral, not navy, and light mode is <b>not an inversion</b>: fills stay put and the text colors get their own darker values, each ratio computed and printed above. There are <b>no gradients, no glows, no blur, no orbs</b>; the only thing that animates unprompted is an 8-pixel live dot. Nine category colors each come with a <b>drawn glyph</b> so a hub never needs an emoji, the logo's check <b>leaves orbit</b> for a reason the product can say out loud, and the copy is written the way a GSU student talks: "Rec Center, 3rd floor tables", "running 5 late, start without me", "free pizza, apparently".</p>
+  </div>
+</div></section>
+
+</main>
+
+<footer class="foot"><div class="wrap" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+  <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="ck-foot"><circle cx="27" cy="35" r="21"/></clipPath></defs><path class="mk-tail" d="M15 37 26 48 58 16"/><circle class="mk-disc" cx="27" cy="35" r="21"/><path class="mk-in" d="M15 37 26 48 58 16" clip-path="url(#ck-foot)"/></svg>
+  <span>Activity Planet v2 &middot; Direction B, After Dark &middot; October 2026 &middot; Fonts: Archivo, Figtree (Google Fonts) &middot; No external scripts or images</span>
+</div></footer>
+
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('theme-toggle'), label=btn.querySelector('.tg-label');
+  function current(){
+    var t=root.getAttribute('data-theme');
+    if(t==='dark'||t==='light') return t;
+    return (window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  }
+  function paint(){ var t=current(); label.textContent=(t==='dark'?'Dark':'Light'); btn.setAttribute('aria-pressed',String(t==='dark')); }
+  btn.addEventListener('click',function(){ root.setAttribute('data-theme',current()==='dark'?'light':'dark'); paint(); });
+  paint();
+})();
+</script>
+</body>
+</html>
