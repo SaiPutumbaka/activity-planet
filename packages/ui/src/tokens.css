@@ -1,48 +1,237 @@
 /*
- * Design tokens (placeholder). Neutral, accessible defaults so both apps build and render
- * before the design direction is chosen. The selected board from docs/design/boards replaces
- * every value here, including the primary action color, semantic state colors, and the
- * hub category palette. Tailwind v4 reads the @theme block to generate utilities
- * (bg-primary, text-muted, ...).
+ * Activity Planet design tokens — Direction D "Horizon" (docs/design/boards/board-d-horizon.html,
+ * decision D-029). Light is the default; dark is true black. Tailwind v4 reads the @theme block and
+ * emits utilities (bg-surface, text-primary-text, border-border, rounded-card, ...) that reference
+ * these custom properties, so the dark overrides below switch every utility at once.
+ *
+ * Rules the values encode (board section 07):
+ *   - one accent (the sun) for the primary action and live states; its text is ink, never white
+ *     (ink on #F25C0A is 5.8:1, white would be 3.3:1);
+ *   - sky and grass exist only for the mark and default event covers, never text or controls;
+ *   - every state has its own hue: going = green, live = raspberry, warning = amber, danger = red,
+ *     imported = grey-blue;
+ *   - hub colors are dark text on a pale tint so avatars never out-shout the Going button.
  */
 @theme {
+  /* surfaces and text */
   --color-surface: #ffffff;
-  --color-surface-2: #f4f4f5;
-  --color-text: #111111;
-  --color-muted: #5b5b63;
-  --color-border: #e4e4e7;
+  --color-surface-2: #f2f3f5;
+  --color-surface-3: #e6e8ec;
+  --color-text: #0e0f11;
+  --color-text-2: #65696f;
+  --color-text-3: #80858d;
+  --color-border: #e4e6ea;
+  --color-border-strong: #c9ced5;
 
-  --color-primary: #111111;
-  --color-on-primary: #ffffff;
+  /* accent: the sun */
+  --color-primary: #f25c0a;
+  --color-on-primary: #0e0f11;
+  --color-primary-text: #b9420a;
+  --color-primary-tint: #ffebdd;
+  --color-link: #0a6fc2;
 
+  /* states */
   --color-going: #15803d;
-  --color-live: #b91c1c;
-  --color-waitlist: #b45309;
-  --color-cancelled: #6b7280;
-  --color-imported: #1d4ed8;
+  --color-going-tint: #eaf8ee;
+  --color-going-dot: #22c55e;
+  --color-live: #c8185c;
+  --color-live-tint: #ffebf2;
+  --color-live-dot: #ff2d78;
+  --color-warning: #9a5b00;
+  --color-warning-tint: #fff4e0;
+  --color-warning-dot: #f59e0b;
+  --color-danger: #cc2a1e;
+  --color-danger-tint: #fdedeb;
+  --color-danger-dot: #ef4444;
+  --color-info: #5b6472;
+  --color-info-tint: #eef0f3;
+  --color-info-dot: #8a94a3;
 
-  --radius-card: 1rem;
-  --radius-control: 0.75rem;
+  /* the planet: mark and default covers only */
+  --color-sky: #3ba7f0;
+  --color-grass: #2db15b;
+  --color-sun: #f25c0a;
+  --color-trail: #b9edc7;
+  --color-paper: #ffffff;
+
+  /* hub hues: text on tint */
+  --color-hub-orange: #9a3e0f;
+  --color-hub-orange-bg: #ffe8d6;
+  --color-hub-yellow: #7a5200;
+  --color-hub-yellow-bg: #fff3b8;
+  --color-hub-lime: #3f6212;
+  --color-hub-lime-bg: #e8f7c4;
+  --color-hub-green: #14633a;
+  --color-hub-green-bg: #d9f5e2;
+  --color-hub-teal: #0f5f5a;
+  --color-hub-teal-bg: #cff4ef;
+  --color-hub-sky: #0b5a8c;
+  --color-hub-sky-bg: #d9eeff;
+  --color-hub-indigo: #3b3f9e;
+  --color-hub-indigo-bg: #e3e6ff;
+  --color-hub-violet: #5e2bae;
+  --color-hub-violet-bg: #eee3ff;
+  --color-hub-pink: #9a1c5c;
+  --color-hub-pink-bg: #ffe0ef;
+  --color-hub-clay: #6e4327;
+  --color-hub-clay-bg: #f3e6dc;
+
+  /* overlays */
+  --color-toast: #1c1c1e;
+  --color-on-toast: #ffffff;
+  --color-scrim: rgb(14 15 17 / 0.5);
+
+  /* shape */
+  --radius-card: 16px;
+  --radius-control: 999px;
+  --radius-input: 12px;
+  --radius-tile: 14px;
+
+  /* type: Figtree for everything (board section 05) */
+  --font-sans: "Figtree", -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --text-display: 34px;
+  --text-display--line-height: 38px;
+  --text-display--font-weight: 800;
+  --text-display--letter-spacing: -0.025em;
+  --text-title: 24px;
+  --text-title--line-height: 28px;
+  --text-title--font-weight: 700;
+  --text-title--letter-spacing: -0.015em;
+  --text-heading: 17px;
+  --text-heading--line-height: 22px;
+  --text-heading--font-weight: 600;
+  --text-heading--letter-spacing: -0.005em;
+  --text-body: 16px;
+  --text-body--line-height: 22px;
+  --text-meta: 14px;
+  --text-meta--line-height: 19px;
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-caption--font-weight: 500;
+
+  /* elevation: one soft shadow in light, none in dark */
+  --shadow-card: 0 1px 2px rgb(14 15 17 / 0.05), 0 6px 20px rgb(14 15 17 / 0.07);
+  --shadow-lift: 0 2px 6px rgb(14 15 17 / 0.08), 0 16px 40px rgb(14 15 17 / 0.1);
+
+  /* motion */
+  --ease-out-quart: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
 }
 
+/* Dark: true black. Sky one stop deeper so the mark does not glow; the sun one stop brighter so it
+ * stays the loudest thing on screen. The two blocks are identical on purpose: the first follows the
+ * system setting unless the app pinned light, the second is the app's explicit dark choice. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --color-surface: #000000;
-    --color-surface-2: #161618;
+    --color-surface-2: #141414;
+    --color-surface-3: #222222;
     --color-text: #f5f5f7;
-    --color-muted: #a1a1aa;
-    --color-border: #27272a;
-    --color-primary: #ffffff;
-    --color-on-primary: #000000;
+    --color-text-2: #a4a8ae;
+    --color-text-3: #767b83;
+    --color-border: #262626;
+    --color-border-strong: #3a3a3a;
+    --color-primary: #ff7a1f;
+    --color-on-primary: #0e0f11;
+    --color-primary-text: #ffa26b;
+    --color-primary-tint: #3a1a08;
+    --color-link: #6e96ff;
+    --color-going: #4ade80;
+    --color-going-tint: #0b2a17;
+    --color-live: #ff5c97;
+    --color-live-tint: #3a0e20;
+    --color-warning: #ffb547;
+    --color-warning-tint: #33210a;
+    --color-danger: #ff6b5e;
+    --color-danger-tint: #3a1210;
+    --color-info: #a8b0bc;
+    --color-info-tint: #1c1f24;
+    --color-sky: #2e8fd9;
+    --color-sun: #ff7a1f;
+    --color-trail: #8fdda6;
+    --color-paper: #000000;
+    --color-hub-orange: #ffb47a;
+    --color-hub-orange-bg: #3a1a08;
+    --color-hub-yellow: #ffd75e;
+    --color-hub-yellow-bg: #332a05;
+    --color-hub-lime: #beea6a;
+    --color-hub-lime-bg: #1e2e07;
+    --color-hub-green: #6fe3a1;
+    --color-hub-green-bg: #06301c;
+    --color-hub-teal: #5fded1;
+    --color-hub-teal-bg: #06302e;
+    --color-hub-sky: #7cc8ff;
+    --color-hub-sky-bg: #06283d;
+    --color-hub-indigo: #aeb4ff;
+    --color-hub-indigo-bg: #1a1c45;
+    --color-hub-violet: #c9a8ff;
+    --color-hub-violet-bg: #26143f;
+    --color-hub-pink: #ff9acb;
+    --color-hub-pink-bg: #3d0f27;
+    --color-hub-clay: #d9a98a;
+    --color-hub-clay-bg: #33211a;
+    --color-toast: #f5f5f7;
+    --color-on-toast: #0e0f11;
+    --color-scrim: rgb(0 0 0 / 0.6);
+    --shadow-card: none;
+    --shadow-lift: none;
   }
 }
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --color-surface: #000000;
-  --color-surface-2: #161618;
+  --color-surface-2: #141414;
+  --color-surface-3: #222222;
   --color-text: #f5f5f7;
-  --color-muted: #a1a1aa;
-  --color-border: #27272a;
-  --color-primary: #ffffff;
-  --color-on-primary: #000000;
+  --color-text-2: #a4a8ae;
+  --color-text-3: #767b83;
+  --color-border: #262626;
+  --color-border-strong: #3a3a3a;
+  --color-primary: #ff7a1f;
+  --color-on-primary: #0e0f11;
+  --color-primary-text: #ffa26b;
+  --color-primary-tint: #3a1a08;
+  --color-link: #6e96ff;
+  --color-going: #4ade80;
+  --color-going-tint: #0b2a17;
+  --color-live: #ff5c97;
+  --color-live-tint: #3a0e20;
+  --color-warning: #ffb547;
+  --color-warning-tint: #33210a;
+  --color-danger: #ff6b5e;
+  --color-danger-tint: #3a1210;
+  --color-info: #a8b0bc;
+  --color-info-tint: #1c1f24;
+  --color-sky: #2e8fd9;
+  --color-sun: #ff7a1f;
+  --color-trail: #8fdda6;
+  --color-paper: #000000;
+  --color-hub-orange: #ffb47a;
+  --color-hub-orange-bg: #3a1a08;
+  --color-hub-yellow: #ffd75e;
+  --color-hub-yellow-bg: #332a05;
+  --color-hub-lime: #beea6a;
+  --color-hub-lime-bg: #1e2e07;
+  --color-hub-green: #6fe3a1;
+  --color-hub-green-bg: #06301c;
+  --color-hub-teal: #5fded1;
+  --color-hub-teal-bg: #06302e;
+  --color-hub-sky: #7cc8ff;
+  --color-hub-sky-bg: #06283d;
+  --color-hub-indigo: #aeb4ff;
+  --color-hub-indigo-bg: #1a1c45;
+  --color-hub-violet: #c9a8ff;
+  --color-hub-violet-bg: #26143f;
+  --color-hub-pink: #ff9acb;
+  --color-hub-pink-bg: #3d0f27;
+  --color-hub-clay: #d9a98a;
+  --color-hub-clay-bg: #33211a;
+  --color-toast: #f5f5f7;
+  --color-on-toast: #0e0f11;
+  --color-scrim: rgb(0 0 0 / 0.6);
+  --shadow-card: none;
+  --shadow-lift: none;
 }

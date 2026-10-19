@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Horizon</title>
+<meta name="description" content="Direction D for Activity Planet: the Plain Sight system, After Dark's one-loud-thing rule, and the Field Day planet mark with the ball replaced.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+<style>
+/* ------------------------------------------------------------------
+   TOKENS. Light is the default; dark is true black. These are the
+   values that go into packages/ui/src/tokens.css once the mark is picked.
+------------------------------------------------------------------- */
+:root{
+  --surface:#FFFFFF; --surface-2:#F2F3F5; --surface-3:#E6E8EC;
+  --text:#0E0F11; --text-2:#65696F; --text-3:#80858D;
+  --border:#E4E6EA; --border-strong:#C9CED5;
+  --primary:#F25C0A; --on-primary:#0E0F11; --primary-text:#B9420A; --primary-tint:#FFEBDD;
+  --success:#15803D; --success-tint:#EAF8EE; --success-dot:#22C55E;
+  --live:#C8185C; --live-tint:#FFEBF2; --live-dot:#FF2D78;
+  --warning:#9A5B00; --warning-tint:#FFF4E0; --warning-dot:#F59E0B;
+  --danger:#CC2A1E; --danger-tint:#FDEDEB; --danger-dot:#EF4444;
+  --info:#5B6472; --info-tint:#EEF0F3; --info-dot:#8A94A3;
+  --link:#0A6FC2;
+  --sky:#3BA7F0; --grass:#2DB15B; --sun:#F25C0A; --trail:#B9EDC7; --paper:#FFFFFF;
+  --cat-orange:#9A3E0F; --cat-orange-bg:#FFE8D6; --cat-yellow:#7A5200; --cat-yellow-bg:#FFF3B8;
+  --cat-lime:#3F6212; --cat-lime-bg:#E8F7C4; --cat-green:#14633A; --cat-green-bg:#D9F5E2;
+  --cat-teal:#0F5F5A; --cat-teal-bg:#CFF4EF; --cat-sky:#0B5A8C; --cat-sky-bg:#D9EEFF;
+  --cat-indigo:#3B3F9E; --cat-indigo-bg:#E3E6FF; --cat-violet:#5E2BAE; --cat-violet-bg:#EEE3FF;
+  --cat-pink:#9A1C5C; --cat-pink-bg:#FFE0EF; --cat-clay:#6E4327; --cat-clay-bg:#F3E6DC;
+  --toast-bg:#1C1C1E; --toast-text:#FFFFFF; --bezel:#111214; --bezel-edge:#2A2B2F;
+  --shadow:0 1px 2px rgba(14,15,17,.05),0 6px 20px rgba(14,15,17,.07);
+  --shadow-lift:0 2px 6px rgba(14,15,17,.08),0 16px 40px rgba(14,15,17,.10);
+  --r-card:16px; --r-ctl:999px; --r-input:12px; --r-tile:14px;
+  --font:"Figtree",-apple-system,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --surface:#000000; --surface-2:#141414; --surface-3:#222222;
+    --text:#F5F5F7; --text-2:#A4A8AE; --text-3:#767B83;
+    --border:#262626; --border-strong:#3A3A3A;
+    --primary:#FF7A1F; --on-primary:#0E0F11; --primary-text:#FFA26B; --primary-tint:#3A1A08;
+    --success:#4ADE80; --success-tint:#0B2A17; --live:#FF5C97; --live-tint:#3A0E20;
+    --warning:#FFB547; --warning-tint:#33210A; --danger:#FF6B5E; --danger-tint:#3A1210;
+    --info:#A8B0BC; --info-tint:#1C1F24; --link:#6E96FF;
+    --sky:#2E8FD9; --grass:#2DB15B; --sun:#FF7A1F; --trail:#8FDDA6; --paper:#000000;
+    --cat-orange:#FFB47A; --cat-orange-bg:#3A1A08; --cat-yellow:#FFD75E; --cat-yellow-bg:#332A05;
+    --cat-lime:#BEEA6A; --cat-lime-bg:#1E2E07; --cat-green:#6FE3A1; --cat-green-bg:#06301C;
+    --cat-teal:#5FDED1; --cat-teal-bg:#06302E; --cat-sky:#7CC8FF; --cat-sky-bg:#06283D;
+    --cat-indigo:#AEB4FF; --cat-indigo-bg:#1A1C45; --cat-violet:#C9A8FF; --cat-violet-bg:#26143F;
+    --cat-pink:#FF9ACB; --cat-pink-bg:#3D0F27; --cat-clay:#D9A98A; --cat-clay-bg:#33211A;
+    --toast-bg:#F5F5F7; --toast-text:#0E0F11; --bezel:#1C1C1E; --bezel-edge:#3A3A3A;
+    --shadow:none; --shadow-lift:none;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"], .dark-scope{
+  --surface:#000000; --surface-2:#141414; --surface-3:#222222;
+  --text:#F5F5F7; --text-2:#A4A8AE; --text-3:#767B83;
+  --border:#262626; --border-strong:#3A3A3A;
+  --primary:#FF7A1F; --on-primary:#0E0F11; --primary-text:#FFA26B; --primary-tint:#3A1A08;
+  --success:#4ADE80; --success-tint:#0B2A17; --live:#FF5C97; --live-tint:#3A0E20;
+  --warning:#FFB547; --warning-tint:#33210A; --danger:#FF6B5E; --danger-tint:#3A1210;
+  --info:#A8B0BC; --info-tint:#1C1F24; --link:#6E96FF;
+  --sky:#2E8FD9; --grass:#2DB15B; --sun:#FF7A1F; --trail:#8FDDA6; --paper:#000000;
+  --cat-orange:#FFB47A; --cat-orange-bg:#3A1A08; --cat-yellow:#FFD75E; --cat-yellow-bg:#332A05;
+  --cat-lime:#BEEA6A; --cat-lime-bg:#1E2E07; --cat-green:#6FE3A1; --cat-green-bg:#06301C;
+  --cat-teal:#5FDED1; --cat-teal-bg:#06302E; --cat-sky:#7CC8FF; --cat-sky-bg:#06283D;
+  --cat-indigo:#AEB4FF; --cat-indigo-bg:#1A1C45; --cat-violet:#C9A8FF; --cat-violet-bg:#26143F;
+  --cat-pink:#FF9ACB; --cat-pink-bg:#3D0F27; --cat-clay:#D9A98A; --cat-clay-bg:#33211A;
+  --toast-bg:#F5F5F7; --toast-text:#0E0F11; --bezel:#1C1C1E; --bezel-edge:#3A3A3A;
+  --shadow:none; --shadow-lift:none;
+  color-scheme:dark;
+}
+/* the light phone stays light even when the page is dark */
+.light-scope{
+  --surface:#FFFFFF; --surface-2:#F2F3F5; --surface-3:#E6E8EC;
+  --text:#0E0F11; --text-2:#65696F; --text-3:#80858D;
+  --border:#E4E6EA; --border-strong:#C9CED5;
+  --primary:#F25C0A; --on-primary:#0E0F11; --primary-text:#B9420A; --primary-tint:#FFEBDD;
+  --success:#15803D; --success-tint:#EAF8EE; --live:#C8185C; --live-tint:#FFEBF2;
+  --warning:#9A5B00; --warning-tint:#FFF4E0; --danger:#CC2A1E; --danger-tint:#FDEDEB;
+  --info:#5B6472; --info-tint:#EEF0F3; --link:#0A6FC2;
+  --sky:#3BA7F0; --grass:#2DB15B; --sun:#F25C0A; --trail:#B9EDC7; --paper:#FFFFFF;
+  --cat-orange:#9A3E0F; --cat-orange-bg:#FFE8D6; --cat-yellow:#7A5200; --cat-yellow-bg:#FFF3B8;
+  --cat-lime:#3F6212; --cat-lime-bg:#E8F7C4; --cat-green:#14633A; --cat-green-bg:#D9F5E2;
+  --cat-teal:#0F5F5A; --cat-teal-bg:#CFF4EF; --cat-sky:#0B5A8C; --cat-sky-bg:#D9EEFF;
+  --cat-indigo:#3B3F9E; --cat-indigo-bg:#E3E6FF; --cat-violet:#5E2BAE; --cat-violet-bg:#EEE3FF;
+  --cat-pink:#9A1C5C; --cat-pink-bg:#FFE0EF; --cat-clay:#6E4327; --cat-clay-bg:#F3E6DC;
+  --shadow:0 1px 2px rgba(14,15,17,.05),0 6px 20px rgba(14,15,17,.07);
+  color-scheme:light;
+}
+/* optional: C's blue as the accent instead of the sun, for comparison */
+:root[data-accent="blue"], :root[data-accent="blue"] .light-scope{
+  --primary:#1F5BFF; --on-primary:#FFFFFF; --primary-text:#1F5BFF; --primary-tint:#E8EEFF;
+}
+:root[data-accent="blue"][data-theme="dark"], :root[data-accent="blue"] .dark-scope{
+  --primary:#2F66FF; --on-primary:#FFFFFF; --primary-text:#6E96FF; --primary-tint:#0F1F4D;
+}
+@media (prefers-color-scheme: dark){
+  :root[data-accent="blue"]:not([data-theme="light"]){
+    --primary:#2F66FF; --on-primary:#FFFFFF; --primary-text:#6E96FF; --primary-tint:#0F1F4D;
+  }
+}
+
+/* ---------------- base ---------------- */
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden;overflow-wrap:break-word}
+h1,h2,h3,h4,p{margin:0}
+button{font:inherit;color:inherit}
+svg{display:block}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--border)}
+.topbar .wrap{display:flex;align-items:center;gap:12px;height:56px}
+.topbar .name{font-weight:700;letter-spacing:-.01em;white-space:nowrap}
+.topbar .dir{color:var(--text-2);font-size:13px;font-weight:500;white-space:nowrap}
+.topbar .grow{flex:1}
+@media (max-width:640px){.topbar .dir{display:none}.topbar .name{display:none}.topbar .wrap{gap:8px}}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:999px;padding:2px;gap:2px;background:var(--surface)}
+.seg button{border:0;background:transparent;border-radius:999px;height:28px;padding:0 10px;font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--text);color:var(--surface)}
+.sec{padding-block:56px;border-bottom:1px solid var(--border)}
+.sec:last-of-type{border-bottom:0}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--primary-text);margin-bottom:10px}
+.h1{font-size:clamp(30px,5vw,44px);line-height:1.08;font-weight:800;letter-spacing:-.025em;text-wrap:balance}
+.h2{font-size:clamp(24px,3.6vw,32px);line-height:1.15;font-weight:800;letter-spacing:-.02em;text-wrap:balance}
+.h3{font-size:18px;line-height:1.3;font-weight:700;letter-spacing:-.01em}
+.lede{font-size:18px;line-height:1.5;color:var(--text-2);max-width:62ch;margin-top:12px}
+.note{font-size:14px;line-height:1.55;color:var(--text-2);max-width:66ch}
+.note b,.lede b{color:var(--text);font-weight:700}
+.grid{display:grid;gap:20px}
+.g2{grid-template-columns:1fr}
+.g3{grid-template-columns:1fr}
+@media (min-width:720px){.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr}}
+@media (min-width:1000px){.g3{grid-template-columns:1fr 1fr 1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:20px;min-width:0}
+.card.soft{background:var(--surface-2);border-color:transparent}
+.merge{display:grid;gap:16px;grid-template-columns:1fr}
+@media (min-width:720px){.merge{grid-template-columns:1fr 1fr 1fr}}
+.merge .card b{display:block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px}
+.merge .card p{font-size:15px;line-height:1.5;color:var(--text-2)}
+.merge .card p strong{color:var(--text);font-weight:700}
+
+/* ---------------- marks ---------------- */
+.cands{display:grid;gap:20px;grid-template-columns:1fr;margin-top:28px}
+@media (min-width:720px){.cands{grid-template-columns:1fr 1fr}}
+@media (min-width:1080px){.cands{grid-template-columns:repeat(3,1fr)}}
+.cand{display:flex;flex-direction:column;gap:14px;position:relative}
+.cand.rec{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-tint)}
+.cand .tag{position:absolute;top:14px;right:14px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--primary-text);background:var(--primary-tint);border-radius:999px;padding:4px 9px}
+.cand .stage{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;padding:18px 8px 6px}
+.cand .stage .big{width:112px;height:112px}
+.cand .stage .tile{width:72px;height:72px;border-radius:17px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.12),0 6px 16px rgba(0,0,0,.10)}
+.cand .stage .tile svg{width:100%;height:100%}
+.cand .sizes{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 12px;border-radius:12px;background:var(--surface-2)}
+.cand .sizes .lab{font-size:12px;color:var(--text-3);font-weight:600;margin-right:auto}
+.cand .sizes svg{color:var(--text)}
+.cand .name{font-size:19px;font-weight:800;letter-spacing:-.015em}
+.cand .num{display:inline-block;font-size:12px;font-weight:700;color:var(--text-3);margin-right:6px;letter-spacing:.04em}
+.cand p{font-size:14px;line-height:1.5;color:var(--text-2)}
+.cand p b{color:var(--text)}
+.cand .risk{font-size:13px;color:var(--text-3)}
+.cand .risk b{color:var(--text-2);font-weight:700}
+
+/* ---------------- lockup ---------------- */
+.lockup-stage{display:grid;gap:20px;grid-template-columns:1fr}
+@media (min-width:860px){.lockup-stage{grid-template-columns:1.4fr 1fr}}
+.lockup-big{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;min-height:220px;padding:36px 20px}
+.lockup-big .mk{width:72px;height:72px;flex:none}
+.wm{font-weight:800;letter-spacing:-.03em;line-height:1;white-space:nowrap}
+.lockup-big .wm{font-size:clamp(34px,6vw,58px)}
+.lockup-rows{display:grid;gap:18px}
+.lockup-rows .row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.lockup-rows .lab{font-size:13px;color:var(--text-3);min-width:96px;font-weight:600}
+.nav-demo{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 12px 0 10px;border:1px solid var(--border);border-radius:12px}
+.nav-demo .wm{font-size:17px;letter-spacing:-.02em}
+.stacked{display:flex;flex-direction:column;align-items:center;gap:10px}
+.stacked .wm{font-size:22px}
+.icons{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap}
+.icons .ic{border-radius:22.5%;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.12),0 8px 20px rgba(0,0,0,.12)}
+.icons .ic svg{width:100%;height:100%}
+.icons .cap{font-size:12px;color:var(--text-3);text-align:center;margin-top:8px}
+
+/* ---------------- palette ---------------- */
+.sw-grid{display:grid;gap:12px;grid-template-columns:repeat(2,1fr);margin-top:20px}
+@media (min-width:720px){.sw-grid{grid-template-columns:repeat(3,1fr)}}
+@media (min-width:1000px){.sw-grid{grid-template-columns:repeat(4,1fr)}}
+.sw{border:1px solid var(--border);border-radius:14px;overflow:hidden;min-width:0}
+.sw .chip{height:72px;display:flex;align-items:flex-end;padding:10px;font-size:13px;font-weight:700}
+.sw .body{padding:10px 12px}
+.sw .role{font-size:13px;font-weight:700}
+.sw .hex{font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.sw .cr{font-size:12px;color:var(--text-2);margin-top:4px}
+.sw .cr b{color:var(--text)}
+.cats{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:600}
+
+/* ---------------- type ---------------- */
+.type-rows{display:grid;gap:14px;margin-top:20px}
+.type-rows .t{display:grid;grid-template-columns:1fr;gap:4px;padding:14px 0;border-top:1px solid var(--border)}
+@media (min-width:720px){.type-rows .t{grid-template-columns:150px 1fr}}
+.type-rows .lab{font-size:12px;color:var(--text-3);font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding-top:6px}
+.t-display{font-size:34px;line-height:38px;font-weight:800;letter-spacing:-.025em}
+.t-title{font-size:24px;line-height:28px;font-weight:700;letter-spacing:-.015em}
+.t-head{font-size:17px;line-height:22px;font-weight:600;letter-spacing:-.005em}
+.t-body{font-size:16px;line-height:22px}
+.t-meta{font-size:14px;line-height:19px;color:var(--text-2)}
+.t-cap{font-size:12px;line-height:16px;color:var(--text-3);font-weight:500}
+.t-num{font-size:28px;line-height:32px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+
+/* ---------------- buttons (board + phone) ---------------- */
+.btn{height:44px;padding:0 18px;border-radius:var(--r-ctl);font-weight:600;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;cursor:pointer;white-space:nowrap;user-select:none;background:var(--surface-2);color:var(--text)}
+.btn-primary{background:var(--primary);color:var(--on-primary)}
+.btn-ghost{background:transparent;color:var(--primary-text)}
+.btn-outline{background:var(--surface);color:var(--text);border-color:var(--border-strong)}
+.btn-sm{height:36px;font-size:14px;padding:0 14px}
+.btn-lg{height:52px;font-size:17px;padding:0 22px}
+.btn-block{width:100%}
+.btn .ic{width:18px;height:18px}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px}
+.state{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700}
+.state .dot{width:7px;height:7px;border-radius:50%}
+.s-going{background:var(--success-tint);color:var(--success)} .s-going .dot{background:var(--success-dot)}
+.s-live{background:var(--live-tint);color:var(--live)} .s-live .dot{background:var(--live-dot)}
+.s-warn{background:var(--warning-tint);color:var(--warning)} .s-warn .dot{background:var(--warning-dot)}
+.s-danger{background:var(--danger-tint);color:var(--danger)} .s-danger .dot{background:var(--danger-dot)}
+.s-info{background:var(--info-tint);color:var(--info)} .s-info .dot{background:var(--info-dot)}
+
+/* ---------------- phones ---------------- */
+.phones{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;align-items:flex-start;margin-top:28px}
+.phone-wrap{display:flex;flex-direction:column;gap:14px;width:min(395px,100%)}
+.phone-wrap .cap{font-size:14px;color:var(--text-2);line-height:1.5;padding:0 4px}
+.phone-wrap .cap b{color:var(--text);font-weight:700}
+.phone{width:100%;padding:10px;border-radius:52px;background:var(--bezel);border:1px solid var(--bezel-edge);box-shadow:var(--shadow-lift)}
+.screen{position:relative;height:780px;border-radius:42px;overflow:hidden;background:var(--surface);color:var(--text);font-size:15px;line-height:1.4;display:flex;flex-direction:column}
+.sc-status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font-size:14px;font-weight:600;flex:none}
+.sc-status .pill{width:112px;height:30px;border-radius:999px;background:var(--bezel);margin:0 auto;position:absolute;left:50%;transform:translateX(-50%);top:9px}
+.sc-head{display:flex;align-items:center;gap:8px;padding:6px 16px 10px;flex:none}
+.sc-head .mk{width:28px;height:28px}
+.sc-head .wm{font-size:20px;letter-spacing:-.025em}
+.sc-head .grow{flex:1}
+.sc-head .ibtn{width:36px;height:36px;border-radius:50%;border:0;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--text)}
+.sc-head .ibtn svg{width:20px;height:20px}
+.sc-body{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:14px;padding-bottom:70px}
+.sc-sub{display:flex;align-items:baseline;justify-content:space-between;padding:0 16px;flex:none}
+.sc-sub .h{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.sc-sub .a{font-size:14px;font-weight:600;color:var(--primary-text)}
+.stories{display:flex;gap:10px;padding:0 16px;overflow:hidden;flex:none}
+.story{display:flex;flex-direction:column;align-items:center;gap:6px;width:64px;flex:none;background:none;border:0;padding:0;color:var(--text)}
+.story .ring{width:64px;height:64px;border-radius:50%;padding:3px;border:2px solid var(--border-strong)}
+.story .ring.new{border-color:var(--primary)}
+.story .ring.add{border-style:dashed}
+.av{width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700}
+.av svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.c-orange{background:var(--cat-orange-bg);color:var(--cat-orange)} .c-pink{background:var(--cat-pink-bg);color:var(--cat-pink)}
+.c-violet{background:var(--cat-violet-bg);color:var(--cat-violet)} .c-lime{background:var(--cat-lime-bg);color:var(--cat-lime)}
+.c-teal{background:var(--cat-teal-bg);color:var(--cat-teal)} .c-sky{background:var(--cat-sky-bg);color:var(--cat-sky)}
+.c-yellow{background:var(--cat-yellow-bg);color:var(--cat-yellow)} .c-green{background:var(--cat-green-bg);color:var(--cat-green)}
+.story .ring.add .av{background:var(--surface-2);color:var(--text-2)}
+.story .l{font-size:11px;font-weight:500;line-height:13px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px}
+.feed{display:flex;flex-direction:column;gap:12px;padding:0 16px;flex:none}
+.ev-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);overflow:hidden;box-shadow:var(--shadow)}
+.ev-cover{position:relative;height:132px;overflow:hidden}
+.ev-cover svg{width:100%;height:100%}
+.ev-cover .corner{position:absolute;top:10px;left:10px;display:flex;gap:6px}
+.ev-cover.imported{background:var(--info-tint);display:flex;align-items:center;justify-content:center;color:var(--info);font-weight:700;font-size:14px;gap:8px}
+.ev-cover.imported svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ev-body{padding:12px 14px 14px}
+.ev-title{font-size:17px;line-height:22px;font-weight:600;letter-spacing:-.005em}
+.ev-meta{font-size:14px;line-height:19px;color:var(--text-2);margin-top:4px}
+.ev-meta b{color:var(--text);font-weight:600}
+.ev-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.faces{display:flex;align-items:center}
+.faces .f{width:24px;height:24px;border-radius:50%;border:2px solid var(--surface);margin-left:-7px;background:var(--surface-3)}
+.faces .f:first-child{margin-left:0}
+.faces .n{font-size:13px;color:var(--text-2);margin-left:8px;font-weight:500}
+.tabbar{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:8px 6px 18px;display:flex;justify-content:space-around}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600;color:var(--text-3);background:none;border:0;padding:0;width:60px}
+.tab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tab.on{color:var(--text)}
+.tab.on svg{stroke-width:2.4}
+
+/* ---------------- rules ---------------- */
+.rules{display:grid;gap:14px;grid-template-columns:1fr;margin-top:24px}
+@media (min-width:720px){.rules{grid-template-columns:1fr 1fr}}
+.rules .card b{display:block;font-size:15px;font-weight:700;margin-bottom:4px}
+.rules .card p{font-size:14px;line-height:1.5;color:var(--text-2)}
+.closing{font-size:15px;line-height:1.6;color:var(--text-2);max-width:72ch;margin-top:20px}
+.closing b{color:var(--text)}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- common clips -->
+    <clipPath id="planet"><circle cx="32" cy="32" r="30"/></clipPath>
+    <clipPath id="hill"><circle cx="26" cy="78" r="40"/></clipPath>
+
+    <!-- 1 · Sunrise: the sun comes up behind the hill -->
+    <symbol id="m1" viewBox="0 0 64 64">
+      <g clip-path="url(#planet)">
+        <rect width="64" height="64" fill="var(--sky)"/>
+        <circle cx="41" cy="35" r="14" fill="var(--sun)"/>
+        <circle cx="26" cy="78" r="40" fill="var(--grass)"/>
+      </g>
+    </symbol>
+    <symbol id="m1-mono" viewBox="0 0 64 64">
+      <g clip-path="url(#planet)">
+        <rect width="64" height="64" fill="currentColor"/>
+        <circle cx="41" cy="35" r="14" fill="var(--paper)"/>
+        <circle cx="26" cy="78" r="40" fill="var(--paper)"/>
+        <circle cx="26" cy="78" r="36.5" fill="currentColor"/>
+      </g>
+    </symbol>
+    <symbol id="t1" viewBox="0 0 64 64">
+      <rect width="64" height="64" fill="var(--sky)"/>
+      <circle cx="45" cy="35" r="17" fill="var(--sun)"/>
+      <circle cx="24" cy="88" r="54" fill="var(--grass)"/>
+    </symbol>
+
+    <!-- 2 · Ring: a hollow sun, so it can't be a ball -->
+    <symbol id="m2" viewBox="0 0 64 64">
+      <g clip-path="url(#planet)">
+        <rect width="64" height="64" fill="var(--sky)"/>
+        <circle cx="26" cy="78" r="40" fill="var(--grass)"/>
+      </g>
+      <circle cx="41" cy="29" r="9" fill="none" stroke="var(--sun)" stroke-width="5"/>
+    </symbol>
+    <symbol id="m2-mono" viewBox="0 0 64 64">
+      <g clip-path="url(#planet)">
+        <rect width="64" height="64" fill="currentColor"/>
+        <circle cx="26" cy="78" r="40" fill="var(--paper)"/>
+        <circle cx="26" cy="78" r="36.5" fill="currentColor"/>
+      </g>
+      <circle cx="41" cy="29" r="9" fill="none" stroke="var(--paper)" stroke-width="5"/>
+    </symbol>
+    <symbol id="t2" viewBox="0 0 64 64">
+      <rect width="64" height="64" fill="var(--sky)"/>
+      <circle cx="24" cy="88" r="54" fill="var(--grass)"/>
+      <circle cx="44" cy="28" r="11" fill="none" stroke="var(--sun)" stroke-width="6"/>
+    </symbol>
+
+    <!-- 3 · Two on the hill: people on the crest, no object at all -->
+    <symbol id="m3" viewBox="0 0 64 64">
+      <g clip-path="url(#planet)">
+        <rect width="64" height="64" fill="var(--sky)"/>
+        <circle cx="26" cy="78" r="40" fill="var(--grass)"/>
+      </g>
+      <circle cx="36.5" cy="30.5" r="4.4" fill="var(--sun)"/>
+      <path d="M29.5 42.5a7 7 0 0 1 14 0Z" fill="var(--sun)"/>
+      <circle cx="23.5" cy="29" r="4.4" fill="var(--sun)"/>
+      <path d="M16.5 41a7 7 0 0 1 14 0Z" fill="var(--sun)"/>
+    </symbol>
+    <symbol id="m3-mono" viewBox="0 0 64 64">
+      <g clip-path="url(#planet)">
+        <rect width="64" height="64" fill="currentColor"/>
+        <circle cx="26" cy="78" r="40" fill="var(--paper)"/>
+        <circle cx="26" cy="78" r="36.5" fill="currentColor"/>
+      </g>
+      <circle cx="36.5" cy="30.5" r="4.4" fill="var(--paper)"/>
+      <path d="M29.5 42.5a7 7 0 0 1 14 0Z" fill="var(--paper)"/>
+      <circle cx="23.5" cy="29" r="4.4" fill="var(--paper)"/>
+      <path d="M16.5 41a7 7 0 0 1 14 0Z" fill="var(--paper)"/>
+    </symbol>
+    <symbol id="t3" viewBox="0 0 64 64">
+      <rect width="64" height="64" fill="var(--sky)"/>
+      <circle cx="24" cy="88" r="54" fill="var(--grass)"/>
+      <circle cx="38" cy="29" r="5.5" fill="var(--sun)"/>
+      <path d="M29 44a9 9 0 0 1 18 0Z" fill="var(--sun)"/>
+      <circle cx="22" cy="27" r="5.5" fill="var(--sun)"/>
+      <path d="M13 42a9 9 0 0 1 18 0Z" fill="var(--sun)"/>
+    </symbol>
+
+    <!-- 4 · Pin: the place where it happens -->
+    <symbol id="m4" viewBox="0 0 64 64">
+      <g clip-path="url(#planet)">
+        <rect width="64" height="64" fill="var(--sky)"/>
+        <circle cx="26" cy="78" r="40" fill="var(--grass)"/>
+      </g>
+      <path d="M39 41C35 35 30.5 31 30.5 25.5a8.5 8.5 0 0 1 17 0C47.5 31 43 35 39 41Z" fill="var(--sun)"/>
+      <circle cx="39" cy="25.5" r="3.4" fill="var(--sky)"/>
+    </symbol>
+    <symbol id="m4-mono" viewBox="0 0 64 64">
+      <g clip-path="url(#planet)">
+        <rect width="64" height="64" fill="currentColor"/>
+        <circle cx="26" cy="78" r="40" fill="var(--paper)"/>
+        <circle cx="26" cy="78" r="36.5" fill="currentColor"/>
+      </g>
+      <path d="M39 41C35 35 30.5 31 30.5 25.5a8.5 8.5 0 0 1 17 0C47.5 31 43 35 39 41Z" fill="var(--paper)"/>
+      <circle cx="39" cy="25.5" r="3.4" fill="currentColor"/>
+    </symbol>
+    <symbol id="t4" viewBox="0 0 64 64">
+      <rect width="64" height="64" fill="var(--sky)"/>
+      <circle cx="24" cy="88" r="54" fill="var(--grass)"/>
+      <path d="M40 42C35 35 29.5 30.5 29.5 24a10.5 10.5 0 0 1 21 0C50.5 30.5 45 35 40 42Z" fill="var(--sun)"/>
+      <circle cx="40" cy="24" r="4.2" fill="var(--sky)"/>
+    </symbol>
+
+    <!-- 5 · Trail: a path over the hill, and a small sun -->
+    <symbol id="m5" viewBox="0 0 64 64">
+      <g clip-path="url(#planet)">
+        <rect width="64" height="64" fill="var(--sky)"/>
+        <circle cx="26" cy="78" r="40" fill="var(--grass)"/>
+        <g clip-path="url(#hill)">
+          <path d="M4 66C14 56 12 48 24 44S44 44 62 54" fill="none" stroke="var(--trail)" stroke-width="5" stroke-linecap="round"/>
+        </g>
+      </g>
+      <circle cx="44" cy="23" r="7" fill="var(--sun)"/>
+    </symbol>
+    <symbol id="m5-mono" viewBox="0 0 64 64">
+      <g clip-path="url(#planet)">
+        <rect width="64" height="64" fill="currentColor"/>
+        <circle cx="26" cy="78" r="40" fill="var(--paper)"/>
+        <circle cx="26" cy="78" r="36.5" fill="currentColor"/>
+        <g clip-path="url(#hill)">
+          <path d="M4 66C14 56 12 48 24 44S44 44 62 54" fill="none" stroke="var(--paper)" stroke-width="4" stroke-linecap="round"/>
+        </g>
+      </g>
+      <circle cx="44" cy="23" r="7" fill="var(--paper)"/>
+      <circle cx="44" cy="23" r="4" fill="currentColor"/>
+    </symbol>
+    <symbol id="t5" viewBox="0 0 64 64">
+      <rect width="64" height="64" fill="var(--sky)"/>
+      <circle cx="24" cy="88" r="54" fill="var(--grass)"/>
+      <path d="M-2 70C12 56 10 48 24 44S46 45 66 56" fill="none" stroke="var(--trail)" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="47" cy="20" r="9" fill="var(--sun)"/>
+    </symbol>
+
+    <!-- default event cover: the same scene, wide -->
+    <symbol id="cover" viewBox="0 0 345 132" preserveAspectRatio="xMidYMid slice">
+      <rect width="345" height="132" fill="var(--sky)"/>
+      <circle cx="250" cy="92" r="40" fill="var(--sun)"/>
+      <circle cx="150" cy="270" r="190" fill="var(--grass)"/>
+    </symbol>
+
+    <!-- ui icons -->
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.3-4.3"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-6h4v6"/></symbol>
+    <symbol id="i-hubs" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 19c.6-3.3 3.2-5 6.5-5s5.9 1.7 6.5 5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M17.5 14.2c2.6.4 4.1 1.8 4.5 4.8"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="6"/><path d="M12 8v8M8 12h8"/></symbol>
+    <symbol id="i-plus-plain" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M12 3.5c-5 0-8.5 3.3-8.5 7.5 0 2 .8 3.8 2.2 5.1L5 20.5l4.2-1.6c.9.2 1.8.4 2.8.4 5 0 8.5-3.3 8.5-7.6S17 3.5 12 3.5Z"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20.5c.8-4 4-6 8-6s7.2 2 8 6"/></symbol>
+    <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="m20 4-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <!-- hub glyphs -->
+    <symbol id="g-tt" viewBox="0 0 24 24"><circle cx="10" cy="9" r="6"/><path d="m14.5 13.5 5 5"/><circle cx="18" cy="6" r="1.6" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="g-hoops" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c-3 2.5-3 14.5 0 17M12 3.5c3 2.5 3 14.5 0 17"/></symbol>
+    <symbol id="g-play" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="g-dice" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.4" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="g-run" viewBox="0 0 24 24"><path d="M4 18h5l2-4 3 2 3-6M15 5.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/><path d="m9 14-3 6"/></symbol>
+    <symbol id="g-code" viewBox="0 0 24 24"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13 5l-2 14"/></symbol>
+    <symbol id="g-brief" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 12h18"/></symbol>
+    <symbol id="g-pizza" viewBox="0 0 24 24"><path d="M12 21 3 6.5a16 16 0 0 1 18 0z"/><circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none"/><circle cx="14.2" cy="10.2" r="1.4" fill="currentColor" stroke="none"/><circle cx="11.6" cy="14.4" r="1.4" fill="currentColor" stroke="none"/></symbol>
+  </defs>
+</svg>
+
+<header class="topbar">
+  <div class="wrap">
+    <svg width="28" height="28" aria-hidden="true"><use href="#m1"/></svg>
+    <span class="name">Activity Planet</span>
+    <span class="dir">Direction D · Horizon</span>
+    <span class="grow"></span>
+    <div class="seg" role="group" aria-label="Accent">
+      <button type="button" data-accent="sun" aria-pressed="true">Sun</button>
+      <button type="button" data-accent="blue" aria-pressed="false">Blue</button>
+    </div>
+    <div class="seg" role="group" aria-label="Theme">
+      <button type="button" data-theme="light" aria-pressed="true">Light</button>
+      <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+</header>
+
+<!-- ======================= 01 ======================= -->
+<section class="sec" id="top">
+  <div class="wrap">
+    <p class="eyebrow">01 · What this merges</p>
+    <h1 class="h1">Field Day's planet, Plain Sight's screens, After Dark's discipline.</h1>
+    <p class="lede">Sai's read on the three boards: B and C are the cleaner systems, A has the idea worth branding around. The sky, the hill, and something resting on it feel organic because the app connects people with their interests and with each other. The one problem is the ball. This board keeps the planet and swaps the ball for five candidates that cannot be read as a sport.</p>
+    <div class="merge" style="margin-top:28px">
+      <div class="card soft"><b>From A · Field Day</b><p><strong>The mark.</strong> A round planet: sky above, a hill below, one orange thing. The same scene is the default event cover, so a chapter with no photos still looks like it belongs.</p></div>
+      <div class="card soft"><b>From C · Plain Sight</b><p><strong>The system.</strong> White surfaces, Figtree, round avatars, soft tints for states, 16 px cards, pill buttons, true black in dark mode. Warmth comes from people and photos.</p></div>
+      <div class="card soft"><b>From B · After Dark</b><p><strong>The rule.</strong> One loud color, and only the Going button and live states get it. Its text is ink, never white. Dark mode is a first-class design, not an inversion.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 02 ======================= -->
+<section class="sec" id="mark">
+  <div class="wrap">
+    <p class="eyebrow">02 · The mark</p>
+    <h2 class="h2">Five ways to take the ball off the hill.</h2>
+    <p class="lede">Every candidate keeps the exact planet from board A: the same sky, the same hill, the same orange. Only the object changes. Each is shown at 112 px, as an app icon, at 40, 24 and 16 px, and in one color.</p>
+
+    <div class="cands">
+      <!-- 1 -->
+      <div class="card cand rec">
+        <span class="tag">Recommended</span>
+        <div class="stage">
+          <svg class="big" role="img" aria-label="Sunrise mark"><use href="#m1"/></svg>
+          <div class="tile"><svg aria-hidden="true"><use href="#t1"/></svg></div>
+        </div>
+        <div class="sizes"><span class="lab">40 · 24 · 16 · mono</span>
+          <svg width="40" height="40" aria-hidden="true"><use href="#m1"/></svg>
+          <svg width="24" height="24" aria-hidden="true"><use href="#m1"/></svg>
+          <svg width="16" height="16" aria-hidden="true"><use href="#m1"/></svg>
+          <svg width="24" height="24" aria-hidden="true"><use href="#m1-mono"/></svg>
+        </div>
+        <div><span class="num">1</span><span class="name">Sunrise</span></div>
+        <p>The orange disc drops behind the crest, so it is a sun coming up over the hill: <b>a day about to happen</b>. A ball cannot be half inside a hill, which is the whole trick. Biggest shape of the five, so it survives 16 px and a notification badge.</p>
+        <p class="risk"><b>Risk</b> · Reads as "morning" more than "evening"; a pull-to-refresh where the sun rises a little is the obvious motion.</p>
+      </div>
+      <!-- 2 -->
+      <div class="card cand">
+        <div class="stage">
+          <svg class="big" role="img" aria-label="Ring mark"><use href="#m2"/></svg>
+          <div class="tile"><svg aria-hidden="true"><use href="#t2"/></svg></div>
+        </div>
+        <div class="sizes"><span class="lab">40 · 24 · 16 · mono</span>
+          <svg width="40" height="40" aria-hidden="true"><use href="#m2"/></svg>
+          <svg width="24" height="24" aria-hidden="true"><use href="#m2"/></svg>
+          <svg width="16" height="16" aria-hidden="true"><use href="#m2"/></svg>
+          <svg width="24" height="24" aria-hidden="true"><use href="#m2-mono"/></svg>
+        </div>
+        <div><span class="num">2</span><span class="name">Ring</span></div>
+        <p>The sun stays in the sky but is hollow. A ring is a sun, a planet, a halo, a circle of people; <b>it is never a ball</b>. The ring also becomes the "new this week" indicator around hub avatars, so the mark and the UI share a shape.</p>
+        <p class="risk"><b>Risk</b> · The hollow collapses below 20 px; the 16 px version needs a thicker stroke or a solid dot.</p>
+      </div>
+      <!-- 3 -->
+      <div class="card cand">
+        <div class="stage">
+          <svg class="big" role="img" aria-label="Two on the hill mark"><use href="#m3"/></svg>
+          <div class="tile"><svg aria-hidden="true"><use href="#t3"/></svg></div>
+        </div>
+        <div class="sizes"><span class="lab">40 · 24 · 16 · mono</span>
+          <svg width="40" height="40" aria-hidden="true"><use href="#m3"/></svg>
+          <svg width="24" height="24" aria-hidden="true"><use href="#m3"/></svg>
+          <svg width="16" height="16" aria-hidden="true"><use href="#m3"/></svg>
+          <svg width="24" height="24" aria-hidden="true"><use href="#m3-mono"/></svg>
+        </div>
+        <div><span class="num">3</span><span class="name">Two on the hill</span></div>
+        <p>No object at all. Two people sit on the crest, which is <b>the literal product</b>: you and someone else, in a place, because of a thing you both like. The most honest of the five and the one that says "social" without saying "sport".</p>
+        <p class="risk"><b>Risk</b> · At 16 px two figures become one orange bump; the favicon and tab icon would use the app-icon crop instead.</p>
+      </div>
+      <!-- 4 -->
+      <div class="card cand">
+        <div class="stage">
+          <svg class="big" role="img" aria-label="Pin mark"><use href="#m4"/></svg>
+          <div class="tile"><svg aria-hidden="true"><use href="#t4"/></svg></div>
+        </div>
+        <div class="sizes"><span class="lab">40 · 24 · 16 · mono</span>
+          <svg width="40" height="40" aria-hidden="true"><use href="#m4"/></svg>
+          <svg width="24" height="24" aria-hidden="true"><use href="#m4"/></svg>
+          <svg width="16" height="16" aria-hidden="true"><use href="#m4"/></svg>
+          <svg width="24" height="24" aria-hidden="true"><use href="#m4-mono"/></svg>
+        </div>
+        <div><span class="num">4</span><span class="name">Pin</span></div>
+        <p>A location pin planted on the crest: <b>here, at this time</b>. Pairs naturally with "Classroom South 200" and "25 Park Place" copy and with the map in the event sheet.</p>
+        <p class="risk"><b>Risk</b> · Pins belong to maps apps; it is the most generic of the five and the hardest to own.</p>
+      </div>
+      <!-- 5 -->
+      <div class="card cand">
+        <div class="stage">
+          <svg class="big" role="img" aria-label="Trail mark"><use href="#m5"/></svg>
+          <div class="tile"><svg aria-hidden="true"><use href="#t5"/></svg></div>
+        </div>
+        <div class="sizes"><span class="lab">40 · 24 · 16 · mono</span>
+          <svg width="40" height="40" aria-hidden="true"><use href="#m5"/></svg>
+          <svg width="24" height="24" aria-hidden="true"><use href="#m5"/></svg>
+          <svg width="16" height="16" aria-hidden="true"><use href="#m5"/></svg>
+          <svg width="24" height="24" aria-hidden="true"><use href="#m5-mono"/></svg>
+        </div>
+        <div><span class="num">5</span><span class="name">Trail</span></div>
+        <p>A path runs over the hill toward a small sun: <b>somewhere to go</b>. The most "outdoors" of the five, and the only one with a line, which gives the brand a stroke to animate along.</p>
+        <p class="risk"><b>Risk</b> · Three elements is one too many at small sizes; the path disappears at 16 px and the small sun drifts back toward "ball".</p>
+      </div>
+    </div>
+    <p class="note" style="margin-top:24px"><b>Why 1 over the rest.</b> Sunrise keeps the biggest, simplest silhouette (two shapes and a horizon), it is the only one that still works as a 16 px favicon and inside a notification dot, and it carries a meaning the product wants: something is about to happen today. Ring is the strongest alternative because the hollow shape repeats as the hub-avatar "new" indicator. Two on the hill is the best story and the worst favicon; if you love it, it can be the app icon while 1 is the small mark, since they share the same planet.</p>
+  </div>
+</section>
+
+<!-- ======================= 03 ======================= -->
+<section class="sec" id="lockup">
+  <div class="wrap">
+    <p class="eyebrow">03 · Lockup and app icon</p>
+    <h2 class="h2">Sentence case, one weight, no caps.</h2>
+    <p class="lede">The wordmark is Figtree ExtraBold in sentence case, tracked tight. A's condensed capitals read as a jersey; this reads as an app. The icon is the scene cropped to a tile, not a badge on a tile.</p>
+    <div class="lockup-stage" style="margin-top:28px">
+      <div class="card lockup-big">
+        <svg class="mk" role="img" aria-label="Activity Planet mark"><use href="#m1"/></svg>
+        <span class="wm">Activity Planet</span>
+      </div>
+      <div class="card lockup-rows">
+        <div class="row"><span class="lab">Nav bar 24 px</span><span class="nav-demo"><svg width="24" height="24" aria-hidden="true"><use href="#m1"/></svg><span class="wm">Activity Planet</span></span></div>
+        <div class="row"><span class="lab">Stacked</span><span class="stacked"><svg width="44" height="44" aria-hidden="true"><use href="#m1"/></svg><span class="wm">Activity Planet</span></span></div>
+        <div class="row"><span class="lab">One color</span>
+          <svg width="40" height="40" style="color:var(--text)" aria-hidden="true"><use href="#m1-mono"/></svg>
+          <svg width="24" height="24" style="color:var(--text)" aria-hidden="true"><use href="#m1-mono"/></svg>
+          <svg width="24" height="24" style="color:var(--primary)" aria-hidden="true"><use href="#m1-mono"/></svg>
+        </div>
+        <div class="row"><span class="lab">App icon</span>
+          <div class="icons">
+            <div><div class="ic" style="width:64px;height:64px"><svg aria-hidden="true"><use href="#t1"/></svg></div><div class="cap">64</div></div>
+            <div><div class="ic" style="width:44px;height:44px"><svg aria-hidden="true"><use href="#t1"/></svg></div><div class="cap">44</div></div>
+            <div><div class="ic" style="width:29px;height:29px"><svg aria-hidden="true"><use href="#t1"/></svg></div><div class="cap">29</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 04 ======================= -->
+<section class="sec" id="palette">
+  <div class="wrap">
+    <p class="eyebrow">04 · Palette</p>
+    <h2 class="h2">One accent. The planet's other two colors stay in the picture.</h2>
+    <p class="lede">The sun is the accent, so the Going button and the thing on the hill are the same orange. Sky and grass never become text or buttons; they live only in the mark and in default event covers. Use the <b>Sun / Blue</b> toggle at the top to compare with C's blue accent.</p>
+    <div class="sw-grid">
+      <div class="sw"><div class="chip" style="background:var(--surface);color:var(--text);border-bottom:1px solid var(--border)">Surface</div><div class="body"><div class="role">Surface</div><div class="hex">FFFFFF · dark 000000</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--surface-2);color:var(--text)">Surface 2</div><div class="body"><div class="role">Grouped</div><div class="hex">F2F3F5 · dark 141414</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--text);color:var(--surface)">Text</div><div class="body"><div class="role">Ink</div><div class="hex">0E0F11 · dark F5F5F7</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--text-2);color:var(--surface)">Text 2</div><div class="body"><div class="role">Secondary</div><div class="hex">65696F</div><div class="cr"><b>5.5</b> on white</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--primary);color:var(--on-primary)">Going</div><div class="body"><div class="role">Accent · Sun</div><div class="hex">F25C0A · dark FF7A1F</div><div class="cr"><b>5.8</b> ink on it · white would be 3.3 and fail</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--surface);color:var(--primary-text);border-bottom:1px solid var(--border)">Accent text</div><div class="body"><div class="role">Accent as text</div><div class="hex">B9420A · dark FFA26B</div><div class="cr"><b>5.5</b> on white</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--primary-tint);color:var(--primary-text)">Accent tint</div><div class="body"><div class="role">Selected chips</div><div class="hex">FFEBDD · dark 3A1A08</div><div class="cr"><b>4.7</b> accent text on it</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--surface);color:var(--link);border-bottom:1px solid var(--border)">Link</div><div class="body"><div class="role">Links only</div><div class="hex">0A6FC2 · dark 6E96FF</div><div class="cr"><b>5.2</b> on white</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--sky);color:var(--text)">Sky</div><div class="body"><div class="role">Mark and covers only</div><div class="hex">3BA7F0</div><div class="cr">Never text (2.6 on white)</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--grass);color:var(--text)">Grass</div><div class="body"><div class="role">Mark and covers only</div><div class="hex">2DB15B</div><div class="cr">Never text (2.8 on white)</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--success-tint);color:var(--success)">You're in</div><div class="body"><div class="role">Going state</div><div class="hex">15803D on EAF8EE</div><div class="cr"><b>5.0</b> on white</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--live-tint);color:var(--live)">Happening now</div><div class="body"><div class="role">Live</div><div class="hex">C8185C on FFEBF2</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--warning-tint);color:var(--warning)">2 spots left</div><div class="body"><div class="role">Capacity</div><div class="hex">9A5B00 on FFF4E0</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--danger-tint);color:var(--danger)">Cancelled</div><div class="body"><div class="role">Danger</div><div class="hex">CC2A1E on FDEDEB</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--info-tint);color:var(--info)">From PIN</div><div class="body"><div class="role">Imported</div><div class="hex">5B6472 on EEF0F3</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--toast-bg);color:var(--toast-text)">Saved</div><div class="body"><div class="role">Toast</div><div class="hex">1C1C1E · dark F5F5F7</div></div></div>
+    </div>
+    <h3 class="h3" style="margin-top:28px">Hub colors</h3>
+    <p class="note" style="margin-top:6px">Ten named hues, each as a dark text color on a pale tint so a hub avatar never competes with the Going button. Assigned per hub, not per category, so neighbouring stories differ.</p>
+    <div class="cats">
+      <span class="pill c-orange">Table tennis</span><span class="pill c-yellow">Free food</span><span class="pill c-lime">Run club</span><span class="pill c-green">Hiking</span><span class="pill c-teal">Build nights</span><span class="pill c-sky">Career</span><span class="pill c-violet">Board games</span><span class="pill c-pink">Anime</span><span class="pill" style="background:var(--cat-indigo-bg);color:var(--cat-indigo)">Study</span><span class="pill" style="background:var(--cat-clay-bg);color:var(--cat-clay)">Pottery</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg>Going</button>
+      <button class="btn" type="button">Maybe</button>
+      <button class="btn btn-outline" type="button">Share</button>
+      <button class="btn btn-ghost" type="button">See all</button>
+      <span class="state s-going"><span class="dot"></span>You're in</span>
+      <span class="state s-live"><span class="dot"></span>Happening now</span>
+      <span class="state s-warn"><span class="dot"></span>2 spots left</span>
+      <span class="state s-info"><span class="dot"></span>From PIN</span>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 05 ======================= -->
+<section class="sec" id="type">
+  <div class="wrap">
+    <p class="eyebrow">05 · Type</p>
+    <h2 class="h2">Figtree for everything.</h2>
+    <p class="lede">One family, so the app never looks like a brochure on top of a tool. Numbers are tabular, titles are tight, body is 16 on a phone.</p>
+    <div class="type-rows">
+      <div class="t"><span class="lab">Display 34/38 · 800</span><span class="t-display">This week at Georgia State</span></div>
+      <div class="t"><span class="lab">Title 24/28 · 700</span><span class="t-title">Table tennis at Georgia State Atlanta</span></div>
+      <div class="t"><span class="lab">Heading 17/22 · 600</span><span class="t-head">Thursday open play · Rec Center Court 2</span></div>
+      <div class="t"><span class="lab">Body 16/22 · 400</span><span class="t-body">Paddles and balls are at the desk. Beginners welcome; we rotate every 11 points so nobody waits long.</span></div>
+      <div class="t"><span class="lab">Meta 14/19 · 400</span><span class="t-meta">Thu 4:00 to 6:00 PM · 4 of 6 going · from Rec Center calendar</span></div>
+      <div class="t"><span class="lab">Caption 12/16 · 500</span><span class="t-cap">Not affiliated with or endorsed by Georgia State University.</span></div>
+      <div class="t"><span class="lab">Number 28/32 · 800</span><span class="t-num">4<span style="font-size:16px;font-weight:600;color:var(--text-2);letter-spacing:0"> of 6</span></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 06 ======================= -->
+<section class="sec" id="screen">
+  <div class="wrap">
+    <p class="eyebrow">06 · In context</p>
+    <h2 class="h2">Home, light and dark.</h2>
+    <p class="lede">The mark in the header, the sun on the Going button, the planet scene as the default cover for a chapter with no photo, and an imported PIN event with its own quiet treatment.</p>
+    <div class="phones">
+      <div class="phone-wrap">
+        <div class="phone light-scope"><div class="screen">
+          <div class="sc-status"><span>9:41</span><span class="pill"></span><span>●●●</span></div>
+          <div class="sc-head"><svg class="mk" aria-hidden="true"><use href="#m1"/></svg><span class="wm">Activity Planet</span><span class="grow"></span><button class="ibtn" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-search"/></svg></button><button class="ibtn" type="button" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-bell"/></svg></button></div>
+          <div class="sc-body">
+            <div class="sc-sub"><span class="h">Your hubs</span><span class="a">Edit</span></div>
+            <div class="stories">
+              <button class="story" type="button"><span class="ring new"><span class="av c-orange"><svg><use href="#g-tt"/></svg></span></span><span class="l">Table tennis</span></button>
+              <button class="story" type="button"><span class="ring new"><span class="av c-pink"><svg><use href="#g-play"/></svg></span></span><span class="l">Anime</span></button>
+              <button class="story" type="button"><span class="ring"><span class="av c-violet"><svg><use href="#g-dice"/></svg></span></span><span class="l">Board games</span></button>
+              <button class="story" type="button"><span class="ring new"><span class="av c-lime"><svg><use href="#g-run"/></svg></span></span><span class="l">Run club</span></button>
+              <button class="story" type="button"><span class="ring"><span class="av c-sky"><svg><use href="#g-brief"/></svg></span></span><span class="l">Career</span></button>
+              <button class="story" type="button"><span class="ring add"><span class="av"><svg><use href="#i-plus-plain"/></svg></span></span><span class="l">Add</span></button>
+            </div>
+            <div class="sc-sub"><span class="h">This week at Georgia State</span><span class="a">Calendar</span></div>
+            <div class="feed">
+              <div class="ev-card">
+                <div class="ev-cover"><svg aria-hidden="true"><use href="#cover"/></svg><div class="corner"><span class="state s-live"><span class="dot"></span>Happening now</span></div></div>
+                <div class="ev-body">
+                  <div class="ev-title">Thursday open play</div>
+                  <div class="ev-meta"><b>Table tennis</b> · Rec Center Court 2 · 4:00 to 6:00 PM</div>
+                  <div class="ev-foot"><div class="faces"><span class="f" style="background:var(--cat-teal-bg)"></span><span class="f" style="background:var(--cat-pink-bg)"></span><span class="f" style="background:var(--cat-lime-bg)"></span><span class="f" style="background:var(--cat-sky-bg)"></span><span class="n">4 of 6 going</span></div><button class="btn btn-primary btn-sm" type="button">Going</button></div>
+                </div>
+              </div>
+              <div class="ev-card">
+                <div class="ev-cover imported"><svg aria-hidden="true"><use href="#g-pizza"/></svg>Free food · Student Center</div>
+                <div class="ev-body">
+                  <div class="ev-title">Resume review with free pizza</div>
+                  <div class="ev-meta"><b>Career</b> · Student Center 2nd floor · Fri 12:00 PM</div>
+                  <div class="ev-foot"><span class="state s-info"><span class="dot"></span>From PIN</span><button class="btn btn-outline btn-sm" type="button">Register<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-ext"/></svg></button></div>
+                </div>
+              </div>
+              <div class="ev-card">
+                <div class="ev-body">
+                  <div class="ev-title">Demon Slayer watch party</div>
+                  <div class="ev-meta"><b>Anime</b> · Classroom South 200 · Sat 7:00 PM</div>
+                  <div class="ev-foot"><div class="faces"><span class="f" style="background:var(--cat-violet-bg)"></span><span class="f" style="background:var(--cat-yellow-bg)"></span><span class="n">9 going · 2 spots left</span></div><span class="state s-going"><span class="dot"></span>You're in</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <nav class="tabbar" aria-label="Primary">
+            <button class="tab on" type="button"><svg><use href="#i-home"/></svg>Home</button>
+            <button class="tab" type="button"><svg><use href="#i-hubs"/></svg>Hubs</button>
+            <button class="tab" type="button"><svg><use href="#i-plus"/></svg>Post</button>
+            <button class="tab" type="button"><svg><use href="#i-chat"/></svg>Chats</button>
+            <button class="tab" type="button"><svg><use href="#i-user"/></svg>You</button>
+          </nav>
+        </div></div>
+        <p class="cap"><b>Light.</b> Three cards, three treatments: a chapter event with the planet cover, an imported event with a flat tint and a Register link out, and a plain card for an event with no cover. Only one orange button on screen.</p>
+      </div>
+
+      <div class="phone-wrap">
+        <div class="phone dark-scope"><div class="screen">
+          <div class="sc-status"><span>9:41</span><span class="pill"></span><span>●●●</span></div>
+          <div class="sc-head"><svg class="mk" aria-hidden="true"><use href="#m1"/></svg><span class="wm">Activity Planet</span><span class="grow"></span><button class="ibtn" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-search"/></svg></button><button class="ibtn" type="button" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-bell"/></svg></button></div>
+          <div class="sc-body">
+            <div class="sc-sub"><span class="h">Your hubs</span><span class="a">Edit</span></div>
+            <div class="stories">
+              <button class="story" type="button"><span class="ring new"><span class="av c-orange"><svg><use href="#g-tt"/></svg></span></span><span class="l">Table tennis</span></button>
+              <button class="story" type="button"><span class="ring new"><span class="av c-pink"><svg><use href="#g-play"/></svg></span></span><span class="l">Anime</span></button>
+              <button class="story" type="button"><span class="ring"><span class="av c-violet"><svg><use href="#g-dice"/></svg></span></span><span class="l">Board games</span></button>
+              <button class="story" type="button"><span class="ring new"><span class="av c-lime"><svg><use href="#g-run"/></svg></span></span><span class="l">Run club</span></button>
+              <button class="story" type="button"><span class="ring"><span class="av c-sky"><svg><use href="#g-brief"/></svg></span></span><span class="l">Career</span></button>
+              <button class="story" type="button"><span class="ring add"><span class="av"><svg><use href="#i-plus-plain"/></svg></span></span><span class="l">Add</span></button>
+            </div>
+            <div class="sc-sub"><span class="h">This week at Georgia State</span><span class="a">Calendar</span></div>
+            <div class="feed">
+              <div class="ev-card">
+                <div class="ev-cover"><svg aria-hidden="true"><use href="#cover"/></svg><div class="corner"><span class="state s-live"><span class="dot"></span>Happening now</span></div></div>
+                <div class="ev-body">
+                  <div class="ev-title">Thursday open play</div>
+                  <div class="ev-meta"><b>Table tennis</b> · Rec Center Court 2 · 4:00 to 6:00 PM</div>
+                  <div class="ev-foot"><div class="faces"><span class="f" style="background:var(--cat-teal-bg)"></span><span class="f" style="background:var(--cat-pink-bg)"></span><span class="f" style="background:var(--cat-lime-bg)"></span><span class="f" style="background:var(--cat-sky-bg)"></span><span class="n">4 of 6 going</span></div><button class="btn btn-primary btn-sm" type="button">Going</button></div>
+                </div>
+              </div>
+              <div class="ev-card">
+                <div class="ev-cover imported"><svg aria-hidden="true"><use href="#g-pizza"/></svg>Free food · Student Center</div>
+                <div class="ev-body">
+                  <div class="ev-title">Resume review with free pizza</div>
+                  <div class="ev-meta"><b>Career</b> · Student Center 2nd floor · Fri 12:00 PM</div>
+                  <div class="ev-foot"><span class="state s-info"><span class="dot"></span>From PIN</span><button class="btn btn-outline btn-sm" type="button">Register<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-ext"/></svg></button></div>
+                </div>
+              </div>
+              <div class="ev-card">
+                <div class="ev-body">
+                  <div class="ev-title">Demon Slayer watch party</div>
+                  <div class="ev-meta"><b>Anime</b> · Classroom South 200 · Sat 7:00 PM</div>
+                  <div class="ev-foot"><div class="faces"><span class="f" style="background:var(--cat-violet-bg)"></span><span class="f" style="background:var(--cat-yellow-bg)"></span><span class="n">9 going · 2 spots left</span></div><span class="state s-going"><span class="dot"></span>You're in</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <nav class="tabbar" aria-label="Primary">
+            <button class="tab on" type="button"><svg><use href="#i-home"/></svg>Home</button>
+            <button class="tab" type="button"><svg><use href="#i-hubs"/></svg>Hubs</button>
+            <button class="tab" type="button"><svg><use href="#i-plus"/></svg>Post</button>
+            <button class="tab" type="button"><svg><use href="#i-chat"/></svg>Chats</button>
+            <button class="tab" type="button"><svg><use href="#i-user"/></svg>You</button>
+          </nav>
+        </div></div>
+        <p class="cap"><b>Dark.</b> True black, the sky one stop deeper so the mark does not glow, the orange one stop brighter so it stays the loudest thing. Nothing else changes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 07 ======================= -->
+<section class="sec" id="rules">
+  <div class="wrap">
+    <p class="eyebrow">07 · Rules the code will enforce</p>
+    <h2 class="h2">Six rules, then tokens.</h2>
+    <div class="rules">
+      <div class="card"><b>One loud thing per screen.</b><p>The accent is for the primary action and live states. A screen with two orange buttons is a bug.</p></div>
+      <div class="card"><b>Ink on the accent, never white.</b><p>White on the sun orange is 3.3:1 and fails. Ink is 5.8:1 in light and 7.4:1 in dark.</p></div>
+      <div class="card"><b>Sky and grass are a picture.</b><p>They appear in the mark and in default covers. They are never text, borders, buttons or chips.</p></div>
+      <div class="card"><b>States have a word and a hue.</b><p>Green only means you're in, raspberry only means it is happening, amber is capacity, red is the end of something, grey-blue is "came from PIN".</p></div>
+      <div class="card"><b>No gradients, no glows, no blur.</b><p>Depth comes from one soft shadow in light mode and from surface steps in dark mode.</p></div>
+      <div class="card"><b>Real rooms, real counts.</b><p>Classroom South 200, 25 Park Place, 4 of 6. A plan with a room number is a plan you show up to.</p></div>
+    </div>
+    <p class="closing">Everything on this page becomes <b>packages/ui/src/tokens.css</b>: the surfaces, the accent and its text and tint, the five state pairs, the three planet colors, the ten hub hues, the radii and the type scale. The only thing waiting on a decision is <b>which object sits on the hill</b>. Pick a number and the mark ships as an SVG component, a favicon, a PWA icon set and the default event cover.</p>
+  </div>
+</section>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  function setPressed(group,value){
+    document.querySelectorAll('[data-'+group+']').forEach(function(b){
+      if(b.tagName==='BUTTON') b.setAttribute('aria-pressed', String(b.getAttribute('data-'+group)===value));
+    });
+  }
+  document.querySelectorAll('.seg button[data-theme]').forEach(function(b){
+    b.addEventListener('click',function(){
+      var v=b.getAttribute('data-theme'); root.setAttribute('data-theme',v); setPressed('theme',v);
+      try{localStorage.setItem('ap-board-theme',v)}catch(e){}
+    });
+  });
+  document.querySelectorAll('.seg button[data-accent]').forEach(function(b){
+    b.addEventListener('click',function(){
+      var v=b.getAttribute('data-accent');
+      if(v==='blue') root.setAttribute('data-accent','blue'); else root.removeAttribute('data-accent');
+      setPressed('accent',v);
+    });
+  });
+  var saved=null; try{saved=localStorage.getItem('ap-board-theme')}catch(e){}
+  var initial=saved||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+  root.setAttribute('data-theme',initial); setPressed('theme',initial);
+})();
+</script>
+</body>
+</html>
