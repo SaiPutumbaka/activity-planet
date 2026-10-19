@@ -21,14 +21,16 @@ Wedge: Georgia State University's Atlanta campus, Spring 2027. Open to anyone wi
 | 2 | Event supply | Founder does not host. Supply = student-org chapters and verified captains (primary), member-posted events, and an imported "also happening" shelf from licensed feeds. |
 | 3 | Founder presence | None on campus day to day. Product must work without the founder in the room. |
 | 4 | Campus permission | Plan around events that need no permission. One sponsoring student org is needed for tabling and PIN listings (see 8.4). GSU administration partnership is an outreach track, not a dependency. |
-| 5 | Identity | Any email can sign up. `.edu` verification plus declared campus required for campus spaces. 18+ only. |
+| 5 | Identity | Any email can sign up. `.edu` verification plus declared campus required for campus spaces. Account age minimum pending (D-018 options); events carry 18+ and 21+ flags. |
 | 6 | Messaging | Everything: DMs, group chats, event chats, hub chats. The app is the destination, not a layer on GroupMe. |
 | 7 | Scope | Coaching marketplace, payments, and AI are in. Sequenced so the show-up loop ships first; cut order pre-agreed in section 11. |
-| 8 | Platform | Web, installable PWA, and App Store / Play listings at launch via a bundled Capacitor app (see 4.10 and D-013). |
+| 8 | Platform | Web, installable PWA, and App Store / Play listings at launch via a Capacitor app (architecture pending Sai's pick; see 4.10 and D-013). Individual Apple account, personal Play account with the closed test; LLC deferred (D-016). |
 | 9 | Metrics | All of them, with human-hosted and imported events reported separately. |
 | 10 | Accelerator | Main Street Foundry was missed in 2026. Cohort 7 application is expected to open around Jan 18 to 30, 2027; draft it in December. |
 | 11 | Database | Restore the existing Supabase project (done 2026-10-19; healthy; 5 test users). |
-| 12 | Brand | Keep the name. Buy `activityplanet.app`. Discord server set up before soft launch. |
+| 12 | Brand | Keep the name. Buy `activityplanet.app`. New logo. Design references: Instagram and Snapchat. Discord server set up before soft launch. |
+| 13 | Money | Spend as little as possible until evidence: free tiers plus Apple's $99; LLC, attorney and paid tiers on triggers. See `FINANCIAL-PLAN.md`. |
+| 14 | Hubs | A hub for everything, not only hobbies; imported campus events fill campus-life hubs, chapters fill activity hubs. |
 
 Three honest notes on these decisions:
 
@@ -59,7 +61,7 @@ Tag legend: **A** = store build A and web, by Dec 8 · **B** = store build B and
 - **A** Account settings: change email/password, notification preferences, privacy toggles, data export, and delete account (in-app and at a public web URL; revokes Apple tokens; anonymizes messages others received; fans out to processors; retains only moderation evidence and payment records under a stated policy).
 
 ### 4.2 Hubs, chapters and spaces
-- **A** Hubs are database rows: slug, name, category, emoji/cover, description, member count, activity score. Seeded from the 577-entry catalog after pruning synonyms; about 40 visible at launch, the rest behind search and "request a hub."
+- **A** Hubs are database rows: slug, name, category, emoji/cover, description, member count, activity score. A hub exists for everything, not only hobbies: sports and games, arts and music, outdoors, food and drink, fandom, learning and careers, culture and identity, faith, service, wellness, nightlife (21+), free food, study sessions. Seeded from the 577-entry catalog plus campus-life categories after pruning synonyms. Feed and Discover rank hubs by local activity, so about 40 feel alive at launch and the long tail is one search away, with "request a hub." Imported campus events fill the campus-life hubs; chapters and members fill the activity hubs.
 - **A** Chapters: a hub scoped to an organization and campus ("Table Tennis at Georgia State Atlanta") with its own chat, events, captains and member count. An RSO officer claims a chapter; this is the primary supply mechanism.
 - **A** Spaces: the Georgia State space shows chapters, campus events and the imported campus shelf to verified students on the Atlanta campus. Copy carries "Not affiliated with or endorsed by Georgia State University" until written permission exists.
 - **A** Hub page: next events, members, chat, captains, "start an event here."
@@ -97,7 +99,7 @@ Tag legend: **A** = store build A and web, by Dec 8 · **B** = store build B and
 
 ### 4.7 Coaching marketplace
 What "coaching" means here: any person offering a skill for money. Tennis lessons, personal training, tutoring, guitar, pickleball clinics.
-- **A** Coach profile (credentials, rates, photos, reviews), listings, availability calendar, booking request and confirmation, messaging with the client, reviews after a completed session. Each listing has a delivery (in person / online) and a format (one-on-one / group).
+- **A** Coach profile (credentials, rates, photos, reviews); listings the coach defines (any service, any price, any duration); availability calendar; booking request and confirmation; messaging with the client; reviews after a completed session. Each listing has a delivery (in person / online) and a format (one-on-one / group).
 - **B** Payments via **Stripe Connect Express**: the coach onboards to Stripe (identity checks, tax forms, payouts handled by Stripe), the student pays in-app by card or Apple/Google Pay, Activity Planet takes a platform fee (proposed 12% with a $3 minimum), refunds follow the published policy. Activity Planet never touches card numbers, but as the platform it is the party of record for disputes and negative balances; that is why Coach Terms and the Refund Policy matter.
 - **B** Launch listing shapes: in-person one-on-one, in-person group, online one-on-one. Online group sessions are an in-app-purchase product under Apple's rules, so they either open web checkout in the system browser or wait for **P**. Enforced by a database constraint, stated in Coach Terms and in App Review notes.
 - **B** Coach Terms incorporate the Stripe Connected Account Agreement and require 18+, US work authorization (relevant for international students), venue permission, independent-contractor status, self-reported credentials.
@@ -117,12 +119,12 @@ What "AI matching" means here, in three layers:
 - **A** Installable PWA at `app.activityplanet.app`.
 - **A** iOS and Android apps built with **Capacitor** around a bundled client build of the product (not a remote web view): native tab bar feel, offline shell, native Sign in with Apple and Google, push, share sheet, camera, Universal Links / App Links from share URLs, in-app browser for outbound registration links, account deletion in two taps. Built on GitHub Actions macOS runners (free for the public repo) with fastlane; reviewed on Sai's iPhone via TestFlight from week 3.
 - **A/B** Two store reviews: build A (events, chapters, messaging, trust and safety, deletion; no payments) submitted Dec 8; build B (coaching payments, recommendations, assistant) submitted by Jan 4. Reviewed builds match what is live, behind feature flags.
-- **A** Store identity: Activity Planet LLC (organization accounts; needs the LLC and a D-U-N-S number in week 1 to 3). Fallback if D-U-N-S slips past Nov 13: enroll Apple as an individual and move Android to February rather than run Play's 12-tester, 14-day closed test under a personal account.
+- **A** Store identity: an individual Apple developer account ($99; the seller shows Sai's name) and a personal Google Play account ($25; Play requires a 12-tester, 14-day closed test before production, started in week 4 with friends as testers). The LLC takes over both accounts when it exists (D-016).
 - **P** A React Native client only if store data says the Capacitor app is the bottleneck.
 
 ### 4.11 Trust, safety, legal
 Full checklist in `TRUST-SAFETY-LEGAL.md`. Headlines:
-- **A** 18+ only. Community Guidelines (with child-safety and 21+ language) accepted at first RSVP. "Meet in public places" plus a Safety Center page linked from every event and the DM composer. Report and block everywhere. Moderator role for Sai and a named second moderator; 24-hour response target on reports; 48-hour removal for non-consensual intimate imagery with a public request page; NCMEC reporting runbook; DMCA agent registered; public Child Safety Standards page (Google Play requirement).
+- **A** Account age minimum: Sai's pick pending (D-018 options: 18+, or 16+ with teen protections). Events carry 18+ and 21+ flags; 21+ events live outside the campus space. Community Guidelines (with child-safety and 21+ language) accepted at first RSVP. "Meet in public places" plus a Safety Center page linked from every event and the DM composer. Report and block everywhere. Moderator role for Sai and a named second moderator; 24-hour response target on reports; 48-hour removal for non-consensual intimate imagery with a public request page; NCMEC reporting runbook; DMCA agent registered; public Child Safety Standards page (Google Play requirement).
 - **A** Public profile shows no email, no birthday, no exact location; distance shown in bands; private data split from public at the database level; PostHog session replay off; Sentry PII scrubbing on.
 - **A** Documents live on the domain by Nov 16: Terms, Privacy, Community Guidelines, Child Safety Standards, NCII Removal, Support/Contact, Account Deletion page; by week 9: Coach Terms and Refund/Cancellation Policy; Captain Program agreement by week 4. Attorney review of the set and of Georgia's social media age law before launch.
 - **A** Georgia State's name used nominatively only ("at Georgia State"), never in the app name, icon, screenshots or keywords; disclaimer shown until written permission.
@@ -160,7 +162,7 @@ Schema v2 (summary): `profiles` (public) + `profile_private` (email, birthday, p
 
 ## 6. Design direction
 
-The brown palette goes. The new identity needs: one energetic action color (Going is the most alive thing on screen), semantic state colors (going, live, full, cancelled, imported), a small category color system so hubs don't rely on emoji, one type family that works in the app and on the landing page, a mark that reads as people/places/play rather than a Saturn ring, a full icon/OG/manifest set, and WCAG 2.1 AA contrast baked into the tokens. The original logo (blue wave, orange peaks, green hill with sun) says "outdoors and energy" and is a better starting mood than the café palette. Final direction is chosen with Sai in week 1 from three candidate boards.
+The brown palette goes. The new identity needs: one energetic action color (Going is the most alive thing on screen), semantic state colors (going, live, full, cancelled, imported), a small category color system so hubs don't rely on emoji, one type family that works in the app and on the landing page, a mark that reads as people/places/play rather than a Saturn ring, a full icon/OG/manifest set, and WCAG 2.1 AA contrast baked into the tokens. The original logo (blue wave, orange peaks, green hill with sun) says "outdoors and energy" and is a better starting mood than the café palette. Final direction is chosen with Sai in week 1 from three candidate boards. Sai's reference points are Instagram and Snapchat: a native-feeling mobile product, white or black surfaces with one vivid accent, large type, rounded cards, bottom tabs, story-style rows for hubs and people, instant motion. The logo is redone; the old mark is a mood reference only.
 
 ## 7. Timeline and launch gate
 
@@ -177,9 +179,9 @@ Twelve weeks from 2026-10-20 to GSU's first day of spring classes, **Monday 2027
 
 ## 8. Business track
 
-1. **Entity and money (week 1).** Georgia LLC with expedited processing, EIN the same day, registered agent or virtual mailbox (a postal address is needed on every email and must not be Sai's home), business bank account, D-U-N-S number request the day the LLC is approved (needed for Apple and Play organization accounts), DMCA designated agent ($6). Stripe account under the LLC in week 6, once legal pages are live.
+1. **Entity and money.** Deferred by design (`FINANCIAL-PLAN.md`): the LLC, bank account and registered agent are formed at the first paid booking or 100 weekly actives, whichever comes first. Until then Sai operates as an individual: individual Apple account, personal Play account, Stripe as a sole proprietor when coaching payments go live, and a P.O. box or virtual mailbox for the postal address that must appear on emails. DMCA agent ($6) registered before launch.
 2. **Name, domain, marks.** `activityplanet.com` is taken; buy `activityplanet.app` ($9.99/yr) now, watch `.com`. A USPTO search found "ACTIVITY PLANIT" (kids' activity scheduling) and "PLANET APP" (social event calendaring); the attorney consult covers this.
-3. **Legal.** One Georgia-licensed attorney engagement (budget $1,500 to 3,000) covering the document set, the trademark question, and Georgia's social-media age law (SB 351; see `TRUST-SAFETY-LEGAL.md`). Drafts come from Claude in week 2 so the attorney reviews rather than writes.
+3. **Legal.** Template documents drafted by Claude in week 2, reviewed through free channels first (GSU ENI attorney office hours, a free first consult from an Atlanta startup firm). A paid Georgia-licensed review ($1,500 to 3,000) of the document set, the trademark question and the social-media age law is a Phase 2 spend once the LLC exists. See `TRUST-SAFETY-LEGAL.md`.
 4. **Sponsoring student org and chapters (weeks 1 to 5).** Pull the PIN org directory this week and shortlist 20 sport and hobby RSOs. Through Sai's current-student friends, make 10 warm introductions to RSO officers by Nov 20 with the ask: "your Tuesday practice is the first recurring event; we are your RSVP list and bring you members." Sign one friendly RSO (PantherDev, Tabletop Club, Run Club are natural fits) by Nov 15 as the sponsoring org that reserves Student Center East tables for Jan 12 to 15 and Jan 19 to 22 (the 60-day booking window opens about Nov 13) and lists launch events on PIN. Sai buys the degree-holding-alumni Rec Center membership ($102/semester) in January so he can be at Rec events.
 5. **GSU administration outreach (parallel, not blocking).** Week 3 email to Student Engagement / PIN administration asking for an Engage API key, written permission to reference Georgia State by name, and a courtesy heads-up about the RSS import; separate note to Campus Recreation about intramural and open-rec schedules. Expect a VPAT and a HECVAT security questionnaire before any official promotion.
 6. **Programs and funding.** Draft the Main Street Foundry Cohort 7 application and pitch deck v2 in week 10 (the window is expected around Jan 18 to 30; confirm with ENI in November). Check Atlanta Tech Village's Pre-Accelerator (next cohort opens around Dec to Jan; 1 to 2 days per week on-site in Buckhead; eligibility criteria to confirm with ATV). ATDC's Educate tier is open to Georgia residents now. Goodie Nation is rolling, equity-free community support. Techstars Atlanta is dormant; the Atlanta Innovation Cup is a student competition (check eligibility as a May 2026 graduate before counting on it). Pitch deck v2: one campus, real numbers, honest team slide, competitor slide naming GroupMe, Instagram, PIN, IMLeagues, Partiful, Timeleft, Meetup, Fizz/Sidechat.
@@ -192,26 +194,15 @@ North star for Spring 2027: **people who attended two or more human-hosted event
 
 ## 10. Budget
 
-| Item | Cost |
-|------|------|
-| Supabase Pro + staging project | $35/mo |
-| Vercel Pro | $20/mo |
-| Resend | $0 to 20/mo |
-| Image moderation (Sightengine/Hive) | $0 to 20/mo |
-| Claude API (tagging, assistant) | about $10 to 40/mo |
-| PostHog, Sentry, MapTiler, Geoapify, Supabase embeddings | $0 at beta scale |
-| **Run rate** | **about $85 to 150/mo** |
-| Domain `.app` | $10/yr |
-| Apple Developer Program | $99/yr |
-| Google Play Console | $25 once |
-| Georgia LLC + expedite + registered agent/virtual mailbox | about $200 once + $100 to 300/yr |
-| DMCA agent | $6 |
-| Attorney (documents, trademark, SB 351) | $1,500 to 3,000 once |
-| Stripe Identity for captain and coach verification | $1.50 each |
-| Rec Center alumni membership | $102/semester |
-| **One-time** | **about $2,000 to 3,700** |
+Lean by direction; full detail, triggers and unit economics in `FINANCIAL-PLAN.md`.
 
-Stripe Connect Express also costs the platform $2 per monthly active connected account plus 0.25% and $0.25 per payout; at 12% on a $40 lesson the platform nets about $3.30 after processing, which is why the fee proposal includes a $3 minimum.
+| Phase | Monthly | One-time |
+|-------|---------|----------|
+| 0 Build (Oct 20 to Jan 10) and 1 Beta (Jan 11 to Mar 14) | about $5 to 15 (Claude API; everything else on free tiers) | $99 Apple Developer, $25 Google Play, $10 domain, $6 DMCA agent |
+| 2 Evidence, then commit (spring) | up to about $100, each line on a trigger and funded by revenue | LLC about $200 with registered agent; attorney $1,500 to 3,000 once the LLC exists |
+| 3 Fund or bootstrap (summer) | decided from Phase 2 numbers | |
+
+Stripe Connect Express costs the platform $2 per coach per month with a payout plus 0.25% and $0.25 per payout; at 12% with a $3 minimum on a $40 lesson the platform nets about $3.30 after processing, so one booking a month per coach covers the coach's account cost.
 
 ## 11. Risks and the pre-agreed cut list
 
@@ -221,15 +212,8 @@ If we slip, cut in this order, never the reverse: (1) the AI assistant moves to 
 
 ## 12. Open questions for Sai
 
-Answered on 2026-10-19 and recorded in `DECISIONS.md`: market, supply, messaging, scope, database, name. Still open (also listed in the conversation):
+Answered on 2026-10-19 and recorded in `DECISIONS.md`: market, supply, messaging, scope, database, name, LLC timing, coaching fee, 21+ events, budget posture, design references, time commitment, iPhone (yes). Still open:
 
-1. Design taste: two or three apps whose look you admire; is the original blue/orange/green mood right?
-2. Confirm 18+ only (recommended; closes the age question and most of the Georgia age-law exposure).
-3. Store seller identity: Activity Planet LLC (wait for the D-U-N-S, about three weeks) or your personal name now?
-4. Mobile architecture: bundled client app in Capacitor via the monorepo (recommended, D-013) versus a remote web view; and do you have an iPhone for TestFlight?
-5. Coaching at launch: in-person (any size) plus online one-on-one only, and 12% plus $3 minimum?
-6. Second moderator: who?
-7. Alcohol and private venues: allow 21+ events outside the campus space; private addresses only after host approval?
-8. Budget confirmation: about $100 to 150 a month plus about $2,000 to 3,700 one-time including the attorney.
-9. Current GSU students you can name, and whether any are in the RSOs listed in section 3.
-10. Hours per week through May, and whether this runs alongside a job or job search.
+1. **Mobile architecture** (D-013): bundled client app via the monorepo, remote web view, PWA first with stores later, or a separate native app. Options explained in the conversation of 2026-10-19.
+2. **Account age minimum** (D-018): 18+, or 16+ with teen protections (adults and minors cannot message each other unless they share a chapter event, no location sharing or coaching for minors, 18+ and 21+ event flags). Under 16 is out regardless.
+3. **Second moderator**: not yet named; required before soft launch (week 11).

@@ -47,13 +47,15 @@ Verified 2026-10-19: PIN's `robots.txt` disallows `/api/`; its `events.rss` is a
 ## D-015 — Supply model: student-org chapters first, launch gate on human-hosted events (2026-10-19)
 PIN's upcoming events on 2026-10-19 contained 3 Athletics items and zero matches for basketball, pickup, pool, anime, pickleball or soccer, so the importer cannot make the mission real. Chose: RSO officers claim chapters as the primary supply, recruited through Sai's current-student friends before Nov 24 and again after Jan 11; chapter tools ship in week 4; one sponsoring RSO handles tabling and PIN listings. Launch gate on Jan 4: 10 recurring human-hosted events for each of the weeks of Jan 11 and Jan 19 and 5 chapters live, else chapter-only soft launch Jan 11 and public push Jan 19. Launch hubs come from RSOs that exist (basketball, volleyball, swim, running, table tennis, tennis, tabletop and TCG, anime, chess, film, dance, esports, coding and robotics), not from the 577 catalog; pickleball is an intown hub, not a campus one.
 
-## D-016 — Store seller identity: Activity Planet LLC, with a dated fallback (proposed 2026-10-19, pending Sai)
+## D-016 — Store seller identity: individual accounts now, LLC later (revised 2026-10-19 by Sai; original proposal below)
+Sai: "Let's wait till we have a solid product to create the LLC." Chose: individual Apple developer account and personal Google Play account now; the LLC forms at the first paid booking or 100 weekly actives (FINANCIAL-PLAN.md) and takes over both accounts. Consequences accepted: Sai's name as App Store seller, Play's 12-tester 14-day closed test, Stripe as a sole proprietor, a P.O. box or virtual mailbox for the postal address. Original proposal, superseded:
 Google Play personal accounts must run a 12-tester, 14-day closed test before production and display the developer's legal address when monetizing; Apple prefers a legal entity for apps collecting sensitive data. Chose: file the LLC expedited in week 1, request the D-U-N-S immediately, enroll Apple and Play as the LLC in weeks 2 to 3. Fallback if the D-U-N-S has not arrived by Nov 13: enroll Apple as an individual and move Android to February.
 
 ## D-017 — Two store reviews (2026-10-19)
 Build A (events, chapters, messaging, trust and safety, deletion; no payments) submitted Dec 8 after a Dec 5 feature freeze; build B (coaching payments, recommendations, assistant) submitted by Jan 4. Reviewed builds match production behind feature flags. Avoids both Apple's "changed after review" and "incomplete features" rejections and gives a rejection round of slack before the Dec 20 to 26 slowdown.
 
-## D-018 — 18+ only (proposed 2026-10-19, pending Sai)
+## D-018 — Account age minimum (open; Sai declined a blanket 18+ on 2026-10-19)
+Sai wants age gating on specific events (bars, clubs, alcohol, smoking) rather than on accounts. Options put to him: (a) 18+ accounts at launch, 16+ later; (b) 16+ accounts with teen protections (adults and minors cannot message each other unless they share a chapter event; no location sharing, no coaching, no 18+/21+ events for minors; parental-consent machinery avoided because Georgia's law applies it under 16). Under 16 is out regardless (COPPA, Georgia law, App Store rating). Event flags (18+, 21+) exist in both options. Original proposal:
 A strangers-meet-in-person product with open messaging, plus Georgia's social-media age law (reported enforceable as of Oct 15, 2026; attorney to confirm), makes minors a liability with no upside for a college wedge. Neutral DOB entry, no hint, no retention of failed attempts. Closes question 2 of the first plan draft.
 
 ## D-019 — Coaching listing shapes at launch (2026-10-19)
@@ -67,3 +69,21 @@ Image classification on every upload, message requests, symmetric blocks, report
 
 ## D-022 — Georgia State's name is used nominatively only until written permission (2026-10-19)
 Chapters are "X at Georgia State Atlanta"; no "GSU" or Panther imagery in the app name, icon, screenshots or keywords; a not-affiliated line on the campus space, landing page and listings; permission is an explicit ask in the week-3 Student Engagement email. Apple 5.2.1 and the university's trademark program make this the cheapest way to keep the partnership conversation alive.
+
+## D-023 — A hub for everything (2026-10-19)
+Sai: "The goal is for there to be a category for everything, so people with all interests can have hubs." Chose: the hub taxonomy covers hobbies and sports and also campus life (careers, academics and study sessions, culture and identity, faith, service, wellness, arts, nightlife 21+, free food). Imported campus events are tagged into these hubs by the LLM, so the importer stops being a demoted shelf and becomes the thing that makes campus-life hubs useful on day one; chapters and members fill the activity hubs. Ranking by local activity keeps the long tail from looking empty. Refines D-015.
+
+## D-024 — Lean spending with evidence triggers (2026-10-19)
+Sai: no budget until there is evidence the idea has a future. Chose: free tiers everywhere plus Apple's $99, about $5 to 15 a month through March; an evidence test at eight weeks after launch; every later spend (LLC, attorney, Pro tiers) tied to a trigger; 100% of revenue reinvested; non-dilutive programs first; a fund-or-bootstrap decision in summer 2027. Full detail in FINANCIAL-PLAN.md. Accepted costs: a free database that needs a keep-alive, hobby hosting that is a gray area until revenue, template legal documents until Phase 2.
+
+## D-025 — Design references and a new logo (2026-10-19)
+Sai: Instagram and Snapchat; the old logo was a rough draft. Chose: a native-feeling consumer mobile product (white or black surfaces, one vivid accent, large type, rounded cards, bottom tabs, story-style rows, instant motion) and a redesigned mark. Three boards in week 1.
+
+## D-026 — Coaching fee model confirmed (2026-10-19)
+Sai confirmed: coaches pay Activity Planet 12% of each booking with a $3 minimum, deducted automatically; coaches define any service, price and duration. Platform absorbs Stripe processing (proposal; settle in Coach Terms).
+
+## D-027 — 21+ events allowed, outside the campus space (2026-10-19)
+Sai: all things should be allowed; 21+ events belong to non-campus hubs. Chose: 18+ and 21+ flags on events, enforced against the viewer's date of birth; the Georgia State space hides them; private addresses revealed only after host approval.
+
+## D-028 — Second moderator deferred, but a soft-launch gate (2026-10-19)
+Sai has nobody in mind yet. A named second moderator with a real role is still required before the week-11 soft launch, because the 48-hour removal clock and the 24-hour report expectation cannot depend on one phone.
