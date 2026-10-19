@@ -1,0 +1,8 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "web", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev:web"], "port": 3000 },
+    { "name": "app", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev:app"], "port": 3001 },
+    { "name": "boards", "runtimeExecutable": "npx", "runtimeArgs": ["--yes", "serve@14", "docs/design/boards", "-l", "3080", "--no-clipboard"], "port": 3080 }
+  ]
+}
