@@ -60,7 +60,9 @@ export const campusesQuery = queryOptions({
       .select("id,slug,name,org_id,timezone,organizations(name,slug)")
       .order("name");
     if (error) throw error;
-    return data;
+    // The main campus leads the list; the rest stay alphabetical.
+    const MAIN = new Set(["atlanta"]);
+    return [...data].sort((a, b) => Number(MAIN.has(b.slug)) - Number(MAIN.has(a.slug)));
   },
   staleTime: 10 * 60_000,
 });
