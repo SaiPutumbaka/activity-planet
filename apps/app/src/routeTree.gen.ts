@@ -24,6 +24,7 @@ import { Route as AuthForgotRouteImport } from './routes/auth/forgot'
 import { Route as AuthResetRouteImport } from './routes/auth/reset'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
+import { Route as AppYouDeleteRouteImport } from './routes/_app/you_.delete'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -99,6 +100,11 @@ const AuthSignUpRoute = AuthSignUpRouteImport.update({
   path: '/sign-up',
   getParentRoute: () => AuthRoute,
 } as any)
+const AppYouDeleteRoute = AppYouDeleteRouteImport.update({
+  id: '/you_/delete',
+  path: '/you/delete',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/you/delete': typeof AppYouDeleteRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/': typeof AppIndexRoute
+  '/you/delete': typeof AppYouDeleteRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/you_/delete': typeof AppYouDeleteRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/you/delete'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/'
+    | '/you/delete'
   id:
     | '__root__'
     | '/_app'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/_app/'
+    | '/_app/you_/delete'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -315,6 +327,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthSignUpRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_app/you_/delete': {
+      id: '/_app/you_/delete'
+      path: '/you/delete'
+      fullPath: '/you/delete'
+      preLoaderRoute: typeof AppYouDeleteRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -324,6 +343,7 @@ interface AppRouteChildren {
   AppPostRoute: typeof AppPostRoute
   AppYouRoute: typeof AppYouRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppYouDeleteRoute: typeof AppYouDeleteRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -332,6 +352,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPostRoute: AppPostRoute,
   AppYouRoute: AppYouRoute,
   AppIndexRoute: AppIndexRoute,
+  AppYouDeleteRoute: AppYouDeleteRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

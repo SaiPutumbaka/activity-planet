@@ -25,6 +25,7 @@ Claude cannot create accounts, enter payment details, or sign anything. Everythi
 ## By week 4 (Nov 16)
 
 15. **Postal address** for emails and the Play listing: a P.O. box or virtual mailbox, not your home.
+16. **Support mailbox**: create `support@activityplanet.app` (a forwarder on the domain is enough) as soon as the domain exists. It is the email path on the public account-deletion page (`/account/delete`) and will be the address in the Privacy Policy; until it exists, deletion requests sent by email go nowhere.
 
 ## By week 6 (Nov 30)
 

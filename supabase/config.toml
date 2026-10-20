@@ -45,3 +45,11 @@ port = 54323
 [storage]
 enabled = true
 file_size_limit = "5MiB"
+
+# Edge Functions. Deployed to staging with the Supabase MCP / CLI; secrets (service role) come
+# from the project's own environment, never from this file.
+[functions.delete-account]
+# Advisory only: on staging a request carrying just the publishable key still reached the
+# function, so the function verifies the user JWT itself against the project's JWKS (role must
+# be authenticated) and refuses unless request_account_deletion() ran.
+verify_jwt = true

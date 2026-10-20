@@ -1,4 +1,4 @@
-import { createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AppIcon } from "@ap/ui/brand";
@@ -103,12 +103,12 @@ function YouPage() {
           <Button variant="secondary" block loading={signingOut} onClick={onSignOut}>
             Sign out
           </Button>
-          <a
-            href={`${siteUrl}/account/delete`}
+          <Link
+            to="/you/delete"
             className="text-center text-[14px] font-medium text-text-2 underline-offset-2 hover:underline"
           >
             Delete my account
-          </a>
+          </Link>
         </section>
 
         <footer className="flex flex-col items-center gap-2 pt-4 text-center text-[12px] text-text-3">

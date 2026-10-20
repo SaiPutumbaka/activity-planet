@@ -1025,6 +1025,8 @@ export type Database = {
       };
       is_moderator: { Args: never; Returns: boolean };
       is_privileged: { Args: never; Returns: boolean };
+      purge_account_deletions: { Args: never; Returns: number };
+      request_account_deletion: { Args: { p_reason?: string }; Returns: undefined };
       set_chapter_role: {
         Args: {
           p_chapter: string;
