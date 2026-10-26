@@ -1,8 +1,16 @@
-name: Keep the free-tier database awake
+name: Keep the free-tier databases awake
 
-# Supabase pauses free projects after seven idle days. A request every six hours keeps it
-# active and doubles as a schema probe: /api/health selects the newest column the deployed
-# code depends on and returns 503 if a migration is missing.
+# Supabase pauses free projects after seven idle days. Every six hours this job makes one real
+# query against each project's REST API with its publishable key (the same key the apps ship to
+# browsers; Row Level Security governs what it can read). It talks to Supabase directly rather
+# than through the site, because the vercel.app URL sits behind Vercel Authentication until a
+# custom domain is attached, and a request that never reaches the database does not count as
+# activity.
+#
+# Repository variables (Settings, Secrets and variables, Actions, Variables tab):
+#   SUPABASE_PROD_URL, SUPABASE_PROD_PUBLISHABLE_KEY
+#   SUPABASE_STAGING_URL, SUPABASE_STAGING_PUBLISHABLE_KEY
+#   HEALTH_URL (optional): a public URL of the site's /api/health once a custom domain exists.
 
 on:
   schedule:
@@ -12,13 +20,46 @@ on:
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 3
     steps:
-      - name: Probe production health
+      - name: Ping production database
+        env:
+          URL: ${{ vars.SUPABASE_PROD_URL }}
+          KEY: ${{ vars.SUPABASE_PROD_PUBLISHABLE_KEY }}
         run: |
-          url="${HEALTH_URL:-https://activity-planet.vercel.app/api/health}"
-          code=$(curl -sS -o /tmp/body -w '%{http_code}' --max-time 30 "$url" || echo "000")
-          echo "HTTP $code"; cat /tmp/body; echo
-          test "$code" = "200"
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "::error::Set the SUPABASE_PROD_URL and SUPABASE_PROD_PUBLISHABLE_KEY repository variables."
+            exit 1
+          fi
+          # Any authenticated REST call reaches Postgres. meta is readable by anon on schema v2; on
+          # the old v1 schema the table is missing and PostgREST answers 404, which still counts.
+          code=$(curl -sS -o /tmp/body -w '%{http_code}' --max-time 30 \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+            "$URL/rest/v1/meta?select=key,value&key=eq.schema_version" || echo "000")
+          echo "production HTTP $code"; cat /tmp/body; echo
+          case "$code" in 200|404|406) ;; *) exit 1 ;; esac
+
+      - name: Ping staging database
+        if: ${{ always() }}
+        env:
+          URL: ${{ vars.SUPABASE_STAGING_URL }}
+          KEY: ${{ vars.SUPABASE_STAGING_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "::warning::Set SUPABASE_STAGING_URL and SUPABASE_STAGING_PUBLISHABLE_KEY to keep staging awake too."
+            exit 0
+          fi
+          code=$(curl -sS -o /tmp/body -w '%{http_code}' --max-time 30 \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+            "$URL/rest/v1/meta?select=key,value&key=eq.schema_version" || echo "000")
+          echo "staging HTTP $code"; cat /tmp/body; echo
+          case "$code" in 200|404|406) ;; *) exit 1 ;; esac
+
+      - name: Probe site health (optional)
+        if: ${{ vars.HEALTH_URL != '' }}
         env:
           HEALTH_URL: ${{ vars.HEALTH_URL }}
+        run: |
+          code=$(curl -sS -o /tmp/body -w '%{http_code}' --max-time 30 "$HEALTH_URL" || echo "000")
+          echo "health HTTP $code"; cat /tmp/body; echo
+          test "$code" = "200"
