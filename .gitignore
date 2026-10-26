@@ -16,3 +16,6 @@ supabase/.branches/
 Thumbs.db
 .claude/settings.local.json
 legacy/v1/node_modules/
+
+# Agent worktrees created by Claude Code workflows
+.claude/worktrees/
