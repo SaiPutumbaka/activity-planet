@@ -24,8 +24,9 @@ import { Route as AuthForgotRouteImport } from './routes/auth/forgot'
 import { Route as AuthResetRouteImport } from './routes/auth/reset'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
-import { Route as AppHubsSlugRouteImport } from './routes/_app/hubs_.$slug'
+import { Route as AppEventsIdRouteImport } from './routes/_app/events_.$id'
 import { Route as AppYouDeleteRouteImport } from './routes/_app/you_.delete'
+import { Route as AppEventsIdEditRouteImport } from './routes/_app/events_.$id_.edit'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -101,14 +102,19 @@ const AuthSignUpRoute = AuthSignUpRouteImport.update({
   path: '/sign-up',
   getParentRoute: () => AuthRoute,
 } as any)
-const AppHubsSlugRoute = AppHubsSlugRouteImport.update({
-  id: '/hubs_/$slug',
-  path: '/hubs/$slug',
+const AppEventsIdRoute = AppEventsIdRouteImport.update({
+  id: '/events_/$id',
+  path: '/events/$id',
   getParentRoute: () => AppRoute,
 } as any)
 const AppYouDeleteRoute = AppYouDeleteRouteImport.update({
   id: '/you_/delete',
   path: '/you/delete',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEventsIdEditRoute = AppEventsIdEditRouteImport.update({
+  id: '/events_/$id_/edit',
+  path: '/events/$id/edit',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -127,8 +133,9 @@ export interface FileRoutesByFullPath {
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
-  '/hubs/$slug': typeof AppHubsSlugRoute
+  '/events/$id': typeof AppEventsIdRoute
   '/you/delete': typeof AppYouDeleteRoute
+  '/events/$id/edit': typeof AppEventsIdEditRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
@@ -145,8 +152,9 @@ export interface FileRoutesByTo {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/': typeof AppIndexRoute
-  '/hubs/$slug': typeof AppHubsSlugRoute
+  '/events/$id': typeof AppEventsIdRoute
   '/you/delete': typeof AppYouDeleteRoute
+  '/events/$id/edit': typeof AppEventsIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -165,8 +173,9 @@ export interface FileRoutesById {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/_app/': typeof AppIndexRoute
-  '/_app/hubs_/$slug': typeof AppHubsSlugRoute
+  '/_app/events_/$id': typeof AppEventsIdRoute
   '/_app/you_/delete': typeof AppYouDeleteRoute
+  '/_app/events_/$id_/edit': typeof AppEventsIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -185,8 +194,9 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
-    | '/hubs/$slug'
+    | '/events/$id'
     | '/you/delete'
+    | '/events/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -203,8 +213,9 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/'
-    | '/hubs/$slug'
+    | '/events/$id'
     | '/you/delete'
+    | '/events/$id/edit'
   id:
     | '__root__'
     | '/_app'
@@ -222,8 +233,9 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/_app/'
-    | '/_app/hubs_/$slug'
+    | '/_app/events_/$id'
     | '/_app/you_/delete'
+    | '/_app/events_/$id_/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -339,11 +351,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthSignUpRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_app/hubs_/$slug': {
-      id: '/_app/hubs_/$slug'
-      path: '/hubs/$slug'
-      fullPath: '/hubs/$slug'
-      preLoaderRoute: typeof AppHubsSlugRouteImport
+    '/_app/events_/$id': {
+      id: '/_app/events_/$id'
+      path: '/events/$id'
+      fullPath: '/events/$id'
+      preLoaderRoute: typeof AppEventsIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/you_/delete': {
@@ -351,6 +363,13 @@ declare module '@tanstack/react-router' {
       path: '/you/delete'
       fullPath: '/you/delete'
       preLoaderRoute: typeof AppYouDeleteRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/events_/$id_/edit': {
+      id: '/_app/events_/$id_/edit'
+      path: '/events/$id/edit'
+      fullPath: '/events/$id/edit'
+      preLoaderRoute: typeof AppEventsIdEditRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -362,8 +381,9 @@ interface AppRouteChildren {
   AppPostRoute: typeof AppPostRoute
   AppYouRoute: typeof AppYouRoute
   AppIndexRoute: typeof AppIndexRoute
-  AppHubsSlugRoute: typeof AppHubsSlugRoute
+  AppEventsIdRoute: typeof AppEventsIdRoute
   AppYouDeleteRoute: typeof AppYouDeleteRoute
+  AppEventsIdEditRoute: typeof AppEventsIdEditRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -372,8 +392,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppPostRoute: AppPostRoute,
   AppYouRoute: AppYouRoute,
   AppIndexRoute: AppIndexRoute,
-  AppHubsSlugRoute: AppHubsSlugRoute,
+  AppEventsIdRoute: AppEventsIdRoute,
   AppYouDeleteRoute: AppYouDeleteRoute,
+  AppEventsIdEditRoute: AppEventsIdEditRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
