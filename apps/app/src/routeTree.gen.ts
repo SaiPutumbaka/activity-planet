@@ -25,6 +25,8 @@ import { Route as AuthResetRouteImport } from './routes/auth/reset'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as AppYouDeleteRouteImport } from './routes/_app/you_.delete'
+import { Route as AppYouPhotoRouteImport } from './routes/_app/you_.photo'
+import { Route as AppYouVerifyRouteImport } from './routes/_app/you_.verify'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -105,6 +107,16 @@ const AppYouDeleteRoute = AppYouDeleteRouteImport.update({
   path: '/you/delete',
   getParentRoute: () => AppRoute,
 } as any)
+const AppYouPhotoRoute = AppYouPhotoRouteImport.update({
+  id: '/you_/photo',
+  path: '/you/photo',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppYouVerifyRoute = AppYouVerifyRouteImport.update({
+  id: '/you_/verify',
+  path: '/you/verify',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -122,6 +134,8 @@ export interface FileRoutesByFullPath {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/you/delete': typeof AppYouDeleteRoute
+  '/you/photo': typeof AppYouPhotoRoute
+  '/you/verify': typeof AppYouVerifyRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
@@ -139,6 +153,8 @@ export interface FileRoutesByTo {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/': typeof AppIndexRoute
   '/you/delete': typeof AppYouDeleteRoute
+  '/you/photo': typeof AppYouPhotoRoute
+  '/you/verify': typeof AppYouVerifyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -158,6 +174,8 @@ export interface FileRoutesById {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/_app/': typeof AppIndexRoute
   '/_app/you_/delete': typeof AppYouDeleteRoute
+  '/_app/you_/photo': typeof AppYouPhotoRoute
+  '/_app/you_/verify': typeof AppYouVerifyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -177,6 +195,8 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/you/delete'
+    | '/you/photo'
+    | '/you/verify'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -194,6 +214,8 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/'
     | '/you/delete'
+    | '/you/photo'
+    | '/you/verify'
   id:
     | '__root__'
     | '/_app'
@@ -212,6 +234,8 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/_app/'
     | '/_app/you_/delete'
+    | '/_app/you_/photo'
+    | '/_app/you_/verify'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -334,6 +358,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppYouDeleteRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/you_/photo': {
+      id: '/_app/you_/photo'
+      path: '/you/photo'
+      fullPath: '/you/photo'
+      preLoaderRoute: typeof AppYouPhotoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/you_/verify': {
+      id: '/_app/you_/verify'
+      path: '/you/verify'
+      fullPath: '/you/verify'
+      preLoaderRoute: typeof AppYouVerifyRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -344,6 +382,8 @@ interface AppRouteChildren {
   AppYouRoute: typeof AppYouRoute
   AppIndexRoute: typeof AppIndexRoute
   AppYouDeleteRoute: typeof AppYouDeleteRoute
+  AppYouPhotoRoute: typeof AppYouPhotoRoute
+  AppYouVerifyRoute: typeof AppYouVerifyRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -353,6 +393,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppYouRoute: AppYouRoute,
   AppIndexRoute: AppIndexRoute,
   AppYouDeleteRoute: AppYouDeleteRoute,
+  AppYouPhotoRoute: AppYouPhotoRoute,
+  AppYouVerifyRoute: AppYouVerifyRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
