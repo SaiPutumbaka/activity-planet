@@ -1,15 +1,26 @@
 import { Link, createFileRoute, getRouteApi } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Bell, Search } from "lucide-react";
-import { DefaultCover } from "@ap/ui/brand";
+import { Bell, CalendarX, Search } from "lucide-react";
 
+import { EventCard } from "@/components/events/event-card";
+import { GuidelinesSheet } from "@/components/events/guidelines-sheet";
+import { useRsvp } from "@/components/events/use-rsvp";
 import { TopBar } from "@/components/shell/top-bar";
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
+import { EmptyState } from "@/components/ui/empty-state";
+import { FormError } from "@/components/ui/field";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatRelativeDay } from "@/lib/datetime";
+import { feedQuery, type FeedEvent } from "@/lib/events";
 import { myHubsQuery } from "@/lib/profile";
 
 const appRoute = getRouteApi("/_app");
 
 export const Route = createFileRoute("/_app/")({
+  loader: ({ context: { queryClient, session } }) => {
+    void queryClient.prefetchQuery(feedQuery(session.user.id));
+  },
   component: HomePage,
 });
 
@@ -75,22 +86,92 @@ function HomePage() {
           </div>
         </section>
 
-        <section>
-          <h3 className="text-[17px] font-bold tracking-[-0.01em]">This week at Georgia State</h3>
-          <div className="mt-3 overflow-hidden rounded-card border border-border bg-surface shadow-[var(--shadow-card)]">
-            <div className="h-[132px]">
-              <DefaultCover seed={session.user.id} />
-            </div>
-            <div className="p-4">
-              <p className="text-[17px] font-semibold">Your feed is on its way</p>
-              <p className="mt-1 text-[14px] text-text-2">
-                Events from chapters, members and the campus calendar start landing here in the next
-                build. Your hubs are saved, so the first week shows what you care about.
-              </p>
-            </div>
-          </div>
-        </section>
+        <ThisWeek userId={session.user.id} />
       </main>
     </>
+  );
+}
+
+const SECTIONS = ["Today", "Tomorrow", "This week"] as const;
+
+function groupByDay(events: FeedEvent[], now: Date) {
+  const groups = new Map<(typeof SECTIONS)[number], FeedEvent[]>();
+  for (const e of events) {
+    const day = formatRelativeDay(e.starts_at, e.timezone, now);
+    const key = day === "Today" || day === "Tomorrow" ? day : "This week";
+    groups.set(key, [...(groups.get(key) ?? []), e]);
+  }
+  return SECTIONS.flatMap((title) => {
+    const list = groups.get(title);
+    return list ? [{ title, events: list }] : [];
+  });
+}
+
+/** feed_events for the next seven days, grouped Today / Tomorrow / This week, Going in place. */
+function ThisWeek({ userId }: { userId: string }) {
+  const feed = useQuery(feedQuery(userId));
+  const rsvp = useRsvp();
+  const groups = groupByDay(feed.data ?? [], new Date());
+
+  return (
+    <section className="flex flex-col gap-3">
+      <h3 className="text-[17px] font-bold tracking-[-0.01em]">This week</h3>
+
+      {feed.isPending ? (
+        <div className="flex flex-col gap-3" aria-busy="true">
+          <Skeleton className="h-[232px] rounded-card" />
+          <Skeleton className="h-[232px] rounded-card" />
+        </div>
+      ) : feed.isError ? (
+        <div className="flex flex-col gap-3">
+          <FormError>
+            Couldn't load this week's plans. Check your connection and try again.
+          </FormError>
+          <Button variant="secondary" onClick={() => void feed.refetch()}>
+            Try again
+          </Button>
+        </div>
+      ) : feed.data.length === 0 ? (
+        <EmptyState
+          icon={CalendarX}
+          title="Nothing this week yet"
+          body="Plans from your hubs land here. Post the first one, or join more hubs."
+          action={
+            <Link to="/post" className={buttonVariants({ variant: "secondary" })}>
+              Post a plan
+            </Link>
+          }
+          className="py-8"
+        />
+      ) : (
+        groups.map((g) => (
+          <div key={g.title} className="flex flex-col gap-3">
+            <h4 className="text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">
+              {g.title}
+            </h4>
+            {g.events.map((e) => (
+              <EventCard
+                key={e.id}
+                event={e}
+                onGoing={() => rsvp.set(e.id, "going")}
+                pending={rsvp.isPending(e.id)}
+              />
+            ))}
+          </div>
+        ))
+      )}
+
+      {feed.data && feed.data.length < 3 ? (
+        <Link
+          to="/hubs"
+          className="block rounded-card border border-border px-4 py-3 hover:bg-surface-2"
+        >
+          <p className="text-[15px] font-semibold">Also this week</p>
+          <p className="text-[14px] text-text-2">Join more hubs to see more plans.</p>
+        </Link>
+      ) : null}
+
+      <GuidelinesSheet {...rsvp.guidelines} />
+    </section>
   );
 }
