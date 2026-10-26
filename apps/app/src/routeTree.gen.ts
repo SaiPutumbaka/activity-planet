@@ -24,9 +24,9 @@ import { Route as AuthForgotRouteImport } from './routes/auth/forgot'
 import { Route as AuthResetRouteImport } from './routes/auth/reset'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
-import { Route as AppEventsIdRouteImport } from './routes/_app/events_.$id'
 import { Route as AppYouDeleteRouteImport } from './routes/_app/you_.delete'
-import { Route as AppEventsIdEditRouteImport } from './routes/_app/events_.$id_.edit'
+import { Route as AppYouPhotoRouteImport } from './routes/_app/you_.photo'
+import { Route as AppYouVerifyRouteImport } from './routes/_app/you_.verify'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -102,19 +102,19 @@ const AuthSignUpRoute = AuthSignUpRouteImport.update({
   path: '/sign-up',
   getParentRoute: () => AuthRoute,
 } as any)
-const AppEventsIdRoute = AppEventsIdRouteImport.update({
-  id: '/events_/$id',
-  path: '/events/$id',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppYouDeleteRoute = AppYouDeleteRouteImport.update({
   id: '/you_/delete',
   path: '/you/delete',
   getParentRoute: () => AppRoute,
 } as any)
-const AppEventsIdEditRoute = AppEventsIdEditRouteImport.update({
-  id: '/events_/$id_/edit',
-  path: '/events/$id/edit',
+const AppYouPhotoRoute = AppYouPhotoRouteImport.update({
+  id: '/you_/photo',
+  path: '/you/photo',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppYouVerifyRoute = AppYouVerifyRouteImport.update({
+  id: '/you_/verify',
+  path: '/you/verify',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -133,9 +133,9 @@ export interface FileRoutesByFullPath {
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
-  '/events/$id': typeof AppEventsIdRoute
   '/you/delete': typeof AppYouDeleteRoute
-  '/events/$id/edit': typeof AppEventsIdEditRoute
+  '/you/photo': typeof AppYouPhotoRoute
+  '/you/verify': typeof AppYouVerifyRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
@@ -152,9 +152,9 @@ export interface FileRoutesByTo {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/': typeof AppIndexRoute
-  '/events/$id': typeof AppEventsIdRoute
   '/you/delete': typeof AppYouDeleteRoute
-  '/events/$id/edit': typeof AppEventsIdEditRoute
+  '/you/photo': typeof AppYouPhotoRoute
+  '/you/verify': typeof AppYouVerifyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -173,9 +173,9 @@ export interface FileRoutesById {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/_app/': typeof AppIndexRoute
-  '/_app/events_/$id': typeof AppEventsIdRoute
   '/_app/you_/delete': typeof AppYouDeleteRoute
-  '/_app/events_/$id_/edit': typeof AppEventsIdEditRoute
+  '/_app/you_/photo': typeof AppYouPhotoRoute
+  '/_app/you_/verify': typeof AppYouVerifyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -194,9 +194,9 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
-    | '/events/$id'
     | '/you/delete'
-    | '/events/$id/edit'
+    | '/you/photo'
+    | '/you/verify'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -213,9 +213,9 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/'
-    | '/events/$id'
     | '/you/delete'
-    | '/events/$id/edit'
+    | '/you/photo'
+    | '/you/verify'
   id:
     | '__root__'
     | '/_app'
@@ -233,9 +233,9 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/_app/'
-    | '/_app/events_/$id'
     | '/_app/you_/delete'
-    | '/_app/events_/$id_/edit'
+    | '/_app/you_/photo'
+    | '/_app/you_/verify'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -351,13 +351,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthSignUpRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_app/events_/$id': {
-      id: '/_app/events_/$id'
-      path: '/events/$id'
-      fullPath: '/events/$id'
-      preLoaderRoute: typeof AppEventsIdRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/you_/delete': {
       id: '/_app/you_/delete'
       path: '/you/delete'
@@ -365,11 +358,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppYouDeleteRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/events_/$id_/edit': {
-      id: '/_app/events_/$id_/edit'
-      path: '/events/$id/edit'
-      fullPath: '/events/$id/edit'
-      preLoaderRoute: typeof AppEventsIdEditRouteImport
+    '/_app/you_/photo': {
+      id: '/_app/you_/photo'
+      path: '/you/photo'
+      fullPath: '/you/photo'
+      preLoaderRoute: typeof AppYouPhotoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/you_/verify': {
+      id: '/_app/you_/verify'
+      path: '/you/verify'
+      fullPath: '/you/verify'
+      preLoaderRoute: typeof AppYouVerifyRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -381,9 +381,9 @@ interface AppRouteChildren {
   AppPostRoute: typeof AppPostRoute
   AppYouRoute: typeof AppYouRoute
   AppIndexRoute: typeof AppIndexRoute
-  AppEventsIdRoute: typeof AppEventsIdRoute
   AppYouDeleteRoute: typeof AppYouDeleteRoute
-  AppEventsIdEditRoute: typeof AppEventsIdEditRoute
+  AppYouPhotoRoute: typeof AppYouPhotoRoute
+  AppYouVerifyRoute: typeof AppYouVerifyRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -392,9 +392,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppPostRoute: AppPostRoute,
   AppYouRoute: AppYouRoute,
   AppIndexRoute: AppIndexRoute,
-  AppEventsIdRoute: AppEventsIdRoute,
   AppYouDeleteRoute: AppYouDeleteRoute,
-  AppEventsIdEditRoute: AppEventsIdEditRoute,
+  AppYouPhotoRoute: AppYouPhotoRoute,
+  AppYouVerifyRoute: AppYouVerifyRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

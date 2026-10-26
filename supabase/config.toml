@@ -53,3 +53,10 @@ file_size_limit = "5MiB"
 # function, so the function verifies the user JWT itself against the project's JWKS (role must
 # be authenticated) and refuses unless request_account_deletion() ran.
 verify_jwt = true
+
+[functions.send-verification-code]
+# Same pattern as delete-account: the gateway check is advisory, so the function verifies the
+# user JWT itself (role must be authenticated) before calling create_verification_code with
+# the service role. RESEND_API_KEY is an optional project secret; without it the code is not
+# emailed (staging) and the response still says sent.
+verify_jwt = true
