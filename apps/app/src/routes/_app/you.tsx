@@ -5,8 +5,8 @@ import { AppIcon } from "@ap/ui/brand";
 
 import { TopBar } from "@/components/shell/top-bar";
 import { Button } from "@/components/ui/button";
+import { SegmentedControl } from "@/components/ui/segmented";
 import { authErrorMessage, signOut } from "@/lib/auth";
-import { cn } from "@/lib/cn";
 import { setThemePreference, useThemePreference, type ThemePreference } from "@/lib/theme";
 
 const appRoute = getRouteApi("/_app");
@@ -61,29 +61,12 @@ function YouPage() {
           <h3 className="text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">
             Appearance
           </h3>
-          <div
-            role="radiogroup"
-            aria-label="Theme"
-            className="flex rounded-control bg-surface-2 p-1"
-          >
-            {THEMES.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                role="radio"
-                aria-checked={theme === t.value}
-                onClick={() => setThemePreference(t.value)}
-                className={cn(
-                  "h-9 flex-1 rounded-control text-[14px] font-semibold transition-colors",
-                  theme === t.value
-                    ? "bg-surface text-text shadow-[var(--shadow-card)]"
-                    : "text-text-2",
-                )}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            value={theme}
+            onChange={setThemePreference}
+            options={THEMES}
+            label="Theme"
+          />
         </section>
 
         <section className="flex flex-col gap-2">
