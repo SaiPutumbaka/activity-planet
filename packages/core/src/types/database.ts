@@ -1,10 +1,12 @@
 /**
  * Database types, generated from the staging project with the Supabase management API after
- * migrations 1 to 3 (schema_version 2.3). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 6 (schema_version 2.6). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.18";
   };
@@ -171,10 +173,376 @@ export type Database = {
           },
         ];
       };
+      event_addresses: {
+        Row: {
+          address_note: string;
+          created_at: string;
+          event_id: string;
+          location_text: string;
+          updated_at: string;
+          venue_id: string | null;
+        };
+        Insert: {
+          address_note?: string;
+          created_at?: string;
+          event_id: string;
+          location_text?: string;
+          updated_at?: string;
+          venue_id?: string | null;
+        };
+        Update: {
+          address_note?: string;
+          created_at?: string;
+          event_id?: string;
+          location_text?: string;
+          updated_at?: string;
+          venue_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "event_addresses_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: true;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_addresses_venue_id_fkey";
+            columns: ["venue_id"];
+            isOneToOne: false;
+            referencedRelation: "venues";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      event_series: {
+        Row: {
+          address_note: string;
+          address_visibility: Database["public"]["Enums"]["address_visibility"];
+          campus_id: string | null;
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          capacity: number | null;
+          chapter_id: string | null;
+          cover_url: string | null;
+          created_at: string;
+          description: string;
+          duration_minutes: number;
+          ends_on: string | null;
+          host_id: string | null;
+          hub_id: string;
+          id: string;
+          is_free: boolean;
+          kind: Database["public"]["Enums"]["event_kind"];
+          location_hint: string;
+          location_text: string;
+          max_occurrences: number | null;
+          members_only: boolean;
+          min_age: number;
+          min_headcount: number | null;
+          price_text: string | null;
+          start_time: string;
+          starts_on: string;
+          status: Database["public"]["Enums"]["event_status"];
+          timezone: string;
+          title: string;
+          updated_at: string;
+          venue_id: string | null;
+          visibility: Database["public"]["Enums"]["event_visibility"];
+          waitlist_enabled: boolean;
+          weekday: number;
+        };
+        Insert: {
+          address_note?: string;
+          address_visibility?: Database["public"]["Enums"]["address_visibility"];
+          campus_id?: string | null;
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          capacity?: number | null;
+          chapter_id?: string | null;
+          cover_url?: string | null;
+          created_at?: string;
+          description?: string;
+          duration_minutes: number;
+          ends_on?: string | null;
+          host_id?: string | null;
+          hub_id: string;
+          id?: string;
+          is_free?: boolean;
+          kind?: Database["public"]["Enums"]["event_kind"];
+          location_hint?: string;
+          location_text?: string;
+          max_occurrences?: number | null;
+          members_only?: boolean;
+          min_age?: number;
+          min_headcount?: number | null;
+          price_text?: string | null;
+          start_time: string;
+          starts_on: string;
+          status?: Database["public"]["Enums"]["event_status"];
+          timezone?: string;
+          title: string;
+          updated_at?: string;
+          venue_id?: string | null;
+          visibility?: Database["public"]["Enums"]["event_visibility"];
+          waitlist_enabled?: boolean;
+          weekday: number;
+        };
+        Update: {
+          address_note?: string;
+          address_visibility?: Database["public"]["Enums"]["address_visibility"];
+          campus_id?: string | null;
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          capacity?: number | null;
+          chapter_id?: string | null;
+          cover_url?: string | null;
+          created_at?: string;
+          description?: string;
+          duration_minutes?: number;
+          ends_on?: string | null;
+          host_id?: string | null;
+          hub_id?: string;
+          id?: string;
+          is_free?: boolean;
+          kind?: Database["public"]["Enums"]["event_kind"];
+          location_hint?: string;
+          location_text?: string;
+          max_occurrences?: number | null;
+          members_only?: boolean;
+          min_age?: number;
+          min_headcount?: number | null;
+          price_text?: string | null;
+          start_time?: string;
+          starts_on?: string;
+          status?: Database["public"]["Enums"]["event_status"];
+          timezone?: string;
+          title?: string;
+          updated_at?: string;
+          venue_id?: string | null;
+          visibility?: Database["public"]["Enums"]["event_visibility"];
+          waitlist_enabled?: boolean;
+          weekday?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "event_series_campus_id_fkey";
+            columns: ["campus_id"];
+            isOneToOne: false;
+            referencedRelation: "org_campuses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_series_chapter_id_fkey";
+            columns: ["chapter_id"];
+            isOneToOne: false;
+            referencedRelation: "hub_chapters";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_series_host_id_fkey";
+            columns: ["host_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_series_hub_id_fkey";
+            columns: ["hub_id"];
+            isOneToOne: false;
+            referencedRelation: "hubs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_series_venue_id_fkey";
+            columns: ["venue_id"];
+            isOneToOne: false;
+            referencedRelation: "venues";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      events: {
+        Row: {
+          address_visibility: Database["public"]["Enums"]["address_visibility"];
+          approx_lat: number | null;
+          approx_lng: number | null;
+          approx_point: unknown;
+          campus_id: string | null;
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          capacity: number | null;
+          chapter_id: string | null;
+          cover_url: string | null;
+          created_at: string;
+          description: string;
+          detached_at: string | null;
+          ends_at: string;
+          external_url: string | null;
+          going_count: number;
+          host_id: string | null;
+          hub_id: string;
+          id: string;
+          interested_count: number;
+          is_free: boolean;
+          kind: Database["public"]["Enums"]["event_kind"];
+          location_hint: string;
+          members_only: boolean;
+          min_age: number;
+          min_headcount: number | null;
+          occurrence_date: string | null;
+          price_text: string | null;
+          search_text: string | null;
+          series_id: string | null;
+          source_name: string | null;
+          starts_at: string;
+          status: Database["public"]["Enums"]["event_status"];
+          timezone: string;
+          title: string;
+          updated_at: string;
+          visibility: Database["public"]["Enums"]["event_visibility"];
+          waitlist_count: number;
+          waitlist_enabled: boolean;
+        };
+        Insert: {
+          address_visibility?: Database["public"]["Enums"]["address_visibility"];
+          approx_lat?: number | null;
+          approx_lng?: number | null;
+          approx_point?: unknown;
+          campus_id?: string | null;
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          capacity?: number | null;
+          chapter_id?: string | null;
+          cover_url?: string | null;
+          created_at?: string;
+          description?: string;
+          detached_at?: string | null;
+          ends_at: string;
+          external_url?: string | null;
+          going_count?: number;
+          host_id?: string | null;
+          hub_id: string;
+          id?: string;
+          interested_count?: number;
+          is_free?: boolean;
+          kind?: Database["public"]["Enums"]["event_kind"];
+          location_hint?: string;
+          members_only?: boolean;
+          min_age?: number;
+          min_headcount?: number | null;
+          occurrence_date?: string | null;
+          price_text?: string | null;
+          search_text?: string | null;
+          series_id?: string | null;
+          source_name?: string | null;
+          starts_at: string;
+          status?: Database["public"]["Enums"]["event_status"];
+          timezone?: string;
+          title: string;
+          updated_at?: string;
+          visibility?: Database["public"]["Enums"]["event_visibility"];
+          waitlist_count?: number;
+          waitlist_enabled?: boolean;
+        };
+        Update: {
+          address_visibility?: Database["public"]["Enums"]["address_visibility"];
+          approx_lat?: number | null;
+          approx_lng?: number | null;
+          approx_point?: unknown;
+          campus_id?: string | null;
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          capacity?: number | null;
+          chapter_id?: string | null;
+          cover_url?: string | null;
+          created_at?: string;
+          description?: string;
+          detached_at?: string | null;
+          ends_at?: string;
+          external_url?: string | null;
+          going_count?: number;
+          host_id?: string | null;
+          hub_id?: string;
+          id?: string;
+          interested_count?: number;
+          is_free?: boolean;
+          kind?: Database["public"]["Enums"]["event_kind"];
+          location_hint?: string;
+          members_only?: boolean;
+          min_age?: number;
+          min_headcount?: number | null;
+          occurrence_date?: string | null;
+          price_text?: string | null;
+          search_text?: string | null;
+          series_id?: string | null;
+          source_name?: string | null;
+          starts_at?: string;
+          status?: Database["public"]["Enums"]["event_status"];
+          timezone?: string;
+          title?: string;
+          updated_at?: string;
+          visibility?: Database["public"]["Enums"]["event_visibility"];
+          waitlist_count?: number;
+          waitlist_enabled?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "events_campus_id_fkey";
+            columns: ["campus_id"];
+            isOneToOne: false;
+            referencedRelation: "org_campuses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "events_chapter_id_fkey";
+            columns: ["chapter_id"];
+            isOneToOne: false;
+            referencedRelation: "hub_chapters";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "events_host_id_fkey";
+            columns: ["host_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "events_hub_id_fkey";
+            columns: ["hub_id"];
+            isOneToOne: false;
+            referencedRelation: "hubs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "events_series_id_fkey";
+            columns: ["series_id"];
+            isOneToOne: false;
+            referencedRelation: "event_series";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       handle_history: {
-        Row: { handle: string; id: string; released_at: string; user_id: string };
-        Insert: { handle: string; id?: string; released_at?: string; user_id: string };
-        Update: { handle?: string; id?: string; released_at?: string; user_id?: string };
+        Row: {
+          handle: string;
+          id: string;
+          released_at: string;
+          user_id: string;
+        };
+        Insert: {
+          handle: string;
+          id?: string;
+          released_at?: string;
+          user_id: string;
+        };
+        Update: {
+          handle?: string;
+          id?: string;
+          released_at?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
             foreignKeyName: "handle_history_user_id_fkey";
@@ -290,9 +658,24 @@ export type Database = {
         ];
       };
       hub_members: {
-        Row: { hub_id: string; joined_at: string; notify: boolean; user_id: string };
-        Insert: { hub_id: string; joined_at?: string; notify?: boolean; user_id: string };
-        Update: { hub_id?: string; joined_at?: string; notify?: boolean; user_id?: string };
+        Row: {
+          hub_id: string;
+          joined_at: string;
+          notify: boolean;
+          user_id: string;
+        };
+        Insert: {
+          hub_id: string;
+          joined_at?: string;
+          notify?: boolean;
+          user_id: string;
+        };
+        Update: {
+          hub_id?: string;
+          joined_at?: string;
+          notify?: boolean;
+          user_id?: string;
+        };
         Relationships: [
           {
             foreignKeyName: "hub_members_hub_id_fkey";
@@ -492,9 +875,21 @@ export type Database = {
         ];
       };
       meta: {
-        Row: { key: string; updated_at: string; value: string };
-        Insert: { key: string; updated_at?: string; value: string };
-        Update: { key?: string; updated_at?: string; value?: string };
+        Row: {
+          key: string;
+          updated_at: string;
+          value: string;
+        };
+        Insert: {
+          key: string;
+          updated_at?: string;
+          value: string;
+        };
+        Update: {
+          key?: string;
+          updated_at?: string;
+          value?: string;
+        };
         Relationships: [];
       };
       notification_prefs: {
@@ -598,9 +993,21 @@ export type Database = {
         ];
       };
       org_email_domains: {
-        Row: { created_at: string; domain: string; org_id: string };
-        Insert: { created_at?: string; domain: string; org_id: string };
-        Update: { created_at?: string; domain?: string; org_id?: string };
+        Row: {
+          created_at: string;
+          domain: string;
+          org_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          domain: string;
+          org_id: string;
+        };
+        Update: {
+          created_at?: string;
+          domain?: string;
+          org_id?: string;
+        };
         Relationships: [
           {
             foreignKeyName: "org_email_domains_org_id_fkey";
@@ -771,6 +1178,7 @@ export type Database = {
           deleted_at: string | null;
           deletion_requested_at: string | null;
           first_name: string;
+          guidelines_accepted_at: string | null;
           handle: string;
           handle_changed_at: string | null;
           home_campus_id: string | null;
@@ -787,6 +1195,7 @@ export type Database = {
           deleted_at?: string | null;
           deletion_requested_at?: string | null;
           first_name?: string;
+          guidelines_accepted_at?: string | null;
           handle: string;
           handle_changed_at?: string | null;
           home_campus_id?: string | null;
@@ -803,6 +1212,7 @@ export type Database = {
           deleted_at?: string | null;
           deletion_requested_at?: string | null;
           first_name?: string;
+          guidelines_accepted_at?: string | null;
           handle?: string;
           handle_changed_at?: string | null;
           home_campus_id?: string | null;
@@ -883,10 +1293,80 @@ export type Database = {
         ];
       };
       reserved_handles: {
-        Row: { handle: string };
-        Insert: { handle: string };
-        Update: { handle?: string };
+        Row: {
+          handle: string;
+        };
+        Insert: {
+          handle: string;
+        };
+        Update: {
+          handle?: string;
+        };
         Relationships: [];
+      };
+      rsvps: {
+        Row: {
+          approved_by_host: boolean;
+          checked_in_at: string | null;
+          created_at: string;
+          event_id: string;
+          removed_at: string | null;
+          removed_by: string | null;
+          removed_reason: string | null;
+          status: Database["public"]["Enums"]["rsvp_status"];
+          updated_at: string;
+          user_id: string;
+          waitlist_position: number | null;
+        };
+        Insert: {
+          approved_by_host?: boolean;
+          checked_in_at?: string | null;
+          created_at?: string;
+          event_id: string;
+          removed_at?: string | null;
+          removed_by?: string | null;
+          removed_reason?: string | null;
+          status: Database["public"]["Enums"]["rsvp_status"];
+          updated_at?: string;
+          user_id: string;
+          waitlist_position?: number | null;
+        };
+        Update: {
+          approved_by_host?: boolean;
+          checked_in_at?: string | null;
+          created_at?: string;
+          event_id?: string;
+          removed_at?: string | null;
+          removed_by?: string | null;
+          removed_reason?: string | null;
+          status?: Database["public"]["Enums"]["rsvp_status"];
+          updated_at?: string;
+          user_id?: string;
+          waitlist_position?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rsvps_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rsvps_removed_by_fkey";
+            columns: ["removed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rsvps_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       user_roles: {
         Row: {
@@ -918,6 +1398,84 @@ export type Database = {
           {
             foreignKeyName: "user_roles_user_id_fkey";
             columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      venues: {
+        Row: {
+          address_line1: string;
+          address_line2: string;
+          campus_id: string | null;
+          city: string;
+          country: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          is_public: boolean;
+          lat: number | null;
+          lng: number | null;
+          location: unknown;
+          name: string;
+          place_id: string | null;
+          postal_code: string;
+          search_text: string | null;
+          state: string;
+          updated_at: string;
+        };
+        Insert: {
+          address_line1?: string;
+          address_line2?: string;
+          campus_id?: string | null;
+          city?: string;
+          country?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          is_public?: boolean;
+          lat?: number | null;
+          lng?: number | null;
+          location?: unknown;
+          name: string;
+          place_id?: string | null;
+          postal_code?: string;
+          search_text?: string | null;
+          state?: string;
+          updated_at?: string;
+        };
+        Update: {
+          address_line1?: string;
+          address_line2?: string;
+          campus_id?: string | null;
+          city?: string;
+          country?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          is_public?: boolean;
+          lat?: number | null;
+          lng?: number | null;
+          location?: unknown;
+          name?: string;
+          place_id?: string | null;
+          postal_code?: string;
+          search_text?: string | null;
+          state?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "venues_campus_id_fkey";
+            columns: ["campus_id"];
+            isOneToOne: false;
+            referencedRelation: "org_campuses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "venues_created_by_fkey";
+            columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -974,6 +1532,147 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      accept_guidelines: { Args: never; Returns: string };
+      approve_rsvp: {
+        Args: { p_approved?: boolean; p_event_id: string; p_user_id: string };
+        Returns: {
+          approved_by_host: boolean;
+          checked_in_at: string | null;
+          created_at: string;
+          event_id: string;
+          removed_at: string | null;
+          removed_by: string | null;
+          removed_reason: string | null;
+          status: Database["public"]["Enums"]["rsvp_status"];
+          updated_at: string;
+          user_id: string;
+          waitlist_position: number | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "rsvps";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      can_read_event: { Args: { p_event: string }; Returns: boolean };
+      cancel_event: {
+        Args: { p_event_id: string; p_reason?: string };
+        Returns: {
+          address_visibility: Database["public"]["Enums"]["address_visibility"];
+          approx_lat: number | null;
+          approx_lng: number | null;
+          approx_point: unknown;
+          campus_id: string | null;
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          capacity: number | null;
+          chapter_id: string | null;
+          cover_url: string | null;
+          created_at: string;
+          description: string;
+          detached_at: string | null;
+          ends_at: string;
+          external_url: string | null;
+          going_count: number;
+          host_id: string | null;
+          hub_id: string;
+          id: string;
+          interested_count: number;
+          is_free: boolean;
+          kind: Database["public"]["Enums"]["event_kind"];
+          location_hint: string;
+          members_only: boolean;
+          min_age: number;
+          min_headcount: number | null;
+          occurrence_date: string | null;
+          price_text: string | null;
+          search_text: string | null;
+          series_id: string | null;
+          source_name: string | null;
+          starts_at: string;
+          status: Database["public"]["Enums"]["event_status"];
+          timezone: string;
+          title: string;
+          updated_at: string;
+          visibility: Database["public"]["Enums"]["event_visibility"];
+          waitlist_count: number;
+          waitlist_enabled: boolean;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "events";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      cancel_event_series: {
+        Args: { p_reason?: string; p_series_id: string };
+        Returns: {
+          address_note: string;
+          address_visibility: Database["public"]["Enums"]["address_visibility"];
+          campus_id: string | null;
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          capacity: number | null;
+          chapter_id: string | null;
+          cover_url: string | null;
+          created_at: string;
+          description: string;
+          duration_minutes: number;
+          ends_on: string | null;
+          host_id: string | null;
+          hub_id: string;
+          id: string;
+          is_free: boolean;
+          kind: Database["public"]["Enums"]["event_kind"];
+          location_hint: string;
+          location_text: string;
+          max_occurrences: number | null;
+          members_only: boolean;
+          min_age: number;
+          min_headcount: number | null;
+          price_text: string | null;
+          start_time: string;
+          starts_on: string;
+          status: Database["public"]["Enums"]["event_status"];
+          timezone: string;
+          title: string;
+          updated_at: string;
+          venue_id: string | null;
+          visibility: Database["public"]["Enums"]["event_visibility"];
+          waitlist_enabled: boolean;
+          weekday: number;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "event_series";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      check_in: {
+        Args: { p_event_id: string };
+        Returns: {
+          approved_by_host: boolean;
+          checked_in_at: string | null;
+          created_at: string;
+          event_id: string;
+          removed_at: string | null;
+          removed_by: string | null;
+          removed_reason: string | null;
+          status: Database["public"]["Enums"]["rsvp_status"];
+          updated_at: string;
+          user_id: string;
+          waitlist_position: number | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "rsvps";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       complete_onboarding: {
         Args: {
           p_birth_date: string;
@@ -990,6 +1689,7 @@ export type Database = {
           deleted_at: string | null;
           deletion_requested_at: string | null;
           first_name: string;
+          guidelines_accepted_at: string | null;
           handle: string;
           handle_changed_at: string | null;
           home_campus_id: string | null;
@@ -1004,6 +1704,217 @@ export type Database = {
           to: "profiles";
           isOneToOne: true;
           isSetofReturn: false;
+        };
+      };
+      confirm_email_verification: {
+        Args: { p_code: string; p_email?: string };
+        Returns: Json;
+      };
+      create_event: {
+        Args: { p_args: Json };
+        Returns: {
+          address_visibility: Database["public"]["Enums"]["address_visibility"];
+          approx_lat: number | null;
+          approx_lng: number | null;
+          approx_point: unknown;
+          campus_id: string | null;
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          capacity: number | null;
+          chapter_id: string | null;
+          cover_url: string | null;
+          created_at: string;
+          description: string;
+          detached_at: string | null;
+          ends_at: string;
+          external_url: string | null;
+          going_count: number;
+          host_id: string | null;
+          hub_id: string;
+          id: string;
+          interested_count: number;
+          is_free: boolean;
+          kind: Database["public"]["Enums"]["event_kind"];
+          location_hint: string;
+          members_only: boolean;
+          min_age: number;
+          min_headcount: number | null;
+          occurrence_date: string | null;
+          price_text: string | null;
+          search_text: string | null;
+          series_id: string | null;
+          source_name: string | null;
+          starts_at: string;
+          status: Database["public"]["Enums"]["event_status"];
+          timezone: string;
+          title: string;
+          updated_at: string;
+          visibility: Database["public"]["Enums"]["event_visibility"];
+          waitlist_count: number;
+          waitlist_enabled: boolean;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "events";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      create_event_series: {
+        Args: { p_args: Json };
+        Returns: {
+          address_note: string;
+          address_visibility: Database["public"]["Enums"]["address_visibility"];
+          campus_id: string | null;
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          capacity: number | null;
+          chapter_id: string | null;
+          cover_url: string | null;
+          created_at: string;
+          description: string;
+          duration_minutes: number;
+          ends_on: string | null;
+          host_id: string | null;
+          hub_id: string;
+          id: string;
+          is_free: boolean;
+          kind: Database["public"]["Enums"]["event_kind"];
+          location_hint: string;
+          location_text: string;
+          max_occurrences: number | null;
+          members_only: boolean;
+          min_age: number;
+          min_headcount: number | null;
+          price_text: string | null;
+          start_time: string;
+          starts_on: string;
+          status: Database["public"]["Enums"]["event_status"];
+          timezone: string;
+          title: string;
+          updated_at: string;
+          venue_id: string | null;
+          visibility: Database["public"]["Enums"]["event_visibility"];
+          waitlist_enabled: boolean;
+          weekday: number;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "event_series";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      create_verification_code: {
+        Args: { p_email: string; p_user_id: string };
+        Returns: Json;
+      };
+      default_address_visibility: {
+        Args: { p_venue_id: string };
+        Returns: Database["public"]["Enums"]["address_visibility"];
+      };
+      event_attendees: {
+        Args: { p_event_id: string };
+        Returns: {
+          approved_by_host: boolean;
+          checked_in_at: string | null;
+          created_at: string;
+          event_id: string;
+          removed_at: string | null;
+          removed_by: string | null;
+          removed_reason: string | null;
+          status: Database["public"]["Enums"]["rsvp_status"];
+          updated_at: string;
+          user_id: string;
+          waitlist_position: number | null;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "rsvps";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
+      event_drop_ineligible_rsvps: {
+        Args: { p_event_id: string };
+        Returns: number;
+      };
+      event_post_rate_check: { Args: { p_series: boolean }; Returns: undefined };
+      event_rules_check: {
+        Args: {
+          p_address_visibility: Database["public"]["Enums"]["address_visibility"];
+          p_campus_id: string;
+          p_chapter_id: string;
+          p_hub_id: string;
+          p_kind: Database["public"]["Enums"]["event_kind"];
+          p_location_text: string;
+          p_min_age: number;
+          p_venue_id: string;
+          p_visibility: Database["public"]["Enums"]["event_visibility"];
+        };
+        Returns: string;
+      };
+      event_set_location: {
+        Args: {
+          p_address_note: string;
+          p_address_visibility: Database["public"]["Enums"]["address_visibility"];
+          p_campus_id: string;
+          p_event_id: string;
+          p_location_hint: string;
+          p_location_text: string;
+          p_venue_id: string;
+        };
+        Returns: undefined;
+      };
+      event_share_card: { Args: { p_event_id: string }; Returns: Json };
+      feed_events: {
+        Args: { p_from: string; p_limit?: number; p_to: string };
+        Returns: {
+          address_visibility: Database["public"]["Enums"]["address_visibility"];
+          approx_lat: number | null;
+          approx_lng: number | null;
+          approx_point: unknown;
+          campus_id: string | null;
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          capacity: number | null;
+          chapter_id: string | null;
+          cover_url: string | null;
+          created_at: string;
+          description: string;
+          detached_at: string | null;
+          ends_at: string;
+          external_url: string | null;
+          going_count: number;
+          host_id: string | null;
+          hub_id: string;
+          id: string;
+          interested_count: number;
+          is_free: boolean;
+          kind: Database["public"]["Enums"]["event_kind"];
+          location_hint: string;
+          members_only: boolean;
+          min_age: number;
+          min_headcount: number | null;
+          occurrence_date: string | null;
+          price_text: string | null;
+          search_text: string | null;
+          series_id: string | null;
+          source_name: string | null;
+          starts_at: string;
+          status: Database["public"]["Enums"]["event_status"];
+          timezone: string;
+          title: string;
+          updated_at: string;
+          visibility: Database["public"]["Enums"]["event_visibility"];
+          waitlist_count: number;
+          waitlist_enabled: boolean;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "events";
+          isOneToOne: false;
+          isSetofReturn: true;
         };
       };
       generate_handle: { Args: { p_email: string }; Returns: string };
@@ -1023,10 +1934,69 @@ export type Database = {
           members: number;
         }[];
       };
+      is_campus_org_member: { Args: { p_campus: string }; Returns: boolean };
+      is_chapter_captain: { Args: { p_chapter: string }; Returns: boolean };
       is_moderator: { Args: never; Returns: boolean };
       is_privileged: { Args: never; Returns: boolean };
+      is_service_role: { Args: never; Returns: boolean };
+      is_valid_timezone: { Args: { p_tz: string }; Returns: boolean };
+      materialize_all_event_series: {
+        Args: { p_weeks?: number };
+        Returns: number;
+      };
+      materialize_event_series: {
+        Args: { p_series_id: string; p_weeks?: number };
+        Returns: number;
+      };
       purge_account_deletions: { Args: never; Returns: number };
-      request_account_deletion: { Args: { p_reason?: string }; Returns: undefined };
+      refresh_hub_stats: { Args: never; Returns: number };
+      remove_rsvp: {
+        Args: { p_event_id: string; p_reason?: string; p_user_id: string };
+        Returns: {
+          approved_by_host: boolean;
+          checked_in_at: string | null;
+          created_at: string;
+          event_id: string;
+          removed_at: string | null;
+          removed_by: string | null;
+          removed_reason: string | null;
+          status: Database["public"]["Enums"]["rsvp_status"];
+          updated_at: string;
+          user_id: string;
+          waitlist_position: number | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "rsvps";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      request_account_deletion: {
+        Args: { p_reason?: string };
+        Returns: undefined;
+      };
+      request_hub: {
+        Args: { p_name: string; p_note?: string };
+        Returns: {
+          created_at: string;
+          hub_id: string | null;
+          id: string;
+          name: string;
+          note: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          status: string;
+          user_id: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "hub_requests";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      rsvp_promote_waitlist: { Args: { p_event_id: string }; Returns: number };
       set_chapter_role: {
         Args: {
           p_chapter: string;
@@ -1035,15 +2005,172 @@ export type Database = {
         };
         Returns: undefined;
       };
+      set_rsvp: {
+        Args: {
+          p_event_id: string;
+          p_status: Database["public"]["Enums"]["rsvp_status"];
+        };
+        Returns: {
+          approved_by_host: boolean;
+          checked_in_at: string | null;
+          created_at: string;
+          event_id: string;
+          removed_at: string | null;
+          removed_by: string | null;
+          removed_reason: string | null;
+          status: Database["public"]["Enums"]["rsvp_status"];
+          updated_at: string;
+          user_id: string;
+          waitlist_position: number | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "rsvps";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       touch_last_seen: { Args: never; Returns: undefined };
+      update_event: {
+        Args: { p_args: Json; p_event_id: string };
+        Returns: {
+          address_visibility: Database["public"]["Enums"]["address_visibility"];
+          approx_lat: number | null;
+          approx_lng: number | null;
+          approx_point: unknown;
+          campus_id: string | null;
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          capacity: number | null;
+          chapter_id: string | null;
+          cover_url: string | null;
+          created_at: string;
+          description: string;
+          detached_at: string | null;
+          ends_at: string;
+          external_url: string | null;
+          going_count: number;
+          host_id: string | null;
+          hub_id: string;
+          id: string;
+          interested_count: number;
+          is_free: boolean;
+          kind: Database["public"]["Enums"]["event_kind"];
+          location_hint: string;
+          members_only: boolean;
+          min_age: number;
+          min_headcount: number | null;
+          occurrence_date: string | null;
+          price_text: string | null;
+          search_text: string | null;
+          series_id: string | null;
+          source_name: string | null;
+          starts_at: string;
+          status: Database["public"]["Enums"]["event_status"];
+          timezone: string;
+          title: string;
+          updated_at: string;
+          visibility: Database["public"]["Enums"]["event_visibility"];
+          waitlist_count: number;
+          waitlist_enabled: boolean;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "events";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      update_event_series: {
+        Args: { p_args: Json; p_series_id: string };
+        Returns: {
+          address_note: string;
+          address_visibility: Database["public"]["Enums"]["address_visibility"];
+          campus_id: string | null;
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          capacity: number | null;
+          chapter_id: string | null;
+          cover_url: string | null;
+          created_at: string;
+          description: string;
+          duration_minutes: number;
+          ends_on: string | null;
+          host_id: string | null;
+          hub_id: string;
+          id: string;
+          is_free: boolean;
+          kind: Database["public"]["Enums"]["event_kind"];
+          location_hint: string;
+          location_text: string;
+          max_occurrences: number | null;
+          members_only: boolean;
+          min_age: number;
+          min_headcount: number | null;
+          price_text: string | null;
+          start_time: string;
+          starts_on: string;
+          status: Database["public"]["Enums"]["event_status"];
+          timezone: string;
+          title: string;
+          updated_at: string;
+          venue_id: string | null;
+          visibility: Database["public"]["Enums"]["event_visibility"];
+          waitlist_enabled: boolean;
+          weekday: number;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "event_series";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      upsert_venue: {
+        Args: { p_args: Json };
+        Returns: {
+          address_line1: string;
+          address_line2: string;
+          campus_id: string | null;
+          city: string;
+          country: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          is_public: boolean;
+          lat: number | null;
+          lng: number | null;
+          location: unknown;
+          name: string;
+          place_id: string | null;
+          postal_code: string;
+          search_text: string | null;
+          state: string;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "venues";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      viewer_age: { Args: never; Returns: number };
+      viewer_has_rsvp: { Args: { p_event: string }; Returns: boolean };
+      viewer_is_attending: { Args: { p_event: string }; Returns: boolean };
     };
     Enums: {
       account_status: "active" | "suspended" | "banned" | "deleted";
+      address_visibility: "public" | "approved_only";
       app_role: "moderator" | "admin";
       chapter_role: "member" | "captain" | "organizer";
       device_platform: "web" | "ios" | "android";
+      event_kind: "member" | "chapter" | "imported";
+      event_status: "published" | "cancelled";
+      event_visibility: "public" | "campus";
       org_kind: "university" | "company" | "community";
       org_role: "member" | "officer" | "admin";
+      rsvp_status: "going" | "interested" | "waitlisted" | "cancelled";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -1146,15 +2273,36 @@ export type Enums<
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never;
 
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    keyof DefaultSchema["CompositeTypes"] | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never;
+
 export const Constants = {
   public: {
     Enums: {
       account_status: ["active", "suspended", "banned", "deleted"],
+      address_visibility: ["public", "approved_only"],
       app_role: ["moderator", "admin"],
       chapter_role: ["member", "captain", "organizer"],
       device_platform: ["web", "ios", "android"],
+      event_kind: ["member", "chapter", "imported"],
+      event_status: ["published", "cancelled"],
+      event_visibility: ["public", "campus"],
       org_kind: ["university", "company", "community"],
       org_role: ["member", "officer", "admin"],
+      rsvp_status: ["going", "interested", "waitlisted", "cancelled"],
     },
   },
 } as const;
