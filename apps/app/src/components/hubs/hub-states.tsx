@@ -50,7 +50,7 @@ export function InlineError({ message, onRetry }: { message: string; onRetry: ()
       <button
         type="button"
         onClick={onRetry}
-        className="shrink-0 rounded-control px-2 py-2 font-semibold underline-offset-2 hover:underline"
+        className="min-h-11 shrink-0 rounded-control px-2 py-2 font-semibold underline-offset-2 hover:underline"
       >
         Try again
       </button>

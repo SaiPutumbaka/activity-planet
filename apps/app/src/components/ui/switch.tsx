@@ -2,7 +2,8 @@ import { cn } from "@/lib/cn";
 
 /**
  * On/off row: label on the left, track on the right, the whole row is the 44 px tap target.
- * The accent appears only when on (board rule: one loud thing), the thumb is ink on it.
+ * The track is ink when on and the thumb is the surface: a setting is neither the primary action
+ * nor a live state, so it never takes the accent (board rule: one loud thing).
  *
  *   <Switch label="Waitlist when full" checked={v} onCheckedChange={setV} hint="Up to 20 people" />
  */
@@ -43,12 +44,12 @@ export function Switch({
         aria-hidden="true"
         className={cn(
           "relative h-[30px] w-[50px] shrink-0 rounded-control transition-colors duration-150",
-          checked ? "bg-primary" : "bg-border-strong",
+          checked ? "bg-text" : "bg-border-strong",
         )}
       >
         <span
           className={cn(
-            "absolute top-[3px] left-[3px] size-6 rounded-full bg-text transition-[translate] duration-150",
+            "absolute top-[3px] left-[3px] size-6 rounded-full bg-surface transition-[translate] duration-150",
             checked && "translate-x-5",
           )}
         />

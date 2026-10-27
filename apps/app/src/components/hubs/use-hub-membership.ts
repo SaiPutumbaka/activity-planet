@@ -43,6 +43,8 @@ export function useHubMembership(userId: string) {
   function settle() {
     void queryClient.invalidateQueries({ queryKey: ["my-hubs"] });
     void queryClient.invalidateQueries({ queryKey: hubKeys.memberCountsPrefix });
+    // feed_events filters on hub_members, so Home's "This week" changes with every join and leave.
+    void queryClient.invalidateQueries({ queryKey: ["feed"] });
   }
 
   const join = useMutation({

@@ -11,7 +11,7 @@ import { supabase } from "./supabase";
  *   useQuery(eventQuery(id))               // the event with hub, host, readable address + venue
  *   useQuery(eventRsvpsQuery(id))          // going / interested rows with names, for the avatar row
  *   useQuery(eventAttendeesQuery(id))      // event_attendees(): own row, or every row for the host
- *   useQuery(feedQuery)                    // feed_events(now - 6 h, now + 7 d) with hub + own RSVP
+ *   useQuery(feedQuery(userId))            // feed_events(now - 6 h, now + 7 d) with hub, plus own RSVPs
  *   await createEvent({ hub_id, title, starts_at, ends_at, ... })
  *   eventErrorMessage(err)                 // "That event is full." for "event_full"
  */
@@ -176,8 +176,11 @@ export async function removeRsvp(
 /* Queries                                                             */
 /* ------------------------------------------------------------------ */
 
+// `profiles` needs the FK hint: rsvps (event_id, user_id) is a junction table in PostgREST's
+// eyes, so events <-> profiles has two candidate relationships and a bare `profiles(...)` answers
+// HTTP 300 PGRST201. postgrest-js keeps the result key `profiles`.
 const EVENT_SELECT =
-  "*, hubs(id,slug,name,emoji,min_age,scope), profiles(id,handle,first_name,avatar_url), event_addresses(venue_id,location_text,address_note,venues(id,name,address_line1,address_line2,city,state,postal_code,is_public,place_id))" as const;
+  "*, hubs(id,slug,name,emoji,min_age,scope), profiles!events_host_id_fkey(id,handle,first_name,avatar_url), event_addresses(venue_id,location_text,address_note,venues(id,name,address_line1,address_line2,city,state,postal_code,is_public,place_id))" as const;
 
 /** One event with its hub, host and (when RLS lets the viewer see it) the exact address. Null when unreadable. */
 export const eventQuery = (eventId: string) =>
@@ -243,12 +246,15 @@ export const eventAttendeesQuery = (eventId: string) =>
 export type Attendee = QueryData<ReturnType<typeof eventAttendeesQuery>>[number];
 
 const FEED_SELECT =
-  "id,title,cover_url,starts_at,ends_at,timezone,status,kind,capacity,waitlist_enabled,going_count,interested_count,location_hint,min_age,is_free,price_text,source_name,hub_id,host_id,series_id,hubs(id,slug,name,emoji),rsvps(status)" as const;
+  "id,title,cover_url,starts_at,ends_at,timezone,status,kind,capacity,waitlist_enabled,going_count,interested_count,location_hint,min_age,is_free,price_text,source_name,hub_id,host_id,series_id,hubs(id,slug,name,emoji)" as const;
 
 /**
  * This week: published events in the viewer's hubs or verified campus, from six hours ago (so a
  * plan that is happening now still shows) to seven days out, minus anything already over.
- * `rsvps` is filtered to the viewer's own row, so each event carries their status or nothing.
+ * Each event carries `rsvps`: the viewer's own row as `[{ status }]`, or `[]`. That comes from a
+ * second request on the rsvps table, because a filter on an embedded resource is not supported
+ * on an /rpc call: PostgREST pulls the filter column from the function result, events has no
+ * user_id, and `rsvps(status)&rsvps.user_id=eq.` on feed_events is an HTTP 400.
  */
 export const feedQuery = (userId: string) =>
   queryOptions({
@@ -259,10 +265,25 @@ export const feedQuery = (userId: string) =>
       const to = new Date(now.getTime() + 7 * 86_400_000).toISOString();
       const { data, error } = await supabase
         .rpc("feed_events", { p_from: from, p_to: to, p_limit: 100 })
-        .select(FEED_SELECT)
-        .eq("rsvps.user_id", userId);
+        .select(FEED_SELECT);
       if (error) throw error;
-      return data.filter((e) => !isOver(e.ends_at, now));
+      const events = data.filter((e) => !isOver(e.ends_at, now));
+      if (events.length === 0) return [];
+      const own = await supabase
+        .from("rsvps")
+        .select("event_id,status")
+        .eq("user_id", userId)
+        .in(
+          "event_id",
+          events.map((e) => e.id),
+        );
+      if (own.error) throw own.error;
+      const byEvent = new Map(own.data.map((r) => [r.event_id, r.status]));
+      return events.map((e) => {
+        const status = byEvent.get(e.id);
+        const rsvps: { status: RsvpStatus }[] = status ? [{ status }] : [];
+        return { ...e, rsvps };
+      });
     },
     staleTime: 60_000,
   });
@@ -327,10 +348,10 @@ const MESSAGES: Record<string, string> = {
   hub_inactive: "That hub is closed.",
   min_age_invalid: "Plans are 18+ or 21+.",
   hub_min_age: "Plans in this hub are 21+.",
-  campus_min_age: "21+ plans can't be posted in the campus space (D-027).",
+  campus_min_age: "21+ plans can't be posted in the campus space.",
   age_restricted: "This plan is for people older than you.",
   invalid_chapter: "That chapter doesn't match the hub.",
-  not_hub_member: "Join the hub to post a plan in it.",
+  not_hub_member: "This plan is for hub members. Join the hub first.",
   chapter_not_found: "That chapter doesn't exist.",
   chapter_mismatch: "That chapter belongs to another hub or campus.",
   not_chapter_captain: "Only chapter captains can post as the chapter.",
@@ -360,7 +381,7 @@ const MESSAGES: Record<string, string> = {
   event_full: "This plan is full.",
   not_chapter_member: "This plan is for chapter members.",
   check_in_window: "Check in from an hour before the start until six hours after the end.",
-  not_going: "Tap Going first.",
+  not_going: "Only people who are going can do that.",
   rsvp_not_found: "That person isn't on the list.",
   cannot_remove_host: "The host can't be removed.",
   // venues

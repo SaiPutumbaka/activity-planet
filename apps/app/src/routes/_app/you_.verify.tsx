@@ -54,8 +54,14 @@ function VerifyPage() {
   async function refreshAfterVerify() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["org-membership"] }),
-      queryClient.invalidateQueries({ queryKey: ["profile"] }),
+      // No profileQuery observer is mounted here, so an 'active' invalidation would leave the
+      // cached row (home_org_id = null) for the _app guard's ensureQueryData to hand back.
+      queryClient.invalidateQueries({ queryKey: ["profile"], refetchType: "all" }),
     ]);
+    // Campus plans now show in the feed and on hub pages; mark them stale so they refetch on mount.
+    void queryClient.invalidateQueries({ queryKey: ["feed"] });
+    void queryClient.invalidateQueries({ queryKey: ["hubs", "events"] });
+    // Re-runs the _app guard so its context carries the new home_org_id.
     await router.invalidate();
   }
 

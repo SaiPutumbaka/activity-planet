@@ -48,7 +48,7 @@ function HubsPage() {
   const userId = session.user.id;
   const catalog = useQuery(hubCatalogQuery);
   const myHubs = useQuery(myHubsQuery(userId));
-  const viewerAge = useQuery(viewerAgeQuery);
+  const viewerAge = useQuery(viewerAgeQuery(userId));
   const hubIds = useMemo(() => catalog.data?.hubs.map((h) => h.id) ?? [], [catalog.data]);
   const counts = useQuery({ ...hubMemberCountsQuery(hubIds), enabled: hubIds.length > 0 });
   const membership = useHubMembership(userId);

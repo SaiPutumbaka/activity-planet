@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 
 /**
  * The search field that sticks under the TopBar on the Hubs tab. 16 px text so iOS does not zoom;
- * the native WebKit clear button is hidden in favour of a 40 px one.
+ * the native WebKit clear button is hidden in favour of a 44 px one.
  */
 export function HubSearch({
   value,
@@ -45,7 +45,7 @@ export function HubSearch({
             type="button"
             onClick={() => onChange("")}
             aria-label="Clear search"
-            className="absolute inset-y-0 right-1 my-auto flex size-10 items-center justify-center rounded-full text-text-2 hover:bg-surface-2"
+            className="absolute inset-y-0 right-0.5 my-auto flex size-11 items-center justify-center rounded-full text-text-2 hover:bg-surface-2"
           >
             <X className="size-5" aria-hidden="true" />
           </button>

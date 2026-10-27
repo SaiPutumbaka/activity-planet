@@ -69,7 +69,7 @@ export function SegmentedControl<T extends string>({
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(o.value)}
             className={cn(
-              "h-10 min-w-0 flex-1 truncate rounded-control px-2 text-[14px] font-semibold transition-colors",
+              "h-11 min-w-0 flex-1 truncate rounded-control px-2 text-[14px] font-semibold transition-colors",
               selected ? "bg-surface text-text shadow-[var(--shadow-card)]" : "text-text-2",
             )}
           >

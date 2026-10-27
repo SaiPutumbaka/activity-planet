@@ -281,6 +281,8 @@ function toPatch(v: EventFormValues, ctx: EventArgsContext): EventPatch {
     ? new Date(new Date(startsAt).getTime() + Number(v.durationMinutes) * 60_000).toISOString()
     : "";
   const is21 = v.is21 || ctx.forceIs21;
+  // The rule the Campus only switch shows: a 21+ plan (by choice or by hub) is never campus.
+  const campusOnly = v.campusOnly && !is21;
   return {
     title: v.title,
     description: v.description,
@@ -288,8 +290,8 @@ function toPatch(v: EventFormValues, ctx: EventArgsContext): EventPatch {
     ends_at: endsAt,
     timezone: ctx.timeZone,
     min_age: is21 ? 21 : 18,
-    visibility: v.campusOnly ? "campus" : "public",
-    campus_id: v.campusOnly ? ctx.campusId : null,
+    visibility: campusOnly ? "campus" : "public",
+    campus_id: campusOnly ? ctx.campusId : null,
     capacity: v.capacity ? Number(v.capacity) : null,
     waitlist_enabled: v.waitlistEnabled,
     min_headcount: v.minHeadcount ? Number(v.minHeadcount) : null,
@@ -338,11 +340,9 @@ export function toUpdateEventArgs(
   for (const key of Object.keys(after) as (keyof EventPatch)[]) {
     if (!Object.is(before[key], after[key])) patch[key] = after[key];
   }
-  // A start or length change sends both ends of the time range.
-  if ("starts_at" in patch || "ends_at" in patch) {
-    patch.starts_at = after.starts_at;
-    patch.ends_at = after.ends_at;
-  }
+  // starts_at goes only when it changed: update_event re-checks starts_in_past on any starts_at
+  // it receives, which would refuse a length change on a plan that is already running. It
+  // validates ends_at > starts_at on the merged row, so a lone ends_at is safe.
   delete patch.timezone;
   return patch as UpdateEventArgs;
 }

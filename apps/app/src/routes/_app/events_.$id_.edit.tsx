@@ -128,6 +128,7 @@ function EditForm({ event }: { event: EventDetail }) {
     await updateEvent(event.id, patch);
     void queryClient.invalidateQueries({ queryKey: ["events", event.id] });
     void queryClient.invalidateQueries({ queryKey: ["feed"] });
+    void queryClient.invalidateQueries({ queryKey: ["hubs", "events"] });
     toast.success("Saved.");
     await navigate({ to: "/events/$id", params: { id: event.id }, replace: true });
   }

@@ -8,7 +8,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { formatRelativeDay, formatTime, isHappeningNow } from "@/lib/datetime";
 import {
   UPCOMING_WINDOW_DAYS,
-  eventPath,
   formatGoing,
   hubUpcomingEventsQuery,
   isFull,
@@ -19,7 +18,16 @@ import { HubBadges } from "./hub-badges";
 import { InlineError, ListSkeleton } from "./hub-states";
 
 /** The hub page's "Upcoming" list: published events in the next 30 days, each a link to its page. */
-export function HubEvents({ hubId, hubSlug }: { hubId: string; hubSlug: string }) {
+export function HubEvents({
+  hubId,
+  hubSlug,
+  joined,
+}: {
+  hubId: string;
+  hubSlug: string;
+  /** Only members can post, so the empty state offers the Post link to them alone. */
+  joined: boolean;
+}) {
   const events = useQuery(hubUpcomingEventsQuery(hubId));
   // Not a literal on the Link so the key passes through to /post, whose schema another build owns.
   const postSearch = { hub: hubSlug };
@@ -42,9 +50,17 @@ export function HubEvents({ hubId, hubSlug }: { hubId: string; hubSlug: string }
         title="Nothing scheduled yet"
         body={`Plans in the next ${UPCOMING_WINDOW_DAYS} days show up here.`}
         action={
-          <Link to="/post" search={postSearch} className={buttonVariants({ variant: "secondary" })}>
-            Post the first plan
-          </Link>
+          joined ? (
+            <Link
+              to="/post"
+              search={postSearch}
+              className={buttonVariants({ variant: "secondary" })}
+            >
+              Post the first plan
+            </Link>
+          ) : (
+            <p className="text-[14px] text-text-2">Join the hub to post the first plan.</p>
+          )
         }
         className="py-8"
       />
@@ -68,7 +84,8 @@ function EventRow({ event }: { event: HubEvent }) {
 
   return (
     <Link
-      to={eventPath(event.id)}
+      to="/events/$id"
+      params={{ id: event.id }}
       className="flex gap-3 rounded-card border border-border bg-surface p-3 shadow-[var(--shadow-card)] transition-colors hover:bg-surface-2"
     >
       <div className="h-[72px] w-[88px] shrink-0 overflow-hidden rounded-tile bg-surface-2">

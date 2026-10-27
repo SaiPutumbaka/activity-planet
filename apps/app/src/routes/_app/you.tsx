@@ -75,7 +75,7 @@ function YouPage() {
             <p className="truncate text-[13px] text-text-3">{session.user.email}</p>
             <Link
               to="/you/photo"
-              className="mt-1 inline-flex min-h-6 items-center text-[14px] font-semibold text-primary-text"
+              className="-my-2 inline-flex min-h-11 items-center text-[14px] font-semibold text-primary-text"
             >
               {profile.avatar_url ? "Change photo" : "Add photo"}
             </Link>
@@ -105,17 +105,19 @@ function YouPage() {
               value={
                 membership.isPending ? (
                   <Skeleton className="h-4 w-24" />
-                ) : verifiedSpace ? (
-                  verifiedSpace
+                ) : membership.isError ? (
+                  "Couldn't check"
                 ) : (
-                  "Not verified"
+                  (verifiedSpace ?? "Not verified")
                 )
               }
               valueClassName={verifiedSpace ? "font-semibold text-going" : undefined}
               hint={
-                verifiedSpace
-                  ? "Verified with your student email"
-                  : "Verify your student email to unlock it"
+                membership.isError
+                  ? "Try again in a moment"
+                  : verifiedSpace
+                    ? "Verified with your student email"
+                    : "Verify your student email to unlock it"
               }
             />
           </div>

@@ -48,7 +48,11 @@ export function HubRow({
             <span className="truncate text-[15px] font-semibold">{hub.name}</span>
             <HubBadges minAge={hub.min_age} scope={hub.scope} />
             {!notify ? (
-              <BellOff className="size-3.5 shrink-0 text-text-3" aria-label="Notifications off" />
+              <BellOff
+                className="size-3.5 shrink-0 text-text-3"
+                role="img"
+                aria-label="Notifications off"
+              />
             ) : null}
           </span>
           <span className="block truncate text-[13px] text-text-2">{meta}</span>

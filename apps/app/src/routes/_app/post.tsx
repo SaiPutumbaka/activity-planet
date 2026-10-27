@@ -54,6 +54,7 @@ function PostPage() {
     if (values.repeatWeekly) {
       const { firstEventId } = await createEventSeries(toCreateEventSeriesArgs(values, ctx));
       void queryClient.invalidateQueries({ queryKey: ["feed"] });
+      void queryClient.invalidateQueries({ queryKey: ["hubs", "events"] });
       toast.success("Weekly plan posted.");
       if (firstEventId) {
         await navigate({ to: "/events/$id", params: { id: firstEventId }, replace: true });
@@ -64,6 +65,7 @@ function PostPage() {
     }
     const event = await createEvent(toCreateEventArgs(values, ctx));
     void queryClient.invalidateQueries({ queryKey: ["feed"] });
+    void queryClient.invalidateQueries({ queryKey: ["hubs", "events"] });
     toast.success("Plan posted.");
     await navigate({ to: "/events/$id", params: { id: event.id }, replace: true });
   }

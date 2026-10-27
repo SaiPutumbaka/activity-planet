@@ -96,8 +96,8 @@ function ClaimChapterSheet({ open, onClose }: { open: boolean; onClose: () => vo
           is hosting.
         </p>
         <p>
-          Claiming opens in the week-4 build. RSO officers verify with their PIN listing or a .edu
-          email plus a reference; captains add an ID check and sign the Captain Program agreement.
+          Claiming isn't open yet. When it is, student orgs will verify with their school listing or
+          a .edu email, and captains with an ID check.
         </p>
         <p>Until then, post plans in the hub itself. Anyone can.</p>
       </div>

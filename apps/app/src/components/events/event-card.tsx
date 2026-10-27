@@ -9,8 +9,9 @@ import { canRsvp, eventState, isFull, rsvpState } from "./event-state";
 import { EventStateChip } from "./event-state-chip";
 
 /**
- * One plan in the Home list. The whole card opens the event page; the small Going button
- * RSVPs in place (the parent owns the useRsvp controller and its guidelines sheet).
+ * One plan in the Home list. The whole card opens the event page; the quiet Going button RSVPs
+ * in place (the parent owns the useRsvp controller and its guidelines sheet). The accent stays
+ * on the event page's RsvpBar: a list of cards is not the place for N loud things.
  */
 export function EventCard({
   event,
@@ -26,8 +27,13 @@ export function EventCard({
   const mine = ownStatus && ownStatus !== "cancelled" ? ownStatus : null;
   const myState = rsvpState(mine);
   const full = isFull(event);
-  const showGoing = canRsvp(event) && mine !== "going" && mine !== "waitlisted";
-  const goingLabel = full ? (event.waitlist_enabled ? "Join waitlist" : "Full") : "Going";
+  // A full plan without a waitlist has nothing to tap; the Full chip above already says so.
+  const showGoing =
+    canRsvp(event) &&
+    mine !== "going" &&
+    mine !== "waitlisted" &&
+    !(full && !event.waitlist_enabled);
+  const goingLabel = full ? "Join waitlist" : "Going";
   const hub = event.hubs;
   const time = `${formatTime(event.starts_at, event.timezone)} to ${formatTime(event.ends_at, event.timezone)}`;
 
@@ -36,7 +42,7 @@ export function EventCard({
       <Link
         to="/events/$id"
         params={{ id: event.id }}
-        className="absolute inset-0 z-[1] rounded-card"
+        className="absolute inset-0 z-[1] rounded-card focus-visible:outline-offset-[-3px]"
         aria-label={event.title}
       />
       <div className="h-[120px] bg-surface-2">
@@ -68,18 +74,17 @@ export function EventCard({
             <span className="truncate">{event.location_hint}</span>
           </p>
         ) : null}
-        <div className="mt-1 flex min-h-9 items-center justify-between gap-3">
+        <div className="mt-1 flex min-h-11 items-center justify-between gap-3">
           <span className="text-[13px] text-text-2 tabular">
             {event.going_count} going{event.capacity !== null ? ` of ${event.capacity}` : ""}
             {event.interested_count > 0 ? ` · ${event.interested_count} interested` : ""}
           </span>
           {showGoing ? (
             <Button
-              size="sm"
+              variant="outline"
               className="relative z-[2]"
               onClick={onGoing}
               loading={pending}
-              disabled={full && !event.waitlist_enabled}
             >
               {goingLabel}
             </Button>

@@ -34,6 +34,7 @@ export function useRsvp() {
     onSuccess: (row, { eventId, status }) => {
       void queryClient.invalidateQueries({ queryKey: ["events", eventId] });
       void queryClient.invalidateQueries({ queryKey: ["feed"] });
+      void queryClient.invalidateQueries({ queryKey: ["hubs", "events"] });
       const got = row?.status ?? (status === "cancelled" ? "cancelled" : status);
       if (got === "going") toast.success("You're in.");
       else if (got === "waitlisted")

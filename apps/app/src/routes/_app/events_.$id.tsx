@@ -8,10 +8,11 @@ import { DefaultCover } from "@ap/ui/brand";
 
 import { AttendeesSection } from "@/components/events/attendees-section";
 import { eventState, rsvpState, spotsLeft } from "@/components/events/event-state";
-import { EventStateChip, StateChip } from "@/components/events/event-state-chip";
+import { EventStateChip } from "@/components/events/event-state-chip";
 import { GuidelinesSheet } from "@/components/events/guidelines-sheet";
 import { RsvpBar } from "@/components/events/rsvp-bar";
 import { useRsvp } from "@/components/events/use-rsvp";
+import { HubBadges } from "@/components/hubs/hub-badges";
 import { TopBar } from "@/components/shell/top-bar";
 import { Avatar, AvatarStack } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -31,12 +32,9 @@ import {
   eventRsvpsQuery,
   type EventDetail,
 } from "@/lib/events";
-import { internalTo } from "@/lib/navigation";
 import { formatVenueAddress } from "@/lib/venues";
 
 const appRoute = getRouteApi("/_app");
-const siteUrl =
-  (import.meta.env.VITE_SITE_URL as string | undefined) ?? "https://activityplanet.app";
 
 /**
  * The event page. `events_.$id.tsx` keeps /events/$id out of any /events list route, the way
@@ -55,7 +53,8 @@ function EventPage() {
   const event = useQuery(eventQuery(id));
 
   async function share() {
-    const url = `${siteUrl}/e/${id}`;
+    // The app's own URL until apps/web ships the public /e/$id share page (week 4).
+    const url = new URL(`/events/${id}`, window.location.origin).toString();
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Link copied.");
@@ -72,7 +71,7 @@ function EventPage() {
         actions={
           <Button
             variant="secondary"
-            size="icon-sm"
+            size="icon"
             className="rounded-full"
             aria-label="Share"
             onClick={share}
@@ -146,6 +145,7 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["events", event.id] });
     void queryClient.invalidateQueries({ queryKey: ["feed"] });
+    void queryClient.invalidateQueries({ queryKey: ["hubs", "events"] });
   };
 
   const checkInMutation = useMutation({
@@ -191,10 +191,12 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
               <div className="flex flex-wrap gap-1.5">
                 <EventStateChip state={own} />
                 <EventStateChip state={state} />
-                {event.min_age === 21 ? <StateChip tone="info">21+</StateChip> : null}
-                {event.visibility === "campus" ? (
-                  <StateChip tone="info">Campus only</StateChip>
-                ) : null}
+                {/* Facts, not states: the neutral badges the hub page uses, not the info hue. */}
+                <HubBadges
+                  minAge={event.min_age}
+                  scope={event.visibility === "campus" ? "campus" : "general"}
+                  className="self-center"
+                />
               </div>
             ) : null}
             <h2 className="text-[26px] leading-tight font-extrabold tracking-[-0.02em] text-balance">
@@ -202,8 +204,9 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
             </h2>
             {hub ? (
               <Link
-                to={internalTo(`/hubs/${hub.slug}`)}
-                className="inline-flex h-9 items-center gap-1.5 self-start rounded-control border border-border bg-surface px-3 text-[14px] font-semibold hover:bg-surface-2"
+                to="/hubs/$slug"
+                params={{ slug: hub.slug }}
+                className="inline-flex min-h-11 items-center gap-1.5 self-start rounded-control border border-border bg-surface px-3 text-[14px] font-semibold hover:bg-surface-2"
               >
                 <span aria-hidden="true">{hub.emoji}</span>
                 {hub.name}

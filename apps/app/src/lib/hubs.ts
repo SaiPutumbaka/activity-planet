@@ -1,7 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import type { Database } from "@ap/core/types";
 
-import { internalTo } from "./navigation";
 import type { CatalogCategory, CatalogHub } from "./profile";
 import { supabase } from "./supabase";
 
@@ -25,7 +24,7 @@ export const hubKeys = {
   events: (hubId: string) => ["hubs", "events", hubId] as const,
   chapters: (hubId: string) => ["hubs", "chapters", hubId] as const,
   members: (hubId: string) => ["hubs", "members", hubId] as const,
-  viewerAge: ["viewer-age"] as const,
+  viewerAge: (userId: string) => ["viewer-age", userId] as const,
 };
 
 /* ------------------------------------------------------------------ */
@@ -182,16 +181,20 @@ export const hubMembersPreviewQuery = (hubId: string) =>
     staleTime: 60_000,
   });
 
-/** The viewer's age in whole years from viewer_age(); null before a birth date is recorded. */
-export const viewerAgeQuery = queryOptions({
-  queryKey: hubKeys.viewerAge,
-  queryFn: async (): Promise<number | null> => {
-    const { data, error } = await supabase.rpc("viewer_age");
-    if (error) throw error;
-    return data ?? null;
-  },
-  staleTime: 60 * 60_000,
-});
+/**
+ * The viewer's age in whole years from viewer_age(); null before a birth date is recorded. Keyed
+ * by user: the RPC answers for auth.uid(), so the next account on this device must not inherit it.
+ */
+export const viewerAgeQuery = (userId: string) =>
+  queryOptions({
+    queryKey: hubKeys.viewerAge(userId),
+    queryFn: async (): Promise<number | null> => {
+      const { data, error } = await supabase.rpc("viewer_age");
+      if (error) throw error;
+      return data ?? null;
+    },
+    staleTime: 60 * 60_000,
+  });
 
 /* ------------------------------------------------------------------ */
 /* Writes                                                               */
@@ -263,14 +266,6 @@ export function formatGoing(event: Pick<HubEvent, "going_count" | "capacity">): 
 
 export function isFull(event: Pick<HubEvent, "going_count" | "capacity">): boolean {
   return event.capacity !== null && event.going_count >= event.capacity;
-}
-
-/**
- * /events/$id belongs to the events build. Until that typed route is in this tree, the link goes
- * through the same cast lib/navigation.ts uses for `next` params.
- */
-export function eventPath(eventId: string) {
-  return internalTo(`/events/${eventId}`);
 }
 
 /** hub_categories.color_key -> one of the ten hub hues (dark text on a pale tint, board rule). */

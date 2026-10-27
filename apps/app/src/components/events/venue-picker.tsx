@@ -144,7 +144,7 @@ function SelectedVenue({
           )}
         </p>
       </div>
-      <Button variant="ghost" size="sm" onClick={onChange} disabled={disabled}>
+      <Button variant="ghost" onClick={onChange} disabled={disabled}>
         Change
       </Button>
     </div>
@@ -196,17 +196,12 @@ function VenueSearch({
           Couldn't search places. Check your connection and try again.
         </p>
       ) : results.data.length === 0 ? (
-        <p className="text-[13px] text-text-2">
-          No place called “{debounced.trim()}” yet.{" "}
-          <button
-            type="button"
-            onClick={onAddInstead}
-            className="font-semibold text-primary-text underline-offset-2 hover:underline"
-          >
-            Add it
-          </button>
-          .
-        </p>
+        <div className="flex flex-col items-start gap-1">
+          <p className="text-[13px] text-text-2">No place called “{debounced.trim()}” yet.</p>
+          <Button variant="ghost" onClick={onAddInstead} disabled={disabled}>
+            Add a place
+          </Button>
+        </div>
       ) : (
         <ul className="divide-y divide-border overflow-hidden rounded-input border border-border">
           {results.data.map((v) => (

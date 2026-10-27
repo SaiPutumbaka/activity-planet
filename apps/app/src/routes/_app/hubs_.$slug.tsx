@@ -86,7 +86,7 @@ function HubPageContent({ hub }: { hub: HubPage }) {
   const { session, profile } = appRoute.useRouteContext();
   const userId = session.user.id;
   const myHubs = useQuery(myHubsQuery(userId));
-  const viewerAge = useQuery(viewerAgeQuery);
+  const viewerAge = useQuery(viewerAgeQuery(userId));
   const hubIds = useMemo(() => [hub.id], [hub.id]);
   const counts = useQuery(hubMemberCountsQuery(hubIds));
   const membership = useHubMembership(userId);
@@ -117,7 +117,7 @@ function HubPageContent({ hub }: { hub: HubPage }) {
           title="Upcoming"
           trailing={`Next ${UPCOMING_WINDOW_DAYS} days`}
         />
-        <HubEvents hubId={hub.id} hubSlug={hub.slug} />
+        <HubEvents hubId={hub.id} hubSlug={hub.slug} joined={joined} />
       </section>
 
       <section className="flex flex-col gap-3" aria-labelledby="hub-chapters">

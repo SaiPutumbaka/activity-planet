@@ -44,17 +44,10 @@ export function RsvpBar({
 
   let content: ReactNode;
   if (cancelled) {
-    content = (
-      <Button size="lg" block disabled>
-        Cancelled
-      </Button>
-    );
+    // A state, not an action: the word and its hue, never a dimmed primary button.
+    content = <StateChip tone="danger">Cancelled</StateChip>;
   } else if (over && !checkable) {
-    content = (
-      <Button size="lg" block disabled>
-        Over
-      </Button>
-    );
+    content = <StateChip tone="info">Over</StateChip>;
   } else if (isHost || status === "going" || status === "waitlisted") {
     const own = isHost
       ? { tone: "going" as const, label: "You're hosting" }
@@ -74,7 +67,8 @@ export function RsvpBar({
             </Button>
           )
         ) : null}
-        {isHost ? (
+        {isHost && !checkable ? (
+          // While Check in is showing the row is full at 375 px, so Edit moves into the More sheet.
           <Link
             to="/events/$id/edit"
             params={{ id: event.id }}
@@ -128,17 +122,29 @@ export function RsvpBar({
       <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title={event.title}>
         <div className="flex flex-col gap-2 pb-2">
           {isHost ? (
-            <Button
-              variant="danger"
-              size="lg"
-              block
-              onClick={() => {
-                setMoreOpen(false);
-                onCancelEvent();
-              }}
-            >
-              Cancel this plan
-            </Button>
+            <>
+              {checkable ? (
+                <Link
+                  to="/events/$id/edit"
+                  params={{ id: event.id }}
+                  onClick={() => setMoreOpen(false)}
+                  className={buttonVariants({ variant: "secondary", size: "lg", block: true })}
+                >
+                  Edit plan
+                </Link>
+              ) : null}
+              <Button
+                variant="danger"
+                size="lg"
+                block
+                onClick={() => {
+                  setMoreOpen(false);
+                  onCancelEvent();
+                }}
+              >
+                Cancel this plan
+              </Button>
+            </>
           ) : (
             <Button
               variant="danger"

@@ -37,7 +37,7 @@ export function HubChip({
       aria-label={label}
       className="h-11 max-w-full px-3.5"
     >
-      <span>{hub.name}</span>
+      <span className="min-w-0 truncate">{hub.name}</span>
       {count !== undefined ? (
         <span className="text-[12px] font-medium text-text-3 tabular">{count}</span>
       ) : null}

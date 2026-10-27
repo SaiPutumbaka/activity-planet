@@ -93,7 +93,6 @@ export function AttendeesSection({
         {!isHost && a.status === "going" && needsApproval ? (
           <Button
             variant={a.approved_by_host ? "secondary" : "outline"}
-            size="sm"
             onClick={() => approve.mutate({ userId: a.user_id, approved: !a.approved_by_host })}
             loading={approve.isPending && approve.variables?.userId === a.user_id}
             aria-pressed={a.approved_by_host}
@@ -107,7 +106,7 @@ export function AttendeesSection({
         {!isHost ? (
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="icon"
             className="text-text-2"
             aria-label={`Remove ${name}`}
             onClick={() => {
@@ -136,6 +135,7 @@ export function AttendeesSection({
           The exact address goes only to people you approve here.
         </p>
       ) : null}
+      {groups.length === 0 ? <p className="text-[14px] text-text-2">No one yet.</p> : null}
       {groups.map((g) => (
         <div key={g.title} className="flex flex-col gap-1.5">
           <h4 className="text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">

@@ -117,8 +117,14 @@ export function EventForm({
     } catch (err) {
       const field = fieldForEventError(eventErrorCode(err));
       const message = eventErrorMessage(err);
-      if (field && INPUT_FIELDS.has(field)) setError(field, { message }, { shouldFocus: true });
-      else setFormError(message);
+      // Only a field that is on screen can carry the error: the hub is a read-only row in edit
+      // mode, and Starts gives way to the weekday / time fields while repeat is on.
+      const hidden = (mode === "edit" && field === "hubId") || (repeat && field === "startsAt");
+      if (field && INPUT_FIELDS.has(field) && !hidden) {
+        setError(field, { message }, { shouldFocus: true });
+      } else {
+        setFormError(message);
+      }
     }
   }
 

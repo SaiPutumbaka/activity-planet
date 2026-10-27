@@ -192,7 +192,13 @@ export function verificationErrorMessage(err: unknown): string {
     return "Your session ended. Sign in again.";
   }
   if (message.includes("network")) return "Check your connection and try again.";
-  if (message.includes("request_failed") || message.includes("rpc_failed")) {
+  if (
+    message.includes("request_failed") ||
+    message.includes("rpc_failed") ||
+    message.includes("misconfigured") ||
+    message.includes("invalid_body") ||
+    message.includes("method_not_allowed")
+  ) {
     return "Something went wrong on our side. Try again in a moment.";
   }
   return message || "Something went wrong. Try again.";

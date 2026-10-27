@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { BadgeCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { Field, FormError } from "@/components/ui/field";
 import { CODE_LENGTH, campusEmailSchema } from "@/lib/verification";
 
@@ -130,7 +131,7 @@ export function CodeStep({
         >
           {cooldown > 0 ? `Send again in ${cooldown}s` : "Send a new code"}
         </Button>
-        <Button variant="ghost" size="sm" onClick={onChangeEmail} disabled={busy || resending}>
+        <Button variant="ghost" onClick={onChangeEmail} disabled={busy || resending}>
           Use a different email
         </Button>
       </div>
@@ -172,10 +173,8 @@ export function VerifiedCard({
             : `Your ${orgName} email is verified. Pick your campus on the You tab to see its space.`}
         </p>
       </div>
-      <Link to="/you">
-        <Button variant="secondary" size="lg">
-          Back to You
-        </Button>
+      <Link to="/you" className={buttonVariants({ variant: "secondary", size: "lg" })}>
+        Back to You
       </Link>
     </div>
   );
