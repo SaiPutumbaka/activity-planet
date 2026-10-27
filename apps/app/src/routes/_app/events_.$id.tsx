@@ -35,6 +35,8 @@ import {
 import { formatVenueAddress } from "@/lib/venues";
 
 const appRoute = getRouteApi("/_app");
+const SITE_URL =
+  (import.meta.env.VITE_SITE_URL as string | undefined) ?? "https://activityplanet.app";
 
 /**
  * The event page. `events_.$id.tsx` keeps /events/$id out of any /events list route, the way
@@ -53,8 +55,8 @@ function EventPage() {
   const event = useQuery(eventQuery(id));
 
   async function share() {
-    // The app's own URL until apps/web ships the public /e/$id share page (week 4).
-    const url = new URL(`/events/${id}`, window.location.origin).toString();
+    // The site's public share page: works logged out, with an OG image and Add to Calendar.
+    const url = `${SITE_URL}/e/${id}`;
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Link copied.");
