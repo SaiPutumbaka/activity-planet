@@ -301,18 +301,30 @@ export function normalizeSearch(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-/** Name, aliases and the category name all count. `needle` is already normalized. */
+/** True when `needle` starts a word in `text` ("ping" matches "Ping pong", not "Camping"). */
+function startsAWord(text: string, needle: string): boolean {
+  const t = text.toLowerCase();
+  let i = t.indexOf(needle);
+  while (i !== -1) {
+    if (i === 0 || !/[a-z0-9]/.test(t.charAt(i - 1))) return true;
+    i = t.indexOf(needle, i + 1);
+  }
+  return false;
+}
+
+/**
+ * Name, aliases and the category name all count. Every word of the (already normalized) needle
+ * must start a word somewhere, so "table ten" finds Table Tennis and "ping" finds it through the
+ * "ping pong" alias without dragging in Camping and Rapping.
+ */
 export function hubMatches(
   hub: Pick<CatalogHub, "name" | "aliases">,
   categoryName: string,
   needle: string,
 ): boolean {
   if (!needle) return true;
-  return (
-    hub.name.toLowerCase().includes(needle) ||
-    hub.aliases.some((a) => a.toLowerCase().includes(needle)) ||
-    categoryName.toLowerCase().includes(needle)
-  );
+  const fields = [hub.name, ...hub.aliases, categoryName];
+  return needle.split(" ").every((word) => fields.some((f) => startsAWord(f, word)));
 }
 
 /** The catalog grouped by category in catalog order, with hubs that match the search. */
