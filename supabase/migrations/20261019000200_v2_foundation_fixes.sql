@@ -63,6 +63,9 @@ create policy "hub_chapters_delete_mod" on public.hub_chapters for delete to aut
 -- blanket "for all" policy overlapped every action, so it goes. Moderator inserts/deletes of
 -- other people's memberships are a week-4 captain-tools concern and will get explicit policies.
 drop policy if exists "chapter_members_write_mod" on public.chapter_members;
+-- Migration 1 already creates chapter_members_read with this body; drop it first so this file
+-- also runs on a fresh database (caught by the CI rehearsal on 2026-10-27).
+drop policy if exists "chapter_members_read" on public.chapter_members;
 create policy "chapter_members_read" on public.chapter_members for select to authenticated
   using (
     user_id = (select auth.uid())
