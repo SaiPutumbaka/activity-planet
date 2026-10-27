@@ -1,10 +1,15 @@
 # Production cutover: schema v1 to v2
 
-**Status: approved by Sai on 2026-10-27 (D-034); waiting on the token scopes and a green dry run.**
-Nothing in this document has run against production yet. Sai adds the token scopes and runs the
-dry run; when it is green, steps 1 to 4 run in order, with Sai executing the SQL in the dashboard and
-pasting each result to Claude, who checks it before the next step. An adversarial review panel went
-over the first draft on Oct 27; this is the corrected plan.
+**Status: approved by Sai on 2026-10-27 (D-034); the dry run is green; ready for step 1.**
+Nothing in this document has run against production yet. The dry run passed on Oct 27 (Actions run
+40534792119, commit `53c2594`): the rehearsal job applied all eight files and the seed to a fresh
+database, and the main job linked both projects through the pooler, probed the query path, seeded
+staging and printed the eight pending files for production. An earlier rehearsal that day caught
+migration 2 re-creating a policy that migration 1 already creates; the file gained a drop guard
+(commit `53c2594`), which is exactly the class of defect the rehearsal exists for. Steps 1 to 4 now
+run in order, with Sai executing the SQL in the dashboard and pasting each result to Claude, who
+checks it before the next step. An adversarial review panel went over the first draft on Oct 27;
+this is the corrected plan.
 
 ## Where things stand
 
@@ -93,7 +98,10 @@ in order, applying nothing to production:
    Seeding, function deploys and the Vercel hooks are skipped.
 
 Green means the pinned CLI, the token's five permissions, the pooler path, both passwords, the
-files and the seed all work. Send Claude the log if anything is red.
+files and the seed all work. Send Claude the log if anything is red. The rehearsal job pulls
+container images from a public registry and sometimes logs `toomanyrequests` retries; they are
+noise unless the step fails. The Edge Functions scope is the one thing a dry run cannot prove,
+because the function deploy only runs on a real run; that step is `continue-on-error`.
 
 ## Step 1: inventory production (read-only, five minutes)
 
