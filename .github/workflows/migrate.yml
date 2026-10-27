@@ -1,27 +1,36 @@
 name: Migrate database then deploy
 
 # Code must never reach production ahead of its migration (the July 2026 outage class).
-# On push to main: apply supabase/migrations to staging, then to production, then trigger
-# the Vercel deploy hooks. Turned on by setting the repository variable MIGRATIONS_ENABLED
-# to "true" (kept unset until the production cutover in docs/ops/production-cutover.md).
+# On push to main: apply supabase/migrations to staging, then to production, deploy the
+# delete-account function to production, then trigger the Vercel deploy hooks. Turned on by
+# setting the repository variable MIGRATIONS_ENABLED to "true" (kept unset until the production
+# cutover in docs/ops/production-cutover.md).
+#
+# The CLI is pinned (2.122.0, the TypeScript rewrite) so the cutover runs exactly the binary the
+# dry run proved; bump it only after a fresh dry run. With a fixed version setup-cli downloads the
+# release asset directly and never calls the GitHub API.
 #
 # Secrets (all set 2026-10-27):
-#   SUPABASE_ACCESS_TOKEN        scoped personal access token for both projects. The CLI (2.122+)
-#                                needs these scopes: Project Settings Read (link reads the project),
-#                                API Keys Read and API Key Secrets Read (link reveals the keys),
-#                                Connection Pooling Read (link saves the IPv4 pooler URL; GitHub
-#                                runners have no IPv6 and the direct db host is IPv6-only, so
-#                                without it db push fails with "IPv6 is not supported"), and
-#                                Database Read-write (db query runs the seed through the
-#                                Management API). Migrations go over Postgres through the pooler
-#                                with the database password, so no Migrations scope is needed.
+#   SUPABASE_ACCESS_TOKEN        scoped personal access token for both projects. Needed scopes:
+#                                Project Settings Read (link reads the project), API Keys Read and
+#                                API Key Secrets Read (link reveals the keys), Connection Pooling
+#                                Read (link saves the IPv4 pooler URL; GitHub runners have no IPv6
+#                                and the direct db host is IPv6-only, so without it every database
+#                                step fails with "IPv6 is not supported on your current network"),
+#                                Database Read-write (db query runs the seed through the Management
+#                                API), Edge Functions Read-write (the function deploy step; that
+#                                step is continue-on-error, so a missing scope only logs a failure).
+#                                Migrations go over Postgres through the pooler with the database
+#                                password, so no Migrations scope is needed.
 #   SUPABASE_STAGING_DB_PASSWORD database password of activity-planet-staging
 #   SUPABASE_PROD_DB_PASSWORD    database password of the production project
 #   VERCEL_DEPLOY_HOOK_WEB       deploy hook URL for the apps/web Vercel project
 #   VERCEL_DEPLOY_HOOK_APP       deploy hook URL for the apps/app Vercel project
 #
-# "Run workflow" with dry_run ticked links both projects, lists the migration history and prints
-# what would be pushed without applying anything; it runs even while MIGRATIONS_ENABLED is unset.
+# "Run workflow" with dry_run ticked runs even while MIGRATIONS_ENABLED is unset. It rehearses the
+# migrations and the seed on a throwaway local stack, links both projects, lists their migration
+# history, probes the Management API query path, seeds staging (idempotent) and prints what db push
+# would apply to each project without applying anything. Production is never written during a dry run.
 
 on:
   push:
@@ -29,11 +38,12 @@ on:
     paths:
       - "supabase/migrations/**"
       - "supabase/seed/**"
+      - "supabase/functions/delete-account/**"
       - ".github/workflows/migrate.yml"
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Link, list and show what would be pushed; apply nothing"
+        description: "Rehearse, link, list and show what would be pushed; apply nothing to production"
         type: boolean
         default: false
 
@@ -44,9 +54,35 @@ concurrency:
 env:
   STAGING_PROJECT_REF: gzrscndzzggxmcwnvvcq
   PROD_PROJECT_REF: gtesfiqxqontescqpllo
+  SUPABASE_CLI_VERSION: 2.122.0
   DRY_RUN: ${{ inputs.dry_run == true && '--dry-run' || '' }}
 
 jobs:
+  # Applies all migration files and the seed to a fresh local database through the CLI's own
+  # statement splitter and transaction batching, so a file that the CLI handles differently from
+  # the management API fails here, on the runner, not on production.
+  rehearse:
+    if: inputs.dry_run == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.0
+
+      - name: Start a throwaway local stack (Postgres, Auth, Storage only)
+        run: |
+          supabase start -x realtime,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor --ignore-health-check
+
+      - name: Apply every migration and the seed through the CLI
+        run: |
+          supabase db reset --local --yes
+
+      - name: Show the local migration history
+        run: |
+          supabase migration list --local
+
   migrate:
     if: vars.MIGRATIONS_ENABLED == 'true' || inputs.dry_run == true
     runs-on: ubuntu-latest
@@ -55,7 +91,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.122.0
 
       - name: Staging, link and list migrations
         env:
@@ -65,15 +101,25 @@ jobs:
           supabase link --project-ref "$STAGING_PROJECT_REF"
           supabase migration list --linked
 
+      - name: Staging, probe the Management API query path
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+        run: |
+          supabase db query --linked "select 1 as ok"
+
       - name: Staging, push migrations
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
+          # --include-all: files older than the newest applied version are still pushed (a
+          # migration merged out of order is intentional here, never a mistake to hide).
           supabase db push --linked --include-all --yes $DRY_RUN
 
+      # Runs on dry runs too: the seed is idempotent, staging is the test project, and this is
+      # the only step that exercises a 66 KB body on the Management API query endpoint.
       - name: Staging, seed hubs
-        if: inputs.dry_run != true
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
@@ -87,6 +133,13 @@ jobs:
         run: |
           supabase link --project-ref "$PROD_PROJECT_REF"
           supabase migration list --linked
+
+      - name: Production, probe the Management API query path
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
+        run: |
+          supabase db query --linked "select 1 as ok"
 
       - name: Production, push migrations
         env:
@@ -102,6 +155,17 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
         run: |
           supabase db query --linked --file supabase/seed/hubs.sql
+
+      # delete-account calls request_account_deletion(), which the migrations create, so it is
+      # deployed after the push. send-verification-code is deployed only together with its
+      # RESEND_API_KEY secret (without the key it logs codes instead of emailing them).
+      - name: Production, deploy the delete-account function
+        if: inputs.dry_run != true
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy delete-account --project-ref "$PROD_PROJECT_REF" --use-api
 
       - name: Deploy web and app
         if: inputs.dry_run != true
