@@ -3,13 +3,25 @@ name: Migrate database then deploy
 # Code must never reach production ahead of its migration (the July 2026 outage class).
 # On push to main: apply supabase/migrations to staging, then to production, then trigger
 # the Vercel deploy hooks. Turned on by setting the repository variable MIGRATIONS_ENABLED
-# to "true" once these secrets exist:
-#   SUPABASE_ACCESS_TOKEN        personal access token (Supabase dashboard, Account, Access Tokens)
+# to "true" (kept unset until the production cutover in docs/ops/production-cutover.md).
+#
+# Secrets (all set 2026-10-27):
+#   SUPABASE_ACCESS_TOKEN        scoped personal access token for both projects. The CLI (2.122+)
+#                                needs these scopes: Project Settings Read (link reads the project),
+#                                API Keys Read and API Key Secrets Read (link reveals the keys),
+#                                Connection Pooling Read (link saves the IPv4 pooler URL; GitHub
+#                                runners have no IPv6 and the direct db host is IPv6-only, so
+#                                without it db push fails with "IPv6 is not supported"), and
+#                                Database Read-write (db query runs the seed through the
+#                                Management API). Migrations go over Postgres through the pooler
+#                                with the database password, so no Migrations scope is needed.
 #   SUPABASE_STAGING_DB_PASSWORD database password of activity-planet-staging
 #   SUPABASE_PROD_DB_PASSWORD    database password of the production project
 #   VERCEL_DEPLOY_HOOK_WEB       deploy hook URL for the apps/web Vercel project
 #   VERCEL_DEPLOY_HOOK_APP       deploy hook URL for the apps/app Vercel project
-# Until then migrations are applied through the Supabase management API and Vercel deploys on push.
+#
+# "Run workflow" with dry_run ticked links both projects, lists the migration history and prints
+# what would be pushed without applying anything; it runs even while MIGRATIONS_ENABLED is unset.
 
 on:
   push:
@@ -19,6 +31,11 @@ on:
       - "supabase/seed/**"
       - ".github/workflows/migrate.yml"
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Link, list and show what would be pushed; apply nothing"
+        type: boolean
+        default: false
 
 concurrency:
   group: migrate-main
@@ -27,10 +44,11 @@ concurrency:
 env:
   STAGING_PROJECT_REF: gzrscndzzggxmcwnvvcq
   PROD_PROJECT_REF: gtesfiqxqontescqpllo
+  DRY_RUN: ${{ inputs.dry_run == true && '--dry-run' || '' }}
 
 jobs:
   migrate:
-    if: vars.MIGRATIONS_ENABLED == 'true'
+    if: vars.MIGRATIONS_ENABLED == 'true' || inputs.dry_run == true
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -39,30 +57,46 @@ jobs:
         with:
           version: latest
 
-      - name: Staging, push migrations
+      - name: Staging, link and list migrations
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
           supabase link --project-ref "$STAGING_PROJECT_REF"
-          supabase db push --include-all
+          supabase migration list --linked
+
+      - name: Staging, push migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+        run: |
+          supabase db push --linked --include-all --yes $DRY_RUN
 
       - name: Staging, seed hubs
+        if: inputs.dry_run != true
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
           supabase db query --linked --file supabase/seed/hubs.sql
 
-      - name: Production, push migrations
+      - name: Production, link and list migrations
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
         run: |
           supabase link --project-ref "$PROD_PROJECT_REF"
-          supabase db push --include-all
+          supabase migration list --linked
+
+      - name: Production, push migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
+        run: |
+          supabase db push --linked --include-all --yes $DRY_RUN
 
       - name: Production, seed hubs
+        if: inputs.dry_run != true
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
@@ -70,6 +104,7 @@ jobs:
           supabase db query --linked --file supabase/seed/hubs.sql
 
       - name: Deploy web and app
+        if: inputs.dry_run != true
         env:
           HOOK_WEB: ${{ secrets.VERCEL_DEPLOY_HOOK_WEB }}
           HOOK_APP: ${{ secrets.VERCEL_DEPLOY_HOOK_APP }}

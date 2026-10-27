@@ -53,7 +53,7 @@ Later: Atlanta 18 to 35 across campuses and neighborhoods. Note that Perimeter C
 Tag legend: **A** = store build A and web, by Dec 8 · **B** = store build B and web, by Jan 4 · **P** = post-launch, Feb to May 2027.
 
 ### 4.1 Identity and onboarding
-- **A** Email+password, Google sign-in, Sign in with Apple (equal prominence everywhere Google appears), magic link, password reset, resend confirmation, cross-device-safe `token_hash` email links, Turnstile, leaked-password protection.
+- **A** Email+password, Google sign-in, Sign in with Apple (equal prominence everywhere Google appears), magic link, password reset, resend confirmation, cross-device-safe `token_hash` email links, Turnstile. Leaked-password protection is a Supabase Pro feature and waits for that upgrade (D-033).
 - **A** Native Google and Apple sign-in inside the mobile app (Google blocks OAuth in embedded webviews), finishing with Supabase `signInWithIdToken`.
 - **A** Profile: real first name, photo (required to RSVP or message), handle, bio, interests, campus or neighborhood, date of birth (private; neutral entry screen; 18+ enforced).
 - **A** `.edu` verification: a one-time code to a second email, matched against `org_email_domains`, plus a declared campus. Unlocks the campus space.

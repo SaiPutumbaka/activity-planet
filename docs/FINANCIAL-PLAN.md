@@ -12,7 +12,7 @@ Target: under $15 per month, about $134 one-time.
 
 | Service | Tier | Cost | Limit that matters | Mitigation |
 |---------|------|------|--------------------|------------|
-| Supabase | Free | $0 | Pauses after 7 idle days; 500 MB database; 1 GB storage; 2 active free projects per org | A GitHub Actions cron pings `/api/health` every 6 hours so it never idles. Staging is the second free project; the rice-n-pie and Envi projects stay paused. |
+| Supabase | Free | $0 | Pauses after 7 idle days; 500 MB database; 1 GB storage; 2 active free projects per org | A GitHub Actions cron pings both projects' REST API every 6 hours so neither idles (variables set Oct 26). Staging is the second free project; the rice-n-pie and Envi projects were deleted on Oct 26. Pro also unlocks leaked-password protection (D-033). |
 | Vercel | Hobby | $0 | Terms allow personal, non-commercial use only | Pre-revenue beta is a gray area. Upgrade to Pro ($20) at first revenue or the day Vercel asks. |
 | Resend | Free | $0 | 3,000 emails per month, 100 per day | Enough for a few hundred users. Daily digests wait for Phase 2. |
 | PostHog | Free | $0 | 1M events per month | Fine. |
