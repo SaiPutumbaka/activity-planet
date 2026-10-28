@@ -1,23 +1,25 @@
 # Production cutover: schema v1 to v2
 
-**Status: approved by Sai on 2026-10-27 (D-034); the dry run is green; step 1 done on 2026-10-28
-(results below); step 2 awaits Sai's final go.** Nothing destructive has run against production yet. The dry run passed on Oct 27 (Actions run
+**Status: approved by Sai on 2026-10-27 (D-034); the dry run is green; steps 1 and 2 done on
+2026-10-28 (results below); step 3 is next.** The dry run passed on Oct 27 (Actions run
 40534792119, commit `53c2594`): the rehearsal job applied all eight files and the seed to a fresh
 database, and the main job linked both projects through the pooler, probed the query path, seeded
 staging and printed the eight pending files for production. An earlier rehearsal that day caught
 migration 2 re-creating a policy that migration 1 already creates; the file gained a drop guard
-(commit `53c2594`), which is exactly the class of defect the rehearsal exists for. Steps 1 to 4 now
-run in order, with Sai executing the SQL in the dashboard and pasting each result to Claude, who
-checks it before the next step. An adversarial review panel went over the first draft on Oct 27;
+(commit `53c2594`), which is exactly the class of defect the rehearsal exists for. Steps 1 to 4 run
+in order. Since 2026-10-28 Claude runs production SQL itself through the Supabase connector (Sai's
+rule). The connector asks the human to confirm destructive statements and that question does not
+reach cloud sessions, so drops and deletes still go through Sai in the dashboard SQL editor;
+read-only checks and non-destructive DDL run through the connector. An adversarial review panel went over the first draft on Oct 27;
 this is the corrected plan.
 
 ## Where things stand
 
 - **Production** (`gtesfiqxqontescqpllo`, us-west-2): the v1 schema (`public.profiles`, `events`,
   `rsvps`, `hub_messages`, holding 4 / 1 / 0 / 2 rows of July test data), five test accounts in
-  `auth.users`, and no `supabase_migrations` schema at all (the earlier "0 rows" and "empty history"
-  figures were planner estimates; step 1 measured the real state). `supabase db push` creates the
-  history schema and table on its first run. The deployed app (`activity-planet-app.vercel.app`) and
+  `auth.users`, and no `supabase_migrations` schema at all (the earlier "0 rows" figure was the planner's
+  row estimate and the empty history table an assumption; step 1 measured the real state). Step 2
+  dropped all of it and pre-created the empty history table; see "Step 2 results". The deployed app (`activity-planet-app.vercel.app`) and
   the site already point here; a sign-up there creates an auth user and then fails at onboarding,
   because the v2 tables do not exist.
 - **Staging** (`gzrscndzzggxmcwnvvcq`): schema 2.8. Since Oct 27 its migration history records the
@@ -163,14 +165,14 @@ from pg_constraint where contype = 'f' and confrelid = 'auth.users'::regclass or
 ```
 
 **Expected, from the v1 files in `legacy/v1/supabase/migrations/`:** tables `profiles`, `events`,
-`rsvps`, `hub_messages`; no views, functions, enums or triggers on `auth.users`; extensions include
-`pgcrypto` (plus Supabase's own, such as `pg_graphql`, `pg_stat_statements`, `pgjwt`, `plpgsql`,
-`supabase_vault`, `uuid-ossp`); one bucket `avatars`; storage policies exactly
+`rsvps`, `hub_messages`; no views, functions, enums or triggers on `auth.users`; extensions exactly
+`pg_stat_statements`, `pgcrypto` (in schema `extensions`), `plpgsql`, `supabase_vault`, `uuid-ossp`
+(measured 2026-10-28; this project has no `pg_graphql` or `pgjwt`); one bucket `avatars`; storage policies exactly
 `avatars_public_read`, `avatars_insert_own_folder`, `avatars_update_own_folder`,
 `avatars_delete_own_folder`; the `selected_hobbies` row present; counts 5 / 0 / 0 / 4 / 1 / 0 / 2
 (auth users, storage objects, migration rows, profiles, events, rsvps, hub messages: the v1 rows are
-July test data, see "Step 1 results"); D lists only `public.profiles` with `confdeltype = c` plus
-Supabase's own `auth.*` and `storage.*` children, all `c` except `auth.scim_users` with `n`
+July test data, see "Step 1 results"); D lists only `public.profiles` with `confdeltype = c` and
+Supabase's own `auth.*` children, all `c` except `auth.scim_users` with `n`
 (set null, which cannot block a delete).
 
 **Stop and ask Claude if:** any count differs from the line above; `migration_rows` is not 0;
@@ -184,7 +186,8 @@ And confirm in writing that all five accounts in C can go.
 Run read-only through the Supabase connector on `gtesfiqxqontescqpllo`, then re-checked with the
 guarded B query above.
 
-- **A** matches: the four v1 tables; no views, functions, enums or `auth.users` triggers;
+- **A** matches: the four v1 tables (`pgcrypto` confirmed in schema `extensions`, where the
+  migrations' `extensions.digest` and `extensions.gen_random_bytes` calls expect it); no views, functions, enums or `auth.users` triggers;
   extensions `pg_stat_statements`, `pgcrypto`, `plpgsql`, `supabase_vault`, `uuid-ossp` (no
   `pg_graphql` or `pgjwt` on this project; nothing in the migrations uses either); bucket `avatars`
   with exactly the four `avatars_*` policies; `selected_hobbies` present.
@@ -199,6 +202,20 @@ guarded B query above.
 
 So step 2 needs no hand-added drop lines and no storage clean-up.
 
+### Step 2 results (2026-10-28)
+
+Sai ran the drop and delete in the dashboard; Claude then created the history table through the
+connector. Check: auth_users 0, public_tables 0, migration_rows 0, the `avatars` bucket present with
+its four policies, and `supabase_migrations.schema_migrations` holding the columns `version`,
+`statements`, `name` and no rows.
+
+Why the history table is pre-created: CLI 2.122.0 (`apps/cli/src/command-internal/migration-history.ts`)
+probes for the ledger and runs its create-schema DDL only when it is missing. That DDL had never run
+through the IPv4 session pooler here (the dry run stops before it, staging's push has nothing pending,
+and the rehearsal uses a direct local connection), and supabase/cli#6393 reports ledger DDL failing
+through that pooler. With the table already in the CLI's shape, the probe passes, the DDL is skipped,
+and all eight files are still pending because the table is empty.
+
 ## Step 2: drop v1 and the test accounts (SQL editor; the only destructive step)
 
 Do step 2 and step 3 in the same sitting. A sign-up that lands in between is harmless (migration 1
@@ -209,7 +226,8 @@ exists), but there is no reason to leave production half-done.
    Deleting `storage.objects` rows by SQL would leave the files behind as orphans, so it is not in
    the script.
 2. Run this script. Fill in the commented lines only with what step 1 listed, one line per object,
-   exactly as printed (functions come out of A as `name(argtypes)`, ready to paste).
+   exactly as printed (functions come out of A as `name(argtypes)`, ready to paste). On 2026-10-28
+   step 1 listed none, so the comment lines stay inert.
 
 ```sql
 begin;
@@ -221,6 +239,11 @@ begin;
 -- drop policy if exists "<any storage policy not named avatars_...>" on storage.objects;
 drop table if exists public.hub_messages, public.rsvps, public.events, public.profiles cascade;
 delete from auth.users;   -- the five test accounts from step 1 C
+-- The CLI's migration ledger, in its own shape, so db push skips its create DDL (see step 2 results):
+create schema if not exists supabase_migrations;
+create table if not exists supabase_migrations.schema_migrations (version text not null primary key);
+alter table supabase_migrations.schema_migrations add column if not exists statements text[];
+alter table supabase_migrations.schema_migrations add column if not exists name text;
 commit;
 
 select (select count(*) from auth.users) as auth_users,
@@ -228,10 +251,12 @@ select (select count(*) from auth.users) as auth_users,
        case when to_regclass('supabase_migrations.schema_migrations') is null then 0
             else (xpath('/row/c/text()', query_to_xml(
               'select count(*) as c from supabase_migrations.schema_migrations', false, true, '')))[1]::text::int
-       end as migration_rows;
+       end as migration_rows,
+       (select count(*) from storage.buckets where id = 'avatars') as avatars_bucket,
+       (select count(*) from pg_policies where schemaname = 'storage' and policyname like 'avatars%') as avatar_policies;
 ```
 
-The last query must print `0 | 0 | 0`. If the editor reports an error, the whole `begin … commit`
+The last query must print `0 | 0 | 0 | 1 | 4`. If the editor reports an error, the whole `begin … commit`
 rolled back: paste the error to Claude and do not continue. Keep the `avatars` bucket and its
 policies: migration 1 upserts the bucket and rewrites the policies.
 
@@ -250,6 +275,7 @@ policies: migration 1 upserts the bucket and rewrites the policies.
 | Where | State of production | What to do |
 | --- | --- | --- |
 | `rehearse` job or any staging step | untouched | send Claude the log; after the fix, Run workflow again |
+| production `db push`, before `Applying migration` for file 1 (ledger setup) | unchanged since step 2 | check the history table exists in the CLI's shape (step 2 script, last four statements), then Run workflow again |
 | production `db push`, at file N | files before N are applied and recorded; N and later are not; nothing half-applied (each file runs as one transaction with its history row) | fix forward (below); never re-run step 2 |
 | production seed, function deploy, deploy hooks | all eight migrations applied | Run workflow again; the seed is idempotent and the hooks are harmless to repeat |
 | a transient error anywhere (network, rate limit) | as above for that step | Run workflow again; no file change needed |

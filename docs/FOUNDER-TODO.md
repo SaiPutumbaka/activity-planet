@@ -10,7 +10,7 @@ Claude cannot create accounts, enter payment details, or sign anything. Everythi
 
 ## Now (Oct 27 to Nov 2)
 
-0. **Run the production cutover** (approved Oct 27, D-034; dry run green the same day): steps 1 to 4 of `docs/ops/production-cutover.md`. You run four read-only queries, Claude checks them, you run the one drop script, you flip `MIGRATIONS_ENABLED` and press Run workflow. Nothing touches production until you start step 1. Budget an hour with Claude on chat.
+0. **Finish the production cutover** (approved Oct 27, D-034; dry run green the same day; steps 1 and 2 done Oct 28, production is empty and ready): step 3 of `docs/ops/production-cutover.md`. Set the Actions variable `MIGRATIONS_ENABLED` to `true`, press Run workflow with `dry_run` off, and send Claude the log; Claude runs the step 4 checks.
 1. **Buy `activityplanet.app`** on Vercel (Domains; $9.99 the first year, $15/yr after) and attach it to the `activity-planet` project; add `app.activityplanet.app` to `activity-planet-app`. Then start **Resend** (resend.com, free) domain verification the same day; DNS can take 24 hours. Resend unlocks the email templates (item 8) and real verification-code emails.
 2. **Register a DMCA designated agent** at dmca.copyright.gov ($6; individuals can register). Needed for the safe harbor on user-uploaded photos.
 3. **Open the app URL to testers** (after the cutover): `activity-planet-app.vercel.app` is behind Vercel Authentication, so only you, signed in to Vercel, can open it. Either attach `app.activityplanet.app` (item 1) or, in that project's Settings, Deployment Protection, set Vercel Authentication to "Only Preview Deployments". Until the cutover the deployed app points at the v1 database and sign-up there fails, so there is no hurry.
