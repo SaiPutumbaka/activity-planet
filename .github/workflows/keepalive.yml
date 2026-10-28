@@ -31,13 +31,13 @@ jobs:
             echo "::error::Set the SUPABASE_PROD_URL and SUPABASE_PROD_PUBLISHABLE_KEY repository variables."
             exit 1
           fi
-          # Any authenticated REST call reaches Postgres. meta is readable by anon on schema v2; on
-          # the old v1 schema the table is missing and PostgREST answers 404, which still counts.
+          # Any authenticated REST call reaches Postgres. Production has been on schema v2 since the
+          # 2026-10-28 cutover, where anon can read meta, so anything but 200 means it is broken.
           code=$(curl -sS -o /tmp/body -w '%{http_code}' --max-time 30 \
             -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
             "$URL/rest/v1/meta?select=key,value&key=eq.schema_version" || echo "000")
           echo "production HTTP $code"; cat /tmp/body; echo
-          case "$code" in 200|404|406) ;; *) exit 1 ;; esac
+          [ "$code" = 200 ] || exit 1
 
       - name: Ping staging database
         if: ${{ always() }}

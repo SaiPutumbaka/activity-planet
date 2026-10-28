@@ -1,7 +1,7 @@
 # Production cutover: schema v1 to v2
 
-**Status: approved by Sai on 2026-10-27 (D-034); the dry run is green; steps 1 and 2 done on
-2026-10-28 (results below); step 3 is next.** The dry run passed on Oct 27 (Actions run
+**Status: done on 2026-10-28. Production runs schema 2.8 through the pipeline.** Steps 1 to 4
+ran that day (results under each step); the open follow-ups are under "After the cutover". The dry run passed on Oct 27 (Actions run
 40534792119, commit `53c2594`): the rehearsal job applied all eight files and the seed to a fresh
 database, and the main job linked both projects through the pooler, probed the query path, seeded
 staging and printed the eight pending files for production. An earlier rehearsal that day caught
@@ -309,6 +309,14 @@ commit;
 Dropping `public` with cascade also removes the `auth.users` triggers (they depend on
 `public.handle_new_user`); migration 8 rewrites the storage policies. Then Run workflow again.
 
+### Step 3 results (2026-10-28)
+
+Migrate #15 (Actions run 40749673064, commit `0bdea00`, `dry_run` off, `MIGRATIONS_ENABLED=true`)
+succeeded in 53 seconds with every step green: production's push applied all eight files and ended
+with `Finished supabase db push`, the production seed ran, `delete-account` deployed (ACTIVE,
+version 1, `verify_jwt` on, which proves the token's Edge Functions Read-write scope), and both
+Vercel deploy hooks fired.
+
 ## Step 4: verify
 
 In the production SQL editor (read-only):
@@ -316,8 +324,8 @@ In the production SQL editor (read-only):
 ```sql
 select value from public.meta where key = 'schema_version';                     -- 2.8
 select version from supabase_migrations.schema_migrations order by 1;           -- the eight versions
-select (select count(*) from public.hub_categories) as categories,              -- 27
-       (select count(*) from public.hubs) as hubs;                              -- 613
+select (select count(*) from public.hub_categories) as categories,              -- 26
+       (select count(*) from public.hubs) as hubs;                              -- 612
 select tablename from pg_tables where schemaname = 'public' and not rowsecurity; -- no rows
 select p.oid::regprocedure from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public'
@@ -338,6 +346,20 @@ Run the last query on staging as well; the two outputs must match line for line.
   Until the domain exists the Site URL can be `https://activity-planet-app.vercel.app`.
 - Once founder to-do 3 makes the app URL reachable: sign up with the Gmail address, open the link in
   the same browser, finish onboarding, post a plan, tap Going.
+
+### Step 4 results (2026-10-28)
+
+All read-only, by Claude. `schema_version` 2.8; eight history rows; 26 categories and 612 hubs; 28
+public base tables; every one of these equal to staging. No table without RLS and no function
+without a pinned `search_path`. Storage policies exactly the four `avatars_*`. Anon grants, the two
+`auth.users` triggers and the extension list (now with `pg_trgm` and `postgis` in `extensions`)
+match staging line for line. Advisors: Security shows the same findings as staging (SECURITY DEFINER
+RPCs callable by `anon` or `authenticated`, which is the app's RPC design, and four deny-all tables
+with RLS and no policy), without staging's leaked-password warning; Performance shows only
+unused-index INFO, expected on an empty database. `delete-account` answers 401 and
+`send-verification-code` 404 (not deployed, as intended below). The keep-alive (run 40751038493) got 200 and
+`schema_version` 2.8 from production, and now requires 200 there. Still Sai's: Authentication, URL Configuration (`docs/ops/supabase-auth.md`
+section 1) and the first real sign-up once the app URL is reachable.
 
 ## After the cutover
 
