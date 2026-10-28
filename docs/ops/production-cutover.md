@@ -1,7 +1,7 @@
 # Production cutover: schema v1 to v2
 
-**Status: approved by Sai on 2026-10-27 (D-034); the dry run is green; ready for step 1.**
-Nothing in this document has run against production yet. The dry run passed on Oct 27 (Actions run
+**Status: approved by Sai on 2026-10-27 (D-034); the dry run is green; step 1 done on 2026-10-28
+(results below); step 2 awaits Sai's final go.** Nothing destructive has run against production yet. The dry run passed on Oct 27 (Actions run
 40534792119, commit `53c2594`): the rehearsal job applied all eight files and the seed to a fresh
 database, and the main job linked both projects through the pooler, probed the query path, seeded
 staging and printed the eight pending files for production. An earlier rehearsal that day caught
@@ -14,8 +14,10 @@ this is the corrected plan.
 ## Where things stand
 
 - **Production** (`gtesfiqxqontescqpllo`, us-west-2): the v1 schema (`public.profiles`, `events`,
-  `rsvps`, `hub_messages`, 0 rows each), five test accounts in `auth.users`, and an empty
-  `supabase_migrations.schema_migrations`. The deployed app (`activity-planet-app.vercel.app`) and
+  `rsvps`, `hub_messages`, holding 4 / 1 / 0 / 2 rows of July test data), five test accounts in
+  `auth.users`, and no `supabase_migrations` schema at all (the earlier "0 rows" and "empty history"
+  figures were planner estimates; step 1 measured the real state). `supabase db push` creates the
+  history schema and table on its first run. The deployed app (`activity-planet-app.vercel.app`) and
   the site already point here; a sign-up there creates an auth user and then fails at onboarding,
   because the v2 tables do not exist.
 - **Staging** (`gzrscndzzggxmcwnvvcq`): schema 2.8. Since Oct 27 its migration history records the
@@ -129,12 +131,16 @@ union all select 'profiles.selected_hobbies', column_name from information_schem
 order by 1, 2;
 ```
 
-**B. Counts**
+**B. Counts** (the history table may not exist yet, so its count is guarded rather than read
+directly; a plain `count(*)` from it errors on a project that never ran the CLI)
 
 ```sql
 select (select count(*) from auth.users)                              as auth_users,
        (select count(*) from storage.objects)                         as storage_objects,
-       (select count(*) from supabase_migrations.schema_migrations)   as migration_rows,
+       case when to_regclass('supabase_migrations.schema_migrations') is null then 0
+            else (xpath('/row/c/text()', query_to_xml(
+              'select count(*) as c from supabase_migrations.schema_migrations', false, true, '')))[1]::text::int
+       end                                                            as migration_rows,
        (select count(*) from public.profiles)                         as profiles,
        (select count(*) from public.events)                           as events,
        (select count(*) from public.rsvps)                            as rsvps,
@@ -161,15 +167,37 @@ from pg_constraint where contype = 'f' and confrelid = 'auth.users'::regclass or
 `pgcrypto` (plus Supabase's own, such as `pg_graphql`, `pg_stat_statements`, `pgjwt`, `plpgsql`,
 `supabase_vault`, `uuid-ossp`); one bucket `avatars`; storage policies exactly
 `avatars_public_read`, `avatars_insert_own_folder`, `avatars_update_own_folder`,
-`avatars_delete_own_folder`; the `selected_hobbies` row present; counts 5 / 0 / 0 / 0 / 0 / 0 / 0;
-D lists only `public.profiles` with `confdeltype = c` (plus Supabase's own `auth.*` and
-`storage.*` children, all `c`).
+`avatars_delete_own_folder`; the `selected_hobbies` row present; counts 5 / 0 / 0 / 4 / 1 / 0 / 2
+(auth users, storage objects, migration rows, profiles, events, rsvps, hub messages: the v1 rows are
+July test data, see "Step 1 results"); D lists only `public.profiles` with `confdeltype = c` plus
+Supabase's own `auth.*` and `storage.*` children, all `c` except `auth.scim_users` with `n`
+(set null, which cannot block a delete).
 
-**Stop and ask Claude if:** any of the four table counts is not 0; `migration_rows` is not 0;
+**Stop and ask Claude if:** any count differs from the line above; `migration_rows` is not 0;
 `profiles` exists but the `selected_hobbies` row is missing; any function, view, enum or trigger
 appears (added by hand; identify it before it goes in step 2); D shows a child outside `auth.*`,
 `storage.*` and the four v1 tables with `confdeltype` `a` or `r` (that delete would abort step 2).
 And confirm in writing that all five accounts in C can go.
+
+### Step 1 results (2026-10-28)
+
+Run read-only through the Supabase connector on `gtesfiqxqontescqpllo`, then re-checked with the
+guarded B query above.
+
+- **A** matches: the four v1 tables; no views, functions, enums or `auth.users` triggers;
+  extensions `pg_stat_statements`, `pgcrypto`, `plpgsql`, `supabase_vault`, `uuid-ossp` (no
+  `pg_graphql` or `pgjwt` on this project; nothing in the migrations uses either); bucket `avatars`
+  with exactly the four `avatars_*` policies; `selected_hobbies` present.
+- **B**: auth_users 5, storage_objects 0, migration_rows 0 (no `supabase_migrations` schema),
+  profiles 4, events 1, rsvps 0, hub_messages 2. The old guard (all table counts 0) tripped on the
+  v1 rows. Sai confirmed in writing on 2026-10-28 that they are July test data and that nothing needs
+  to be kept; the expected line above now records these counts.
+- **C**: five accounts, all `email` provider; Sai confirmed in writing on 2026-10-28 that all five
+  can be deleted. The founder's Gmail address is among them and signs up again in step 4.
+- **D**: only `auth.*` children and `public.profiles`, all `c` except `auth.scim_users` (`n`).
+  Nothing blocks the delete.
+
+So step 2 needs no hand-added drop lines and no storage clean-up.
 
 ## Step 2: drop v1 and the test accounts (SQL editor; the only destructive step)
 
@@ -177,7 +205,7 @@ Do step 2 and step 3 in the same sitting. A sign-up that lands in between is har
 backfills every auth user) and the keep-alive keeps passing (it accepts 404 until `public.meta`
 exists), but there is no reason to leave production half-done.
 
-1. If B showed `storage_objects` above 0: open Storage, bucket `avatars`, select all files, delete.
+1. If B showed `storage_objects` above 0 (on 2026-10-28 it was 0, so skip this): open Storage, bucket `avatars`, select all files, delete.
    Deleting `storage.objects` rows by SQL would leave the files behind as orphans, so it is not in
    the script.
 2. Run this script. Fill in the commented lines only with what step 1 listed, one line per object,
@@ -197,7 +225,10 @@ commit;
 
 select (select count(*) from auth.users) as auth_users,
        (select count(*) from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE') as public_tables,
-       (select count(*) from supabase_migrations.schema_migrations) as migration_rows;
+       case when to_regclass('supabase_migrations.schema_migrations') is null then 0
+            else (xpath('/row/c/text()', query_to_xml(
+              'select count(*) as c from supabase_migrations.schema_migrations', false, true, '')))[1]::text::int
+       end as migration_rows;
 ```
 
 The last query must print `0 | 0 | 0`. If the editor reports an error, the whole `begin … commit`
