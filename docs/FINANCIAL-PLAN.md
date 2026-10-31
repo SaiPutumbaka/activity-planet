@@ -19,7 +19,7 @@ Target: under $15 per month, about $134 one-time.
 | Sentry | Free | $0 | 5,000 errors per month | Fine. |
 | Geoapify (geocoding) | Free | $0 | 3,000 requests per day | Venues are cached; imports mostly carry coordinates. |
 | Sightengine (image moderation) | Free | $0 | Low monthly operation cap | Enough for beta uploads; confirm the cap when the account is created. |
-| MapTiler | Free | $0 | 100,000 tile loads per month | Fine. |
+| OpenFreeMap (map tiles, with MapLibre GL JS) | Free | $0 | No key or account; commercial use allowed with OpenStreetMap/OpenMapTiles attribution; no SLA, donation-funded | Style URL in `VITE_MAP_STYLE_URL`; fallback is a self-hosted Protomaps extract of Atlanta. Replaced MapTiler on 2026-10-31 (D-038): MapTiler's free plan is non-commercial only, and this line had its limit wrong (free is about 5,000 map sessions a month, with service paused at the cap, not 100,000 tile loads). An optional donation once the map has real use. |
 | Supabase embeddings (gte-small) | Free | $0 | On-platform | No vendor. |
 | Claude API | Pay as you go | $5 to 15 | Tagging imported events plus the assistant | Cache tags; batch nightly. |
 | GitHub Actions | Free | $0 | Free for public repos, including macOS runners for iOS builds | Repo stays public. |

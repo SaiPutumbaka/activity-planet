@@ -52,7 +52,7 @@ Compiled 2026-10-19 from the compliance critique of the v2 plan. Items marked **
 Live on the domain by Nov 16 unless noted. Drafted by Claude in week 2, reviewed by the attorney.
 
 - **Terms of Service**: 18+ eligibility; Georgia governing law; UGC license; DMCA process; assumption of risk and release for physical activities and for meeting other members; captains and coaches are independent; "verified" means identity check plus reference, not a background check; imported-event disclaimer (not the organizer, accuracy not guaranteed, register at the source); AI assistant disclosure; limitation of liability and indemnity; termination and ban rights; no Georgia State affiliation.
-- **Privacy Policy**: every data category (name, photo, DOB, precise and coarse location, `.edu` email, messages, push tokens, RSVPs, bookings); processors by name (Supabase/AWS us-west-2, Vercel, Resend, PostHog, Sentry, Stripe, Anthropic, Geoapify, MapTiler, Sightengine); that moderators can read reported messages; retention periods including one-year preservation for child-safety reports; deletion and export rights; the no-under-18 statement; location consent; photos not used for face recognition; Georgia breach-notification commitment.
+- **Privacy Policy**: every data category (name, photo, DOB, precise and coarse location, `.edu` email, messages, push tokens, RSVPs, bookings); processors by name (Supabase/AWS us-west-2, Vercel, Resend, PostHog, Sentry, Stripe, Anthropic, Geoapify, OpenFreeMap, Sightengine; OpenFreeMap receives viewers' IP addresses and the map tiles they load, which reveals the area being viewed; it replaced MapTiler on 2026-10-31, D-038); that moderators can read reported messages; retention periods including one-year preservation for child-safety reports; deletion and export rights; the no-under-18 statement; location consent; photos not used for face recognition; Georgia breach-notification commitment.
 - **Community Guidelines**: harassment, hate, sexual content, solicitation, no minors, explicit CSAE ban, off-platform conduct at events counts, public-venue expectation, alcohol events are 21+ and excluded from the campus space, consequences and appeal.
 - **Child Safety Standards** page (Google Play), naming "Activity Planet."
 - **Non-consensual intimate imagery removal** page and in-app flow.
@@ -88,7 +88,7 @@ Live on the domain by Nov 16 unless noted. Drafted by Claude in week 2, reviewed
 
 - Nominative use only: "Basketball at Georgia State Atlanta," "events at Georgia State University."
 - No "GSU," "Georgia State," or Panther imagery in the app name, icon, screenshots or keyword fields.
-- "Not affiliated with or endorsed by Georgia State University" on the campus space, landing page and store listings until written permission exists; the permission request is part of the week-3 Student Engagement email.
+- "Not affiliated with or endorsed by Georgia State University" on GSU-branded surfaces (the campus space, GSU chapter pages, GSU-sourced imported items, landing sections that name Georgia State; D-035) and in store listings until written permission exists; the permission request is part of the week-3 Student Engagement email.
 
 ## 11. Account deletion (built 2026-10-20, on staging)
 
