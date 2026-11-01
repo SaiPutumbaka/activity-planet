@@ -8,7 +8,7 @@ import { formatMembers, hubChaptersQuery } from "@/lib/hubs";
 import { InlineError, ListSkeleton } from "./hub-states";
 
 /**
- * The hub's chapters (a hub at one campus) with a Claim button. Claiming is a week-4 feature with
+ * The hub's chapters (a hub at one campus or in one neighborhood) with a Claim button. Claiming is a week-4 feature with
  * no RPC yet, so the button explains how verification will work.
  */
 export function HubChapters({
@@ -37,9 +37,10 @@ export function HubChapters({
         />
       ) : chapters.data.length === 0 ? (
         <div className="rounded-card border border-border p-4">
-          <p className="text-[15px] font-semibold">No chapter at Georgia State yet</p>
+          <p className="text-[15px] font-semibold">No chapter here yet</p>
           <p className="mt-1 text-[14px] text-text-2">
-            A chapter is {hubName} at one campus, with its own plans, captains and chat.
+            A chapter is {hubName} at one campus or in one neighborhood, with its own plans,
+            captains and chat.
           </p>
           <Button variant="secondary" className="mt-3" onClick={() => setClaimOpen(true)}>
             Start a chapter
@@ -50,7 +51,7 @@ export function HubChapters({
           {chapters.data.map((chapter) => {
             const count = chapter.chapter_members[0]?.count ?? 0;
             const meta = [
-              chapter.org_campuses?.name ?? "All campuses",
+              chapter.areas?.name ?? chapter.org_campuses?.name ?? "",
               isSensitive ? "" : formatMembers(count),
             ]
               .filter(Boolean)
@@ -92,12 +93,12 @@ function ClaimChapterSheet({ open, onClose }: { open: boolean; onClose: () => vo
     >
       <div className="flex flex-col gap-3 pt-1 text-[15px] text-text-2">
         <p>
-          Chapters are run by a registered student org or a verified captain, so everyone knows who
-          is hosting.
+          Chapters are run by a registered group, like a campus org or a club, or by a verified
+          captain, so everyone knows who is hosting.
         </p>
         <p>
-          Claiming isn't open yet. When it is, student orgs will verify with their school listing or
-          a .edu email, and captains with an ID check.
+          Claiming isn't open yet. When it is, campus orgs will verify with their school listing or
+          a school email, and captains with an ID check.
         </p>
         <p>Until then, post plans in the hub itself. Anyone can.</p>
       </div>

@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import type { Database, Json } from "@ap/core/types";
 
+import { isNamedPlace } from "./geo-place";
 import { supabase } from "./supabase";
 
 /**
@@ -111,12 +112,16 @@ export interface GeoSuggestion {
   lat: number;
   lng: number;
   place_id: string;
+  /** A park, café, venue or named building, not a street address (lib/geo-place.ts). */
+  namedPlace: boolean;
 }
 
 interface GeoapifyResult {
   formatted?: string;
   name?: string;
   address_line1?: string;
+  housenumber?: string;
+  result_type?: string;
   city?: string;
   state_code?: string;
   state?: string;
@@ -157,6 +162,7 @@ export async function geoapifyAutocomplete(
         lat: r.lat,
         lng: r.lon,
         place_id: r.place_id,
+        namedPlace: isNamedPlace(r),
       },
     ];
   });

@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_app/you_/delete")({
 const CONFIRM_WORD = "delete";
 
 const REMOVED_NOW = [
-  "Your name, handle, photo, bio and campus",
+  "Your name, handle, photo, bio, home area and affiliation",
   "Your date of birth, email address and location",
   "The hubs you joined, your notification settings and push registrations",
   "Your sign-in; the email address can be used for a new account straight away",

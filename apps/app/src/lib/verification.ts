@@ -15,7 +15,7 @@ export const campusEmailSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .min(3, "Enter your student email.")
+  .min(3, "Enter your school email.")
   .max(254, "That email is too long.")
   .email("Enter a valid email.");
 
@@ -169,7 +169,7 @@ export function verificationErrorMessage(err: unknown): string {
         ? err.message
         : String(err ?? "");
   if (message.includes("domain_not_recognized")) {
-    return "That email isn't from a campus we know yet. Use the address your school gave you, like you@student.gsu.edu.";
+    return "That email isn't from a campus we know yet. Use the address your school gave you.";
   }
   if (message.includes("email_already_verified")) {
     return "That email is already verified on another account. If it's yours, sign in with that account instead.";

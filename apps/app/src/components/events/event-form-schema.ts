@@ -192,7 +192,7 @@ export function defaultEventFormValues(opts: {
     locationMode: "venue",
     venueId: null,
     venueName: "",
-    venueIsPublic: true,
+    venueIsPublic: false,
     locationText: "",
     addressNote: "",
     approvedOnly: false,
@@ -227,7 +227,8 @@ export function valuesFromEvent(event: EventDetail): EventFormValues {
     locationMode: address?.venue_id ? "venue" : "text",
     venueId: address?.venue_id ?? null,
     venueName: address?.venues?.name ?? "",
-    venueIsPublic: address?.venues?.is_public ?? true,
+    // Unknown means private: the safe reading (D-038).
+    venueIsPublic: address?.venues?.is_public ?? false,
     locationText: address?.location_text ?? "",
     addressNote: address?.address_note ?? "",
     approvedOnly: event.address_visibility === "approved_only",

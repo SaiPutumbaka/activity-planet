@@ -93,7 +93,7 @@ export function EventForm({
     locationMode: w.locationMode ?? "venue",
     venueId: w.venueId ?? null,
     venueName: w.venueName ?? "",
-    venueIsPublic: w.venueIsPublic ?? true,
+    venueIsPublic: w.venueIsPublic ?? false,
     locationText: w.locationText ?? "",
   };
 
@@ -348,7 +348,7 @@ export function EventForm({
                 hint={
                   is21
                     ? "21+ plans live outside the campus space."
-                    : "Only verified students of your campus see it and can join."
+                    : "Only verified members of your campus see it and can join."
                 }
                 checked={field.value && !is21}
                 onCheckedChange={field.onChange}

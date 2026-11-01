@@ -179,16 +179,20 @@ function VerifyPage() {
         {showIntro ? (
           <section className="flex flex-col gap-2 pt-2">
             <h2 className="text-[22px] font-extrabold tracking-[-0.02em]">
-              Verify your student email
+              Verify your school email
             </h2>
             <p className="text-text-2">
-              The campus space is where {orgName} students find chapters, campus events and the
-              week's free food, and only verified students see it. Verify with the email your school
-              gave you and the space opens up; it takes about a minute.
+              The campus space is where {orgName} students, staff and alums find chapters, campus
+              events and the week's free food, and only verified members see it. It's optional:
+              everything else in Activity Planet is open to everyone. Verify with the email your
+              school gave you and the space opens up; it takes about a minute.
             </p>
           </section>
         ) : null}
         {body}
+        <p className="pt-2 text-center text-[12px] text-text-3">
+          Not affiliated with or endorsed by Georgia State University.
+        </p>
       </main>
     </>
   );

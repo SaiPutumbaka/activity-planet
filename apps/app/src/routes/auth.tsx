@@ -30,7 +30,6 @@ function AuthLayout() {
             Help
           </a>
         </p>
-        <p>Not affiliated with or endorsed by Georgia State University.</p>
       </footer>
     </div>
   );

@@ -36,6 +36,11 @@ export interface VenueValue {
 
 type Tab = "search" | "add" | "text";
 
+const PUBLIC_PLACE_OPTIONS = [
+  { value: "private", label: "No, it's private" },
+  { value: "public", label: "Yes, it's public" },
+] as const;
+
 const TABS: readonly { value: Tab; label: string }[] = [
   { value: "search", label: "Find a place" },
   { value: "add", label: "Add a place" },
@@ -254,7 +259,9 @@ function AddPlaceForm({
     setCity(s.city);
     setState(s.state);
     setPostal(s.postal_code);
-    setIsPublic(true);
+    // Only a named place (park, café, venue) starts public. A street address starts private and
+    // the host is asked below (D-038).
+    setIsPublic(s.namedPlace);
     if (!name.trim()) setName(s.name);
   }
 
@@ -364,13 +371,30 @@ function AddPlaceForm({
         disabled={busy}
         className="max-w-[160px]"
       />
-      <Switch
-        label="Public place"
-        hint="On for a park, café or campus building. Off keeps a home address private: it goes only to people you approve."
-        checked={isPublic}
-        onCheckedChange={setIsPublic}
-        disabled={busy}
-      />
+      {picked && !picked.namedPlace ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-[15px] font-medium">Is this a public place?</p>
+          <SegmentedControl
+            value={isPublic ? "public" : "private"}
+            onChange={(v) => setIsPublic(v === "public")}
+            options={PUBLIC_PLACE_OPTIONS}
+            label="Is this a public place?"
+          />
+          <p className="text-[13px] text-text-2">
+            {isPublic
+              ? "Anyone who can see the plan sees this address and a pin on the map."
+              : "Private: the address goes only to people you approve, and the plan shows an approximate area."}
+          </p>
+        </div>
+      ) : (
+        <Switch
+          label="Public place"
+          hint="On for a park, café or campus building. Off keeps a home address private: it goes only to people you approve."
+          checked={isPublic}
+          onCheckedChange={setIsPublic}
+          disabled={busy}
+        />
+      )}
       <Button variant="secondary" onClick={save} loading={saving} disabled={disabled}>
         Save place
       </Button>

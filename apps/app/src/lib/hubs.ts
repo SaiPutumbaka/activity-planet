@@ -136,6 +136,8 @@ export interface HubChapter {
   description: string;
   campus_id: string | null;
   org_campuses: { name: string } | null;
+  /** Set for a neighborhood chapter run by a captain (D-035). */
+  areas: { name: string } | null;
   /** PostgREST count aggregate: one element. Under-counts in sensitive categories (RLS). */
   chapter_members: { count: number }[];
 }
@@ -146,7 +148,9 @@ export const hubChaptersQuery = (hubId: string) =>
     queryFn: async (): Promise<HubChapter[]> => {
       const { data, error } = await supabase
         .from("hub_chapters")
-        .select("id,slug,name,description,campus_id,org_campuses(name),chapter_members(count)")
+        .select(
+          "id,slug,name,description,campus_id,org_campuses(name),areas(name),chapter_members(count)",
+        )
         .eq("hub_id", hubId)
         .eq("is_active", true)
         .order("name");

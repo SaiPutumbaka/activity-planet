@@ -39,14 +39,14 @@ export function EmailStep({
   return (
     <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
       <Field
-        label="Student email"
+        label="School email"
         type="email"
         inputMode="email"
         autoComplete="email"
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
-        placeholder="you@student.gsu.edu"
+        placeholder="you@school.edu"
         value={email}
         onChange={(e) => {
           setEmail(e.target.value);

@@ -60,9 +60,7 @@ function SignUpPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-[28px] font-extrabold tracking-[-0.025em]">Create your account</h1>
-        <p className="mt-1 text-text-2">
-          Any email works. A .edu address unlocks your campus space later.
-        </p>
+        <p className="mt-1 text-text-2">Any email works.</p>
       </div>
 
       <OAuthButtons next={next} />
