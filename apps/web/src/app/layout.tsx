@@ -1,7 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+import { siteUrl } from "@/lib/site";
+
 export const metadata: Metadata = {
+  // Resolves relative URLs in every route's metadata (canonical, og:url, the generated images).
+  metadataBase: new URL(siteUrl()),
   title: {
     default: "Activity Planet",
     template: "%s | Activity Planet",

@@ -3,15 +3,18 @@ import { Figtree } from "next/font/google";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode, SVGProps } from "react";
+import { googleCalendarUrl } from "@ap/core/calendar";
 import { DefaultCover, Mark } from "@ap/ui/brand";
 
 import {
   appEventUrl,
+  calendarEvent,
   excerpt,
-  getEventShareCard,
-  siteUrl,
+  getEventShare,
+  isRestricted,
   spotsLeft,
   type EventShareCard,
+  type EventShareStub,
 } from "@/lib/event-share";
 import {
   DEFAULT_TIMEZONE,
@@ -23,9 +26,11 @@ import {
 } from "@/lib/event-time";
 
 /**
- * The public share page for one event (PLAN 4.3): works logged out, carries an OG image and an
- * Add to Calendar link, and hands off to the app for everything else. Re-rendered at most once a
- * minute so the going count stays fresh without a database call per visit.
+ * The public share page for one event (PLAN 4.3): works logged out, carries an OG image, Add to
+ * Calendar (.ics) and Google Calendar links, and hands off to the app for everything else. A
+ * campus or 21+ plan renders a stub that says only that, with its hub, and the same hand-off.
+ * Re-rendered at most once a minute so the going count stays fresh without a database call per
+ * visit.
  */
 export const revalidate = 60;
 
@@ -35,11 +40,18 @@ type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const card = await getEventShareCard(id);
+  const card = await getEventShare(id);
   if (!card) {
     return {
       title: { absolute: "Plan not found · Activity Planet" },
       description: "This plan may have been removed, or it is not public.",
+      robots: { index: false, follow: false },
+    };
+  }
+  if (isRestricted(card)) {
+    return {
+      title: { absolute: "A plan on Activity Planet" },
+      description: `A ${card.hub_name} plan on Activity Planet. Open it in the app to see the details.`,
       robots: { index: false, follow: false },
     };
   }
@@ -50,7 +62,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = `${when}${where}.${about ? ` ${about}` : ""}`;
 
   return {
-    metadataBase: new URL(siteUrl()),
     title: { absolute: `${card.title} · Activity Planet` },
     description,
     alternates: { canonical: `/e/${card.id}` },
@@ -67,9 +78,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function EventSharePage({ params }: Props) {
   const { id } = await params;
-  const card = await getEventShareCard(id);
-  if (!card) notFound();
+  const share = await getEventShare(id);
+  if (!share) notFound();
+  if (isRestricted(share)) return <RestrictedPage stub={share} />;
 
+  const card = share;
   const now = new Date();
   const live = isHappeningNow(card.starts_at, card.ends_at, now);
   const over = isOver(card.ends_at, now);
@@ -77,6 +90,153 @@ export default async function EventSharePage({ params }: Props) {
   const left = spotsLeft(card);
   const about = excerpt(card.description, 320);
 
+  return (
+    <Frame>
+      <div className="h-[200px] bg-surface-2">
+        {card.cover_url ? (
+          // Covers are hotlinked from Supabase storage and external feeds; next/image would
+          // need a remotePatterns allowlist per host for no gain on a cached share page.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={card.cover_url} alt="" className="size-full object-cover" />
+        ) : (
+          <DefaultCover seed={card.id} />
+        )}
+      </div>
+
+      <div className="flex flex-col gap-5 px-5 pt-4 pb-6">
+        <section className="flex flex-col gap-2.5">
+          <StateLine card={card} live={live} over={over} now={now} />
+          <h1 className="text-[28px] leading-[1.15] font-extrabold tracking-[-0.02em] text-balance">
+            {card.title}
+          </h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex min-h-9 items-center gap-1.5 rounded-control border border-border px-3 text-[14px] font-semibold">
+              {card.hub.emoji ? <span aria-hidden="true">{card.hub.emoji}</span> : null}
+              {card.hub.name}
+            </span>
+            {card.chapter ? (
+              <span className="text-[13px] text-text-2">{card.chapter.name}</span>
+            ) : null}
+          </div>
+          {card.series_id ? (
+            <p className="text-[13px] text-text-2">
+              One week of a weekly plan. Each week is its own RSVP.
+            </p>
+          ) : null}
+        </section>
+
+        <section className="flex flex-col gap-4 rounded-card border border-border p-4">
+          <Row icon={ClockIcon}>
+            <p className="font-semibold tabular-nums">{when}</p>
+            {card.timezone !== DEFAULT_TIMEZONE ? (
+              <p className="text-[13px] text-text-2">Times in {timeZoneLabel(card.timezone)}</p>
+            ) : null}
+          </Row>
+          <Row icon={PinIcon}>
+            <p className="font-semibold">{card.location_hint || "Place shared in the app"}</p>
+            {card.location_hint ? (
+              <p className="text-[13px] text-text-2">Exact spot in the app once you join.</p>
+            ) : null}
+          </Row>
+          <Row icon={UsersIcon}>
+            <p className="font-semibold tabular-nums">
+              {card.going_count} going
+              {card.capacity !== null ? ` of ${card.capacity}` : ""}
+              {left !== null && left > 0 ? ` · ${left} ${left === 1 ? "spot" : "spots"} left` : ""}
+              {left === 0 ? " · Full" : ""}
+            </p>
+            {card.min_headcount !== null && card.going_count < card.min_headcount ? (
+              <p className="text-[13px] text-text-2">
+                Happens if at least {card.min_headcount} join.
+              </p>
+            ) : null}
+          </Row>
+          <Row icon={TagIcon}>
+            <p className="font-semibold">{card.is_free ? "Free" : (card.price_text ?? "Paid")}</p>
+          </Row>
+        </section>
+
+        {card.host ? (
+          <section className="flex items-center gap-3">
+            <Avatar src={card.host.avatar_url} name={card.host.first_name} />
+            <div className="min-w-0">
+              <p className="truncate text-[15px] font-semibold">{card.host.first_name}</p>
+              <p className="truncate text-[13px] text-text-2">Hosting · @{card.host.handle}</p>
+            </div>
+          </section>
+        ) : card.source_name ? (
+          <p className="text-[13px] text-text-2">Listed from {card.source_name}.</p>
+        ) : null}
+
+        {about ? (
+          <section className="flex flex-col gap-1.5">
+            <h2 className="text-[17px] font-bold tracking-[-0.01em]">About</h2>
+            <p className="text-[15px] leading-[1.45] text-text">{about}</p>
+          </section>
+        ) : null}
+
+        <section className="flex flex-col gap-2.5 pt-1">
+          <a
+            href={appEventUrl(card.id)}
+            className="inline-flex min-h-12 items-center justify-center rounded-control bg-primary px-5 text-[16px] font-bold text-on-primary"
+          >
+            Open in Activity Planet
+          </a>
+          {/* No download attribute: iOS Safari then hands text/calendar to Calendar. */}
+          <a
+            href={`/e/${card.id}/calendar.ics`}
+            className="inline-flex min-h-12 items-center justify-center rounded-control border border-border-strong px-5 text-[16px] font-semibold text-text hover:bg-surface-2"
+          >
+            Add to calendar
+          </a>
+          <a
+            href={googleCalendarUrl(calendarEvent(card))}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-11 items-center justify-center text-[15px] font-semibold text-primary-text underline-offset-2 hover:underline"
+          >
+            Add to Google Calendar
+          </a>
+        </section>
+      </div>
+    </Frame>
+  );
+}
+
+/** A campus or 21+ plan: nothing about it may be shown logged out except its hub. */
+function RestrictedPage({ stub }: { stub: EventShareStub }) {
+  return (
+    <Frame>
+      <div className="h-[200px] bg-surface-2">
+        <DefaultCover seed={stub.id} />
+      </div>
+      <div className="flex flex-col gap-5 px-5 pt-4 pb-6">
+        <section className="flex flex-col gap-2.5">
+          <h1 className="text-[28px] leading-[1.15] font-extrabold tracking-[-0.02em] text-balance">
+            {stub.restricted === "campus" ? "A campus plan" : "A 21+ plan"}
+          </h1>
+          <span className="inline-flex min-h-9 items-center self-start rounded-control border border-border px-3 text-[14px] font-semibold">
+            {stub.hub_name}
+          </span>
+          <p className="text-[15px] leading-[1.45] text-text-2">
+            {stub.restricted === "campus"
+              ? "This plan is open to verified members of one campus, so its details stay in the app. Open it there to see whether you can join."
+              : "This plan is for people 21 and over, so its details stay in the app. Open it there to see the time, the place and who's going."}
+          </p>
+        </section>
+        <a
+          href={appEventUrl(stub.id)}
+          className="inline-flex min-h-12 items-center justify-center rounded-control bg-primary px-5 text-[16px] font-bold text-on-primary"
+        >
+          Open in Activity Planet
+        </a>
+      </div>
+    </Frame>
+  );
+}
+
+/** The page shell: the lockup header, one card column and the legal footer. */
+function Frame({ children }: { children: ReactNode }) {
   return (
     <div className={`${figtree.className} min-h-dvh bg-surface text-text sm:bg-surface-2`}>
       <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col sm:min-h-0 sm:py-8">
@@ -88,111 +248,7 @@ export default async function EventSharePage({ params }: Props) {
             </Link>
             <span className="text-[13px] font-medium text-text-2">A plan</span>
           </header>
-
-          <div className="h-[200px] bg-surface-2">
-            {card.cover_url ? (
-              // Covers are hotlinked from Supabase storage and external feeds; next/image would
-              // need a remotePatterns allowlist per host for no gain on a cached share page.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={card.cover_url} alt="" className="size-full object-cover" />
-            ) : (
-              <DefaultCover seed={card.id} />
-            )}
-          </div>
-
-          <div className="flex flex-col gap-5 px-5 pt-4 pb-6">
-            <section className="flex flex-col gap-2.5">
-              <StateLine card={card} live={live} over={over} now={now} />
-              <h1 className="text-[28px] leading-[1.15] font-extrabold tracking-[-0.02em] text-balance">
-                {card.title}
-              </h1>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex min-h-9 items-center gap-1.5 rounded-control border border-border px-3 text-[14px] font-semibold">
-                  {card.hub.emoji ? <span aria-hidden="true">{card.hub.emoji}</span> : null}
-                  {card.hub.name}
-                </span>
-                {card.chapter ? (
-                  <span className="text-[13px] text-text-2">{card.chapter.name}</span>
-                ) : null}
-              </div>
-              {card.series_id ? (
-                <p className="text-[13px] text-text-2">
-                  One week of a weekly plan. Each week is its own RSVP.
-                </p>
-              ) : null}
-            </section>
-
-            <section className="flex flex-col gap-4 rounded-card border border-border p-4">
-              <Row icon={ClockIcon}>
-                <p className="font-semibold tabular-nums">{when}</p>
-                {card.timezone !== DEFAULT_TIMEZONE ? (
-                  <p className="text-[13px] text-text-2">Times in {timeZoneLabel(card.timezone)}</p>
-                ) : null}
-              </Row>
-              <Row icon={PinIcon}>
-                <p className="font-semibold">{card.location_hint || "Place shared in the app"}</p>
-                {card.location_hint ? (
-                  <p className="text-[13px] text-text-2">Exact spot in the app once you join.</p>
-                ) : null}
-              </Row>
-              <Row icon={UsersIcon}>
-                <p className="font-semibold tabular-nums">
-                  {card.going_count} going
-                  {card.capacity !== null ? ` of ${card.capacity}` : ""}
-                  {left !== null && left > 0
-                    ? ` · ${left} ${left === 1 ? "spot" : "spots"} left`
-                    : ""}
-                  {left === 0 ? " · Full" : ""}
-                </p>
-                {card.min_headcount !== null && card.going_count < card.min_headcount ? (
-                  <p className="text-[13px] text-text-2">
-                    Happens if at least {card.min_headcount} join.
-                  </p>
-                ) : null}
-              </Row>
-              <Row icon={TagIcon}>
-                <p className="font-semibold">
-                  {card.is_free ? "Free" : (card.price_text ?? "Paid")}
-                  {card.min_age === 21 ? " · 21+" : ""}
-                </p>
-              </Row>
-            </section>
-
-            {card.host ? (
-              <section className="flex items-center gap-3">
-                <Avatar src={card.host.avatar_url} name={card.host.first_name} />
-                <div className="min-w-0">
-                  <p className="truncate text-[15px] font-semibold">{card.host.first_name}</p>
-                  <p className="truncate text-[13px] text-text-2">Hosting · @{card.host.handle}</p>
-                </div>
-              </section>
-            ) : card.source_name ? (
-              <p className="text-[13px] text-text-2">Listed from {card.source_name}.</p>
-            ) : null}
-
-            {about ? (
-              <section className="flex flex-col gap-1.5">
-                <h2 className="text-[17px] font-bold tracking-[-0.01em]">About</h2>
-                <p className="text-[15px] leading-[1.45] text-text">{about}</p>
-              </section>
-            ) : null}
-
-            <section className="flex flex-col gap-2.5 pt-1">
-              <a
-                href={appEventUrl(card.id)}
-                className="inline-flex min-h-12 items-center justify-center rounded-control bg-primary px-5 text-[16px] font-bold text-on-primary"
-              >
-                Open in Activity Planet
-              </a>
-              <a
-                href={`/e/${card.id}/calendar.ics`}
-                download
-                className="inline-flex min-h-12 items-center justify-center rounded-control border border-border-strong px-5 text-[16px] font-semibold text-text hover:bg-surface-2"
-              >
-                Add to calendar
-              </a>
-            </section>
-          </div>
+          {children}
         </article>
 
         <footer className="flex flex-col gap-2 px-5 py-6 text-[13px] text-text-2">

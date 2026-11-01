@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.activityplanet.app";
+import { APP_URL } from "@/lib/site";
+
 // Placeholder until the mailbox exists (FOUNDER-TODO item 16); the Privacy Policy must name the same address.
 const SUPPORT_EMAIL = "support@activityplanet.app";
 

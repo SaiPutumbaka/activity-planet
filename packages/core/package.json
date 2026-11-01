@@ -8,7 +8,9 @@
     "./validation": "./src/validation/index.ts",
     "./catalog": "./src/catalog/hub-catalog.ts",
     "./supabase": "./src/supabase/index.ts",
-    "./types": "./src/types/database.ts"
+    "./types": "./src/types/database.ts",
+    "./calendar": "./src/calendar/ics.ts",
+    "./site": "./src/config/site.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

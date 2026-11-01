@@ -12,13 +12,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LinkRow } from "@/components/you/link-row";
 import { authErrorMessage, signOut } from "@/lib/auth";
 import { profileQuery } from "@/lib/profile";
+import { SITE_URL } from "@/lib/site";
 import { setThemePreference, useThemePreference, type ThemePreference } from "@/lib/theme";
 import { membershipQuery } from "@/lib/verification";
 
 const appRoute = getRouteApi("/_app");
-const siteUrl =
-  (import.meta.env.VITE_SITE_URL as string | undefined) ?? "https://activityplanet.app";
-
 export const Route = createFileRoute("/_app/you")({
   component: YouPage,
 });
@@ -140,13 +138,13 @@ function YouPage() {
           <p>Activity Planet · early build</p>
           <p>Not affiliated with or endorsed by Georgia State University.</p>
           <p className="flex gap-3">
-            <a href={`${siteUrl}/terms`} className="underline-offset-2 hover:underline">
+            <a href={`${SITE_URL}/terms`} className="underline-offset-2 hover:underline">
               Terms
             </a>
-            <a href={`${siteUrl}/privacy`} className="underline-offset-2 hover:underline">
+            <a href={`${SITE_URL}/privacy`} className="underline-offset-2 hover:underline">
               Privacy
             </a>
-            <a href={`${siteUrl}/safety`} className="underline-offset-2 hover:underline">
+            <a href={`${SITE_URL}/safety`} className="underline-offset-2 hover:underline">
               Safety
             </a>
           </p>

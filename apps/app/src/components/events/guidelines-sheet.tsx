@@ -1,8 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
-
-const siteUrl =
-  (import.meta.env.VITE_SITE_URL as string | undefined) ?? "https://activityplanet.app";
+import { SITE_URL } from "@/lib/site";
 
 const RULES = [
   { title: "Be real", body: "Your name, your face, your plans. No fake accounts." },
@@ -65,12 +63,12 @@ export function GuidelinesSheet({
       <p className="mt-4 text-[13px] text-text-3">
         The full text is at{" "}
         <a
-          href={`${siteUrl}/guidelines`}
+          href={`${SITE_URL}/guidelines`}
           target="_blank"
           rel="noreferrer"
           className="font-medium text-text-2 underline underline-offset-2"
         >
-          {siteUrl.replace(/^https?:\/\//, "")}/guidelines
+          {SITE_URL.replace(/^https?:\/\//, "")}/guidelines
         </a>
         .
       </p>

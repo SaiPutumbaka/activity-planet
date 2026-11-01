@@ -82,7 +82,7 @@ function SignInPage() {
           autoComplete="email"
           inputMode="email"
           autoCapitalize="none"
-          placeholder="you@student.gsu.edu"
+          placeholder="you@example.com"
           error={form.formState.errors.email?.message}
           {...form.register("email")}
         />

@@ -1,4 +1,4 @@
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.activityplanet.app";
+import { APP_URL } from "@/lib/site";
 
 export default function LandingPage() {
   return (
@@ -8,8 +8,8 @@ export default function LandingPage() {
         Find your people and something to do with them this week.
       </h1>
       <p className="text-lg text-text-2">
-        Hubs for every interest, real plans, real connection. Launching for Georgia State students
-        in January 2027. This page is being rebuilt; the full site arrives in the coming weeks.
+        Hubs for every interest, real plans, real connection. Launching in Atlanta in January
+        2027. This page is being rebuilt; the full site arrives in the coming weeks.
       </p>
       <p className="text-sm text-text-2">
         Not affiliated with or endorsed by Georgia State University.

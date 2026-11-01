@@ -1,8 +1,7 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { Mark } from "@ap/ui/brand";
 
-const siteUrl =
-  (import.meta.env.VITE_SITE_URL as string | undefined) ?? "https://activityplanet.app";
+import { SITE_URL } from "@/lib/site";
 
 /** Shared frame for every auth screen: the lockup on top, one column, legal links at the bottom. */
 export const Route = createFileRoute("/auth")({
@@ -21,13 +20,13 @@ function AuthLayout() {
       </main>
       <footer className="flex flex-col items-center gap-1 py-6 text-center text-[12px] text-text-3">
         <p className="flex gap-3">
-          <a href={`${siteUrl}/terms`} className="underline-offset-2 hover:underline">
+          <a href={`${SITE_URL}/terms`} className="underline-offset-2 hover:underline">
             Terms
           </a>
-          <a href={`${siteUrl}/privacy`} className="underline-offset-2 hover:underline">
+          <a href={`${SITE_URL}/privacy`} className="underline-offset-2 hover:underline">
             Privacy
           </a>
-          <a href={`${siteUrl}/support`} className="underline-offset-2 hover:underline">
+          <a href={`${SITE_URL}/support`} className="underline-offset-2 hover:underline">
             Help
           </a>
         </p>

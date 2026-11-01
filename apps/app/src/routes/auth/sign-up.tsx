@@ -10,12 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Field, FormError } from "@/components/ui/field";
 import { authErrorMessage, authRedirect, getSession } from "@/lib/auth";
 import { internalTo } from "@/lib/navigation";
+import { SITE_URL } from "@/lib/site";
 import { supabase } from "@/lib/supabase";
 
 const searchSchema = z.object({ next: z.string().optional() });
-const siteUrl =
-  (import.meta.env.VITE_SITE_URL as string | undefined) ?? "https://activityplanet.app";
-
 export const Route = createFileRoute("/auth/sign-up")({
   validateSearch: searchSchema,
   beforeLoad: async ({ context: { queryClient }, search }) => {
@@ -76,7 +74,7 @@ function SignUpPage() {
           autoComplete="email"
           inputMode="email"
           autoCapitalize="none"
-          placeholder="you@student.gsu.edu"
+          placeholder="you@example.com"
           error={form.formState.errors.email?.message}
           {...form.register("email")}
         />
@@ -101,11 +99,11 @@ function SignUpPage() {
         </Button>
         <p className="text-center text-[12px] leading-relaxed text-text-3">
           By continuing you agree to the{" "}
-          <a href={`${siteUrl}/terms`} className="underline underline-offset-2">
+          <a href={`${SITE_URL}/terms`} className="underline underline-offset-2">
             Terms
           </a>{" "}
           and{" "}
-          <a href={`${siteUrl}/privacy`} className="underline underline-offset-2">
+          <a href={`${SITE_URL}/privacy`} className="underline underline-offset-2">
             Privacy Policy
           </a>
           .

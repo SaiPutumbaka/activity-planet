@@ -1,12 +1,16 @@
 import { cache } from "react";
 import { z } from "zod";
+import type { CalendarEvent } from "@ap/core/calendar";
 
+import { APP_URL, siteUrl } from "./site";
 import { createAnonServerClient } from "./supabase-server";
 
 /**
  * The public event card behind /e/[id], its OG image and its .ics file. Everything comes from
- * public.event_share_card(uuid), which returns the card for published, public, 18+ events and
- * null for anything else, and never the address or the attendee list.
+ * public.event_share_card(uuid): the card for published, public, 18+ events (members-only ones
+ * included; joining is what needs the membership), a stub for published campus or 21+ events,
+ * and null for anything else or when the host's account is not active. Never the address or the
+ * attendee list.
  */
 const shareCardSchema = z.object({
   id: z.string(),
@@ -40,7 +44,22 @@ const shareCardSchema = z.object({
     .nullable(),
 });
 
+/** A campus or 21+ plan: only that it exists, why it is closed, and its hub. */
+const restrictedStubSchema = z.object({
+  id: z.string(),
+  restricted: z.enum(["campus", "age"]),
+  hub_name: z.string(),
+});
+
+const shareResultSchema = z.union([restrictedStubSchema, shareCardSchema]);
+
 export type EventShareCard = z.infer<typeof shareCardSchema>;
+export type EventShareStub = z.infer<typeof restrictedStubSchema>;
+export type EventShareResult = z.infer<typeof shareResultSchema>;
+
+export function isRestricted(result: EventShareResult): result is EventShareStub {
+  return "restricted" in result;
+}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -49,17 +68,18 @@ export function isUuid(value: string): boolean {
 }
 
 /**
- * The card, or null when there is nothing public to show (unknown id, not a uuid, cancelled,
- * members-only, campus-only, 21+). Wrapped in React's cache so generateMetadata and the page
- * share one database call per request. A database error throws, so an outage is a 500, not a 404.
+ * The card or the stub, or null when there is nothing to show (unknown id, not a uuid,
+ * cancelled, host not active). Wrapped in React's cache so generateMetadata, the page and the OG
+ * image share one database call per request. A database error throws, so an outage is a 500,
+ * not a 404.
  */
-export const getEventShareCard = cache(async (id: string): Promise<EventShareCard | null> => {
+export const getEventShare = cache(async (id: string): Promise<EventShareResult | null> => {
   if (!isUuid(id)) return null;
   const supabase = createAnonServerClient();
   const { data, error } = await supabase.rpc("event_share_card", { p_event_id: id });
   if (error) throw new Error(`event_share_card failed: ${error.message}`);
   if (data === null || data === undefined) return null;
-  const parsed = shareCardSchema.safeParse(data);
+  const parsed = shareResultSchema.safeParse(data);
   if (!parsed.success) {
     console.error("event_share_card returned an unexpected shape", parsed.error.issues);
     return null;
@@ -67,19 +87,10 @@ export const getEventShareCard = cache(async (id: string): Promise<EventShareCar
   return parsed.data;
 });
 
-/** Where the product app is served; the primary call to action deep-links into it. */
-export const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001").replace(
-  /\/$/,
-  "",
-);
-
-/** This site's origin, for absolute share and calendar URLs. */
-export function siteUrl(): string {
-  const explicit = process.env.NEXT_PUBLIC_SITE_URL;
-  if (explicit) return explicit.replace(/\/$/, "");
-  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  if (vercel) return `https://${vercel}`;
-  return "http://localhost:3000";
+/** The full card only: the .ics route and anything that needs times and places. */
+export async function getEventShareCard(id: string): Promise<EventShareCard | null> {
+  const result = await getEventShare(id);
+  return result && !isRestricted(result) ? result : null;
 }
 
 export function appEventUrl(id: string): string {
@@ -88,6 +99,24 @@ export function appEventUrl(id: string): string {
 
 export function shareUrl(id: string): string {
   return `${siteUrl()}/e/${id}`;
+}
+
+/**
+ * The card as a calendar entry for the .ics file and the Google Calendar link. LOCATION is the
+ * coarse location hint only, never the address (D-027).
+ */
+export function calendarEvent(card: EventShareCard): CalendarEvent {
+  const url = shareUrl(card.id);
+  const about = excerpt(card.description, 600);
+  return {
+    id: card.id,
+    title: card.title,
+    startsAt: card.starts_at,
+    endsAt: card.ends_at,
+    location: card.location_hint,
+    description: [about, `Open in Activity Planet: ${url}`].filter(Boolean).join("\n\n"),
+    url,
+  };
 }
 
 /** Seats left, or null when the plan has no capacity. */

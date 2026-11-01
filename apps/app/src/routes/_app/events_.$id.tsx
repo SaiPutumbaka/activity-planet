@@ -2,8 +2,19 @@ import { useState, type ReactNode } from "react";
 import { Link, createFileRoute, getRouteApi } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
-import { CalendarX, Clock, ExternalLink, Lock, MapPin, Share, Ticket, Users } from "lucide-react";
+import {
+  CalendarPlus,
+  CalendarX,
+  Clock,
+  ExternalLink,
+  Lock,
+  MapPin,
+  Share,
+  Ticket,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
+import { buildIcs, googleCalendarUrl, icsFilename, type CalendarEvent } from "@ap/core/calendar";
 import { DefaultCover } from "@ap/ui/brand";
 
 import { AttendeesSection } from "@/components/events/attendees-section";
@@ -32,11 +43,10 @@ import {
   eventRsvpsQuery,
   type EventDetail,
 } from "@/lib/events";
+import { eventShareUrl, shareLink } from "@/lib/share";
 import { formatVenueAddress } from "@/lib/venues";
 
 const appRoute = getRouteApi("/_app");
-const SITE_URL =
-  (import.meta.env.VITE_SITE_URL as string | undefined) ?? "https://activityplanet.app";
 
 /**
  * The event page. `events_.$id.tsx` keeps /events/$id out of any /events list route, the way
@@ -54,15 +64,8 @@ function EventPage() {
   const { session } = appRoute.useRouteContext();
   const event = useQuery(eventQuery(id));
 
-  async function share() {
-    // The site's public share page: works logged out, with an OG image and Add to Calendar.
-    const url = `${SITE_URL}/e/${id}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link copied.");
-    } catch {
-      toast.error(`Couldn't copy. The link is ${url}`);
-    }
+  function share() {
+    void shareLink({ url: eventShareUrl(id), title: event.data?.title });
   }
 
   return (
@@ -296,6 +299,10 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
             ) : null}
           </section>
 
+          {myStatus === "going" && event.status === "published" ? (
+            <AddToCalendar event={event} location={calendarLocation(event)} />
+          ) : null}
+
           {host ? (
             <section className="flex items-center gap-3">
               <Avatar src={host.avatar_url} name={host.first_name} size={44} />
@@ -386,6 +393,63 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
         />
       </Sheet>
     </>
+  );
+}
+
+/**
+ * Where the calendar entry says the plan is: the address the viewer can see (they are going),
+ * else the coarse hint.
+ */
+function calendarLocation(event: EventDetail): string | null {
+  const address = event.event_addresses;
+  const venue = address?.venues ?? null;
+  const exact = venue ? formatVenueAddress(venue) : address?.location_text;
+  return [venue?.name, exact].filter(Boolean).join(", ") || event.location_hint || null;
+}
+
+/**
+ * Add to calendar for a Going viewer: an .ics built on the device (Apple Calendar, Outlook and
+ * most phones open it), plus Google Calendar's prefilled page, which cannot import a file.
+ */
+function AddToCalendar({ event, location }: { event: EventDetail; location: string | null }) {
+  const entry: CalendarEvent = {
+    id: event.id,
+    title: event.title,
+    startsAt: event.starts_at,
+    endsAt: event.ends_at,
+    location,
+    description: event.description || null,
+    url: eventShareUrl(event.id),
+  };
+
+  function download() {
+    const blob = new Blob([buildIcs(entry)], { type: "text/calendar;charset=utf-8" });
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = icsFilename(event.title);
+    document.body.append(a);
+    a.click();
+    a.remove();
+    // Some browsers read the blob after click() returns.
+    setTimeout(() => URL.revokeObjectURL(href), 1000);
+  }
+
+  return (
+    <section className="flex flex-wrap items-center gap-2">
+      <Button variant="outline" size="sm" onClick={download}>
+        <CalendarPlus className="size-4" aria-hidden="true" />
+        Add to calendar
+      </Button>
+      <a
+        href={googleCalendarUrl(entry)}
+        target="_blank"
+        rel="noreferrer"
+        className={buttonVariants({ variant: "ghost", size: "sm" })}
+      >
+        Google Calendar
+      </a>
+    </section>
   );
 }
 
