@@ -377,7 +377,11 @@ section 1) and the first real sign-up once the app URL is reachable.
   the app URL to anyone else.
 - **Scheduled jobs** (`refresh_hub_stats`, `materialize_all_event_series`) arrive with the week-4
   migration that adds `pg_cron`.
-- **Process from here.** A migration is a file in `supabase/migrations/`. Claude applies a new one
-  to staging first (runs the SQL, then records the file's version in `schema_migrations`), verifies
-  the app against staging, and commits; the push to main runs it on production and then deploys.
+- **Process from here.** A migration is a file in `supabase/migrations/`. Claude pushes it to the
+  working branch and runs "Migrate database then deploy" on that branch with `staging_only` ticked
+  (from 2026-11-01): the rehearsal applies every file to a fresh database, then the CLI pushes it to
+  staging and records it; production steps never run off `main`. Claude verifies the app against
+  staging, then merges to main, where the push runs it on production and then deploys. The Supabase
+  connector stays for read-only checks: its confirmation for destructive SQL cannot reach cloud
+  sessions.
   Staging is never ahead of the repo, and production is never ahead of staging.

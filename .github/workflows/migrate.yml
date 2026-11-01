@@ -6,6 +6,11 @@ name: Migrate database then deploy
 # setting the repository variable MIGRATIONS_ENABLED to "true" (kept unset until the production
 # cutover in docs/ops/production-cutover.md).
 #
+# Staging only: Run workflow on any branch with staging_only ticked. It rehearses on a fresh
+# database, applies that branch's migrations to staging, optionally runs staging_file there, and
+# skips every production step (they also never run from a ref other than main). This is how Claude
+# applies a new migration to staging before it merges, without the Supabase connector.
+#
 # The CLI is pinned (2.122.0, the TypeScript rewrite) so the cutover runs exactly the binary the
 # dry run proved; bump it only after a fresh dry run. With a fixed version setup-cli downloads the
 # release asset directly and never calls the GitHub API.
@@ -46,6 +51,14 @@ on:
         description: "Rehearse, link, list and show what would be pushed; apply nothing to production"
         type: boolean
         default: false
+      staging_only:
+        description: "Rehearse, then apply this ref's migrations (and staging_file) to staging only; production is never touched"
+        type: boolean
+        default: false
+      staging_file:
+        description: "Optional SQL file in this ref to run on staging after the push (for example a staging seed)"
+        type: string
+        default: ""
 
 concurrency:
   group: migrate-main
@@ -62,7 +75,7 @@ jobs:
   # statement splitter and transaction batching, so a file that the CLI handles differently from
   # the management API fails here, on the runner, not on production.
   rehearse:
-    if: inputs.dry_run == true
+    if: inputs.dry_run == true || inputs.staging_only == true
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -84,7 +97,10 @@ jobs:
           supabase migration list --local
 
   migrate:
-    if: vars.MIGRATIONS_ENABLED == 'true' || inputs.dry_run == true
+    # Waits for the rehearsal when it runs (dry runs and staging-only runs) and never pushes after
+    # a failed one; on a push to main the rehearsal is skipped and this runs straight away.
+    needs: rehearse
+    if: ${{ !cancelled() && needs.rehearse.result != 'failure' && (vars.MIGRATIONS_ENABLED == 'true' || inputs.dry_run == true) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -126,7 +142,19 @@ jobs:
         run: |
           supabase db query --linked --file supabase/seed/hubs.sql
 
+      # Lets Claude apply a branch's migration and staging-only data to staging without the
+      # Supabase connector, whose destructive-SQL confirmation cannot reach cloud sessions.
+      - name: Staging, run the requested file
+        if: inputs.staging_file != ''
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+          STAGING_FILE: ${{ inputs.staging_file }}
+        run: |
+          supabase db query --linked --file "$STAGING_FILE"
+
       - name: Production, link and list migrations
+        if: inputs.staging_only != true && github.ref == 'refs/heads/main'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
@@ -135,6 +163,7 @@ jobs:
           supabase migration list --linked
 
       - name: Production, probe the Management API query path
+        if: inputs.staging_only != true && github.ref == 'refs/heads/main'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
@@ -142,6 +171,7 @@ jobs:
           supabase db query --linked "select 1 as ok"
 
       - name: Production, push migrations
+        if: inputs.staging_only != true && github.ref == 'refs/heads/main'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
@@ -149,7 +179,7 @@ jobs:
           supabase db push --linked --include-all --yes $DRY_RUN
 
       - name: Production, seed hubs
-        if: inputs.dry_run != true
+        if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
@@ -160,7 +190,7 @@ jobs:
       # deployed after the push. send-verification-code is deployed only together with its
       # RESEND_API_KEY secret (without the key it logs codes instead of emailing them).
       - name: Production, deploy the delete-account function
-        if: inputs.dry_run != true
+        if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -168,7 +198,7 @@ jobs:
           supabase functions deploy delete-account --project-ref "$PROD_PROJECT_REF" --use-api
 
       - name: Deploy web and app
-        if: inputs.dry_run != true
+        if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         env:
           HOOK_WEB: ${{ secrets.VERCEL_DEPLOY_HOOK_WEB }}
           HOOK_APP: ${{ secrets.VERCEL_DEPLOY_HOOK_APP }}
