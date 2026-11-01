@@ -1,7 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase management API after
- * migrations 1 to 6 (schema_version 2.6); still valid at 2.9, since migrations 7 to 9 changed
- * no public-schema signatures. Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 10 (schema_version 2.10). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -45,6 +44,74 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [];
+      };
+      area_waitlist: {
+        Row: {
+          city: string;
+          created_at: string;
+          user_id: string;
+        };
+        Insert: {
+          city: string;
+          created_at?: string;
+          user_id: string;
+        };
+        Update: {
+          city?: string;
+          created_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      areas: {
+        Row: {
+          center: unknown;
+          created_at: string;
+          default_radius_km: number;
+          id: string;
+          kind: string;
+          name: string;
+          parent_id: string | null;
+          slug: string;
+          sort: number;
+          timezone: string;
+          updated_at: string;
+        };
+        Insert: {
+          center: unknown;
+          created_at?: string;
+          default_radius_km?: number;
+          id?: string;
+          kind?: string;
+          name: string;
+          parent_id?: string | null;
+          slug: string;
+          sort?: number;
+          timezone?: string;
+          updated_at?: string;
+        };
+        Update: {
+          center?: unknown;
+          created_at?: string;
+          default_radius_km?: number;
+          id?: string;
+          kind?: string;
+          name?: string;
+          parent_id?: string | null;
+          slug?: string;
+          sort?: number;
+          timezone?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "areas_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "areas";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       auth_provider_secrets: {
         Row: {
@@ -586,6 +653,7 @@ export type Database = {
       };
       hub_chapters: {
         Row: {
+          area_id: string | null;
           campus_id: string | null;
           cover_url: string | null;
           created_at: string;
@@ -595,11 +663,12 @@ export type Database = {
           id: string;
           is_active: boolean;
           name: string;
-          org_id: string;
+          org_id: string | null;
           slug: string;
           updated_at: string;
         };
         Insert: {
+          area_id?: string | null;
           campus_id?: string | null;
           cover_url?: string | null;
           created_at?: string;
@@ -609,11 +678,12 @@ export type Database = {
           id?: string;
           is_active?: boolean;
           name: string;
-          org_id: string;
+          org_id?: string | null;
           slug: string;
           updated_at?: string;
         };
         Update: {
+          area_id?: string | null;
           campus_id?: string | null;
           cover_url?: string | null;
           created_at?: string;
@@ -623,11 +693,18 @@ export type Database = {
           id?: string;
           is_active?: boolean;
           name?: string;
-          org_id?: string;
+          org_id?: string | null;
           slug?: string;
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "hub_chapters_area_id_fkey";
+            columns: ["area_id"];
+            isOneToOne: false;
+            referencedRelation: "areas";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "hub_chapters_campus_id_fkey";
             columns: ["campus_id"];
@@ -1132,6 +1209,7 @@ export type Database = {
           birth_date: string | null;
           created_at: string;
           email: string;
+          feed_radius_km: number;
           last_seen_at: string | null;
           location: unknown;
           location_text: string;
@@ -1143,6 +1221,7 @@ export type Database = {
           birth_date?: string | null;
           created_at?: string;
           email: string;
+          feed_radius_km?: number;
           last_seen_at?: string | null;
           location?: unknown;
           location_text?: string;
@@ -1154,6 +1233,7 @@ export type Database = {
           birth_date?: string | null;
           created_at?: string;
           email?: string;
+          feed_radius_km?: number;
           last_seen_at?: string | null;
           location?: unknown;
           location_text?: string;
@@ -1182,6 +1262,7 @@ export type Database = {
           guidelines_accepted_at: string | null;
           handle: string;
           handle_changed_at: string | null;
+          home_area_id: string | null;
           home_campus_id: string | null;
           home_org_id: string | null;
           id: string;
@@ -1199,6 +1280,7 @@ export type Database = {
           guidelines_accepted_at?: string | null;
           handle: string;
           handle_changed_at?: string | null;
+          home_area_id?: string | null;
           home_campus_id?: string | null;
           home_org_id?: string | null;
           id: string;
@@ -1216,6 +1298,7 @@ export type Database = {
           guidelines_accepted_at?: string | null;
           handle?: string;
           handle_changed_at?: string | null;
+          home_area_id?: string | null;
           home_campus_id?: string | null;
           home_org_id?: string | null;
           id?: string;
@@ -1224,6 +1307,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "profiles_home_area_id_fkey";
+            columns: ["home_area_id"];
+            isOneToOne: false;
+            referencedRelation: "areas";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "profiles_home_campus_id_fkey";
             columns: ["home_campus_id"];
@@ -1676,6 +1766,7 @@ export type Database = {
       };
       complete_onboarding: {
         Args: {
+          p_area_id?: string;
           p_birth_date: string;
           p_campus_id?: string;
           p_first_name: string;
@@ -1693,6 +1784,7 @@ export type Database = {
           guidelines_accepted_at: string | null;
           handle: string;
           handle_changed_at: string | null;
+          home_area_id: string | null;
           home_campus_id: string | null;
           home_org_id: string | null;
           id: string;
@@ -1918,6 +2010,59 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      feed_events_v2: {
+        Args: {
+          p_free_only?: boolean;
+          p_from: string;
+          p_hub_ids?: string[];
+          p_lat?: number;
+          p_limit?: number;
+          p_lng?: number;
+          p_radius_km?: number;
+          p_to: string;
+        };
+        Returns: {
+          address_visibility: Database["public"]["Enums"]["address_visibility"];
+          campus_id: string;
+          capacity: number;
+          chapter_id: string;
+          cover_url: string;
+          created_at: string;
+          description: string;
+          distance_band: string;
+          ends_at: string;
+          external_url: string;
+          going_count: number;
+          host_id: string;
+          hub_emoji: string;
+          hub_id: string;
+          hub_name: string;
+          hub_slug: string;
+          id: string;
+          interested_count: number;
+          is_free: boolean;
+          is_imported: boolean;
+          kind: Database["public"]["Enums"]["event_kind"];
+          location_hint: string;
+          matched_by: string;
+          members_only: boolean;
+          min_age: number;
+          min_headcount: number;
+          occurrence_date: string;
+          price_text: string;
+          section: string;
+          series_id: string;
+          source_name: string;
+          starts_at: string;
+          status: Database["public"]["Enums"]["event_status"];
+          timezone: string;
+          title: string;
+          updated_at: string;
+          visibility: Database["public"]["Enums"]["event_visibility"];
+          waitlist_count: number;
+          waitlist_enabled: boolean;
+        }[];
+      };
       generate_handle: { Args: { p_email: string }; Returns: string };
       handle_available: { Args: { p_handle: string }; Returns: boolean };
       has_org_role: {
@@ -1941,6 +2086,20 @@ export type Database = {
       is_privileged: { Args: never; Returns: boolean };
       is_service_role: { Args: never; Returns: boolean };
       is_valid_timezone: { Args: { p_tz: string }; Returns: boolean };
+      join_area_waitlist: {
+        Args: { p_city: string };
+        Returns: {
+          city: string;
+          created_at: string;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "area_waitlist";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       materialize_all_event_series: {
         Args: { p_weeks?: number };
         Returns: number;
@@ -2005,6 +2164,10 @@ export type Database = {
           p_user: string;
         };
         Returns: undefined;
+      };
+      set_home_area: {
+        Args: { p_area_id: string; p_radius_km?: number };
+        Returns: Json;
       };
       set_rsvp: {
         Args: {
@@ -2158,6 +2321,7 @@ export type Database = {
       };
       viewer_age: { Args: never; Returns: number };
       viewer_has_rsvp: { Args: { p_event: string }; Returns: boolean };
+      viewer_is_approved: { Args: { p_event: string }; Returns: boolean };
       viewer_is_attending: { Args: { p_event: string }; Returns: boolean };
     };
     Enums: {

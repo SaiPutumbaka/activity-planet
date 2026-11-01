@@ -4,10 +4,10 @@ import type { Database, Json } from "@ap/core/types";
 import { supabase } from "./supabase";
 
 /**
- * Places. Public venues are searchable by name; a hand-typed place goes through upsert_venue,
- * which keeps it private (someone's home) unless the host marks it public. When
- * VITE_GEOAPIFY_KEY is set, the address sub-form offers Geoapify suggestions that fill
- * lat/lng/place_id, and a geocoded place is public by default.
+ * Places. Public venues are searchable by name; every new place goes through upsert_venue,
+ * which keeps it private (someone's home) unless is_public: true is passed (D-038; a geocoder
+ * place_id no longer implies public). When VITE_GEOAPIFY_KEY is set, the address sub-form offers
+ * Geoapify suggestions that fill lat/lng/place_id.
  *
  *   useQuery(venueSearchQuery("piedmont"))   // public venues, name ilike
  *   useQuery(geoapifyQuery("25 park pl"))    // [] when the key is absent
@@ -15,7 +15,7 @@ import { supabase } from "./supabase";
  */
 export type Venue = Database["public"]["Tables"]["venues"]["Row"];
 
-/** upsert_venue(p_args). Without place_id the row is private unless is_public is true. */
+/** upsert_venue(p_args). The row is private unless is_public is true. */
 export type UpsertVenueArgs = {
   name: string;
   address_line1?: string;
