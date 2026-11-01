@@ -10,7 +10,8 @@
     "./supabase": "./src/supabase/index.ts",
     "./types": "./src/types/database.ts",
     "./calendar": "./src/calendar/ics.ts",
-    "./site": "./src/config/site.ts"
+    "./site": "./src/config/site.ts",
+    "./feed": "./src/feed/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
