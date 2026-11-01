@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import { FEED_WINDOW_DAYS, nextRadiusKm } from "@ap/core/feed";
 import type { Database, Json } from "@ap/core/types";
 
 import { isOver } from "./datetime";
@@ -11,7 +12,7 @@ import { supabase } from "./supabase";
  *   useQuery(eventQuery(id))               // the event with hub, host, readable address + venue
  *   useQuery(eventRsvpsQuery(id))          // going / interested rows with names, for the avatar row
  *   useQuery(eventAttendeesQuery(id))      // event_attendees(): own row, or every row for the host
- *   useQuery(feedQuery(userId))            // feed_events(now - 6 h, now + 7 d) with hub, plus own RSVPs
+ *   useQuery(feedQuery({ userId, point, areaId, radiusKm }))  // feed_events_v2, 30 days, widening
  *   await createEvent({ hub_id, title, starts_at, ends_at, ... })
  *   eventErrorMessage(err)                 // "That event is full." for "event_full"
  */
@@ -245,50 +246,95 @@ export const eventAttendeesQuery = (eventId: string) =>
 
 export type Attendee = QueryData<ReturnType<typeof eventAttendeesQuery>>[number];
 
-const FEED_SELECT =
-  "id,title,cover_url,starts_at,ends_at,timezone,status,kind,capacity,waitlist_enabled,going_count,interested_count,location_hint,min_age,is_free,price_text,source_name,hub_id,host_id,series_id,hubs(id,slug,name,emoji)" as const;
+export interface FeedParams {
+  userId: string;
+  /** The rounded device point, only when the person tapped "Use my location". */
+  point: { lat: number; lng: number } | null;
+  /** The saved home area; part of the key so a change refetches (the server reads it itself). */
+  areaId: string | null;
+  /** The radius to start from (the saved feed_radius_km). */
+  radiusKm: number;
+  hubId?: string;
+  free?: boolean;
+}
 
 /**
- * This week: published events in the viewer's hubs or verified campus, from six hours ago (so a
- * plan that is happening now still shows) to seven days out, minus anything already over.
+ * Feed v2 (D-036): feed_events_v2 from six hours ago (so a plan happening now still shows) to
+ * 30 days out, minus anything already over. Fewer than five results widens the radius one step
+ * at a time (10, 25, then 50 km) before the page shows a thin or empty list; `radiusKm` is the
+ * radius the rows came from and `widened` says the page should mention it.
+ *
  * Each event carries `rsvps`: the viewer's own row as `[{ status }]`, or `[]`. That comes from a
  * second request on the rsvps table, because a filter on an embedded resource is not supported
- * on an /rpc call: PostgREST pulls the filter column from the function result, events has no
- * user_id, and `rsvps(status)&rsvps.user_id=eq.` on feed_events is an HTTP 400.
+ * on an /rpc call (PostgREST pulls the filter column from the function result).
  */
-export const feedQuery = (userId: string) =>
+export const feedQuery = (p: FeedParams) =>
   queryOptions({
-    queryKey: ["feed", "this-week", userId] as const,
+    queryKey: [
+      "feed",
+      "v2",
+      p.userId,
+      {
+        lat: p.point?.lat ?? null,
+        lng: p.point?.lng ?? null,
+        areaId: p.areaId,
+        radiusKm: p.radiusKm,
+        hubId: p.hubId ?? null,
+        free: Boolean(p.free),
+      },
+    ] as const,
     queryFn: async () => {
       const now = new Date();
       const from = new Date(now.getTime() - 6 * 3_600_000).toISOString();
-      const to = new Date(now.getTime() + 7 * 86_400_000).toISOString();
-      const { data, error } = await supabase
-        .rpc("feed_events", { p_from: from, p_to: to, p_limit: 100 })
-        .select(FEED_SELECT);
-      if (error) throw error;
-      const events = data.filter((e) => !isOver(e.ends_at, now));
-      if (events.length === 0) return [];
-      const own = await supabase
-        .from("rsvps")
-        .select("event_id,status")
-        .eq("user_id", userId)
-        .in(
-          "event_id",
-          events.map((e) => e.id),
-        );
-      if (own.error) throw own.error;
-      const byEvent = new Map(own.data.map((r) => [r.event_id, r.status]));
-      return events.map((e) => {
+      const to = new Date(now.getTime() + FEED_WINDOW_DAYS * 86_400_000).toISOString();
+
+      async function fetchAt(radiusKm: number) {
+        const { data, error } = await supabase.rpc("feed_events_v2", {
+          p_from: from,
+          p_to: to,
+          p_radius_km: radiusKm,
+          p_limit: 100,
+          ...(p.point ? { p_lat: p.point.lat, p_lng: p.point.lng } : {}),
+          ...(p.hubId ? { p_hub_ids: [p.hubId] } : {}),
+          ...(p.free ? { p_free_only: true } : {}),
+        });
+        if (error) throw error;
+        return data.filter((e) => !isOver(e.ends_at, now));
+      }
+
+      let radiusKm = p.radiusKm;
+      let rows = await fetchAt(radiusKm);
+      let widened = false;
+      for (;;) {
+        const next = nextRadiusKm(radiusKm, rows.length);
+        if (next === null) break;
+        radiusKm = next;
+        rows = await fetchAt(radiusKm);
+        widened = true;
+      }
+
+      let byEvent = new Map<string, RsvpStatus>();
+      const rsvpable = rows.filter((e) => e.kind !== "imported").map((e) => e.id);
+      if (rsvpable.length > 0) {
+        const own = await supabase
+          .from("rsvps")
+          .select("event_id,status")
+          .eq("user_id", p.userId)
+          .in("event_id", rsvpable);
+        if (own.error) throw own.error;
+        byEvent = new Map(own.data.map((r) => [r.event_id, r.status]));
+      }
+      const events = rows.map((e) => {
         const status = byEvent.get(e.id);
         const rsvps: { status: RsvpStatus }[] = status ? [{ status }] : [];
         return { ...e, rsvps };
       });
+      return { events, radiusKm, widened };
     },
     staleTime: 60_000,
   });
 
-export type FeedEvent = QueryData<ReturnType<typeof feedQuery>>[number];
+export type FeedEvent = QueryData<ReturnType<typeof feedQuery>>["events"][number];
 
 /** The hubs the viewer can post in, with the fields the form needs (21+ hubs force the flag). */
 export const myPostableHubsQuery = (userId: string) =>

@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { MapPin } from "lucide-react";
+import { ExternalLink, MapPin, Navigation } from "lucide-react";
+import { distanceBandLabel } from "@ap/core/feed";
 import { DefaultCover } from "@ap/ui/brand";
 
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { formatTime } from "@/lib/datetime";
 import type { FeedEvent } from "@/lib/events";
 import { canRsvp, eventState, isFull, rsvpState } from "./event-state";
@@ -12,6 +14,10 @@ import { EventStateChip } from "./event-state-chip";
  * One plan in the Home list. The whole card opens the event page; the quiet Going button RSVPs
  * in place (the parent owns the useRsvp controller and its guidelines sheet). The accent stays
  * on the event page's RsvpBar: a list of cards is not the place for N loud things.
+ *
+ * Imported listings (kind "imported") have no Going button: they show where they came from and
+ * link out to the source, where people register (D-014, D-037). The distance is a band from
+ * feed_events_v2, never a number; an approved-only address reads "Approximate area".
  */
 export function EventCard({
   event,
@@ -34,7 +40,10 @@ export function EventCard({
     mine !== "waitlisted" &&
     !(full && !event.waitlist_enabled);
   const goingLabel = full ? "Join waitlist" : "Going";
-  const hub = event.hubs;
+  const imported = event.kind === "imported";
+  const hub = event.hub_name ? { emoji: event.hub_emoji, name: event.hub_name } : null;
+  const distance = distanceBandLabel(event.distance_band);
+  const source = event.source_name || "the organizer";
   const time = `${formatTime(event.starts_at, event.timezone)} to ${formatTime(event.ends_at, event.timezone)}`;
 
   return (
@@ -74,22 +83,46 @@ export function EventCard({
             <span className="truncate">{event.location_hint}</span>
           </p>
         ) : null}
-        <div className="mt-1 flex min-h-11 items-center justify-between gap-3">
-          <span className="text-[13px] text-text-2 tabular">
-            {event.going_count} going{event.capacity !== null ? ` of ${event.capacity}` : ""}
-            {event.interested_count > 0 ? ` · ${event.interested_count} interested` : ""}
-          </span>
-          {showGoing ? (
-            <Button
-              variant="outline"
-              className="relative z-[2]"
-              onClick={onGoing}
-              loading={pending}
-            >
-              {goingLabel}
-            </Button>
-          ) : null}
-        </div>
+        {distance ? (
+          <p className="flex items-center gap-1 text-[13px] text-text-3">
+            <Navigation className="size-3.5 shrink-0" aria-hidden="true" />
+            <span>{distance}</span>
+          </p>
+        ) : null}
+        {imported ? (
+          <div className="mt-1 flex min-h-11 items-center justify-between gap-3">
+            <span className="min-w-0 truncate text-[13px] text-text-2">Listed by {source}</span>
+            {event.external_url ? (
+              <a
+                href={event.external_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonVariants({ variant: "outline", className: "relative z-[2]" })}
+              >
+                Details
+                <ExternalLink className="size-4" aria-hidden="true" />
+                <span className="sr-only"> on {source} (opens in a new tab)</span>
+              </a>
+            ) : null}
+          </div>
+        ) : (
+          <div className="mt-1 flex min-h-11 items-center justify-between gap-3">
+            <span className="text-[13px] text-text-2 tabular">
+              {event.going_count} going{event.capacity !== null ? ` of ${event.capacity}` : ""}
+              {event.interested_count > 0 ? ` · ${event.interested_count} interested` : ""}
+            </span>
+            {showGoing ? (
+              <Button
+                variant="outline"
+                className="relative z-[2]"
+                onClick={onGoing}
+                loading={pending}
+              >
+                {goingLabel}
+              </Button>
+            ) : null}
+          </div>
+        )}
       </div>
     </article>
   );

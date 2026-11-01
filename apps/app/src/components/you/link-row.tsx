@@ -37,3 +37,33 @@ export function LinkRow({
     </Link>
   );
 }
+
+/** The same row as LinkRow for an action on this screen (opens a sheet) rather than a route. */
+export function ButtonRow({
+  onClick,
+  label,
+  value,
+  hint,
+}: {
+  onClick: () => void;
+  label: string;
+  value: ReactNode;
+  hint?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-11 w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-surface-2"
+    >
+      <span className="min-w-0">
+        <span className="block text-[15px] font-medium">{label}</span>
+        {hint ? <span className="block text-[12px] text-text-3">{hint}</span> : null}
+      </span>
+      <span className="flex min-w-0 shrink-0 items-center gap-1 text-[15px] text-text-2">
+        <span className="max-w-[40vw] truncate">{value}</span>
+        <ChevronRight className="size-4 shrink-0 text-text-3" aria-hidden="true" />
+      </span>
+    </button>
+  );
+}

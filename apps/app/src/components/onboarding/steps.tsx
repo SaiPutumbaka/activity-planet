@@ -13,6 +13,7 @@ import { Chip } from "@/components/ui/chip";
 import { Field, FormError, inputClassName } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/cn";
+import { areaErrorMessage, areasQuery, joinAreaWaitlist } from "@/lib/location";
 import { campusesQuery, hubCatalogQuery, type CatalogHub } from "@/lib/profile";
 import { supabase } from "@/lib/supabase";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
@@ -333,43 +334,199 @@ export function HubsStep({
 }
 
 /* ------------------------------------------------------------------ */
-/* 4. Campus                                                            */
+/* 4. Area                                                              */
 /* ------------------------------------------------------------------ */
 
-export function CampusStep({
+/**
+ * "Where do you hang out?" (D-036): Atlanta by default, or one neighborhood. It never asks for
+ * device location. People outside Atlanta can leave their city on the waitlist and still finish
+ * with Atlanta.
+ */
+export function AreaStep({
+  initialAreaId,
+  onContinue,
+}: {
+  initialAreaId: string | null;
+  onContinue: (areaId: string | null) => void;
+}) {
+  const areas = useQuery(areasQuery);
+  const [picked, setPicked] = useState<string | null>(initialAreaId);
+  const [elsewhere, setElsewhere] = useState(false);
+
+  const atlanta = areas.data?.find((a) => a.slug === "atlanta") ?? null;
+  const neighborhoods = (areas.data ?? []).filter((a) => a.kind === "neighborhood");
+  const selected = picked ?? atlanta?.id ?? null;
+
+  return (
+    <StepFrame
+      title="Where do you hang out?"
+      body="We'll show plans around there first. You can change it any time, or use your location from Home."
+      footer={
+        <Button size="lg" block onClick={() => onContinue(selected)} disabled={areas.isPending}>
+          Continue
+        </Button>
+      }
+    >
+      {areas.isPending ? (
+        <div className="flex justify-center py-10 text-text-3">
+          <Spinner className="size-6" label="Loading areas" />
+        </div>
+      ) : areas.isError ? (
+        <FormError>
+          Couldn't load areas. You can continue with Atlanta and change it later.
+        </FormError>
+      ) : (
+        <>
+          {atlanta ? (
+            <OptionRow
+              checked={selected === atlanta.id}
+              onSelect={() => setPicked(atlanta.id)}
+              label="All of Atlanta"
+              hint="A good start if you get around."
+            />
+          ) : null}
+          <section>
+            <h3 className="mb-2 text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">
+              Or a neighborhood
+            </h3>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Neighborhoods">
+              {neighborhoods.map((a) => (
+                <Chip key={a.id} selected={selected === a.id} onClick={() => setPicked(a.id)}>
+                  {a.name}
+                </Chip>
+              ))}
+            </div>
+          </section>
+          {elsewhere ? (
+            <WaitlistForm />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setElsewhere(true)}
+              className="-my-2 inline-flex min-h-11 items-center self-start text-[14px] font-semibold text-primary-text"
+            >
+              I'm not in Atlanta
+            </button>
+          )}
+        </>
+      )}
+    </StepFrame>
+  );
+}
+
+function WaitlistForm() {
+  const [city, setCity] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [savedCity, setSavedCity] = useState<string | null>(null);
+
+  async function submit() {
+    const trimmed = city.trim();
+    if (trimmed.length < 2) {
+      setError("Enter your city.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await joinAreaWaitlist(trimmed);
+      setSavedCity(trimmed);
+    } catch (err) {
+      setError(areaErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (savedCity) {
+    return (
+      <div className="rounded-card border border-border bg-surface-2 p-4" role="status">
+        <p className="text-[15px] font-semibold">You're on the list for {savedCity}.</p>
+        <p className="mt-1 text-[14px] text-text-2">
+          We're starting in Atlanta and will let you know when we get to you. Until then, finish
+          with Atlanta and look around.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-card border border-border p-4">
+      <p className="text-[14px] text-text-2">
+        We're starting in Atlanta. Tell us where you are and we'll let you know when we get there.
+      </p>
+      <Field
+        label="Your city"
+        value={city}
+        onChange={(e) => {
+          setCity(e.target.value);
+          setError(null);
+        }}
+        autoComplete="address-level2"
+        autoCapitalize="words"
+        maxLength={80}
+        error={error ?? undefined}
+        disabled={saving}
+      />
+      <Button variant="secondary" onClick={() => void submit()} loading={saving}>
+        Let me know
+      </Button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* 5. Affiliation (optional)                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * "Student, staff or alum?" is optional (D-035). Skip is as big as Finish and is the live button
+ * until a campus is picked. Picking a campus declares it; verifying a school email later is what
+ * opens the campus-only space.
+ */
+export function AffiliationStep({
   initialCampusId,
   submitting,
   error,
   onFinish,
 }: {
   initialCampusId: string | null;
-  submitting: boolean;
+  submitting: "skip" | "finish" | null;
   error: string | null;
   onFinish: (campusId: string | null) => void;
 }) {
   const campuses = useQuery(campusesQuery);
   const [campusId, setCampusId] = useState<string | null>(initialCampusId);
-  const [none, setNone] = useState<boolean>(false);
-
-  const orgName = campuses.data?.[0]?.organizations?.name ?? "Georgia State University";
-  const canFinish = none || campusId !== null;
+  const busy = submitting !== null;
 
   return (
     <StepFrame
-      title={`Are you at ${orgName}?`}
-      body="Pick your campus and we'll show what's happening there first. Verifying a .edu email later unlocks the campus-only space."
+      title="Student, staff or alum?"
+      body="Optional. Pick your campus to see its plans alongside everything else. Verifying a school email later opens its campus-only space."
       footer={
         <>
           <FormError>{error}</FormError>
-          <Button
-            size="lg"
-            block
-            loading={submitting}
-            disabled={!canFinish}
-            onClick={() => onFinish(none ? null : campusId)}
-          >
-            Finish
-          </Button>
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="secondary"
+              size="lg"
+              block
+              loading={submitting === "skip"}
+              disabled={busy}
+              onClick={() => onFinish(null)}
+            >
+              Skip
+            </Button>
+            <Button
+              size="lg"
+              block
+              loading={submitting === "finish"}
+              disabled={busy || campusId === null}
+              onClick={() => onFinish(campusId)}
+            >
+              Finish
+            </Button>
+          </div>
         </>
       }
     >
@@ -377,28 +534,19 @@ export function CampusStep({
         <div className="flex justify-center py-10 text-text-3">
           <Spinner className="size-6" label="Loading campuses" />
         </div>
+      ) : campuses.isError ? (
+        <FormError>Couldn't load campuses. You can skip this and finish.</FormError>
       ) : (
         <div role="radiogroup" aria-label="Campus" className="flex flex-col gap-2">
           {(campuses.data ?? []).map((c) => (
             <OptionRow
               key={c.id}
-              checked={!none && campusId === c.id}
-              onSelect={() => {
-                setNone(false);
-                setCampusId(c.id);
-              }}
+              checked={campusId === c.id}
+              onSelect={() => setCampusId(campusId === c.id ? null : c.id)}
               label={c.name}
+              hint={c.organizations?.name}
             />
           ))}
-          <OptionRow
-            checked={none}
-            onSelect={() => {
-              setNone(true);
-              setCampusId(null);
-            }}
-            label="I'm not a student here"
-            hint="You still get every hub and every public event."
-          />
         </div>
       )}
     </StepFrame>

@@ -4,13 +4,15 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AppIcon } from "@ap/ui/brand";
 
+import { LocationSheet } from "@/components/feed/location-sheet";
 import { TopBar } from "@/components/shell/top-bar";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LinkRow } from "@/components/you/link-row";
+import { ButtonRow, LinkRow } from "@/components/you/link-row";
 import { authErrorMessage, signOut } from "@/lib/auth";
+import { feedRadiusQuery, useFeedOrigin } from "@/lib/location";
 import { profileQuery } from "@/lib/profile";
 import { SITE_URL } from "@/lib/site";
 import { setThemePreference, useThemePreference, type ThemePreference } from "@/lib/theme";
@@ -32,6 +34,10 @@ function YouPage() {
   const theme = useThemePreference();
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
+  const [areaSheetOpen, setAreaSheetOpen] = useState(false);
+  const origin = useFeedOrigin(session.user.id);
+  const radius = useQuery(feedRadiusQuery(session.user.id));
+  const radiusKm = radius.data ?? 10;
 
   // The route context is a snapshot from beforeLoad; the photo and verify screens update the
   // query, so read from it (the cache is always warm here).
@@ -97,9 +103,37 @@ function YouPage() {
           <div className="divide-y divide-border overflow-hidden rounded-card border border-border">
             <Row label="Email" value={session.user.email ?? ""} />
             <Row label="Handle" value={`@${profile.handle}`} hint="Changes once every 30 days" />
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">
+            Your area
+          </h3>
+          <div className="divide-y divide-border overflow-hidden rounded-card border border-border">
+            <ButtonRow
+              label="Home area"
+              hint="Home shows plans around here first. Not shown on your profile."
+              value={origin.homeArea?.name ?? "Atlanta"}
+              onClick={() => setAreaSheetOpen(true)}
+            />
+            <ButtonRow
+              label="Distance"
+              hint="How far out Home looks"
+              value={radius.isPending ? <Skeleton className="h-4 w-12" /> : `${radiusKm} km`}
+              onClick={() => setAreaSheetOpen(true)}
+            />
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">
+            Affiliation
+          </h3>
+          <div className="divide-y divide-border overflow-hidden rounded-card border border-border">
             <LinkRow
               to="/you/verify"
-              label="Campus space"
+              label="Verified affiliation (optional)"
               value={
                 membership.isPending ? (
                   <Skeleton className="h-4 w-24" />
@@ -114,8 +148,8 @@ function YouPage() {
                 membership.isError
                   ? "Try again in a moment"
                   : verifiedSpace
-                    ? "Verified with your student email"
-                    : "Verify your student email to unlock it"
+                    ? "Verified with your school email"
+                    : "Student, staff or alum? Verify a school email for your campus space"
               }
             />
           </div>
@@ -136,7 +170,6 @@ function YouPage() {
         <footer className="flex flex-col items-center gap-2 pt-4 text-center text-[12px] text-text-3">
           <AppIcon size={40} />
           <p>Activity Planet · early build</p>
-          <p>Not affiliated with or endorsed by Georgia State University.</p>
           <p className="flex gap-3">
             <a href={`${SITE_URL}/terms`} className="underline-offset-2 hover:underline">
               Terms
@@ -150,6 +183,14 @@ function YouPage() {
           </p>
         </footer>
       </main>
+      <LocationSheet
+        open={areaSheetOpen}
+        onClose={() => setAreaSheetOpen(false)}
+        userId={session.user.id}
+        origin={origin}
+        radiusKm={radiusKm}
+        showDevice={false}
+      />
     </>
   );
 }
