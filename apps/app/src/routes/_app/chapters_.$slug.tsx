@@ -3,6 +3,7 @@ import { Link, createFileRoute, getRouteApi } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BadgeCheck,
+  BarChart3,
   CalendarPlus,
   CalendarSync,
   CircleAlert,
@@ -56,8 +57,8 @@ const appRoute = getRouteApi("/_app");
 
 /**
  * One chapter (D-035): about, Join, upcoming plans, and for its captains and organizers the
- * members panel (roles and remove) plus links to post as the chapter and to add a weekly
- * schedule. `chapters_.$slug.tsx` keeps /chapters/:slug free of any parent list route.
+ * members panel (roles and remove) plus links to post as the chapter, to add a weekly
+ * schedule and to the attendance dashboard. `chapters_.$slug.tsx` keeps /chapters/:slug free of any parent list route.
  */
 export const Route = createFileRoute("/_app/chapters_/$slug")({
   loader: ({ context: { queryClient }, params }) => {
@@ -259,6 +260,14 @@ function ChapterContent({ chapter }: { chapter: ChapterDetail }) {
           >
             <CalendarSync className="size-4" aria-hidden="true" />
             Add a weekly schedule
+          </Link>
+          <Link
+            to="/chapters/$slug/dashboard"
+            params={{ slug: chapter.slug }}
+            className={buttonVariants({ variant: "outline", block: true })}
+          >
+            <BarChart3 className="size-4" aria-hidden="true" />
+            Attendance dashboard
           </Link>
         </section>
       ) : null}

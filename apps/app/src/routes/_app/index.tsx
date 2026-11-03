@@ -5,6 +5,7 @@ import { CalendarX, ChevronDown, LocateFixed, MapPin, Search } from "lucide-reac
 import { z } from "zod";
 import { groupFeed } from "@ap/core/feed";
 
+import { AttendancePromptCard } from "@/components/events/attendance-prompt-card";
 import { EventCard } from "@/components/events/event-card";
 import { GuidelinesSheet } from "@/components/events/guidelines-sheet";
 import { useRsvp } from "@/components/events/use-rsvp";
@@ -34,6 +35,7 @@ const searchSchema = z.object({
  * Home: Feed v2 (D-036). Plans near the viewer's home area (or, after they tap "Use my
  * location", near them) plus everything in their hubs, in Today / This week / Later over 30
  * days. Imported listings sit in their own shelf below. Nothing here asks for location.
+ * Above it all, a "Did you go?" card for the newest plan the viewer hasn't answered for.
  */
 export const Route = createFileRoute("/_app/")({
   validateSearch: searchSchema,
@@ -60,8 +62,9 @@ function HomePage() {
           </>
         }
       />
-      <main className="flex flex-col gap-5 pb-6 safe-px">
-        <section className="pt-2">
+      <main className="flex flex-col gap-5 pb-6 pt-2 safe-px">
+        <AttendancePromptCard userId={session.user.id} />
+        <section>
           <h2 className="text-[28px] font-extrabold tracking-[-0.025em]">
             Hi, {profile.first_name}.
           </h2>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Database } from "@ap/core/types";
 
+import { attendanceWindowOpen } from "./attendance";
 import { formatEventTime } from "./datetime";
 import { supabase } from "./supabase";
 
@@ -18,6 +19,7 @@ import { supabase } from "./supabase";
  *   groupNotifications(items, now)               // Today / Earlier
  *   notificationCopy(item)                       // { title, body }
  *   notificationLink(item)                       // where a row goes
+ *   opensAttendanceSheet(item)                   // checkin_prompt rows open "Did you go?"
  *   await broadcastToEvent(eventId, body)        // "Message everyone going"
  */
 
@@ -324,7 +326,7 @@ export function notificationCopy(item: CopyInput, now: Date = new Date()): Notif
       return { title: `${plan} has ${what}`, body: whenWhere(p, now) };
     }
     case "checkin_prompt":
-      return { title: `Made it to ${plan}?`, body: "Check in so the host knows you came." };
+      return { title: `Did you go to ${plan}?`, body: "Tell us, and pick who you met there." };
     case "hub_new_event": {
       const hub = item.hub?.name;
       return { title: hub ? `New in ${hub}: ${plan}` : `New plan: ${plan}`, body: when(p, now) };
@@ -369,6 +371,22 @@ export function notificationLink(item: LinkInput): NotificationLink | null {
   if (item.chapter) return { to: "/chapters/$slug", params: { slug: item.chapter.slug } };
   if (item.hub) return { to: "/hubs/$slug", params: { slug: item.hub.slug } };
   return null;
+}
+
+/**
+ * Whether tapping a row opens the morning-after sheet instead of the plan: a checkin_prompt
+ * whose plan ended less than 7 days ago (submit_attendance's window).
+ */
+export function opensAttendanceSheet(
+  item: Pick<InboxItem, "kind" | "event_id" | "payload">,
+  now: Date = new Date(),
+): boolean {
+  return (
+    item.kind === "checkin_prompt" &&
+    Boolean(item.event_id) &&
+    Boolean(item.payload.ends_at) &&
+    attendanceWindowOpen({ status: "published", ends_at: item.payload.ends_at ?? "" }, now)
+  );
 }
 
 /* ------------------------------------------------------------------ */

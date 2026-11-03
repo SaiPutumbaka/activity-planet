@@ -21,6 +21,7 @@ import { AttendeesSection } from "@/components/events/attendees-section";
 import { eventState, rsvpState, spotsLeft } from "@/components/events/event-state";
 import { EventStateChip } from "@/components/events/event-state-chip";
 import { GuidelinesSheet } from "@/components/events/guidelines-sheet";
+import { MorningAfterSheet } from "@/components/events/morning-after-sheet";
 import { RsvpBar } from "@/components/events/rsvp-bar";
 import { useRsvp } from "@/components/events/use-rsvp";
 import { ImportedChips, ImportedSourceSection } from "@/components/events/imported-source";
@@ -34,6 +35,7 @@ import { FormError } from "@/components/ui/field";
 import { Sheet } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FieldTextArea } from "@/components/ui/textarea";
+import { canAnswerAttendance, myAttendanceQuery } from "@/lib/attendance";
 import { DEFAULT_TIMEZONE, formatEventTime } from "@/lib/datetime";
 import {
   canManageEventQuery,
@@ -136,6 +138,7 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
   const rsvp = useRsvp();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [attendanceOpen, setAttendanceOpen] = useState(false);
 
   const isHost = event.host_id === userId;
   // Host, a captain or organizer of the event's chapter, or a moderator (viewer_can_manage_event).
@@ -158,6 +161,12 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
   // Imported listings (D-037): no RSVP, a source block with "Register at source" instead.
   const imported = event.kind === "imported";
   const labels = useQuery({ ...importLabelsQuery([event.id]), enabled: imported });
+  // The morning-after question (submit_attendance): going, not the host, up to 7 days after.
+  const canAnswer = canAnswerAttendance({ event, status: myStatus, isHost });
+  const myAttendance = useQuery({
+    ...myAttendanceQuery(event.id, userId),
+    enabled: canAnswer,
+  });
   const importLabel = imported ? (labels.data?.get(event.id) ?? null) : null;
 
   const invalidate = () => {
@@ -392,8 +401,19 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
           onCheckIn={() => checkInMutation.mutate()}
           checkingIn={checkInMutation.isPending}
           onCancelEvent={() => setCancelOpen(true)}
+          onAttendance={canAnswer ? () => setAttendanceOpen(true) : undefined}
+          attended={myAttendance.data?.answeredAt ? myAttendance.data.attended : null}
         />
       )}
+      {canAnswer ? (
+        <MorningAfterSheet
+          open={attendanceOpen}
+          onClose={() => setAttendanceOpen(false)}
+          eventId={event.id}
+          title={event.title}
+          userId={userId}
+        />
+      ) : null}
       <GuidelinesSheet {...rsvp.guidelines} />
 
       <Sheet

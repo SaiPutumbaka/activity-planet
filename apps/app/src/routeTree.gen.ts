@@ -33,6 +33,7 @@ import { Route as AppYouDeleteRouteImport } from './routes/_app/you_.delete'
 import { Route as AppYouNotificationsRouteImport } from './routes/_app/you_.notifications'
 import { Route as AppYouPhotoRouteImport } from './routes/_app/you_.photo'
 import { Route as AppYouVerifyRouteImport } from './routes/_app/you_.verify'
+import { Route as AppChaptersSlugDashboardRouteImport } from './routes/_app/chapters_.$slug_.dashboard'
 import { Route as AppChaptersSlugScheduleRouteImport } from './routes/_app/chapters_.$slug_.schedule'
 import { Route as AppEventsIdEditRouteImport } from './routes/_app/events_.$id_.edit'
 
@@ -155,6 +156,12 @@ const AppYouVerifyRoute = AppYouVerifyRouteImport.update({
   path: '/you/verify',
   getParentRoute: () => AppRoute,
 } as any)
+const AppChaptersSlugDashboardRoute =
+  AppChaptersSlugDashboardRouteImport.update({
+    id: '/chapters_/$slug_/dashboard',
+    path: '/chapters/$slug/dashboard',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppChaptersSlugScheduleRoute = AppChaptersSlugScheduleRouteImport.update({
   id: '/chapters_/$slug_/schedule',
   path: '/chapters/$slug/schedule',
@@ -190,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/you/notifications': typeof AppYouNotificationsRoute
   '/you/photo': typeof AppYouPhotoRoute
   '/you/verify': typeof AppYouVerifyRoute
+  '/chapters/$slug/dashboard': typeof AppChaptersSlugDashboardRoute
   '/chapters/$slug/schedule': typeof AppChaptersSlugScheduleRoute
   '/events/$id/edit': typeof AppEventsIdEditRoute
 }
@@ -217,6 +225,7 @@ export interface FileRoutesByTo {
   '/you/notifications': typeof AppYouNotificationsRoute
   '/you/photo': typeof AppYouPhotoRoute
   '/you/verify': typeof AppYouVerifyRoute
+  '/chapters/$slug/dashboard': typeof AppChaptersSlugDashboardRoute
   '/chapters/$slug/schedule': typeof AppChaptersSlugScheduleRoute
   '/events/$id/edit': typeof AppEventsIdEditRoute
 }
@@ -246,6 +255,7 @@ export interface FileRoutesById {
   '/_app/you_/notifications': typeof AppYouNotificationsRoute
   '/_app/you_/photo': typeof AppYouPhotoRoute
   '/_app/you_/verify': typeof AppYouVerifyRoute
+  '/_app/chapters_/$slug_/dashboard': typeof AppChaptersSlugDashboardRoute
   '/_app/chapters_/$slug_/schedule': typeof AppChaptersSlugScheduleRoute
   '/_app/events_/$id_/edit': typeof AppEventsIdEditRoute
 }
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
     | '/you/notifications'
     | '/you/photo'
     | '/you/verify'
+    | '/chapters/$slug/dashboard'
     | '/chapters/$slug/schedule'
     | '/events/$id/edit'
   fileRoutesByTo: FileRoutesByTo
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
     | '/you/notifications'
     | '/you/photo'
     | '/you/verify'
+    | '/chapters/$slug/dashboard'
     | '/chapters/$slug/schedule'
     | '/events/$id/edit'
   id:
@@ -330,6 +342,7 @@ export interface FileRouteTypes {
     | '/_app/you_/notifications'
     | '/_app/you_/photo'
     | '/_app/you_/verify'
+    | '/_app/chapters_/$slug_/dashboard'
     | '/_app/chapters_/$slug_/schedule'
     | '/_app/events_/$id_/edit'
   fileRoutesById: FileRoutesById
@@ -510,6 +523,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppYouVerifyRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/chapters_/$slug_/dashboard': {
+      id: '/_app/chapters_/$slug_/dashboard'
+      path: '/chapters/$slug/dashboard'
+      fullPath: '/chapters/$slug/dashboard'
+      preLoaderRoute: typeof AppChaptersSlugDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/chapters_/$slug_/schedule': {
       id: '/_app/chapters_/$slug_/schedule'
       path: '/chapters/$slug/schedule'
@@ -542,6 +562,7 @@ interface AppRouteChildren {
   AppYouNotificationsRoute: typeof AppYouNotificationsRoute
   AppYouPhotoRoute: typeof AppYouPhotoRoute
   AppYouVerifyRoute: typeof AppYouVerifyRoute
+  AppChaptersSlugDashboardRoute: typeof AppChaptersSlugDashboardRoute
   AppChaptersSlugScheduleRoute: typeof AppChaptersSlugScheduleRoute
   AppEventsIdEditRoute: typeof AppEventsIdEditRoute
 }
@@ -561,6 +582,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppYouNotificationsRoute: AppYouNotificationsRoute,
   AppYouPhotoRoute: AppYouPhotoRoute,
   AppYouVerifyRoute: AppYouVerifyRoute,
+  AppChaptersSlugDashboardRoute: AppChaptersSlugDashboardRoute,
   AppChaptersSlugScheduleRoute: AppChaptersSlugScheduleRoute,
   AppEventsIdEditRoute: AppEventsIdEditRoute,
 }

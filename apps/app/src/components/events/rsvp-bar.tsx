@@ -14,7 +14,9 @@ import type { RsvpController } from "./use-rsvp";
 
 /**
  * The fixed bar above the tab bar on the event page. One loud thing: Going (or Check in while
- * the window is open). Leave and Cancel plan live behind the overflow button in a sheet.
+ * the window is open). Leave and Cancel plan live behind the overflow button in a sheet. Once
+ * the plan is over, a going attendee gets "Did you go?" for 7 days (onAttendance; the page
+ * decides who qualifies and opens the morning-after sheet).
  */
 export function RsvpBar({
   event,
@@ -25,6 +27,8 @@ export function RsvpBar({
   onCheckIn,
   checkingIn,
   onCancelEvent,
+  onAttendance,
+  attended,
 }: {
   event: EventDetail;
   mine: Attendee | null;
@@ -35,6 +39,10 @@ export function RsvpBar({
   onCheckIn: () => void;
   checkingIn: boolean;
   onCancelEvent: () => void;
+  /** Set while the viewer can answer "Did you go?" for this plan. */
+  onAttendance?: () => void;
+  /** Their earlier answer: true went, false didn't, null or undefined not answered. */
+  attended?: boolean | null;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const now = new Date();
@@ -50,7 +58,28 @@ export function RsvpBar({
     // A state, not an action: the word and its hue, never a dimmed primary button.
     content = <StateChip tone="danger">Cancelled</StateChip>;
   } else if (over && !checkable) {
-    content = <StateChip tone="info">Over</StateChip>;
+    content = (
+      <>
+        <StateChip tone="info">Over</StateChip>
+        {onAttendance ? (
+          <>
+            {attended === true ? (
+              <StateChip tone="going">
+                <Check className="size-3.5" aria-hidden="true" /> You went
+              </StateChip>
+            ) : null}
+            <span className="flex-1" />
+            {attended === true || attended === false ? (
+              <Button variant="secondary" onClick={onAttendance}>
+                Change answer
+              </Button>
+            ) : (
+              <Button onClick={onAttendance}>Did you go?</Button>
+            )}
+          </>
+        ) : null}
+      </>
+    );
   } else if (isHost || status === "going" || status === "waitlisted") {
     const own = isHost
       ? { tone: "going" as const, label: "You're hosting" }

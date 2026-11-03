@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, createFileRoute, getRouteApi } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { MorningAfterSheet } from "@/components/events/morning-after-sheet";
 import { TopBar } from "@/components/shell/top-bar";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button-variants";
@@ -29,6 +31,7 @@ import {
   notificationCopy,
   notificationKeys,
   notificationLink,
+  opensAttendanceSheet,
   shortAgo,
   useNotificationsLive,
   type InboxItem,
@@ -39,7 +42,8 @@ const appRoute = getRouteApi("/_app");
 
 /**
  * Inbox (PLAN.md 4.9): the viewer's notifications in Today / Earlier. Tapping a row marks it
- * read and opens the plan, chapter or hub it is about. Live over Realtime, polled every minute
+ * read and opens the plan, chapter or hub it is about; a "Did you go?" row (checkin_prompt)
+ * opens the morning-after sheet while the plan's 7-day window is open. Live over Realtime, polled every minute
  * when that is down.
  */
 export const Route = createFileRoute("/_app/inbox")({
@@ -68,6 +72,7 @@ function InboxPage() {
   const { session } = appRoute.useRouteContext();
   const userId = session.user.id;
   const queryClient = useQueryClient();
+  const [attendance, setAttendance] = useState<{ eventId: string; title: string } | null>(null);
   const live = useNotificationsLive(userId);
   const inbox = useQuery({
     ...inboxQuery(userId),
@@ -163,6 +168,7 @@ function InboxPage() {
                     onOpen={() => {
                       if (!n.read_at) markOne.mutate(n.id);
                     }}
+                    onAttendance={attendanceOpener(n, now, setAttendance)}
                   />
                 ))}
               </ul>
@@ -170,11 +176,41 @@ function InboxPage() {
           ))
         )}
       </main>
+      {attendance ? (
+        <MorningAfterSheet
+          open
+          onClose={() => setAttendance(null)}
+          eventId={attendance.eventId}
+          title={attendance.title}
+          userId={userId}
+        />
+      ) : null}
     </>
   );
 }
 
-function InboxRow({ item, now, onOpen }: { item: InboxItem; now: Date; onOpen: () => void }) {
+function attendanceOpener(
+  item: InboxItem,
+  now: Date,
+  open: (target: { eventId: string; title: string }) => void,
+): (() => void) | undefined {
+  const eventId = item.event_id;
+  if (!eventId || !opensAttendanceSheet(item, now)) return undefined;
+  return () => open({ eventId, title: item.payload.title ?? "Your plan" });
+}
+
+function InboxRow({
+  item,
+  now,
+  onOpen,
+  onAttendance,
+}: {
+  item: InboxItem;
+  now: Date;
+  onOpen: () => void;
+  /** Set for a checkin_prompt in its window: the row opens the morning-after sheet. */
+  onAttendance?: () => void;
+}) {
   const copy = notificationCopy(item, now);
   const link = notificationLink(item);
   const Icon = ICONS[item.kind] ?? Bell;
@@ -212,7 +248,18 @@ function InboxRow({ item, now, onOpen }: { item: InboxItem; now: Date; onOpen: (
 
   return (
     <li>
-      {link ? (
+      {onAttendance ? (
+        <button
+          type="button"
+          onClick={() => {
+            onOpen();
+            onAttendance();
+          }}
+          className={className}
+        >
+          {content}
+        </button>
+      ) : link ? (
         <Link {...link} onClick={onOpen} className={className}>
           {content}
         </Link>
