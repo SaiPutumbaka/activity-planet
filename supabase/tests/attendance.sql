@@ -14,7 +14,10 @@
 --   5 another user cannot read the caller's reports or meets; no client writes.
 --   6 chapter_dashboard: refused for a non-manager; counts for a captain.
 --   7 account deletion removes the user's reports and meets, both directions.
---   8 schema_version 2.16.
+--   8 schema_version 2.17.
+--   9 migration 21: after an event ends, a going attendee (c) cancelling does
+--     not promote the waitlist; the waitlisted person (x) stays waitlisted and
+--     submit_attendance refuses them (not_going).
 -- ============================================================================
 begin;
 
@@ -373,9 +376,75 @@ begin
                   where user_id = current_setting('test.b')::uuid and met_user_id = current_setting('test.c')::uuid) then
     raise exception 'FAIL 7 deletion removed an unrelated meet';
   end if;
-  if (select value from public.meta where key = 'schema_version') <> '2.16' then
+  if (select value from public.meta where key = 'schema_version') <> '2.17' then
     raise exception 'FAIL 8 schema_version';
   end if;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- 9: no waitlist promotion after the end (migration 21)
+-- ---------------------------------------------------------------------------
+reset role;
+do $$
+declare
+  v_e uuid;
+begin
+  insert into public.events (hub_id, host_id, title, starts_at, ends_at, capacity, waitlist_enabled, location_hint)
+  values ((select hub_id from public.events where id = current_setting('test.e5')::uuid),
+          current_setting('test.h')::uuid, 'Attendance waitlist run',
+          now() + interval '1 day', now() + interval '1 day 2 hours', 1, true, 'Midtown')
+  returning id into v_e;
+  -- One free seat beyond any automatic host RSVP.
+  update public.events
+     set capacity = 1 + (select count(*) from public.rsvps where event_id = v_e and status = 'going')
+   where id = v_e;
+  perform set_config('test.e6', v_e::text, true);
+end $$;
+
+set local role authenticated;
+do $$
+declare
+  v_e uuid := current_setting('test.e6')::uuid;
+  r   public.rsvps;
+begin
+  perform set_config('request.jwt.claims', json_build_object('sub', current_setting('test.c'), 'role', 'authenticated')::text, true);
+  r := public.set_rsvp(v_e, 'going');
+  if r.status <> 'going' then raise exception 'FAIL 9 c not going'; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', current_setting('test.x'), 'role', 'authenticated')::text, true);
+  r := public.set_rsvp(v_e, 'going');
+  if r.status <> 'waitlisted' then raise exception 'FAIL 9 x not waitlisted'; end if;
+end $$;
+
+reset role;
+update public.events
+   set starts_at = now() - interval '1 day 2 hours', ends_at = now() - interval '1 day'
+ where id = current_setting('test.e6')::uuid;
+
+set local role authenticated;
+do $$
+declare
+  v_e uuid := current_setting('test.e6')::uuid;
+  v_w uuid := current_setting('test.x')::uuid;
+  r   public.rsvps;
+begin
+  perform set_config('request.jwt.claims', json_build_object('sub', current_setting('test.c'), 'role', 'authenticated')::text, true);
+  r := public.set_rsvp(v_e, 'cancelled');
+  if r.status <> 'cancelled' then raise exception 'FAIL 9 c cancel'; end if;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_w, 'role', 'authenticated')::text, true);
+  if (select status from public.rsvps where event_id = v_e and user_id = v_w) <> 'waitlisted' then
+    raise exception 'FAIL 9 x promoted after the end';
+  end if;
+  if exists (select 1 from public.notifications
+              where user_id = v_w and event_id = v_e and kind = 'waitlist_promoted') then
+    raise exception 'FAIL 9 waitlist_promoted queued after the end';
+  end if;
+  begin
+    perform public.submit_attendance(v_e, true, '{}');
+    raise exception 'FAIL 9 waitlisted submit accepted';
+  exception when others then
+    if sqlerrm <> 'not_going' then raise exception 'FAIL 9 waitlisted submit: %', sqlerrm; end if;
+  end;
 end $$;
 
 select 'attendance: PASS' as result;
