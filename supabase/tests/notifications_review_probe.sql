@@ -31,6 +31,8 @@ begin
   select h.id into v_hub from public.hubs h
    where h.is_active and h.min_age = 18 and h.scope = 'general'
    order by h.slug limit 1;
+  insert into public.hub_members (user_id, hub_id) values (current_setting('test.h')::uuid, v_hub)
+    on conflict do nothing;
   insert into public.events (hub_id, host_id, title, starts_at, ends_at, location_hint)
   values (v_hub, current_setting('test.h')::uuid, 'Probe run', date_trunc('hour', now()) + interval '3 days',
           date_trunc('hour', now()) + interval '3 days 2 hours', 'Midtown')
