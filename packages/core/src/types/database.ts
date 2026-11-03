@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase management API after
- * migrations 1 to 10 (schema_version 2.10). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 11 (schema_version 2.10). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -1210,6 +1210,7 @@ export type Database = {
           created_at: string;
           email: string;
           feed_radius_km: number;
+          home_area_id: string | null;
           last_seen_at: string | null;
           location: unknown;
           location_text: string;
@@ -1222,6 +1223,7 @@ export type Database = {
           created_at?: string;
           email: string;
           feed_radius_km?: number;
+          home_area_id?: string | null;
           last_seen_at?: string | null;
           location?: unknown;
           location_text?: string;
@@ -1234,6 +1236,7 @@ export type Database = {
           created_at?: string;
           email?: string;
           feed_radius_km?: number;
+          home_area_id?: string | null;
           last_seen_at?: string | null;
           location?: unknown;
           location_text?: string;
@@ -1242,6 +1245,13 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "profile_private_home_area_id_fkey";
+            columns: ["home_area_id"];
+            isOneToOne: false;
+            referencedRelation: "areas";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "profile_private_user_id_fkey";
             columns: ["user_id"];
@@ -1262,7 +1272,6 @@ export type Database = {
           guidelines_accepted_at: string | null;
           handle: string;
           handle_changed_at: string | null;
-          home_area_id: string | null;
           home_campus_id: string | null;
           home_org_id: string | null;
           id: string;
@@ -1280,7 +1289,6 @@ export type Database = {
           guidelines_accepted_at?: string | null;
           handle: string;
           handle_changed_at?: string | null;
-          home_area_id?: string | null;
           home_campus_id?: string | null;
           home_org_id?: string | null;
           id: string;
@@ -1298,7 +1306,6 @@ export type Database = {
           guidelines_accepted_at?: string | null;
           handle?: string;
           handle_changed_at?: string | null;
-          home_area_id?: string | null;
           home_campus_id?: string | null;
           home_org_id?: string | null;
           id?: string;
@@ -1307,13 +1314,6 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
-          {
-            foreignKeyName: "profiles_home_area_id_fkey";
-            columns: ["home_area_id"];
-            isOneToOne: false;
-            referencedRelation: "areas";
-            referencedColumns: ["id"];
-          },
           {
             foreignKeyName: "profiles_home_campus_id_fkey";
             columns: ["home_campus_id"];
@@ -1784,7 +1784,6 @@ export type Database = {
           guidelines_accepted_at: string | null;
           handle: string;
           handle_changed_at: string | null;
-          home_area_id: string | null;
           home_campus_id: string | null;
           home_org_id: string | null;
           id: string;
