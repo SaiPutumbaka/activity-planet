@@ -137,7 +137,7 @@ export interface HubChapter {
   org_id: string | null;
   campus_id: string | null;
   area_id: string | null;
-  /** Set once a moderator approved a claim: the chapter has an organizer. */
+  /** Set once a moderator approved a claim; cleared when the last organizer goes, so it means "has an organizer". */
   verified_at: string | null;
   org_campuses: { name: string } | null;
   organizations: { name: string } | null;

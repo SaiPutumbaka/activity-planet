@@ -487,8 +487,9 @@ begin
   if exists (select 1 from public.chapter_members where user_id = v_a) then
     raise exception 'FAIL 9 chapter membership survives deletion';
   end if;
-  if (select value from public.meta where key = 'schema_version') <> '2.12' then
-    raise exception 'FAIL schema_version is not 2.12';
+  -- 2.12 or later (migration 17 moved it to 2.13).
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 12] then
+    raise exception 'FAIL schema_version is older than 2.12';
   end if;
 end $$;
 
