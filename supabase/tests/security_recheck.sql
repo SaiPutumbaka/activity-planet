@@ -216,6 +216,7 @@ begin
   if not exists (select 1 from public.profiles where id = current_setting('test.h')::uuid) then
     raise exception 'FAIL R4 new adult cannot read the host profile';
   end if;
+  perform public.accept_guidelines();
   perform public.set_rsvp(current_setting('test.e18')::uuid, 'going');
 
   update public.profiles
