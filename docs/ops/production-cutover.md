@@ -371,7 +371,11 @@ section 1) and the first real sign-up once the app URL is reachable.
   `send-verification-code` is deployed to production only together with its `RESEND_API_KEY`
   secret: without the key it would log the code instead of emailing it while the app reports it as
   sent, whereas an undeployed function fails honestly. Campus verification therefore stays staging-
-  only until Resend exists.
+  only until Resend exists. When it is deployed, deploy it from a ref at or after migration 22
+  (`20261117000100`): from that migration on, the database answers an already-linked address with
+  `{status: 'sent', code: null}`, which an older build of the function would turn into a 500 and so
+  reveal which addresses are linked. (Checked 2026-11-03: production has no `send-verification-code`
+  deployed, so no older build exists there.)
 - **Email before testers.** Supabase's built-in mailer sends two emails an hour to organization
   members only. Set Resend SMTP on production (`docs/ops/supabase-auth.md` section 4) before opening
   the app URL to anyone else.
