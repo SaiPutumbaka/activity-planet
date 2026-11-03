@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 19 (schema_version 2.15). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 20 (schema_version 2.16). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -408,6 +408,38 @@ export type Database = {
           },
         ];
       };
+      event_attendance_reports: {
+        Row: {
+          answered_at: string | null;
+          attended: boolean | null;
+          dismissed_at: string | null;
+          event_id: string;
+          user_id: string;
+        };
+        Insert: {
+          answered_at?: string | null;
+          attended?: boolean | null;
+          dismissed_at?: string | null;
+          event_id: string;
+          user_id: string;
+        };
+        Update: {
+          answered_at?: string | null;
+          attended?: boolean | null;
+          dismissed_at?: string | null;
+          event_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "event_attendance_reports_rsvp_fkey";
+            columns: ["event_id", "user_id"];
+            isOneToOne: true;
+            referencedRelation: "rsvps";
+            referencedColumns: ["event_id", "user_id"];
+          },
+        ];
+      };
       event_broadcasts: {
         Row: {
           body: string;
@@ -515,6 +547,49 @@ export type Database = {
             columns: ["source_id"];
             isOneToOne: false;
             referencedRelation: "feed_sources";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      event_meets: {
+        Row: {
+          created_at: string;
+          event_id: string;
+          met_user_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          event_id: string;
+          met_user_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          event_id?: string;
+          met_user_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "event_meets_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_meets_met_user_id_fkey";
+            columns: ["met_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_meets_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -1887,6 +1962,7 @@ export type Database = {
       rsvps: {
         Row: {
           approved_by_host: boolean;
+          attended_self_reported_at: string | null;
           checked_in_at: string | null;
           checked_in_by: string | null;
           created_at: string;
@@ -1901,6 +1977,7 @@ export type Database = {
         };
         Insert: {
           approved_by_host?: boolean;
+          attended_self_reported_at?: string | null;
           checked_in_at?: string | null;
           checked_in_by?: string | null;
           created_at?: string;
@@ -1915,6 +1992,7 @@ export type Database = {
         };
         Update: {
           approved_by_host?: boolean;
+          attended_self_reported_at?: string | null;
           checked_in_at?: string | null;
           checked_in_by?: string | null;
           created_at?: string;
@@ -2127,6 +2205,7 @@ export type Database = {
         Args: { p_approved?: boolean; p_event_id: string; p_user_id: string };
         Returns: {
           approved_by_host: boolean;
+          attended_self_reported_at: string | null;
           checked_in_at: string | null;
           checked_in_by: string | null;
           created_at: string;
@@ -2246,12 +2325,17 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      chapter_dashboard: {
+        Args: { p_chapter: string; p_weeks?: number };
+        Returns: Json;
+      };
       chapter_public_card: { Args: { p_chapter: string }; Returns: Json };
       chapter_slug_for: { Args: { p_name: string }; Returns: string };
       check_in: {
         Args: { p_event_id: string };
         Returns: {
           approved_by_host: boolean;
+          attended_self_reported_at: string | null;
           checked_in_at: string | null;
           checked_in_by: string | null;
           created_at: string;
@@ -2412,6 +2496,10 @@ export type Database = {
         Args: { p_venue_id: string };
         Returns: Database["public"]["Enums"]["address_visibility"];
       };
+      dismiss_attendance_prompt: {
+        Args: { p_event_id: string };
+        Returns: undefined;
+      };
       enqueue_due_reminders: { Args: never; Returns: number };
       enqueue_notification: {
         Args: {
@@ -2431,6 +2519,7 @@ export type Database = {
         Args: { p_event_id: string };
         Returns: {
           approved_by_host: boolean;
+          attended_self_reported_at: string | null;
           checked_in_at: string | null;
           checked_in_by: string | null;
           created_at: string;
@@ -2599,6 +2688,7 @@ export type Database = {
         Args: { p_checked?: boolean; p_event_id: string; p_user_id: string };
         Returns: {
           approved_by_host: boolean;
+          attended_self_reported_at: string | null;
           checked_in_at: string | null;
           checked_in_by: string | null;
           created_at: string;
@@ -2757,6 +2847,27 @@ export type Database = {
         Args: { p_event_id: string; p_joiner: string };
         Returns: number;
       };
+      pending_attendance_prompts: {
+        Args: never;
+        Returns: {
+          attendees: Json;
+          chapter_id: string;
+          chapter_name: string;
+          checked_in: boolean;
+          cover_url: string;
+          ends_at: string;
+          event_id: string;
+          going_count: number;
+          hub_emoji: string;
+          hub_id: string;
+          hub_name: string;
+          hub_slug: string;
+          location_hint: string;
+          starts_at: string;
+          timezone: string;
+          title: string;
+        }[];
+      };
       purge_account_deletions: { Args: never; Returns: number };
       purge_read_notifications: { Args: never; Returns: number };
       refresh_hub_stats: { Args: never; Returns: number };
@@ -2768,6 +2879,7 @@ export type Database = {
         Args: { p_event_id: string; p_reason?: string; p_user_id: string };
         Returns: {
           approved_by_host: boolean;
+          attended_self_reported_at: string | null;
           checked_in_at: string | null;
           checked_in_by: string | null;
           created_at: string;
@@ -2864,6 +2976,7 @@ export type Database = {
         };
         Returns: {
           approved_by_host: boolean;
+          attended_self_reported_at: string | null;
           checked_in_at: string | null;
           checked_in_by: string | null;
           created_at: string;
@@ -2882,6 +2995,10 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      submit_attendance: {
+        Args: { p_attended: boolean; p_event_id: string; p_met?: string[] };
+        Returns: Json;
       };
       submit_chapter_claim: {
         Args: { p_args: Json };
