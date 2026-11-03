@@ -18,7 +18,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FormError } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { feedQuery } from "@/lib/events";
-import { areasQuery, feedRadiusQuery, useFeedOrigin } from "@/lib/location";
+import { areasQuery, feedPrefsQuery, useFeedOrigin } from "@/lib/location";
 import { myHubsQuery } from "@/lib/profile";
 
 const appRoute = getRouteApi("/_app");
@@ -38,7 +38,7 @@ export const Route = createFileRoute("/_app/")({
   validateSearch: searchSchema,
   loader: ({ context: { queryClient, session } }) => {
     void queryClient.prefetchQuery(areasQuery);
-    void queryClient.prefetchQuery(feedRadiusQuery(session.user.id));
+    void queryClient.prefetchQuery(feedPrefsQuery(session.user.id));
     void queryClient.prefetchQuery(myHubsQuery(session.user.id));
   },
   component: HomePage,
@@ -84,7 +84,7 @@ function Feed({ userId }: { userId: string }) {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/" });
   const origin = useFeedOrigin(userId);
-  const radius = useQuery(feedRadiusQuery(userId));
+  const radius = useQuery(feedPrefsQuery(userId));
   const hubs = useQuery(myHubsQuery(userId));
   const areas = useQuery(areasQuery);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -92,7 +92,7 @@ function Feed({ userId }: { userId: string }) {
 
   const myHubs = (hubs.data ?? []).flatMap((m) => (m.hubs ? [m.hubs] : []));
   const hubFilter = search.hub ? myHubs.find((h) => h.slug === search.hub) : undefined;
-  const radiusKm = radius.data ?? 10;
+  const radiusKm = radius.data?.radiusKm ?? 10;
 
   // Wait for the radius, the areas (part of the key) and, when filtering by a slug, the hub list,
   // so the first request is the right one. A failed load of any of them still lets the feed run.
@@ -202,6 +202,14 @@ function Feed({ userId }: { userId: string }) {
                 }
                 className="py-8"
               />
+            ) : groups.imported.length > 0 ? (
+              // Listings below, but no plans from people yet: a nudge, not "it's quiet".
+              <div className="flex flex-col items-start gap-3 rounded-card border border-border bg-surface-2 px-4 py-4">
+                <p className="text-[15px] font-semibold">No plans from people yet. Post one.</p>
+                <Link to="/post" className={buttonVariants({ variant: "secondary" })}>
+                  Post a plan
+                </Link>
+              </div>
             ) : (
               <EmptyState
                 icon={CalendarX}

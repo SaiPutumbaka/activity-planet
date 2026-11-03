@@ -3,7 +3,6 @@ import { queryOptions, useQuery } from "@tanstack/react-query";
 import { clampRadiusKm, roundPoint } from "@ap/core/feed";
 import type { Database } from "@ap/core/types";
 
-import { profileQuery } from "./profile";
 import { supabase } from "./supabase";
 
 /**
@@ -41,23 +40,33 @@ export const areasQuery = queryOptions({
   staleTime: 60 * 60_000,
 });
 
-/** The saved feed radius (profile_private.feed_radius_km, owner-readable). */
-export const feedRadiusQuery = (userId: string) =>
+export interface FeedPrefs {
+  /** profile_private.feed_radius_km, clamped to the allowed range. */
+  radiusKm: number;
+  /** profile_private.home_area_id: null before onboarding (the feed then uses Atlanta). */
+  homeAreaId: string | null;
+}
+
+/** The saved home area and feed radius. Both live in profile_private, readable by the owner only. */
+export const feedPrefsQuery = (userId: string) =>
   queryOptions({
-    queryKey: ["feed-radius", userId] as const,
-    queryFn: async (): Promise<number> => {
+    queryKey: ["feed-prefs", userId] as const,
+    queryFn: async (): Promise<FeedPrefs> => {
       const { data, error } = await supabase
         .from("profile_private")
-        .select("feed_radius_km")
+        .select("feed_radius_km,home_area_id")
         .eq("user_id", userId)
         .maybeSingle();
       if (error) throw error;
-      return clampRadiusKm(data?.feed_radius_km);
+      return {
+        radiusKm: clampRadiusKm(data?.feed_radius_km),
+        homeAreaId: data?.home_area_id ?? null,
+      };
     },
     staleTime: 5 * 60_000,
   });
 
-/** set_home_area: saves the home area and, when given, the radius. */
+/** set_home_area: saves the home area and the radius (the area's default when none is given). */
 export async function setHomeArea(areaId: string, radiusKm?: number): Promise<void> {
   const { error } = await supabase.rpc("set_home_area", {
     p_area_id: areaId,
@@ -154,6 +163,26 @@ function setDenied(value: boolean) {
   emit();
 }
 
+/**
+ * Forgets the device point and the remembered denial, in memory and in storage. Called on sign-out
+ * and account deletion so the next person on this browser starts from their own home area.
+ */
+export function clearFeedLocation(): void {
+  devicePoint = null;
+  denied = false;
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+  try {
+    localStorage.removeItem(DENIED_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+  emit();
+}
+
 function subscribe(cb: () => void) {
   listeners.add(cb);
   return () => listeners.delete(cb);
@@ -229,7 +258,7 @@ export interface FeedOriginController {
 }
 
 export function useFeedOrigin(userId: string): FeedOriginController {
-  const profile = useQuery(profileQuery(userId));
+  const prefs = useQuery(feedPrefsQuery(userId));
   const areas = useQuery(areasQuery);
   const point = useSyncExternalStore(
     subscribe,
@@ -246,7 +275,7 @@ export function useFeedOrigin(userId: string): FeedOriginController {
 
   const list = areas.data ?? [];
   const defaultArea = list.find((a) => a.slug === "atlanta") ?? null;
-  const homeArea = list.find((a) => a.id === profile.data?.home_area_id) ?? defaultArea;
+  const homeArea = list.find((a) => a.id === prefs.data?.homeAreaId) ?? defaultArea;
 
   async function locate(): Promise<LocationResult> {
     setLocating(true);

@@ -1,12 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { areaErrorMessage, feedRadiusQuery, setHomeArea } from "@/lib/location";
-import { profileQuery } from "@/lib/profile";
+import { areaErrorMessage, feedPrefsQuery, setHomeArea } from "@/lib/location";
 
 /**
- * Saves the home area and radius through set_home_area, then refreshes the profile, the saved
- * radius and the feed. Shared by the Home location sheet and the You tab rows.
+ * Saves the home area and radius through set_home_area (no radius means the area's default), then
+ * refreshes the saved home area and radius and the feed. Shared by the Home location sheet and the You tab rows.
  */
 export function useSaveHomeArea(userId: string) {
   const queryClient = useQueryClient();
@@ -15,8 +14,7 @@ export function useSaveHomeArea(userId: string) {
       setHomeArea(areaId, radiusKm),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: profileQuery(userId).queryKey }),
-        queryClient.invalidateQueries({ queryKey: feedRadiusQuery(userId).queryKey }),
+        queryClient.invalidateQueries({ queryKey: feedPrefsQuery(userId).queryKey }),
         queryClient.invalidateQueries({ queryKey: ["feed"] }),
       ]);
     },

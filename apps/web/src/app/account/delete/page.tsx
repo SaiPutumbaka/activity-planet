@@ -89,10 +89,6 @@ export default function DeleteAccountPage() {
         </ul>
         <p className="text-text-2">Nothing else is kept.</p>
       </section>
-
-      <p className="text-sm text-text-2">
-        Not affiliated with or endorsed by Georgia State University.
-      </p>
     </main>
   );
 }

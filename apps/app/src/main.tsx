@@ -7,6 +7,7 @@ import { routeTree } from "./routeTree.gen";
 import { queryClient } from "./lib/query";
 import { supabase } from "./lib/supabase";
 import { sessionQuery } from "./lib/auth";
+import { clearFeedLocation } from "./lib/location";
 import { initTheme } from "./lib/theme";
 import { ScreenLoader } from "./components/ui/spinner";
 import "./styles.css";
@@ -35,6 +36,9 @@ supabase.auth.onAuthStateChange((event, session) => {
   if (event === "SIGNED_OUT") {
     queryClient.removeQueries({ queryKey: ["profile"] });
     queryClient.removeQueries({ queryKey: ["my-hubs"] });
+    queryClient.removeQueries({ queryKey: ["feed"] });
+    queryClient.removeQueries({ queryKey: ["feed-prefs"] });
+    clearFeedLocation();
   }
   setTimeout(() => void router.invalidate(), 0);
 });

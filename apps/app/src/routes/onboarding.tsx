@@ -55,7 +55,8 @@ function OnboardingPage() {
   const [firstName, setFirstName] = useState(profile.first_name);
   const [handle, setHandle] = useState("");
   const [hubIds, setHubIds] = useState<string[]>([]);
-  const [areaId, setAreaId] = useState<string | null>(profile.home_area_id);
+  // The home area is owner-only (profile_private) and is first saved by complete_onboarding.
+  const [areaId, setAreaId] = useState<string | null>(null);
   const [campusId, setCampusId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<"skip" | "finish" | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -109,6 +110,7 @@ function OnboardingPage() {
     queryClient.setQueryData(profileQuery(session.user.id).queryKey, data);
     void queryClient.invalidateQueries({ queryKey: ["my-hubs"] });
     void queryClient.invalidateQueries({ queryKey: ["feed"] });
+    void queryClient.invalidateQueries({ queryKey: ["feed-prefs"] });
     toast.success(`You're in, ${data.first_name}.`);
     await navigate({ to: "/", replace: true });
   }

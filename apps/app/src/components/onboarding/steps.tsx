@@ -502,7 +502,7 @@ export function AffiliationStep({
   return (
     <StepFrame
       title="Student, staff or alum?"
-      body="Optional. Pick your campus to see its plans alongside everything else. Verifying a school email later opens its campus-only space."
+      body="Optional. Verify a school email later to see your campus's plans and its campus-only space."
       footer={
         <>
           <FormError>{error}</FormError>

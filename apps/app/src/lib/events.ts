@@ -306,7 +306,8 @@ export const feedQuery = (p: FeedParams) =>
       let rows = await fetchAt(radiusKm);
       let widened = false;
       for (;;) {
-        const next = nextRadiusKm(radiusKm, rows.length);
+        // Only plans from people count: a shelf of imported listings must not stop the widening.
+        const next = nextRadiusKm(radiusKm, rows.filter((e) => e.kind !== "imported").length);
         if (next === null) break;
         radiusKm = next;
         rows = await fetchAt(radiusKm);

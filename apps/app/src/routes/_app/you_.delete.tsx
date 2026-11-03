@@ -6,6 +6,7 @@ import { TopBar } from "@/components/shell/top-bar";
 import { Button } from "@/components/ui/button";
 import { Field, FormError } from "@/components/ui/field";
 import { rpcErrorMessage } from "@/lib/auth";
+import { clearFeedLocation } from "@/lib/location";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -69,6 +70,7 @@ function DeleteAccountPage() {
     // /logout is expected; fall back to clearing this device only.
     const { error: signOutError } = await supabase.auth.signOut();
     if (signOutError) await supabase.auth.signOut({ scope: "local" });
+    clearFeedLocation();
 
     if (fnError) {
       toast.warning(

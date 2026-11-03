@@ -91,7 +91,7 @@ export default async function EventSharePage({ params }: Props) {
   const about = excerpt(card.description, 320);
 
   return (
-    <Frame>
+    <Frame gsu={namesGeorgiaState(card.source_name)}>
       <div className="h-[200px] bg-surface-2">
         {card.cover_url ? (
           // Covers are hotlinked from Supabase storage and external feeds; next/image would
@@ -235,8 +235,16 @@ function RestrictedPage({ stub }: { stub: EventShareStub }) {
   );
 }
 
+/**
+ * The GSU disclaimer belongs only on surfaces that name Georgia State (D-022, D-035): here, an
+ * item listed from a Georgia State source.
+ */
+function namesGeorgiaState(source: string | null | undefined): boolean {
+  return /georgia state|\bgsu\b/i.test(source ?? "");
+}
+
 /** The page shell: the lockup header, one card column and the legal footer. */
-function Frame({ children }: { children: ReactNode }) {
+function Frame({ children, gsu = false }: { children: ReactNode; gsu?: boolean }) {
   return (
     <div className={`${figtree.className} min-h-dvh bg-surface text-text sm:bg-surface-2`}>
       <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col sm:min-h-0 sm:py-8">
@@ -252,7 +260,7 @@ function Frame({ children }: { children: ReactNode }) {
         </article>
 
         <footer className="flex flex-col gap-2 px-5 py-6 text-[13px] text-text-2">
-          <p>Not affiliated with or endorsed by Georgia State University.</p>
+          {gsu ? <p>Not affiliated with or endorsed by Georgia State University.</p> : null}
           <nav className="flex gap-4" aria-label="Legal">
             <a href="/terms" className="underline-offset-2 hover:underline">
               Terms

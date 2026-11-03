@@ -12,7 +12,7 @@ import { SegmentedControl } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ButtonRow, LinkRow } from "@/components/you/link-row";
 import { authErrorMessage, signOut } from "@/lib/auth";
-import { feedRadiusQuery, useFeedOrigin } from "@/lib/location";
+import { feedPrefsQuery, useFeedOrigin } from "@/lib/location";
 import { profileQuery } from "@/lib/profile";
 import { SITE_URL } from "@/lib/site";
 import { setThemePreference, useThemePreference, type ThemePreference } from "@/lib/theme";
@@ -36,8 +36,8 @@ function YouPage() {
   const [signingOut, setSigningOut] = useState(false);
   const [areaSheetOpen, setAreaSheetOpen] = useState(false);
   const origin = useFeedOrigin(session.user.id);
-  const radius = useQuery(feedRadiusQuery(session.user.id));
-  const radiusKm = radius.data ?? 10;
+  const radius = useQuery(feedPrefsQuery(session.user.id));
+  const radiusKm = radius.data?.radiusKm ?? 10;
 
   // The route context is a snapshot from beforeLoad; the photo and verify screens update the
   // query, so read from it (the cache is always warm here).

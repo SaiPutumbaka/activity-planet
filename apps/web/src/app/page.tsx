@@ -11,9 +11,6 @@ export default function LandingPage() {
         Hubs for every interest, real plans, real connection. Launching in Atlanta in January
         2027. This page is being rebuilt; the full site arrives in the coming weeks.
       </p>
-      <p className="text-sm text-text-2">
-        Not affiliated with or endorsed by Georgia State University.
-      </p>
       <a
         href={APP_URL}
         className="inline-flex w-fit items-center rounded-full bg-primary px-5 py-3 text-base font-semibold text-on-primary"

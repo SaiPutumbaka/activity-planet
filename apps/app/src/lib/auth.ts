@@ -1,6 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { queryOptions, type QueryClient } from "@tanstack/react-query";
 
+import { clearFeedLocation } from "./location";
 import { supabase } from "./supabase";
 
 /**
@@ -34,6 +35,8 @@ export const googleEnabled = import.meta.env.VITE_AUTH_GOOGLE === "1";
 export async function signOut(): Promise<void> {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
+  // The device point and a remembered location denial belong to this person, not the browser.
+  clearFeedLocation();
 }
 
 /** Maps Supabase Auth error codes to sentences a person can act on. */
