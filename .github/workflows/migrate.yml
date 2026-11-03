@@ -203,6 +203,18 @@ jobs:
           sleep 100
           supabase db query --linked "select slug, enabled, last_run_at, last_ok_at, item_count, last_stats, left(last_error, 300) as last_error from public.feed_sources order by slug"
 
+      # Schema only (the same content as the committed types file), never row data: the repo and
+      # its Action logs are public. Lets Claude regenerate packages/core/src/types/database.ts
+      # without the Supabase connector.
+      - name: Staging, print generated Database types
+        if: inputs.staging_only == true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          echo "----- BEGIN database.ts -----"
+          supabase gen types --linked --lang typescript --schema public
+          echo "----- END database.ts -----"
+
       - name: Production, link and list migrations
         if: inputs.staging_only != true && github.ref == 'refs/heads/main'
         env:
