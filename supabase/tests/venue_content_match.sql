@@ -92,7 +92,9 @@ begin
                                                        'lat', 33.7805));
   if vh.id is distinct from vx.id then raise exception 'FAIL 2 matching public venue was not shared'; end if;
 
-  -- 3. o creates the real place; h gets it and attaches it to h's event.
+  -- 3. o creates a place; h gets it and attaches it to h's event. A fresh name, so the
+  --    (name, postal code) fallback cannot return a row from the steps above.
+  real := real || jsonb_build_object('name', 'Fill Hall');
   perform set_config('request.jwt.claims', json_build_object('sub', v_o, 'role', 'authenticated')::text, true);
   vo := public.upsert_venue(real || jsonb_build_object('place_id', 'vcm-fill-' || v_tag));
   perform set_config('request.jwt.claims', json_build_object('sub', v_h, 'role', 'authenticated')::text, true);
@@ -112,6 +114,7 @@ begin
   end if;
 
   -- 3b. o's own unused row still gets empty fields filled.
+  real := real || jsonb_build_object('name', 'Own Hall');
   vo := public.upsert_venue(real || jsonb_build_object('place_id', 'vcm-own-' || v_tag));
   vx := public.upsert_venue(real || jsonb_build_object('place_id', 'vcm-own-' || v_tag, 'address_line2', 'Suite 2'));
   if vx.id is distinct from vo.id or vx.address_line2 <> 'Suite 2' then
