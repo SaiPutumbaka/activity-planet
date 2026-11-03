@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 21 (schema_version 2.17). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 22 (schema_version 2.18). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -2355,6 +2355,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      clear_foreign_image_urls: { Args: never; Returns: Json };
       complete_onboarding: {
         Args: {
           p_area_id?: string;
@@ -2757,6 +2758,10 @@ export type Database = {
       is_campus_org_member: { Args: { p_campus: string }; Returns: boolean };
       is_chapter_captain: { Args: { p_chapter: string }; Returns: boolean };
       is_moderator: { Args: never; Returns: boolean };
+      is_own_storage_url: {
+        Args: { p_bucket?: string; p_owner?: string; p_url: string };
+        Returns: boolean;
+      };
       is_privileged: { Args: never; Returns: boolean };
       is_service_role: { Args: never; Returns: boolean };
       is_valid_timezone: { Args: { p_tz: string }; Returns: boolean };
@@ -2868,6 +2873,7 @@ export type Database = {
           title: string;
         }[];
       };
+      project_url: { Args: never; Returns: string };
       purge_account_deletions: { Args: never; Returns: number };
       purge_read_notifications: { Args: never; Returns: number };
       refresh_hub_stats: { Args: never; Returns: number };
@@ -2969,6 +2975,7 @@ export type Database = {
         Args: { p_area_id: string; p_radius_km?: number };
         Returns: Json;
       };
+      set_project_url: { Args: { p_url: string }; Returns: Json };
       set_rsvp: {
         Args: {
           p_event_id: string;
@@ -3160,11 +3167,16 @@ export type Database = {
         };
       };
       viewer_age: { Args: never; Returns: number };
+      viewer_can_manage: {
+        Args: { p_chapter: string; p_host: string; p_min_age: number };
+        Returns: boolean;
+      };
       viewer_can_manage_event: {
         Args: { p_event_id: string };
         Returns: boolean;
       };
       viewer_has_rsvp: { Args: { p_event: string }; Returns: boolean };
+      viewer_is_adult: { Args: never; Returns: boolean };
       viewer_is_approved: { Args: { p_event: string }; Returns: boolean };
       viewer_is_attending: { Args: { p_event: string }; Returns: boolean };
       withdraw_chapter_claim: {
