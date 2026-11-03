@@ -371,7 +371,12 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
             ) : attendees.isError ? (
               <p className="text-[13px] text-text-2">Couldn't load the attendee list.</p>
             ) : (
-              <AttendeesSection event={event} attendees={attendees.data} isHost={isHost} />
+              <AttendeesSection
+                event={event}
+                attendees={attendees.data}
+                isHost={isHost}
+                viewerId={userId}
+              />
             )
           ) : null}
         </div>

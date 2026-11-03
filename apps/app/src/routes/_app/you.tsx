@@ -15,6 +15,7 @@ import { ButtonRow, LinkRow } from "@/components/you/link-row";
 import { authErrorMessage, signOut } from "@/lib/auth";
 import { isModeratorQuery, myManagedChaptersQuery, roleLabel } from "@/lib/chapters";
 import { feedPrefsQuery, useFeedOrigin } from "@/lib/location";
+import { notificationPrefsQuery } from "@/lib/notifications";
 import { profileQuery } from "@/lib/profile";
 import { SITE_URL } from "@/lib/site";
 import { setThemePreference, useThemePreference, type ThemePreference } from "@/lib/theme";
@@ -48,6 +49,7 @@ function YouPage() {
   const membership = useQuery(membershipQuery(session.user.id));
   const managed = useQuery(myManagedChaptersQuery(session.user.id));
   const isMod = useQuery(isModeratorQuery(session.user.id));
+  const prefs = useQuery(notificationPrefsQuery(session.user.id));
   const chapters = managed.data ?? [];
   const verifiedSpace = membership.data
     ? (membership.data.org_campuses?.name ?? membership.data.organizations?.name ?? "Verified")
@@ -108,6 +110,29 @@ function YouPage() {
           <div className="divide-y divide-border overflow-hidden rounded-card border border-border">
             <Row label="Email" value={session.user.email ?? ""} />
             <Row label="Handle" value={`@${profile.handle}`} hint="Changes once every 30 days" />
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">
+            Notifications
+          </h3>
+          <div className="divide-y divide-border overflow-hidden rounded-card border border-border">
+            <LinkRow
+              to="/you/notifications"
+              label="Notification settings"
+              hint="Reminders, plan changes, quiet hours"
+              value={
+                prefs.isPending ? (
+                  <Skeleton className="h-4 w-12" />
+                ) : prefs.data?.unsubscribed_all_at ? (
+                  "Paused"
+                ) : (
+                  "On"
+                )
+              }
+            />
+            <LinkRow to="/inbox" label="Inbox" value="Open" />
           </div>
         </section>
 

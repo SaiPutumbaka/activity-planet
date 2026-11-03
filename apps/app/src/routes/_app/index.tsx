@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Bell, CalendarX, ChevronDown, LocateFixed, MapPin, Search } from "lucide-react";
+import { CalendarX, ChevronDown, LocateFixed, MapPin, Search } from "lucide-react";
 import { z } from "zod";
 import { groupFeed } from "@ap/core/feed";
 
@@ -10,6 +10,7 @@ import { GuidelinesSheet } from "@/components/events/guidelines-sheet";
 import { useRsvp } from "@/components/events/use-rsvp";
 import { ImportedShelf } from "@/components/feed/imported-shelf";
 import { LocationSheet } from "@/components/feed/location-sheet";
+import { InboxBell } from "@/components/shell/inbox-bell";
 import { TopBar } from "@/components/shell/top-bar";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button-variants";
@@ -55,14 +56,7 @@ function HomePage() {
             <Button variant="secondary" size="icon-sm" className="rounded-full" aria-label="Search">
               <Search className="size-5" aria-hidden="true" />
             </Button>
-            <Button
-              variant="secondary"
-              size="icon-sm"
-              className="rounded-full"
-              aria-label="Notifications"
-            >
-              <Bell className="size-5" aria-hidden="true" />
-            </Button>
+            <InboxBell userId={session.user.id} />
           </>
         }
       />

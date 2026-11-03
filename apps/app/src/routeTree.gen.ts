@@ -15,6 +15,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppChatsRouteImport } from './routes/_app/chats'
 import { Route as AppHubsRouteImport } from './routes/_app/hubs'
+import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppPostRouteImport } from './routes/_app/post'
 import { Route as AppYouRouteImport } from './routes/_app/you'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
@@ -29,6 +30,7 @@ import { Route as AppChaptersSlugRouteImport } from './routes/_app/chapters_.$sl
 import { Route as AppEventsIdRouteImport } from './routes/_app/events_.$id'
 import { Route as AppHubsSlugRouteImport } from './routes/_app/hubs_.$slug'
 import { Route as AppYouDeleteRouteImport } from './routes/_app/you_.delete'
+import { Route as AppYouNotificationsRouteImport } from './routes/_app/you_.notifications'
 import { Route as AppYouPhotoRouteImport } from './routes/_app/you_.photo'
 import { Route as AppYouVerifyRouteImport } from './routes/_app/you_.verify'
 import { Route as AppChaptersSlugScheduleRouteImport } from './routes/_app/chapters_.$slug_.schedule'
@@ -61,6 +63,11 @@ const AppChatsRoute = AppChatsRouteImport.update({
 const AppHubsRoute = AppHubsRouteImport.update({
   id: '/hubs',
   path: '/hubs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInboxRoute = AppInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPostRoute = AppPostRouteImport.update({
@@ -133,6 +140,11 @@ const AppYouDeleteRoute = AppYouDeleteRouteImport.update({
   path: '/you/delete',
   getParentRoute: () => AppRoute,
 } as any)
+const AppYouNotificationsRoute = AppYouNotificationsRouteImport.update({
+  id: '/you_/notifications',
+  path: '/you/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppYouPhotoRoute = AppYouPhotoRouteImport.update({
   id: '/you_/photo',
   path: '/you/photo',
@@ -160,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/chats': typeof AppChatsRoute
   '/hubs': typeof AppHubsRoute
+  '/inbox': typeof AppInboxRoute
   '/post': typeof AppPostRoute
   '/you': typeof AppYouRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -174,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/events/$id': typeof AppEventsIdRoute
   '/hubs/$slug': typeof AppHubsSlugRoute
   '/you/delete': typeof AppYouDeleteRoute
+  '/you/notifications': typeof AppYouNotificationsRoute
   '/you/photo': typeof AppYouPhotoRoute
   '/you/verify': typeof AppYouVerifyRoute
   '/chapters/$slug/schedule': typeof AppChaptersSlugScheduleRoute
@@ -184,6 +198,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/chats': typeof AppChatsRoute
   '/hubs': typeof AppHubsRoute
+  '/inbox': typeof AppInboxRoute
   '/post': typeof AppPostRoute
   '/you': typeof AppYouRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -199,6 +214,7 @@ export interface FileRoutesByTo {
   '/events/$id': typeof AppEventsIdRoute
   '/hubs/$slug': typeof AppHubsSlugRoute
   '/you/delete': typeof AppYouDeleteRoute
+  '/you/notifications': typeof AppYouNotificationsRoute
   '/you/photo': typeof AppYouPhotoRoute
   '/you/verify': typeof AppYouVerifyRoute
   '/chapters/$slug/schedule': typeof AppChaptersSlugScheduleRoute
@@ -211,6 +227,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/_app/chats': typeof AppChatsRoute
   '/_app/hubs': typeof AppHubsRoute
+  '/_app/inbox': typeof AppInboxRoute
   '/_app/post': typeof AppPostRoute
   '/_app/you': typeof AppYouRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -226,6 +243,7 @@ export interface FileRoutesById {
   '/_app/events_/$id': typeof AppEventsIdRoute
   '/_app/hubs_/$slug': typeof AppHubsSlugRoute
   '/_app/you_/delete': typeof AppYouDeleteRoute
+  '/_app/you_/notifications': typeof AppYouNotificationsRoute
   '/_app/you_/photo': typeof AppYouPhotoRoute
   '/_app/you_/verify': typeof AppYouVerifyRoute
   '/_app/chapters_/$slug_/schedule': typeof AppChaptersSlugScheduleRoute
@@ -239,6 +257,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/chats'
     | '/hubs'
+    | '/inbox'
     | '/post'
     | '/you'
     | '/auth/callback'
@@ -253,6 +272,7 @@ export interface FileRouteTypes {
     | '/events/$id'
     | '/hubs/$slug'
     | '/you/delete'
+    | '/you/notifications'
     | '/you/photo'
     | '/you/verify'
     | '/chapters/$slug/schedule'
@@ -263,6 +283,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/chats'
     | '/hubs'
+    | '/inbox'
     | '/post'
     | '/you'
     | '/auth/callback'
@@ -278,6 +299,7 @@ export interface FileRouteTypes {
     | '/events/$id'
     | '/hubs/$slug'
     | '/you/delete'
+    | '/you/notifications'
     | '/you/photo'
     | '/you/verify'
     | '/chapters/$slug/schedule'
@@ -289,6 +311,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/_app/chats'
     | '/_app/hubs'
+    | '/_app/inbox'
     | '/_app/post'
     | '/_app/you'
     | '/auth/callback'
@@ -304,6 +327,7 @@ export interface FileRouteTypes {
     | '/_app/events_/$id'
     | '/_app/hubs_/$slug'
     | '/_app/you_/delete'
+    | '/_app/you_/notifications'
     | '/_app/you_/photo'
     | '/_app/you_/verify'
     | '/_app/chapters_/$slug_/schedule'
@@ -358,6 +382,13 @@ declare module '@tanstack/react-router' {
       path: '/hubs'
       fullPath: '/hubs'
       preLoaderRoute: typeof AppHubsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/inbox': {
+      id: '/_app/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof AppInboxRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/post': {
@@ -458,6 +489,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppYouDeleteRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/you_/notifications': {
+      id: '/_app/you_/notifications'
+      path: '/you/notifications'
+      fullPath: '/you/notifications'
+      preLoaderRoute: typeof AppYouNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/you_/photo': {
       id: '/_app/you_/photo'
       path: '/you/photo'
@@ -492,6 +530,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppChatsRoute: typeof AppChatsRoute
   AppHubsRoute: typeof AppHubsRoute
+  AppInboxRoute: typeof AppInboxRoute
   AppPostRoute: typeof AppPostRoute
   AppYouRoute: typeof AppYouRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -500,6 +539,7 @@ interface AppRouteChildren {
   AppEventsIdRoute: typeof AppEventsIdRoute
   AppHubsSlugRoute: typeof AppHubsSlugRoute
   AppYouDeleteRoute: typeof AppYouDeleteRoute
+  AppYouNotificationsRoute: typeof AppYouNotificationsRoute
   AppYouPhotoRoute: typeof AppYouPhotoRoute
   AppYouVerifyRoute: typeof AppYouVerifyRoute
   AppChaptersSlugScheduleRoute: typeof AppChaptersSlugScheduleRoute
@@ -509,6 +549,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppChatsRoute: AppChatsRoute,
   AppHubsRoute: AppHubsRoute,
+  AppInboxRoute: AppInboxRoute,
   AppPostRoute: AppPostRoute,
   AppYouRoute: AppYouRoute,
   AppIndexRoute: AppIndexRoute,
@@ -517,6 +558,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEventsIdRoute: AppEventsIdRoute,
   AppHubsSlugRoute: AppHubsSlugRoute,
   AppYouDeleteRoute: AppYouDeleteRoute,
+  AppYouNotificationsRoute: AppYouNotificationsRoute,
   AppYouPhotoRoute: AppYouPhotoRoute,
   AppYouVerifyRoute: AppYouVerifyRoute,
   AppChaptersSlugScheduleRoute: AppChaptersSlugScheduleRoute,

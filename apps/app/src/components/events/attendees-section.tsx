@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, CircleCheck, UserX } from "lucide-react";
+import { Check, CircleCheck, Megaphone, UserX } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar } from "@/components/ui/avatar";
@@ -16,6 +16,14 @@ import {
   type Attendee,
   type EventDetail,
 } from "@/lib/events";
+import {
+  BROADCAST_DAILY_CAP,
+  BROADCAST_MAX,
+  broadcastErrorMessage,
+  broadcastOpen,
+  broadcastSentMessage,
+  broadcastToEvent,
+} from "@/lib/notifications";
 import { inHostCheckInWindow } from "./event-state";
 
 /**
@@ -23,21 +31,27 @@ import { inHostCheckInWindow } from "./event-state";
  * chapter, or a moderator (event_attendees() returns every live row to them). Approve reveals an
  * approved-only address to that person; Check in marks them there (host_check_in, from an hour
  * before the start to a day after the end); Remove cancels their RSVP and keeps them out until a
- * moderator steps in.
+ * moderator steps in. "Message everyone going" sends one note to the going and waitlisted
+ * people (broadcast_to_event, up to 3 per plan per day) until a day after the end.
  */
 export function AttendeesSection({
   event,
   attendees,
   isHost = true,
+  viewerId,
 }: {
   event: EventDetail;
   attendees: Attendee[];
   /** The viewer is the host (copy only; captains see "the host" where the host sees "you"). */
   isHost?: boolean;
+  /** The signed-in viewer; left out of the broadcast recipient count. */
+  viewerId?: string;
 }) {
   const queryClient = useQueryClient();
   const [removing, setRemoving] = useState<Attendee | null>(null);
   const [reason, setReason] = useState("");
+  const [composing, setComposing] = useState(false);
+  const [message, setMessage] = useState("");
   const needsApproval = event.address_visibility === "approved_only";
   const checkInOpen = event.status !== "cancelled" && inHostCheckInWindow(event);
 
@@ -80,6 +94,16 @@ export function AttendeesSection({
       toast.success("Removed from this plan.");
     },
     onError: (err) => toast.error(eventErrorMessage(err)),
+  });
+
+  const broadcast = useMutation({
+    mutationFn: (body: string) => broadcastToEvent(event.id, body),
+    onSuccess: ({ recipients }) => {
+      setComposing(false);
+      setMessage("");
+      toast.success(broadcastSentMessage(recipients));
+    },
+    onError: (err) => toast.error(broadcastErrorMessage(err)),
   });
 
   const going = attendees.filter((a) => a.status === "going");
@@ -159,6 +183,12 @@ export function AttendeesSection({
     );
   }
 
+  const recipients = attendees.filter(
+    (a) => (a.status === "going" || a.status === "waitlisted") && a.user_id !== viewerId,
+  ).length;
+  const canBroadcast = broadcastOpen(event);
+  const trimmed = message.trim();
+
   const groups: { title: string; rows: Attendee[] }[] = [
     { title: `Going · ${going.length}`, rows: going },
     { title: `Waitlist · ${waitlisted.length}`, rows: waitlisted },
@@ -167,7 +197,20 @@ export function AttendeesSection({
 
   return (
     <section className="flex flex-col gap-3">
-      <h3 className="text-[17px] font-bold tracking-[-0.01em]">Attendees</h3>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-[17px] font-bold tracking-[-0.01em]">Attendees</h3>
+        {canBroadcast ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={recipients === 0}
+            leading={<Megaphone className="size-4" aria-hidden="true" />}
+            onClick={() => setComposing(true)}
+          >
+            Message everyone going
+          </Button>
+        ) : null}
+      </div>
       {needsApproval ? (
         <p className="text-[13px] text-text-2">
           {isHost
@@ -186,6 +229,39 @@ export function AttendeesSection({
           </ul>
         </div>
       ))}
+
+      <Sheet
+        open={composing}
+        onClose={() => setComposing(false)}
+        title="Message everyone going"
+        footer={
+          <Button
+            size="lg"
+            block
+            loading={broadcast.isPending}
+            disabled={trimmed.length === 0 || trimmed.length > BROADCAST_MAX}
+            onClick={() => broadcast.mutate(trimmed)}
+          >
+            {recipients === 1 ? "Send to 1 person" : `Send to ${recipients} people`}
+          </Button>
+        }
+      >
+        <p className="text-[15px] text-text-2">
+          Goes to everyone going and on the waitlist, in their inbox. Up to {BROADCAST_DAILY_CAP}{" "}
+          messages per plan per day.
+        </p>
+        <FieldTextArea
+          label="Message"
+          className="mt-4"
+          rows={4}
+          maxLength={BROADCAST_MAX}
+          placeholder="Running 10 minutes late. Meet at the north entrance."
+          hint={`${trimmed.length}/${BROADCAST_MAX}`}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          disabled={broadcast.isPending}
+        />
+      </Sheet>
 
       <Sheet
         open={removing !== null}
