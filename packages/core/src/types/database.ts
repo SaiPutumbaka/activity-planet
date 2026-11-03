@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 15 (schema_version 2.11). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 16 (schema_version 2.12). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -138,6 +138,131 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "auth_provider_secrets_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      chapter_claims: {
+        Row: {
+          agreement_version: string;
+          area_id: string | null;
+          campus_id: string | null;
+          chapter_id: string | null;
+          created_at: string;
+          hub_id: string;
+          id: string;
+          kind: string;
+          motivation: string;
+          officer_role_text: string | null;
+          org_id: string | null;
+          pin_url: string | null;
+          proposed_name: string;
+          reference_contact: string | null;
+          reference_name: string | null;
+          review_note: string | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          rso_name: string | null;
+          status: Database["public"]["Enums"]["chapter_claim_status"];
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          agreement_version: string;
+          area_id?: string | null;
+          campus_id?: string | null;
+          chapter_id?: string | null;
+          created_at?: string;
+          hub_id: string;
+          id?: string;
+          kind: string;
+          motivation?: string;
+          officer_role_text?: string | null;
+          org_id?: string | null;
+          pin_url?: string | null;
+          proposed_name: string;
+          reference_contact?: string | null;
+          reference_name?: string | null;
+          review_note?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          rso_name?: string | null;
+          status?: Database["public"]["Enums"]["chapter_claim_status"];
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          agreement_version?: string;
+          area_id?: string | null;
+          campus_id?: string | null;
+          chapter_id?: string | null;
+          created_at?: string;
+          hub_id?: string;
+          id?: string;
+          kind?: string;
+          motivation?: string;
+          officer_role_text?: string | null;
+          org_id?: string | null;
+          pin_url?: string | null;
+          proposed_name?: string;
+          reference_contact?: string | null;
+          reference_name?: string | null;
+          review_note?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          rso_name?: string | null;
+          status?: Database["public"]["Enums"]["chapter_claim_status"];
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "chapter_claims_area_id_fkey";
+            columns: ["area_id"];
+            isOneToOne: false;
+            referencedRelation: "areas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "chapter_claims_campus_id_fkey";
+            columns: ["campus_id"];
+            isOneToOne: false;
+            referencedRelation: "org_campuses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "chapter_claims_chapter_id_fkey";
+            columns: ["chapter_id"];
+            isOneToOne: false;
+            referencedRelation: "hub_chapters";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "chapter_claims_hub_id_fkey";
+            columns: ["hub_id"];
+            isOneToOne: false;
+            referencedRelation: "hubs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "chapter_claims_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "chapter_claims_reviewed_by_fkey";
+            columns: ["reviewed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "chapter_claims_user_id_fkey";
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
@@ -808,6 +933,8 @@ export type Database = {
         Row: {
           area_id: string | null;
           campus_id: string | null;
+          claimed_at: string | null;
+          claimed_by: string | null;
           cover_url: string | null;
           created_at: string;
           created_by: string | null;
@@ -817,12 +944,17 @@ export type Database = {
           is_active: boolean;
           name: string;
           org_id: string | null;
+          pin_url: string | null;
+          rso_name: string | null;
           slug: string;
           updated_at: string;
+          verified_at: string | null;
         };
         Insert: {
           area_id?: string | null;
           campus_id?: string | null;
+          claimed_at?: string | null;
+          claimed_by?: string | null;
           cover_url?: string | null;
           created_at?: string;
           created_by?: string | null;
@@ -832,12 +964,17 @@ export type Database = {
           is_active?: boolean;
           name: string;
           org_id?: string | null;
+          pin_url?: string | null;
+          rso_name?: string | null;
           slug: string;
           updated_at?: string;
+          verified_at?: string | null;
         };
         Update: {
           area_id?: string | null;
           campus_id?: string | null;
+          claimed_at?: string | null;
+          claimed_by?: string | null;
           cover_url?: string | null;
           created_at?: string;
           created_by?: string | null;
@@ -847,8 +984,11 @@ export type Database = {
           is_active?: boolean;
           name?: string;
           org_id?: string | null;
+          pin_url?: string | null;
+          rso_name?: string | null;
           slug?: string;
           updated_at?: string;
+          verified_at?: string | null;
         };
         Relationships: [
           {
@@ -863,6 +1003,13 @@ export type Database = {
             columns: ["campus_id"];
             isOneToOne: false;
             referencedRelation: "org_campuses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "hub_chapters_claimed_by_fkey";
+            columns: ["claimed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
           {
@@ -1597,6 +1744,7 @@ export type Database = {
         Row: {
           approved_by_host: boolean;
           checked_in_at: string | null;
+          checked_in_by: string | null;
           created_at: string;
           event_id: string;
           removed_at: string | null;
@@ -1610,6 +1758,7 @@ export type Database = {
         Insert: {
           approved_by_host?: boolean;
           checked_in_at?: string | null;
+          checked_in_by?: string | null;
           created_at?: string;
           event_id: string;
           removed_at?: string | null;
@@ -1623,6 +1772,7 @@ export type Database = {
         Update: {
           approved_by_host?: boolean;
           checked_in_at?: string | null;
+          checked_in_by?: string | null;
           created_at?: string;
           event_id?: string;
           removed_at?: string | null;
@@ -1634,6 +1784,13 @@ export type Database = {
           waitlist_position?: number | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "rsvps_checked_in_by_fkey";
+            columns: ["checked_in_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "rsvps_event_id_fkey";
             columns: ["event_id"];
@@ -1827,6 +1984,7 @@ export type Database = {
         Returns: {
           approved_by_host: boolean;
           checked_in_at: string | null;
+          checked_in_by: string | null;
           created_at: string;
           event_id: string;
           removed_at: string | null;
@@ -1940,11 +2098,14 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      chapter_public_card: { Args: { p_chapter: string }; Returns: Json };
+      chapter_slug_for: { Args: { p_name: string }; Returns: string };
       check_in: {
         Args: { p_event_id: string };
         Returns: {
           approved_by_host: boolean;
           checked_in_at: string | null;
+          checked_in_by: string | null;
           created_at: string;
           event_id: string;
           removed_at: string | null;
@@ -2108,6 +2269,7 @@ export type Database = {
         Returns: {
           approved_by_host: boolean;
           checked_in_at: string | null;
+          checked_in_by: string | null;
           created_at: string;
           event_id: string;
           removed_at: string | null;
@@ -2270,6 +2432,29 @@ export type Database = {
         Args: { p_role: Database["public"]["Enums"]["app_role"] };
         Returns: boolean;
       };
+      host_check_in: {
+        Args: { p_checked?: boolean; p_event_id: string; p_user_id: string };
+        Returns: {
+          approved_by_host: boolean;
+          checked_in_at: string | null;
+          checked_in_by: string | null;
+          created_at: string;
+          event_id: string;
+          removed_at: string | null;
+          removed_by: string | null;
+          removed_reason: string | null;
+          status: Database["public"]["Enums"]["rsvp_status"];
+          updated_at: string;
+          user_id: string;
+          waitlist_position: number | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "rsvps";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       hub_member_counts: {
         Args: { p_hub_ids: string[] };
         Returns: {
@@ -2344,13 +2529,59 @@ export type Database = {
         Args: { p_series_id: string; p_weeks?: number };
         Returns: number;
       };
+      my_chapter_claims: {
+        Args: never;
+        Returns: {
+          area_id: string;
+          campus_id: string;
+          chapter_id: string;
+          chapter_slug: string;
+          created_at: string;
+          hub_id: string;
+          hub_name: string;
+          hub_slug: string;
+          id: string;
+          kind: string;
+          officer_role_text: string;
+          org_id: string;
+          pin_url: string;
+          place_label: string;
+          proposed_name: string;
+          review_note: string;
+          reviewed_at: string;
+          rso_name: string;
+          status: Database["public"]["Enums"]["chapter_claim_status"];
+        }[];
+      };
+      my_managed_chapters: {
+        Args: never;
+        Returns: {
+          area_id: string;
+          campus_id: string;
+          chapter_id: string;
+          hub_id: string;
+          hub_name: string;
+          hub_slug: string;
+          is_active: boolean;
+          name: string;
+          org_id: string;
+          place_label: string;
+          role: Database["public"]["Enums"]["chapter_role"];
+          slug: string;
+        }[];
+      };
       purge_account_deletions: { Args: never; Returns: number };
       refresh_hub_stats: { Args: never; Returns: number };
+      remove_chapter_member: {
+        Args: { p_chapter: string; p_user: string };
+        Returns: undefined;
+      };
       remove_rsvp: {
         Args: { p_event_id: string; p_reason?: string; p_user_id: string };
         Returns: {
           approved_by_host: boolean;
           checked_in_at: string | null;
+          checked_in_by: string | null;
           created_at: string;
           event_id: string;
           removed_at: string | null;
@@ -2392,6 +2623,39 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      review_chapter_claim: {
+        Args: { p_approve: boolean; p_claim_id: string; p_note?: string };
+        Returns: {
+          agreement_version: string;
+          area_id: string | null;
+          campus_id: string | null;
+          chapter_id: string | null;
+          created_at: string;
+          hub_id: string;
+          id: string;
+          kind: string;
+          motivation: string;
+          officer_role_text: string | null;
+          org_id: string | null;
+          pin_url: string | null;
+          proposed_name: string;
+          reference_contact: string | null;
+          reference_name: string | null;
+          review_note: string | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          rso_name: string | null;
+          status: Database["public"]["Enums"]["chapter_claim_status"];
+          updated_at: string;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "chapter_claims";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       rsvp_promote_waitlist: { Args: { p_event_id: string }; Returns: number };
       set_chapter_role: {
         Args: {
@@ -2413,6 +2677,7 @@ export type Database = {
         Returns: {
           approved_by_host: boolean;
           checked_in_at: string | null;
+          checked_in_by: string | null;
           created_at: string;
           event_id: string;
           removed_at: string | null;
@@ -2426,6 +2691,39 @@ export type Database = {
         SetofOptions: {
           from: "*";
           to: "rsvps";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      submit_chapter_claim: {
+        Args: { p_args: Json };
+        Returns: {
+          agreement_version: string;
+          area_id: string | null;
+          campus_id: string | null;
+          chapter_id: string | null;
+          created_at: string;
+          hub_id: string;
+          id: string;
+          kind: string;
+          motivation: string;
+          officer_role_text: string | null;
+          org_id: string | null;
+          pin_url: string | null;
+          proposed_name: string;
+          reference_contact: string | null;
+          reference_name: string | null;
+          review_note: string | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          rso_name: string | null;
+          status: Database["public"]["Enums"]["chapter_claim_status"];
+          updated_at: string;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "chapter_claims";
           isOneToOne: true;
           isSetofReturn: false;
         };
@@ -2556,14 +2854,52 @@ export type Database = {
         };
       };
       viewer_age: { Args: never; Returns: number };
+      viewer_can_manage_event: {
+        Args: { p_event_id: string };
+        Returns: boolean;
+      };
       viewer_has_rsvp: { Args: { p_event: string }; Returns: boolean };
       viewer_is_approved: { Args: { p_event: string }; Returns: boolean };
       viewer_is_attending: { Args: { p_event: string }; Returns: boolean };
+      withdraw_chapter_claim: {
+        Args: { p_claim_id: string };
+        Returns: {
+          agreement_version: string;
+          area_id: string | null;
+          campus_id: string | null;
+          chapter_id: string | null;
+          created_at: string;
+          hub_id: string;
+          id: string;
+          kind: string;
+          motivation: string;
+          officer_role_text: string | null;
+          org_id: string | null;
+          pin_url: string | null;
+          proposed_name: string;
+          reference_contact: string | null;
+          reference_name: string | null;
+          review_note: string | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          rso_name: string | null;
+          status: Database["public"]["Enums"]["chapter_claim_status"];
+          updated_at: string;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "chapter_claims";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
     };
     Enums: {
       account_status: "active" | "suspended" | "banned" | "deleted";
       address_visibility: "public" | "approved_only";
       app_role: "moderator" | "admin";
+      chapter_claim_status: "pending" | "approved" | "rejected" | "withdrawn";
       chapter_role: "member" | "captain" | "organizer";
       device_platform: "web" | "ios" | "android";
       event_kind: "member" | "chapter" | "imported";
@@ -2696,6 +3032,7 @@ export const Constants = {
       account_status: ["active", "suspended", "banned", "deleted"],
       address_visibility: ["public", "approved_only"],
       app_role: ["moderator", "admin"],
+      chapter_claim_status: ["pending", "approved", "rejected", "withdrawn"],
       chapter_role: ["member", "captain", "organizer"],
       device_platform: ["web", "ios", "android"],
       event_kind: ["member", "chapter", "imported"],
