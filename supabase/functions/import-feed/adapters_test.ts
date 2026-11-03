@@ -107,7 +107,27 @@ Deno.test("engage rss: status and missing end", async () => {
   assertEquals(parseEngageRss("not xml"), []);
 });
 
+Deno.test("localist: academic calendar dates are not events", () => {
+  const page = parseLocalistPage({
+    events: [
+      {
+        event: {
+          id: 1,
+          title: "Registration",
+          localist_url: "https://calendar.gsu.edu/event/registration",
+          filters: { event_types: [{ id: 83431, name: "Academic Calendar" }] },
+          event_instances: [
+            { event_instance: { id: 2, start: "2026-11-03T00:00:00-05:00", all_day: true } },
+          ],
+        },
+      },
+    ],
+  });
+  assertEquals(page.items, []);
+});
+
 Deno.test("text helpers", () => {
+  assertEquals(htmlToText("<p>One</p>\r\n<p>Two</p>"), "One\n\nTwo");
   assertEquals(
     decodeEntities("Tom &amp; Jerry &#8217;s &#x2014; &nbsp;x &bogus;"),
     "Tom & Jerry ’s —  x &bogus;",

@@ -70,6 +70,7 @@ export function decodeEntities(text: string): string {
 /** HTML to plain text: block ends become line breaks, tags go, entities decode, runs of spaces collapse. */
 export function htmlToText(html: string): string {
   const text = html
+    .replace(/\r\n?/g, "\n")
     .replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, " ")
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, "\n")
@@ -143,6 +144,12 @@ function names(value: unknown): string[] {
   return out;
 }
 
+/**
+ * Localist event types that are dates on the academic calendar (registration windows, last day
+ * to withdraw), not things to go to; they are left out of the feed.
+ */
+const LOCALIST_SKIPPED_TYPES = /^academic calendar$/i;
+
 const PUBLIC_AUDIENCE = /\b(public|everyone|all are welcome|open to all|community|general)\b/i;
 
 // ---------------------------------------------------------------------------
@@ -194,6 +201,7 @@ export function parseLocalistPage(payload: unknown): LocalistPage {
       else categories.push(...list);
     }
     categories.push(...names(e.tags), ...names(e.keywords));
+    if (names(filters.event_types).some((t) => LOCALIST_SKIPPED_TYPES.test(t))) continue;
     const departments = names(e.departments);
     const openToPublic = audience === null ? null : audience.some((a) => PUBLIC_AUDIENCE.test(a));
 

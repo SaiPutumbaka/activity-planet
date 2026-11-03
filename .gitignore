@@ -19,3 +19,4 @@ legacy/v1/node_modules/
 
 # Agent worktrees created by Claude Code workflows
 .claude/worktrees/
+deno.lock
