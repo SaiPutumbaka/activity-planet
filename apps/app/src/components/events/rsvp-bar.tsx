@@ -20,6 +20,7 @@ export function RsvpBar({
   event,
   mine,
   isHost,
+  canManage = isHost,
   rsvp,
   onCheckIn,
   checkingIn,
@@ -28,6 +29,8 @@ export function RsvpBar({
   event: EventDetail;
   mine: Attendee | null;
   isHost: boolean;
+  /** Host, chapter captain or organizer, or moderator: Edit and Cancel plan. */
+  canManage?: boolean;
   rsvp: RsvpController;
   onCheckIn: () => void;
   checkingIn: boolean;
@@ -67,7 +70,7 @@ export function RsvpBar({
             </Button>
           )
         ) : null}
-        {isHost && !checkable ? (
+        {canManage && !checkable ? (
           // While Check in is showing the row is full at 375 px, so Edit moves into the More sheet.
           <Link
             to="/events/$id/edit"
@@ -109,9 +112,21 @@ export function RsvpBar({
         >
           {full ? (event.waitlist_enabled ? "Join waitlist" : "Full") : "Going"}
         </Button>
+        {canManage ? (
+          <Button
+            variant="secondary"
+            size="icon"
+            aria-label="More"
+            onClick={() => setMoreOpen(true)}
+            disabled={pending}
+          >
+            <Ellipsis className="size-5" aria-hidden="true" />
+          </Button>
+        ) : null}
       </>
     );
   }
+  const canLeave = !isHost && status !== null;
 
   return (
     <>
@@ -121,18 +136,16 @@ export function RsvpBar({
 
       <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title={event.title}>
         <div className="flex flex-col gap-2 pb-2">
-          {isHost ? (
+          {canManage ? (
             <>
-              {checkable ? (
-                <Link
-                  to="/events/$id/edit"
-                  params={{ id: event.id }}
-                  onClick={() => setMoreOpen(false)}
-                  className={buttonVariants({ variant: "secondary", size: "lg", block: true })}
-                >
-                  Edit plan
-                </Link>
-              ) : null}
+              <Link
+                to="/events/$id/edit"
+                params={{ id: event.id }}
+                onClick={() => setMoreOpen(false)}
+                className={buttonVariants({ variant: "secondary", size: "lg", block: true })}
+              >
+                Edit plan
+              </Link>
               <Button
                 variant="danger"
                 size="lg"
@@ -145,9 +158,10 @@ export function RsvpBar({
                 Cancel this plan
               </Button>
             </>
-          ) : (
+          ) : null}
+          {canLeave ? (
             <Button
-              variant="danger"
+              variant={canManage ? "secondary" : "danger"}
               size="lg"
               block
               onClick={() => {
@@ -155,12 +169,16 @@ export function RsvpBar({
                 rsvp.set(event.id, "cancelled");
               }}
             >
-              {status === "waitlisted" ? "Leave the waitlist" : "Leave this plan"}
+              {status === "waitlisted"
+                ? "Leave the waitlist"
+                : status === "interested"
+                  ? "Not interested"
+                  : "Leave this plan"}
             </Button>
-          )}
+          ) : null}
           <p className="text-center text-[13px] text-text-3">
-            {isHost
-              ? "Everyone going sees it as cancelled. This can't be undone."
+            {canManage
+              ? "Cancelling tells everyone going. This can't be undone."
               : "Your spot goes to the next person on the waitlist."}
           </p>
         </div>

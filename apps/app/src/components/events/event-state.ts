@@ -80,6 +80,18 @@ export function inCheckInWindow(
   );
 }
 
+/** host_check_in accepts from an hour before the start until a day after the end. */
+export function inHostCheckInWindow(
+  e: { starts_at: string; ends_at: string },
+  now: Date = new Date(),
+): boolean {
+  const t = now.getTime();
+  return (
+    t >= new Date(e.starts_at).getTime() - 3_600_000 &&
+    t <= new Date(e.ends_at).getTime() + 24 * 3_600_000
+  );
+}
+
 /** Whether a Going tap can still do something (the RPC decides for real). */
 export function canRsvp(e: EventLike, now: Date = new Date()): boolean {
   return e.status === "published" && !isOver(e.ends_at, now) && e.kind !== "imported";

@@ -134,8 +134,13 @@ export interface HubChapter {
   slug: string;
   name: string;
   description: string;
+  org_id: string | null;
   campus_id: string | null;
+  area_id: string | null;
+  /** Set once a moderator approved a claim: the chapter has an organizer. */
+  verified_at: string | null;
   org_campuses: { name: string } | null;
+  organizations: { name: string } | null;
   /** Set for a neighborhood chapter run by a captain (D-035). */
   areas: { name: string } | null;
   /** PostgREST count aggregate: one element. Under-counts in sensitive categories (RLS). */
@@ -149,7 +154,7 @@ export const hubChaptersQuery = (hubId: string) =>
       const { data, error } = await supabase
         .from("hub_chapters")
         .select(
-          "id,slug,name,description,campus_id,org_campuses(name),areas(name),chapter_members(count)",
+          "id,slug,name,description,org_id,campus_id,area_id,verified_at,org_campuses(name),organizations(name),areas(name),chapter_members(count)",
         )
         .eq("hub_id", hubId)
         .eq("is_active", true)

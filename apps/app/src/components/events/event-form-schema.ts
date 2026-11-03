@@ -39,10 +39,13 @@ export function durationLabel(minutes: number): string {
 
 const INT = /^\d+$/;
 const TIME = /^\d{2}:\d{2}$/;
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export const eventFormSchema = z
   .object({
     hubId: z.string().min(1, "Pick a hub."),
+    /** "" posts as the viewer; a chapter id posts as that chapter (kind 'chapter'). */
+    postAs: z.string(),
     title: z
       .string()
       .trim()
@@ -58,6 +61,10 @@ export const eventFormSchema = z
     /** "HH:MM" */
     startTime: z.string(),
     weeks: z.string(),
+    /** "YYYY-MM-DD": the series starts on the first matching weekday on or after this date. */
+    startsOn: z.string(),
+    /** "YYYY-MM-DD" or "": the last date a week can fall on; "" runs for `weeks` weeks. */
+    endsOn: z.string(),
     locationMode: z.enum(["venue", "text"]),
     venueId: z.string().nullable(),
     venueName: z.string(),
@@ -79,7 +86,30 @@ export const eventFormSchema = z
       if (!TIME.test(v.startTime)) {
         ctx.addIssue({ code: "custom", path: ["startTime"], message: "Pick a start time." });
       }
-      if (!INT.test(v.weeks) || Number(v.weeks) < 1 || Number(v.weeks) > MAX_WEEKS) {
+      if (v.startsOn && !DATE.test(v.startsOn)) {
+        ctx.addIssue({ code: "custom", path: ["startsOn"], message: "Pick a start date." });
+      }
+      if (v.endsOn) {
+        if (!DATE.test(v.endsOn)) {
+          ctx.addIssue({ code: "custom", path: ["endsOn"], message: "Pick an end date." });
+        } else if (v.startsOn && DATE.test(v.startsOn) && v.endsOn < v.startsOn) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["endsOn"],
+            message: "The last date has to come after the first.",
+          });
+        } else if (
+          v.startsOn &&
+          DATE.test(v.startsOn) &&
+          Date.parse(v.endsOn) - Date.parse(v.startsOn) > MAX_WEEKS * 7 * 86_400_000
+        ) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["endsOn"],
+            message: `A weekly plan runs for up to ${MAX_WEEKS} weeks.`,
+          });
+        }
+      } else if (!INT.test(v.weeks) || Number(v.weeks) < 1 || Number(v.weeks) > MAX_WEEKS) {
         ctx.addIssue({
           code: "custom",
           path: ["weeks"],
@@ -173,22 +203,34 @@ export function weekdayOf(localValue: string, timeZone: string): string {
   return String(index === -1 ? 1 : index);
 }
 
+/** Today as "YYYY-MM-DD" in the timezone. */
+export function todayIn(timeZone: string, now = new Date()): string {
+  return toLocalDateTimeInputValue(now, timeZone).slice(0, 10);
+}
+
 export function defaultEventFormValues(opts: {
   hubId: string;
   timeZone?: string;
+  /** Post as this chapter (a managed chapter's id). */
+  chapterId?: string;
+  repeatWeekly?: boolean;
+  now?: Date;
 }): EventFormValues {
   const timeZone = opts.timeZone ?? DEFAULT_TIMEZONE;
-  const startsAt = suggestedStart(timeZone);
+  const startsAt = suggestedStart(timeZone, opts.now);
   return {
     hubId: opts.hubId,
+    postAs: opts.chapterId ?? "",
     title: "",
     description: "",
     startsAt,
     durationMinutes: "120",
-    repeatWeekly: false,
+    repeatWeekly: opts.repeatWeekly ?? false,
     weekday: weekdayOf(startsAt, timeZone),
     startTime: startsAt.slice(11, 16),
     weeks: String(DEFAULT_WEEKS),
+    startsOn: todayIn(timeZone, opts.now),
+    endsOn: "",
     locationMode: "venue",
     venueId: null,
     venueName: "",
@@ -216,6 +258,7 @@ export function valuesFromEvent(event: EventDetail): EventFormValues {
   const startsAt = toLocalDateTimeInputValue(event.starts_at, event.timezone);
   return {
     hubId: event.hub_id,
+    postAs: event.chapter_id ?? "",
     title: event.title,
     description: event.description,
     startsAt,
@@ -224,6 +267,8 @@ export function valuesFromEvent(event: EventDetail): EventFormValues {
     weekday: weekdayOf(startsAt, event.timezone),
     startTime: startsAt.slice(11, 16),
     weeks: String(DEFAULT_WEEKS),
+    startsOn: startsAt.slice(0, 10),
+    endsOn: "",
     locationMode: address?.venue_id ? "venue" : "text",
     venueId: address?.venue_id ?? null,
     venueName: address?.venues?.name ?? "",
@@ -244,7 +289,10 @@ export function valuesFromEvent(event: EventDetail): EventFormValues {
 }
 
 export interface EventArgsContext {
-  /** profiles.home_campus_id; the campus a campus-only plan is tagged to. */
+  /**
+   * The campus a campus-only plan is tagged to: the chapter's campus when posting as a campus
+   * chapter, else profiles.home_campus_id.
+   */
   campusId: string | null;
   /** The hub is 21+ or the hub rules force the flag on. */
   forceIs21: boolean;
@@ -306,8 +354,16 @@ function toPatch(v: EventFormValues, ctx: EventArgsContext): EventPatch {
   };
 }
 
+/** kind and chapter_id: a chapter plan when "Post as" names a chapter, else the viewer's own. */
+export function postAsArgs(v: Pick<EventFormValues, "postAs">): {
+  kind: "member" | "chapter";
+  chapter_id?: string;
+} {
+  return v.postAs ? { kind: "chapter", chapter_id: v.postAs } : { kind: "member" };
+}
+
 export function toCreateEventArgs(v: EventFormValues, ctx: EventArgsContext): CreateEventArgs {
-  return { hub_id: v.hubId, kind: "member", ...toPatch(v, ctx) };
+  return { hub_id: v.hubId, ...postAsArgs(v), ...toPatch(v, ctx) };
 }
 
 export function toCreateEventSeriesArgs(
@@ -320,12 +376,14 @@ export function toCreateEventSeriesArgs(
   void ends_at;
   return {
     hub_id: v.hubId,
-    kind: "member",
+    ...postAsArgs(v),
     ...rest,
     weekday: Number(v.weekday),
     start_time: v.startTime,
     duration_minutes: Number(v.durationMinutes),
-    max_occurrences: Number(v.weeks),
+    ...(v.startsOn ? { starts_on: v.startsOn } : {}),
+    // A last date bounds the series by itself; otherwise it runs for the number of weeks.
+    ...(v.endsOn ? { ends_on: v.endsOn } : { max_occurrences: Number(v.weeks) }),
   };
 }
 

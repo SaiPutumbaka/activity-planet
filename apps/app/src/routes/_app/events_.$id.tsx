@@ -36,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FieldTextArea } from "@/components/ui/textarea";
 import { DEFAULT_TIMEZONE, formatEventTime } from "@/lib/datetime";
 import {
+  canManageEventQuery,
   cancelEvent,
   checkIn,
   eventAttendeesQuery,
@@ -137,6 +138,12 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
   const [cancelReason, setCancelReason] = useState("");
 
   const isHost = event.host_id === userId;
+  // Host, a captain or organizer of the event's chapter, or a moderator (viewer_can_manage_event).
+  const canManageQuery = useQuery({
+    ...canManageEventQuery(event.id, userId),
+    enabled: event.kind !== "imported",
+  });
+  const canManage = canManageQuery.data ?? isHost;
   const mine = attendees.data?.find((a) => a.user_id === userId) ?? null;
   const myStatus = mine && mine.status !== "cancelled" ? mine.status : null;
   const state = eventState(event);
@@ -157,6 +164,7 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
     void queryClient.invalidateQueries({ queryKey: ["events", event.id] });
     void queryClient.invalidateQueries({ queryKey: ["feed"] });
     void queryClient.invalidateQueries({ queryKey: ["hubs", "events"] });
+    void queryClient.invalidateQueries({ queryKey: ["chapters", "events"] });
   };
 
   const checkInMutation = useMutation({
@@ -357,13 +365,13 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
             </section>
           ) : null}
 
-          {isHost ? (
+          {canManage ? (
             attendees.isPending ? (
               <Skeleton className="h-24" />
             ) : attendees.isError ? (
               <p className="text-[13px] text-text-2">Couldn't load the attendee list.</p>
             ) : (
-              <AttendeesSection event={event} attendees={attendees.data} />
+              <AttendeesSection event={event} attendees={attendees.data} isHost={isHost} />
             )
           ) : null}
         </div>
@@ -374,6 +382,7 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
           event={event}
           mine={mine}
           isHost={isHost}
+          canManage={canManage}
           rsvp={rsvp}
           onCheckIn={() => checkInMutation.mutate()}
           checkingIn={checkInMutation.isPending}

@@ -144,6 +144,21 @@ export async function checkIn(eventId: string): Promise<RsvpRow> {
   return data;
 }
 
+/** Host, chapter captain or organizer, or moderator checks a going attendee in (or undoes it). */
+export async function hostCheckIn(
+  eventId: string,
+  userId: string,
+  checked: boolean,
+): Promise<RsvpRow> {
+  const { data, error } = await supabase.rpc("host_check_in", {
+    p_event_id: eventId,
+    p_user_id: userId,
+    p_checked: checked,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function approveRsvp(
   eventId: string,
   userId: string,
@@ -242,6 +257,23 @@ export const eventAttendeesQuery = (eventId: string) =>
       return data;
     },
     staleTime: 30_000,
+  });
+
+/**
+ * viewer_can_manage_event(): the host, a captain or organizer of the event's chapter, or a
+ * moderator. Gates the attendee list, check-in toggles, Edit and Cancel.
+ */
+export const canManageEventQuery = (eventId: string, userId: string) =>
+  queryOptions({
+    queryKey: ["events", eventId, "can-manage", userId] as const,
+    queryFn: async (): Promise<boolean> => {
+      const { data, error } = await supabase.rpc("viewer_can_manage_event", {
+        p_event_id: eventId,
+      });
+      if (error) throw error;
+      return data === true;
+    },
+    staleTime: 5 * 60_000,
   });
 
 export type Attendee = QueryData<ReturnType<typeof eventAttendeesQuery>>[number];
@@ -379,7 +411,7 @@ const MESSAGES: Record<string, string> = {
   not_authenticated: "Your session ended. Sign in again.",
   onboarding_required: "Finish setting up your profile first.",
   profile_missing: "Your profile is missing. Sign in again.",
-  forbidden: "Only the host can do that.",
+  forbidden: "Only the host or the chapter's captains can do that.",
   // posting
   title_required: "Give the plan a title.",
   title_length: "Titles are 3 to 120 characters.",
@@ -479,8 +511,14 @@ export function fieldForEventError(code: string): EventFormField | null {
     case "weekday_invalid":
     case "start_time_required":
     case "duration_invalid":
-    case "invalid_date_range":
       return "startsAt";
+    case "invalid_date_range":
+      return "endsOn";
+    case "invalid_chapter":
+    case "chapter_not_found":
+    case "chapter_mismatch":
+    case "not_chapter_captain":
+      return "postAs";
     case "min_headcount_above_capacity":
       return "minHeadcount";
     case "capacity_below_going":
@@ -516,6 +554,8 @@ export function fieldForEventError(code: string): EventFormField | null {
 /** Field names of the post/edit form (components/events/event-form-schema.ts). */
 export type EventFormField =
   | "hubId"
+  | "postAs"
+  | "endsOn"
   | "title"
   | "description"
   | "startsAt"

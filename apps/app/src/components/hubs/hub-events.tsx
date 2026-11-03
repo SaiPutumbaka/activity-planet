@@ -77,7 +77,7 @@ export function HubEvents({
   );
 }
 
-function EventRow({ event }: { event: HubEvent }) {
+export function EventRow({ event }: { event: HubEvent }) {
   const live = isHappeningNow(event.starts_at, event.ends_at);
   const full = isFull(event);
   const where = [event.location_hint, formatGoing(event)].filter(Boolean).join(" · ");

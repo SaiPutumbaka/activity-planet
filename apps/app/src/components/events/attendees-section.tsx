@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, UserX } from "lucide-react";
+import { Check, CircleCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar } from "@/components/ui/avatar";
@@ -9,28 +9,37 @@ import { Sheet } from "@/components/ui/sheet";
 import { FieldTextArea } from "@/components/ui/textarea";
 import {
   approveRsvp,
+  eventErrorCode,
   eventErrorMessage,
+  hostCheckIn,
   removeRsvp,
   type Attendee,
   type EventDetail,
 } from "@/lib/events";
+import { inHostCheckInWindow } from "./event-state";
 
 /**
- * The host's attendee list (event_attendees() returns every live row for the host). Approve
- * reveals an approved-only address to that person; Remove cancels their RSVP and keeps them
- * out until a moderator steps in.
+ * The attendee list for whoever manages the plan: the host, a captain or organizer of its
+ * chapter, or a moderator (event_attendees() returns every live row to them). Approve reveals an
+ * approved-only address to that person; Check in marks them there (host_check_in, from an hour
+ * before the start to a day after the end); Remove cancels their RSVP and keeps them out until a
+ * moderator steps in.
  */
 export function AttendeesSection({
   event,
   attendees,
+  isHost = true,
 }: {
   event: EventDetail;
   attendees: Attendee[];
+  /** The viewer is the host (copy only; captains see "the host" where the host sees "you"). */
+  isHost?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [removing, setRemoving] = useState<Attendee | null>(null);
   const [reason, setReason] = useState("");
   const needsApproval = event.address_visibility === "approved_only";
+  const checkInOpen = event.status !== "cancelled" && inHostCheckInWindow(event);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["events", event.id] });
 
@@ -44,6 +53,21 @@ export function AttendeesSection({
       );
     },
     onError: (err) => toast.error(eventErrorMessage(err)),
+  });
+
+  const checkIn = useMutation({
+    mutationFn: ({ userId, checked }: { userId: string; checked: boolean }) =>
+      hostCheckIn(event.id, userId, checked),
+    onSuccess: (row) => {
+      void invalidate();
+      toast.success(row.checked_in_at ? "Checked in." : "Check-in undone.");
+    },
+    onError: (err) =>
+      toast.error(
+        eventErrorCode(err) === "check_in_window"
+          ? "Check people in from an hour before the start until a day after the end."
+          : eventErrorMessage(err),
+      ),
   });
 
   const remove = useMutation({
@@ -65,9 +89,9 @@ export function AttendeesSection({
   const interested = attendees.filter((a) => a.status === "interested");
 
   function row(a: Attendee) {
-    const isHost = a.user_id === event.host_id;
+    const isHostRow = a.user_id === event.host_id;
     const name = a.profiles?.first_name ?? "Deleted user";
-    const detail = isHost
+    const detail = isHostRow
       ? "Host"
       : a.status === "waitlisted"
         ? `Waitlist #${a.waitlist_position ?? "?"}`
@@ -90,7 +114,21 @@ export function AttendeesSection({
           </p>
           {detail ? <p className="text-[13px] text-text-2">{detail}</p> : null}
         </div>
-        {!isHost && a.status === "going" && needsApproval ? (
+        {checkInOpen && a.status === "going" ? (
+          <Button
+            variant={a.checked_in_at ? "secondary" : "outline"}
+            onClick={() => checkIn.mutate({ userId: a.user_id, checked: !a.checked_in_at })}
+            loading={checkIn.isPending && checkIn.variables?.userId === a.user_id}
+            aria-pressed={Boolean(a.checked_in_at)}
+            aria-label={a.checked_in_at ? `Undo check-in for ${name}` : `Check in ${name}`}
+            leading={
+              a.checked_in_at ? <CircleCheck className="size-4" aria-hidden="true" /> : undefined
+            }
+          >
+            {a.checked_in_at ? "Here" : "Check in"}
+          </Button>
+        ) : null}
+        {!isHostRow && a.status === "going" && needsApproval ? (
           <Button
             variant={a.approved_by_host ? "secondary" : "outline"}
             onClick={() => approve.mutate({ userId: a.user_id, approved: !a.approved_by_host })}
@@ -103,7 +141,7 @@ export function AttendeesSection({
             {a.approved_by_host ? "Approved" : "Approve"}
           </Button>
         ) : null}
-        {!isHost ? (
+        {!isHostRow ? (
           <Button
             variant="ghost"
             size="icon"
@@ -132,7 +170,9 @@ export function AttendeesSection({
       <h3 className="text-[17px] font-bold tracking-[-0.01em]">Attendees</h3>
       {needsApproval ? (
         <p className="text-[13px] text-text-2">
-          The exact address goes only to people you approve here.
+          {isHost
+            ? "The exact address goes only to people you approve here."
+            : "The exact address goes only to people approved here."}
         </p>
       ) : null}
       {groups.length === 0 ? <p className="text-[14px] text-text-2">No one yet.</p> : null}

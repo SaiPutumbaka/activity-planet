@@ -7,6 +7,7 @@ import { Field, FormError } from "@/components/ui/field";
 import { FieldSelect } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { FieldTextArea } from "@/components/ui/textarea";
+import type { ManagedChapter, PostAsHub } from "@/lib/chapters";
 import {
   eventErrorCode,
   eventErrorMessage,
@@ -36,6 +37,10 @@ export interface EventFormProps {
   mode: "create" | "edit";
   initialValues: EventFormValues;
   hubs: PostableHub[];
+  /** Chapters the viewer captains or organizes: the "Post as" choices (create mode). */
+  chapters?: ManagedChapter[];
+  /** A chapter schedule: repeat is always on and "Post as" is fixed to initialValues.postAs. */
+  seriesOnly?: boolean;
   /** profiles.home_org_id is set: the Campus only switch makes sense. */
   canCampus: boolean;
   /** profiles.home_campus_id, tagged onto campus-only plans. */
@@ -50,6 +55,8 @@ export interface EventFormProps {
 /** Fields rendered as text inputs, where a server error can sit under the control. */
 const INPUT_FIELDS: ReadonlySet<EventFormField> = new Set([
   "hubId",
+  "postAs",
+  "endsOn",
   "title",
   "description",
   "startsAt",
@@ -64,6 +71,8 @@ export function EventForm({
   mode,
   initialValues,
   hubs,
+  chapters = [],
+  seriesOnly = false,
   canCampus,
   campusId,
   timeZone,
@@ -80,14 +89,22 @@ export function EventForm({
   const { errors, isSubmitting } = formState;
   const w = useWatch({ control });
 
-  const hub = hubs.find((h) => h.id === w.hubId);
+  // A chapter's hub counts even when the viewer has not joined it.
+  const allHubs: PostAsHub[] = [...hubs];
+  for (const c of chapters) {
+    if (c.hub && !allHubs.some((h) => h.id === c.hub!.id)) allHubs.push(c.hub);
+  }
+  const chapter = w.postAs ? chapters.find((c) => c.id === w.postAs) : undefined;
+  const showPostAs = mode === "create" && !seriesOnly && chapters.length > 0;
+  const hub = allHubs.find((h) => h.id === w.hubId);
   const forceIs21 = hub?.min_age === 21;
   const hubIsCampus = hub?.scope === "campus";
   const is21 = Boolean(w.is21) || forceIs21;
   const privateVenue =
     w.locationMode === "venue" && Boolean(w.venueId) && w.venueIsPublic === false;
   const hasCapacity = Boolean(w.capacity);
-  const repeat = mode === "create" && Boolean(w.repeatWeekly);
+  const repeat = mode === "create" && (seriesOnly || Boolean(w.repeatWeekly));
+  const campusAllowed = canCampus || Boolean(chapter?.campusId);
 
   const venueValue: VenueValue = {
     locationMode: w.locationMode ?? "venue",
@@ -113,13 +130,21 @@ export function EventForm({
   async function submit(values: EventFormValues) {
     setFormError(null);
     try {
-      await onSubmit(values, { campusId, forceIs21, timeZone });
+      await onSubmit(seriesOnly ? { ...values, repeatWeekly: true } : values, {
+        campusId: chapter?.campusId ?? campusId,
+        forceIs21,
+        timeZone,
+      });
     } catch (err) {
       const field = fieldForEventError(eventErrorCode(err));
       const message = eventErrorMessage(err);
       // Only a field that is on screen can carry the error: the hub is a read-only row in edit
       // mode, and Starts gives way to the weekday / time fields while repeat is on.
-      const hidden = (mode === "edit" && field === "hubId") || (repeat && field === "startsAt");
+      const hidden =
+        ((mode === "edit" || Boolean(chapter)) && field === "hubId") ||
+        (!showPostAs && field === "postAs") ||
+        (!repeat && field === "endsOn") ||
+        (repeat && field === "startsAt");
       if (field && INPUT_FIELDS.has(field) && !hidden) {
         setError(field, { message }, { shouldFocus: true });
       } else {
@@ -137,7 +162,31 @@ export function EventForm({
   return (
     <form onSubmit={handleSubmit(submit)} className="flex flex-col gap-7 pb-32" noValidate>
       <Section title="What">
-        {mode === "create" ? (
+        {showPostAs ? (
+          <FieldSelect
+            label="Post as"
+            hint="A chapter plan shows the chapter's name, and its captains can manage it with you."
+            {...register("postAs", {
+              onChange: (e: { target: { value: string } }) => {
+                const next = chapters.find((c) => c.id === e.target.value);
+                const opts = { shouldValidate: formState.isSubmitted };
+                if (next) setValue("hubId", next.hubId, opts);
+                else if (!hubs.some((h) => h.id === w.hubId))
+                  setValue("hubId", hubs[0]?.id ?? "", opts);
+              },
+            })}
+            error={errors.postAs?.message}
+          >
+            <option value="">Me</option>
+            {chapters.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </FieldSelect>
+        ) : null}
+        {seriesOnly && chapter ? <ReadOnlyRow label="Posting as" value={chapter.name} /> : null}
+        {mode === "create" && !chapter ? (
           <FieldSelect label="Hub" {...register("hubId")} error={errors.hubId?.message}>
             {hubs.map((h) => (
               <option key={h.id} value={h.id}>
@@ -168,7 +217,7 @@ export function EventForm({
 
       <Section title="When">
         {seriesNote ? <p className="text-[13px] text-text-2">{seriesNote}</p> : null}
-        {mode === "create" ? (
+        {mode === "create" && !seriesOnly ? (
           <Controller
             control={control}
             name="repeatWeekly"
@@ -207,24 +256,43 @@ export function EventForm({
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
+              <Field
+                label="Starting"
+                type="date"
+                {...register("startsOn")}
+                error={errors.startsOn?.message}
+              />
+              <Field
+                label="Last date (optional)"
+                type="date"
+                min={w.startsOn || undefined}
+                {...register("endsOn")}
+                error={errors.endsOn?.message}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <DurationSelect
                 options={durationOptions}
                 {...register("durationMinutes")}
                 error={errors.durationMinutes?.message}
               />
-              <Field
-                label="For how many weeks"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={MAX_WEEKS}
-                {...register("weeks")}
-                error={errors.weeks?.message}
-              />
+              {w.endsOn ? null : (
+                <Field
+                  label="For how many weeks"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={MAX_WEEKS}
+                  {...register("weeks")}
+                  error={errors.weeks?.message}
+                />
+              )}
             </div>
             <p className="text-[13px] text-text-2">
-              The first one is the next {WEEKDAYS[Number(w.weekday)] ?? "week"} at that time; the
-              next eight weeks are posted now and more follow as they come up.
+              The first one is the first {WEEKDAYS[Number(w.weekday)] ?? "week"} on or after the
+              start date, at that time
+              {w.endsOn ? ", and the last one falls on or before the last date" : ""}. The next
+              eight weeks are posted now and more follow as they come up.
             </p>
           </>
         ) : (
@@ -338,7 +406,7 @@ export function EventForm({
             )}
           />
         )}
-        {canCampus ? (
+        {campusAllowed ? (
           <Controller
             control={control}
             name="campusOnly"
@@ -348,7 +416,9 @@ export function EventForm({
                 hint={
                   is21
                     ? "21+ plans live outside the campus space."
-                    : "Only verified members of your campus see it and can join."
+                    : chapter?.campusId
+                      ? `Only verified members of ${chapter.placeLabel || "the chapter's campus"} see it and can join.`
+                      : "Only verified members of your campus see it and can join."
                 }
                 checked={field.value && !is21}
                 onCheckedChange={field.onChange}

@@ -122,7 +122,7 @@ function HubPageContent({ hub }: { hub: HubPage }) {
 
       <section className="flex flex-col gap-3" aria-labelledby="hub-chapters">
         <SectionHeading id="hub-chapters" title="Chapters" />
-        <HubChapters hubId={hub.id} hubName={hub.name} isSensitive={isSensitive} />
+        <HubChapters hubId={hub.id} hubName={hub.name} isSensitive={isSensitive} userId={userId} />
       </section>
 
       <section className="flex flex-col gap-3" aria-labelledby="hub-members">

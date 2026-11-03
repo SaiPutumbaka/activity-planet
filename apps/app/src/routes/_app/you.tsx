@@ -1,6 +1,7 @@
 import { Link, createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { AppIcon } from "@ap/ui/brand";
 
@@ -12,6 +13,7 @@ import { SegmentedControl } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ButtonRow, LinkRow } from "@/components/you/link-row";
 import { authErrorMessage, signOut } from "@/lib/auth";
+import { isModeratorQuery, myManagedChaptersQuery, roleLabel } from "@/lib/chapters";
 import { feedPrefsQuery, useFeedOrigin } from "@/lib/location";
 import { profileQuery } from "@/lib/profile";
 import { SITE_URL } from "@/lib/site";
@@ -44,6 +46,9 @@ function YouPage() {
   const profileResult = useQuery(profileQuery(session.user.id));
   const profile = profileResult.data ?? contextProfile;
   const membership = useQuery(membershipQuery(session.user.id));
+  const managed = useQuery(myManagedChaptersQuery(session.user.id));
+  const isMod = useQuery(isModeratorQuery(session.user.id));
+  const chapters = managed.data ?? [];
   const verifiedSpace = membership.data
     ? (membership.data.org_campuses?.name ?? membership.data.organizations?.name ?? "Verified")
     : null;
@@ -154,6 +159,43 @@ function YouPage() {
             />
           </div>
         </section>
+
+        {chapters.length > 0 || isMod.data ? (
+          <section className="flex flex-col gap-2">
+            <h3 className="text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">
+              Your chapters
+            </h3>
+            <div className="divide-y divide-border overflow-hidden rounded-card border border-border">
+              {chapters.map((c) => (
+                <Link
+                  key={c.id}
+                  to="/chapters/$slug"
+                  params={{ slug: c.slug }}
+                  className="flex min-h-11 items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-surface-2"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-[15px] font-medium">{c.name}</span>
+                    {c.placeLabel ? (
+                      <span className="block truncate text-[12px] text-text-3">{c.placeLabel}</span>
+                    ) : null}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1 text-[15px] text-text-2">
+                    {roleLabel(c.role)}
+                    <ChevronRight className="size-4 shrink-0 text-text-3" aria-hidden="true" />
+                  </span>
+                </Link>
+              ))}
+              {isMod.data ? (
+                <LinkRow
+                  to="/admin/claims"
+                  label="Chapter claims"
+                  value="Review"
+                  hint="Moderators approve who runs a chapter"
+                />
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
         <section className="flex flex-col gap-3">
           <Button variant="secondary" block loading={signingOut} onClick={onSignOut}>

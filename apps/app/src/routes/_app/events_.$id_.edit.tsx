@@ -18,12 +18,19 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FormError } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isOver } from "@/lib/datetime";
-import { eventErrorMessage, eventQuery, updateEvent, type EventDetail } from "@/lib/events";
+import { chapterKeys } from "@/lib/chapters";
+import {
+  canManageEventQuery,
+  eventErrorMessage,
+  eventQuery,
+  updateEvent,
+  type EventDetail,
+} from "@/lib/events";
 
 const appRoute = getRouteApi("/_app");
 
 /**
- * Edit a plan (host only): the post form prefilled, update_event with only the keys that
+ * Edit a plan (host, chapter captains and organizers, moderators): the post form prefilled, update_event with only the keys that
  * changed. `events_.$id_.edit.tsx` makes /events/$id/edit a sibling of the event page rather
  * than a child rendered inside it.
  */
@@ -38,12 +45,14 @@ function EditEventPage() {
   const { id } = Route.useParams();
   const { session } = appRoute.useRouteContext();
   const event = useQuery(eventQuery(id));
+  const canManage = useQuery(canManageEventQuery(id, session.user.id));
+  const allowed = canManage.data ?? event.data?.host_id === session.user.id;
 
   return (
     <>
       <TopBar title="Edit plan" back />
       <main className="flex flex-col gap-5 pt-2 safe-px">
-        {event.isPending ? (
+        {event.isPending || (canManage.isPending && event.data?.host_id !== session.user.id) ? (
           <div className="flex flex-col gap-4" aria-busy="true">
             <Skeleton className="h-12" />
             <Skeleton className="h-12" />
@@ -58,11 +67,11 @@ function EditEventPage() {
           </div>
         ) : !event.data ? (
           <NotEditable title="This plan isn't here" body="It may have been removed." />
-        ) : event.data.host_id !== session.user.id ? (
+        ) : !allowed ? (
           <NotEditable
             id={id}
             title="Only the host can edit this plan"
-            body="Ask them to change it, or post your own."
+            body="The host and the chapter's captains can change it. Ask them, or post your own."
           />
         ) : event.data.status === "cancelled" ? (
           <NotEditable
@@ -129,6 +138,7 @@ function EditForm({ event }: { event: EventDetail }) {
     void queryClient.invalidateQueries({ queryKey: ["events", event.id] });
     void queryClient.invalidateQueries({ queryKey: ["feed"] });
     void queryClient.invalidateQueries({ queryKey: ["hubs", "events"] });
+    void queryClient.invalidateQueries({ queryKey: chapterKeys.all });
     toast.success("Saved.");
     await navigate({ to: "/events/$id", params: { id: event.id }, replace: true });
   }

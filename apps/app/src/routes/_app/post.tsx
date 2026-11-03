@@ -19,42 +19,65 @@ import { buttonVariants } from "@/components/ui/button-variants";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FormError } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
+import { chapterKeys, myManagedChaptersQuery } from "@/lib/chapters";
 import { DEFAULT_TIMEZONE } from "@/lib/datetime";
 import { createEvent, createEventSeries, myPostableHubsQuery } from "@/lib/events";
 
 const appRoute = getRouteApi("/_app");
-const searchSchema = z.object({ hub: z.string().optional() });
+const searchSchema = z.object({
+  hub: z.string().optional(),
+  chapterId: z.string().optional(),
+});
 
 /**
  * Post a plan: one form, create_event or (weekly) create_event_series, then the event page.
- * `?hub=<slug>` preselects the hub (a hub page's "start a plan here").
+ * `?hub=<slug>` preselects the hub (a hub page's "start a plan here"); `?chapterId=<id>` posts
+ * as that chapter when the viewer captains or organizes it.
  */
 export const Route = createFileRoute("/_app/post")({
   validateSearch: searchSchema,
   loader: ({ context: { queryClient, session } }) => {
     void queryClient.prefetchQuery(myPostableHubsQuery(session.user.id));
+    void queryClient.prefetchQuery(myManagedChaptersQuery(session.user.id));
   },
   component: PostPage,
 });
 
 function PostPage() {
   const { session, profile } = appRoute.useRouteContext();
-  const { hub: hubSlug } = Route.useSearch();
+  const { hub: hubSlug, chapterId } = Route.useSearch();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const hubs = useQuery(myPostableHubsQuery(session.user.id));
+  const managed = useQuery(myManagedChaptersQuery(session.user.id));
+  // "Post as" is an extra; a failed load just means posting as yourself.
+  const chapters = managed.data ?? [];
+  const loading = hubs.isPending || managed.isPending;
 
   const initialValues = useMemo(() => {
     const list = hubs.data ?? [];
+    const asChapter = (managed.data ?? []).find((c) => c.id === chapterId);
+    if (asChapter) {
+      return defaultEventFormValues({
+        hubId: asChapter.hubId,
+        chapterId: asChapter.id,
+        timeZone: DEFAULT_TIMEZONE,
+      });
+    }
     const chosen = list.find((h) => h.slug === hubSlug) ?? list[0];
     return defaultEventFormValues({ hubId: chosen?.id ?? "", timeZone: DEFAULT_TIMEZONE });
-  }, [hubs.data, hubSlug]);
+  }, [hubs.data, managed.data, hubSlug, chapterId]);
+
+  function invalidateLists() {
+    void queryClient.invalidateQueries({ queryKey: ["feed"] });
+    void queryClient.invalidateQueries({ queryKey: ["hubs", "events"] });
+    void queryClient.invalidateQueries({ queryKey: chapterKeys.all });
+  }
 
   async function onSubmit(values: EventFormValues, ctx: EventArgsContext) {
     if (values.repeatWeekly) {
       const { firstEventId } = await createEventSeries(toCreateEventSeriesArgs(values, ctx));
-      void queryClient.invalidateQueries({ queryKey: ["feed"] });
-      void queryClient.invalidateQueries({ queryKey: ["hubs", "events"] });
+      invalidateLists();
       toast.success("Weekly plan posted.");
       if (firstEventId) {
         await navigate({ to: "/events/$id", params: { id: firstEventId }, replace: true });
@@ -64,8 +87,7 @@ function PostPage() {
       return;
     }
     const event = await createEvent(toCreateEventArgs(values, ctx));
-    void queryClient.invalidateQueries({ queryKey: ["feed"] });
-    void queryClient.invalidateQueries({ queryKey: ["hubs", "events"] });
+    invalidateLists();
     toast.success("Plan posted.");
     await navigate({ to: "/events/$id", params: { id: event.id }, replace: true });
   }
@@ -74,7 +96,7 @@ function PostPage() {
     <>
       <TopBar title="Post a plan" />
       <main className="flex flex-col gap-5 pt-2 safe-px">
-        {hubs.isPending ? (
+        {loading ? (
           <div className="flex flex-col gap-4" aria-busy="true">
             <Skeleton className="h-12" />
             <Skeleton className="h-12" />
@@ -88,7 +110,7 @@ function PostPage() {
               Try again
             </Button>
           </div>
-        ) : hubs.data.length === 0 ? (
+        ) : hubs.data.length === 0 && chapters.length === 0 ? (
           <EmptyState
             icon={Users}
             title="Join a hub first"
@@ -103,7 +125,10 @@ function PostPage() {
           <EventForm
             mode="create"
             initialValues={initialValues}
+            // Remount when a chapter link arrives after the form first rendered.
+            key={initialValues.postAs}
             hubs={hubs.data}
+            chapters={chapters}
             canCampus={profile.home_org_id !== null}
             campusId={profile.home_campus_id}
             timeZone={DEFAULT_TIMEZONE}
