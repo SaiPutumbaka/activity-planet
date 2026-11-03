@@ -13,10 +13,12 @@
 //      { status: 'sent' } so the flow can be tested with a code obtained from the database.
 //
 // Responses
-//   200 { status: 'sent', expires_at }            code issued (email sent or logged as skipped)
-//   200 { status: 'already_verified', own }       the address is already verified; `own` says
-//                                                 whether by this account. No code is issued; the
-//                                                 email (when sent) says the address is linked.
+//   200 { status: 'sent', expires_at }            code issued (email sent or logged as skipped), or
+//                                                 the address is already linked to another account:
+//                                                 the same answer, no code, and the email (when
+//                                                 sent) tells the address owner it is linked
+//                                                 (migration 22: no enumeration of linked addresses)
+//   200 { status: 'already_verified', own: true } the address is already verified by this account
 //   400 { error: 'invalid_email' | 'invalid_body' }
 //   401 { error: 'missing_token' | 'invalid_token' }
 //   403 { error: 'user_not_found' }               no active profile for the token's user
@@ -183,17 +185,21 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json({ error: "rpc_failed" }, 500);
   }
 
+  // The caller's own, already verified address: they know it, so the answer may differ.
   if (result.status === "already_verified") {
-    if (resendKey) {
-      // Best effort: the address is linked already, the response is the same either way.
-      await sendWithResend(resendKey, email, alreadyVerifiedEmail(result.org_name));
-    } else {
-      console.log(`RESEND_API_KEY not set: already-verified notice not emailed for user ${userId}`);
-    }
-    return json({ status: "already_verified", own: result.own === true });
+    return json({ status: "already_verified", own: true });
   }
 
-  if (!result.code) return json({ error: "rpc_failed" }, 500);
+  // Linked to another account (no code): tell only the address owner, by email, and answer
+  // exactly as for a fresh code so the caller cannot tell the two apart.
+  if (!result.code) {
+    if (resendKey) {
+      await sendWithResend(resendKey, email, alreadyVerifiedEmail(result.org_name));
+    } else {
+      console.log(`RESEND_API_KEY not set: already-linked notice not emailed for user ${userId}`);
+    }
+    return json({ status: "sent", expires_at: result.expires_at });
+  }
   if (resendKey) {
     const sent = await sendWithResend(resendKey, email, codeEmail(result.code, result.org_name));
     if (!sent) return json({ error: "send_failed" }, 502);

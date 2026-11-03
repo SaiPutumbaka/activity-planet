@@ -147,6 +147,11 @@ jobs:
           # --include-all: files older than the newest applied version are still pushed (a
           # migration merged out of order is intentional here, never a mistake to hide).
           supabase db push --linked --include-all --yes $DRY_RUN
+          # Migration 22: the only image URLs accepted are this project's Storage URLs; the
+          # base is derived from the ref, never typed. Stale URLs outside it are cleared.
+          if [ -z "$DRY_RUN" ]; then
+            supabase db query --linked "select public.set_project_url('https://$STAGING_PROJECT_REF.supabase.co')"
+          fi
 
       # Runs on dry runs too: the seed is idempotent, staging is the test project, and this is
       # the only step that exercises a 66 KB body on the Management API query endpoint.
@@ -239,6 +244,9 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
         run: |
           supabase db push --linked --include-all --yes $DRY_RUN
+          if [ -z "$DRY_RUN" ]; then
+            supabase db query --linked "select public.set_project_url('https://$PROD_PROJECT_REF.supabase.co')"
+          fi
 
       - name: Production, seed hubs
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'

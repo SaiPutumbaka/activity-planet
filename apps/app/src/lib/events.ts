@@ -471,6 +471,10 @@ const MESSAGES: Record<string, string> = {
   too_many_venues: "You've added a lot of places today. Try again tomorrow.",
   // table constraints that can slip past the explicit checks
   events_cover_url_format: "Cover images need an https link.",
+  events_cover_url_storage: "Cover images need to be uploaded to Activity Planet.",
+  event_series_cover_url_storage: "Cover images need to be uploaded to Activity Planet.",
+  broadcast_limit:
+    "This plan's title or place has changed, or messages went out, three times today. Try again tomorrow.",
   events_external_url_format: "Links need to start with https://.",
   events_price_text_length: "Keep the price under 40 characters.",
   events_location_hint_length: "Keep the location hint under 120 characters.",
