@@ -1,0 +1,79 @@
+{
+  "events": [
+    {
+      "event": {
+        "id": 51234567,
+        "title": "Panther Pickup Basketball &amp; Open Gym",
+        "url": "http://example.org/not-https",
+        "localist_url": "https://calendar.gsu.edu/event/panther-pickup-basketball",
+        "ticket_url": null,
+        "description_text": "Bring a friend. Courts open to everyone with a valid ID. This line keeps going so the excerpt has to cut it somewhere sensible, well past three hundred characters, because the source wrote a long paragraph about the rules, the schedule, what to wear, where to park, how to sign in at the front desk, and what happens if it rains on the outdoor courts that day.",
+        "location_name": "Recreation Center",
+        "room_number": "Court 2",
+        "address": "101 Piedmont Ave SE, Atlanta, GA 30303",
+        "geo": { "latitude": "33.7537", "longitude": "-84.3826", "city": "Atlanta" },
+        "photo_url": "https://localist-images.azureedge.net/photos/1/huge/abc.jpg",
+        "free": true,
+        "status": "live",
+        "experience": "inperson",
+        "private": false,
+        "filters": {
+          "event_types": [{ "name": "Recreation", "id": 1 }],
+          "event_target_audience": [
+            { "name": "Students", "id": 7 },
+            { "name": "General Public", "id": 9 }
+          ]
+        },
+        "departments": [{ "name": "Recreational Services", "id": 33 }],
+        "event_instances": [
+          {
+            "event_instance": {
+              "id": 9001,
+              "start": "2026-11-12T18:00:00-05:00",
+              "end": "2026-11-12T20:00:00-05:00",
+              "all_day": false
+            }
+          },
+          {
+            "event_instance": {
+              "id": 9002,
+              "start": "2026-11-19T18:00:00-05:00",
+              "end": null,
+              "all_day": false
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event": {
+        "id": 51234568,
+        "title": "Faculty Senate Meeting",
+        "localist_url": "https://calendar.gsu.edu/event/faculty-senate",
+        "description": "<p>Members only.</p>",
+        "private": true,
+        "event_instances": [
+          { "event_instance": { "id": 9003, "start": "2026-11-13T15:00:00-05:00" } }
+        ]
+      }
+    },
+    {
+      "event": {
+        "id": 51234569,
+        "title": "Fall Art Exhibition",
+        "localist_url": "https://calendar.gsu.edu/event/fall-art",
+        "description": "<p>Paintings &amp; prints<br>by students.</p>",
+        "location": "Welch Gallery",
+        "free": false,
+        "ticket_cost": "$5 suggested donation",
+        "status": "cancelled",
+        "filters": { "event_types": [{ "name": "Arts" }] },
+        "event_instances": [
+          { "event_instance": { "id": 9004, "start": "2026-11-14", "all_day": true } }
+        ]
+      }
+    }
+  ],
+  "page": { "current": 1, "size": 100, "total": 2 },
+  "date": { "first": "2026-11-03", "last": "2027-01-02" }
+}

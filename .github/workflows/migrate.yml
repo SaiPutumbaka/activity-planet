@@ -9,7 +9,13 @@ name: Migrate database then deploy
 # Staging only: Run workflow on any branch with staging_only ticked. It rehearses on a fresh
 # database, applies that branch's migrations to staging, optionally runs staging_file there, and
 # skips every production step (they also never run from a ref other than main). This is how Claude
-# applies a new migration to staging before it merges, without the Supabase connector.
+# applies a new migration to staging before it merges, without the Supabase connector. With
+# staging_functions it also deploys those Edge Functions to staging, and with staging_import_now
+# it asks every enabled feed source to import once (D-037) and prints the run status.
+#
+# import-feed (D-037) is deployed to production after the push, like delete-account, and its URL
+# is written into the project's vault entry. It needs no GitHub secret: pg_cron calls it with a
+# shared secret generated inside each database by the importer migration.
 #
 # The CLI is pinned (2.122.0, the TypeScript rewrite) so the cutover runs exactly the binary the
 # dry run proved; bump it only after a fresh dry run. With a fixed version setup-cli downloads the
@@ -44,6 +50,7 @@ on:
       - "supabase/migrations/**"
       - "supabase/seed/**"
       - "supabase/functions/delete-account/**"
+      - "supabase/functions/import-feed/**"
       - ".github/workflows/migrate.yml"
   workflow_dispatch:
     inputs:
@@ -59,6 +66,14 @@ on:
         description: "Optional SQL file in this ref to run on staging after the push (for example a staging seed)"
         type: string
         default: ""
+      staging_functions:
+        description: "Staging only: space-separated Edge Functions in this ref to deploy to staging (for example import-feed)"
+        type: string
+        default: ""
+      staging_import_now:
+        description: "Staging only: after the file, ask every enabled feed source to import once and print the run status"
+        type: boolean
+        default: false
 
 concurrency:
   group: migrate-main
@@ -142,6 +157,29 @@ jobs:
         run: |
           supabase db query --linked --file supabase/seed/hubs.sql
 
+      # Staging only: deploy the named functions from this ref. import-feed also gets this
+      # project's function URL written into its vault entry (public.import_set_function_url);
+      # the URL is derived from the project ref, the shared secret never leaves the database.
+      - name: Staging, deploy the requested functions
+        if: inputs.staging_only == true && inputs.staging_functions != ''
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+          FUNCTIONS: ${{ inputs.staging_functions }}
+        run: |
+          for fn in $FUNCTIONS; do
+            case "$fn" in
+              *[!a-z0-9-]*) echo "Refusing function name: $fn"; exit 1 ;;
+            esac
+            test -f "supabase/functions/$fn/index.ts" || { echo "No such function: $fn"; exit 1; }
+            if [ "$fn" = "import-feed" ]; then flags="--no-verify-jwt"; else flags=""; fi
+            supabase functions deploy "$fn" --project-ref "$STAGING_PROJECT_REF" --use-api $flags
+            if [ "$fn" = "import-feed" ]; then
+              supabase db query --linked \
+                "select public.import_set_function_url('https://$STAGING_PROJECT_REF.supabase.co/functions/v1/import-feed')"
+            fi
+          done
+
       # Lets Claude apply a branch's migration and staging-only data to staging without the
       # Supabase connector, whose destructive-SQL confirmation cannot reach cloud sessions.
       - name: Staging, run the requested file
@@ -152,6 +190,18 @@ jobs:
           STAGING_FILE: ${{ inputs.staging_file }}
         run: |
           supabase db query --linked --file "$STAGING_FILE"
+
+      # Staging only: one import run per enabled source through the same path pg_cron uses
+      # (pg_net to the function), then the run status. Prints counts and errors, never secrets.
+      - name: Staging, import once
+        if: inputs.staging_only == true && inputs.staging_import_now == true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+        run: |
+          supabase db query --linked "select public.import_dispatch_all() as requests"
+          sleep 100
+          supabase db query --linked "select slug, enabled, last_run_at, last_ok_at, item_count, last_stats, left(last_error, 300) as last_error from public.feed_sources order by slug"
 
       - name: Production, link and list migrations
         if: inputs.staging_only != true && github.ref == 'refs/heads/main'
@@ -196,6 +246,20 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy delete-account --project-ref "$PROD_PROJECT_REF" --use-api
+
+      # import-feed is called by pg_cron, so it is deployed after the push that creates its
+      # RPCs; its URL goes into this project's vault entry. Production feed sources stay
+      # disabled (D-037), so no job is scheduled until a data change enables one.
+      - name: Production, deploy the import-feed function
+        if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
+        run: |
+          supabase functions deploy import-feed --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
+          supabase db query --linked \
+            "select public.import_set_function_url('https://$PROD_PROJECT_REF.supabase.co/functions/v1/import-feed')"
 
       - name: Deploy web and app
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'

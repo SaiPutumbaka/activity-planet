@@ -60,3 +60,10 @@ verify_jwt = true
 # the service role. RESEND_API_KEY is an optional project secret; without it the code is not
 # emailed (staging) and the response still says sent.
 verify_jwt = true
+
+[functions.import-feed]
+# The caller is the database (pg_cron through pg_net, public.import_dispatch), not a user, so
+# the gateway JWT check is off; the function refuses any request whose x-import-secret header
+# does not match the vault secret import_feed_secret (checked through import_verify_secret,
+# service_role only). The secret is generated inside the database and is in no file.
+verify_jwt = false

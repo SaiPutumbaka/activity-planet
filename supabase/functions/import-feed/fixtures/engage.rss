@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:events="https://gsu.campuslabs.com/engage/events">
+  <channel>
+    <title>PIN Events</title>
+    <link>https://gsu.campuslabs.com/engage/events</link>
+    <atom:link href="https://gsu.campuslabs.com/engage/events.rss" rel="self" type="application/rss+xml" />
+    <item>
+      <atom:link href="https://gsu.campuslabs.com/engage/events.rss" rel="self" />
+      <guid isPermaLink="true">https://gsu.campuslabs.com/engage/event/10458123</guid>
+      <link>https://gsu.campuslabs.com/engage/event/10458123</link>
+      <title>Table Tennis Club: Weekly Rally Night</title>
+      <description><![CDATA[<div class="p-description description"><p>All skill levels. Paddles provided &amp; snacks.</p></div>]]></description>
+      <category>Sports</category>
+      <category>Social</category>
+      <author>ttclub@student.gsu.edu (Table Tennis Club)</author>
+      <host>Table Tennis Club</host>
+      <start>Thu, 12 Nov 2026 23:00:00 GMT</start>
+      <end>Fri, 13 Nov 2026 01:00:00 GMT</end>
+      <location>Student Center East, Room 216</location>
+      <status>Confirmed</status>
+      <enclosure url="https://se-images.campuslabs.com/clink/images/abc.png?preset=med-w" type="image/png" length="0" />
+      <pubDate>Mon, 02 Nov 2026 14:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <guid isPermaLink="false">event-10458999</guid>
+      <link>https://gsu.campuslabs.com/engage/event/10458999</link>
+      <title>Anime Society Movie Night</title>
+      <description>&lt;div class="p-name summary"&gt;Anime Society Movie Night&lt;/div&gt;&lt;div class="p-description description"&gt;&lt;p&gt;Screening &amp;amp; pizza.&lt;/p&gt;&lt;/div&gt;&lt;p&gt;From &lt;time class="dt-start dtstart" datetime="2026-11-20T23:30:00Z"&gt;Nov 20&lt;/time&gt; to &lt;time class="dt-end dtend" datetime="2026-11-21T02:00:00Z"&gt;Nov 21&lt;/time&gt; at &lt;span class="p-location location"&gt;Aderhold Learning Center 102&lt;/span&gt;&lt;/p&gt;</description>
+      <author>Anime Society</author>
+    </item>
+    <item>
+      <title>No link at all</title>
+    </item>
+    <item>
+      <guid>https://gsu.campuslabs.com/engage/event/10459000</guid>
+      <link>https://gsu.campuslabs.com/engage/event/10459000</link>
+      <title>Cancelled Bake Sale</title>
+      <start>2026-11-21T15:00:00Z</start>
+      <status>Cancelled</status>
+    </item>
+  </channel>
+</rss>

@@ -1,0 +1,13 @@
+{
+  "events": [
+    {
+      "event": {
+        "id": 77,
+        "title": "Sparse",
+        "event_instances": [{ "event_instance": { "start": "2026-12-01T10:00:00Z" } }]
+      }
+    },
+    { "event": null },
+    "junk"
+  ]
+}
