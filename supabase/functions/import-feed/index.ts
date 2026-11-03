@@ -68,7 +68,14 @@ async function readLocalist(base: string): Promise<{ items: ImportItem[]; sample
     }
     const parsed = parseLocalistPage(payload);
     items.push(...parsed.items);
-    if (parsed.page >= parsed.totalPages) break;
+    if (parsed.page >= parsed.totalPages) return { items, sample };
+    if (page === LOCALIST_MAX_PAGES) {
+      // A cut-off read is not the complete feed: sending it would count every listing past the
+      // cap as missed and cancel it. Fail the run instead; import_record_error records why.
+      throw new Error(
+        `Localist feed has ${parsed.totalPages} pages, more than the ${LOCALIST_MAX_PAGES} read per run; nothing imported`,
+      );
+    }
   }
   return { items, sample };
 }

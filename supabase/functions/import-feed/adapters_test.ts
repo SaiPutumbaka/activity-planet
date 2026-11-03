@@ -126,6 +126,25 @@ Deno.test("localist: academic calendar dates are not events", () => {
   assertEquals(page.items, []);
 });
 
+Deno.test("localist: markup in the title and location is stripped, not shown", () => {
+  const page = parseLocalistPage({
+    events: [
+      {
+        event: {
+          id: 7,
+          title: "&lt;b&gt;Open Mic&lt;/b&gt; &amp; Poetry",
+          location_name: "<span>Student Center</span> West",
+          room_number: "Room&nbsp;101",
+          localist_url: "https://calendar.gsu.edu/event/open-mic",
+          event_instances: [{ event_instance: { id: 8, start: "2026-11-20T19:00:00-05:00" } }],
+        },
+      },
+    ],
+  });
+  assertEquals(page.items[0].title, "Open Mic & Poetry");
+  assertEquals(page.items[0].location, "Student Center West, Room 101");
+});
+
 Deno.test("text helpers", () => {
   assertEquals(htmlToText("<p>One</p>\r\n<p>Two</p>"), "One\n\nTwo");
   assertEquals(

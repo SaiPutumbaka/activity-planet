@@ -207,8 +207,10 @@ export function parseLocalistPage(payload: unknown): LocalistPage {
 
     const geo = (e.geo && typeof e.geo === "object" ? e.geo : {}) as Record<string, unknown>;
     const location =
-      [str(e.location_name) ?? str(e.location), str(e.room_number)].filter(Boolean).join(", ") ||
-      str(e.address) ||
+      [textOf(str(e.location_name) ?? str(e.location)), textOf(str(e.room_number))]
+        .filter(Boolean)
+        .join(", ") ||
+      textOf(str(e.address)) ||
       (str(e.experience) === "virtual" ? "Online" : "");
     const description =
       str(e.description_text) ?? (str(e.description) ? htmlToText(String(e.description)) : "");
@@ -230,7 +232,7 @@ export function parseLocalistPage(payload: unknown): LocalistPage {
       const instanceId = str(inst.id) ?? start;
       items.push({
         external_id: `${id}:${instanceId}`,
-        title: decodeEntities(str(e.title) ?? ""),
+        title: textOf(str(e.title)),
         description: excerpt(description),
         starts_at: start,
         ends_at: isoDate(inst.end),
