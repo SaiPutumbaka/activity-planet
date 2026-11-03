@@ -20,10 +20,16 @@ export const Route = createFileRoute("/_app")({
         replace: true,
       });
     }
-    const profile = await getProfile(queryClient, session.user.id);
-    if (profile.deleted_at) {
+    // The own profile row is always readable (migration 22 keeps it out of the 18+ read gate),
+    // so a missing row means the account is gone, not that RLS hid it.
+    const profile = await getProfile(queryClient, session.user.id).catch((err: unknown) => {
+      if (typeof err === "object" && err && "code" in err && err.code === "PGRST116") return null;
+      throw err;
+    });
+    if (!profile || profile.deleted_at || profile.status === "deleted") {
       // The account was deleted but this device still holds a token (valid for up to an hour
-      // after request_account_deletion banned the user). Drop it and start over.
+      // after request_account_deletion banned the user). Drop it and start over. Everything
+      // else would read empty anyway: other people's rows need an active, onboarded adult.
       await supabase.auth.signOut({ scope: "local" });
       clearFeedLocation();
       throw redirect({ to: "/auth/sign-in", replace: true });

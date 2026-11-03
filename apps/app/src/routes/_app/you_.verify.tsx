@@ -78,8 +78,8 @@ function VerifyPage() {
         });
         return;
       }
-      // 'sent' and 'already_verified' by someone else read the same here; the database
-      // tells the difference when the code is checked.
+      // A free address and one linked to another account get the same 'sent' answer (no
+      // enumeration, migration 22); only the email itself tells the address owner it is linked.
       setEmail(to);
       setStep("code");
       setCodeError(null);

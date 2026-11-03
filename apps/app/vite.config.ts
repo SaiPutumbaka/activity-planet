@@ -1,12 +1,51 @@
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-export default defineConfig({
+/**
+ * Image sources (security review, migration 22), as a CSP meta tag so it also holds inside the
+ * bundled Capacitor app, where vercel.json headers never apply. The database accepts only
+ * own-storage URLs for avatars and human-made covers; imported events keep their feeds' own
+ * https covers (D-037), so those image hosts are listed too. The map tile host is OpenFreeMap
+ * (D-038). Only img-src is set. Keep this list in step with apps/web/next.config.ts.
+ */
+const IMPORTED_IMAGE_HOSTS = [
+  "https://localist-images.azureedge.net", // GSU Localist
+  "https://se-images.campuslabs.com", // PIN (Campus Labs Engage)
+];
+const MAP_TILE_HOST = "https://tiles.openfreemap.org";
+
+function imageCsp(supabaseUrl: string | undefined): Plugin {
+  // This project's Storage origin; any Supabase project host only if the build has no URL.
+  let storage = "https://*.supabase.co";
+  try {
+    if (supabaseUrl) storage = new URL(supabaseUrl).origin;
+  } catch {
+    /* keep the fallback */
+  }
+  const sources = ["'self'", "data:", "blob:", storage, MAP_TILE_HOST, ...IMPORTED_IMAGE_HOSTS]
+    .filter(Boolean)
+    .join(" ");
+  return {
+    name: "ap-image-csp",
+    transformIndexHtml: () => [
+      {
+        tag: "meta",
+        attrs: { "http-equiv": "Content-Security-Policy", content: `img-src ${sources}` },
+        injectTo: "head-prepend",
+      },
+    ],
+  };
+}
+
+export default defineConfig(({ mode }) => ({
   plugins: [
+    imageCsp(
+      loadEnv(mode, fileURLToPath(new URL(".", import.meta.url)), "VITE_").VITE_SUPABASE_URL,
+    ),
     // Order matters: the router plugin must run before React.
     tanstackRouter({ target: "react", autoCodeSplitting: true }),
     react(),
@@ -62,4 +101,4 @@ export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   server: { port: 3001 },
   build: { sourcemap: true },
-});
+}));

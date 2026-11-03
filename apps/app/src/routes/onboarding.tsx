@@ -14,7 +14,7 @@ import {
 } from "@/components/onboarding/steps";
 import { authErrorMessage, getSession, rpcErrorMessage, signOut } from "@/lib/auth";
 import { cn } from "@/lib/cn";
-import { areasQuery } from "@/lib/location";
+import { areasQuery, clearFeedLocation } from "@/lib/location";
 import { campusesQuery, getProfile, hubCatalogQuery, profileQuery } from "@/lib/profile";
 import { supabase } from "@/lib/supabase";
 
@@ -30,6 +30,12 @@ export const Route = createFileRoute("/onboarding")({
     if (!session)
       throw redirect({ to: "/auth/sign-in", search: { next: "/onboarding" }, replace: true });
     const profile = await getProfile(queryClient, session.user.id);
+    if (profile.deleted_at || profile.status === "deleted") {
+      // Same bounce as the _app guard: a deleted account's leftover token on this device.
+      await supabase.auth.signOut({ scope: "local" });
+      clearFeedLocation();
+      throw redirect({ to: "/auth/sign-in", replace: true });
+    }
     if (profile.onboarding_completed_at) throw redirect({ to: "/", replace: true });
     return { session, profile };
   },

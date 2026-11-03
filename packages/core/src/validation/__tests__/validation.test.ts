@@ -19,6 +19,16 @@ describe("safeInternalPath", () => {
     expect(safeInternalPath("https://evil.example")).toBe("/");
     expect(safeInternalPath(null, "/home")).toBe("/home");
   });
+
+  it("keeps query and hash, and refuses paths a browser would turn cross-origin", () => {
+    expect(safeInternalPath("/events/abc?tab=people#top")).toBe("/events/abc?tab=people#top");
+    expect(safeInternalPath("/\t/evil.example")).toBe("/");
+    expect(safeInternalPath("/\n/evil.example")).toBe("/");
+    expect(safeInternalPath("/a" + String.fromCharCode(92) + "b")).toBe("/");
+    expect(safeInternalPath("javascript:alert(1)")).toBe("/");
+    expect(safeInternalPath("events")).toBe("/");
+    expect(safeInternalPath("/" + "a".repeat(3000))).toBe("/");
+  });
 });
 
 describe("handleSchema", () => {

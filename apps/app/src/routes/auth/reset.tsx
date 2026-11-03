@@ -6,11 +6,13 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { passwordSchema } from "@ap/core/validation";
 
+import { AccountSwitchPrompt } from "@/components/auth/account-switch";
 import { Button } from "@/components/ui/button";
 import { Field, FormError } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { authErrorMessage } from "@/lib/auth";
-import { completeAuthLink } from "@/lib/auth-links";
+import { SWITCH_CANCELLED, completeAuthLink } from "@/lib/auth-links";
+import { useAccountSwitchPrompt } from "@/lib/use-account-switch";
 import { supabase } from "@/lib/supabase";
 
 const searchSchema = z.object({
@@ -45,6 +47,8 @@ function ResetPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const started = useRef(false);
+  const switchPrompt = useAccountSwitchPrompt();
+  const { confirm } = switchPrompt;
   const form = useForm<Values>({
     resolver: zodResolver(formSchema),
     defaultValues: { password: "", confirmPassword: "" },
@@ -54,7 +58,10 @@ function ResetPage() {
     if (started.current) return;
     started.current = true;
     const hasLink = Boolean(search.token_hash || search.code || search.error);
-    (hasLink ? completeAuthLink(search) : supabase.auth.getSession().then((r) => r.data.session))
+    (hasLink
+      ? completeAuthLink(search, confirm)
+      : supabase.auth.getSession().then((r) => r.data.session)
+    )
       .then((session) => {
         if (session) setStage("ready");
         else {
@@ -63,10 +70,16 @@ function ResetPage() {
         }
       })
       .catch((err: unknown) => {
+        const code = typeof err === "object" && err && "code" in err ? String(err.code) : "";
+        // Chose to stay in the account already signed in here: no password change for it.
+        if (code === SWITCH_CANCELLED) {
+          void navigate({ to: "/", replace: true });
+          return;
+        }
         setMessage(authErrorMessage(err));
         setStage("invalid");
       });
-  }, [search]);
+  }, [search, confirm, navigate]);
 
   async function onSubmit({ password }: Values) {
     setFormError(null);
@@ -77,6 +90,10 @@ function ResetPage() {
     }
     toast.success("Password updated.");
     await navigate({ to: "/", replace: true });
+  }
+
+  if (switchPrompt.pending) {
+    return <AccountSwitchPrompt accounts={switchPrompt.pending} onAnswer={switchPrompt.answer} />;
   }
 
   if (stage === "verifying") {

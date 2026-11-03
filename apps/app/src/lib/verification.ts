@@ -54,6 +54,11 @@ export type Membership = NonNullable<
 /* Send                                                                 */
 /* ------------------------------------------------------------------ */
 
+/**
+ * 'sent' covers both a fresh code and an address already linked to another account (the same
+ * answer, so the caller cannot tell them apart; the email explains). 'already_verified' only
+ * comes back for the caller's own verified address.
+ */
 const sendResponseSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("sent"), expires_at: z.string().nullable().optional() }),
   z.object({ status: z.literal("already_verified"), own: z.boolean().optional() }),
@@ -153,7 +158,7 @@ export function confirmStatusMessage(result: Exclude<ConfirmResult, { status: "o
     case "too_many_attempts":
       return "Five wrong tries locks that code. Send a new one; if you've already had three codes this hour, wait an hour and try again.";
     case "code_not_found":
-      return "No code is waiting for that email. Send a new one.";
+      return "No code is waiting for that email. Check the email we sent, or send a new one.";
   }
 }
 

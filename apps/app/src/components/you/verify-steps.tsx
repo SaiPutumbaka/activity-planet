@@ -101,8 +101,9 @@ export function CodeStep({
   return (
     <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
       <p className="text-text-2">
-        We sent a code to <span className="font-semibold text-text">{email}</span>. It works for 15
-        minutes. Not there? Check spam.
+        We sent an email to <span className="font-semibold text-text">{email}</span>. Enter the
+        six-digit code from it; codes work for 15 minutes. No code in it? The email says why. Not
+        there at all? Check spam.
       </p>
       <Field
         label="Six-digit code"

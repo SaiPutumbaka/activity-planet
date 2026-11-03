@@ -10,3 +10,7 @@ if (!url || !key) {
 }
 
 export const supabase = createBrowserSupabaseClient(url, key);
+
+/** The project URL and publishable key, for a short-lived isolated client (auth-links.ts). */
+export const supabaseUrl = url;
+export const supabasePublishableKey = key;

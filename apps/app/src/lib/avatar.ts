@@ -186,6 +186,10 @@ export function avatarErrorMessage(err: unknown): string {
       ? err.message
       : String(err ?? "");
   const lower = message.toLowerCase();
+  // guard_avatar_url (migration 22): the URL must be this project's own avatars/<uid>/ object.
+  if (lower.includes("profiles_avatar_url_storage")) {
+    return "We couldn't save that photo. Try uploading it again.";
+  }
   if (lower.includes("row-level security") || lower.includes("unauthorized")) {
     return "Your session ended. Sign in again.";
   }
