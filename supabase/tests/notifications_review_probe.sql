@@ -58,9 +58,9 @@ begin
   r := public.set_rsvp(v_e, 'going');
 
   perform set_config('request.jwt.claims', json_build_object('sub', current_setting('test.h'), 'role', 'authenticated')::text, true);
-  e := public.update_event(v_e, jsonb_build_object('starts_at', v_t1 + interval '1 hour', 'ends_at', v_t1 + interval '3 hours'));
-  e := public.update_event(v_e, jsonb_build_object('starts_at', v_t1, 'ends_at', v_t1 + interval '2 hours'));
-  e := public.update_event(v_e, jsonb_build_object('starts_at', v_t1 + interval '1 hour', 'ends_at', v_t1 + interval '3 hours'));
+  e := public.update_event(v_e, jsonb_build_object('location_text', 'Probe park', 'starts_at', v_t1 + interval '1 hour', 'ends_at', v_t1 + interval '3 hours'));
+  e := public.update_event(v_e, jsonb_build_object('location_text', 'Probe park', 'starts_at', v_t1, 'ends_at', v_t1 + interval '2 hours'));
+  e := public.update_event(v_e, jsonb_build_object('location_text', 'Probe park', 'starts_at', v_t1 + interval '1 hour', 'ends_at', v_t1 + interval '3 hours'));
 end $$;
 reset role;
 
