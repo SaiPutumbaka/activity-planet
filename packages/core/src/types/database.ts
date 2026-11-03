@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 17 (schema_version 2.13). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 18 (schema_version 2.14). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -404,6 +404,48 @@ export type Database = {
             columns: ["venue_id"];
             isOneToOne: false;
             referencedRelation: "venues";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      event_broadcasts: {
+        Row: {
+          body: string;
+          created_at: string;
+          event_id: string;
+          id: string;
+          recipient_count: number;
+          sender_id: string | null;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          event_id: string;
+          id?: string;
+          recipient_count?: number;
+          sender_id?: string | null;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          event_id?: string;
+          id?: string;
+          recipient_count?: number;
+          sender_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "event_broadcasts_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_broadcasts_sender_id_fkey";
+            columns: ["sender_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -1374,6 +1416,108 @@ export type Database = {
           },
         ];
       };
+      notifications: {
+        Row: {
+          actor_id: string | null;
+          attempts: number;
+          chapter_id: string | null;
+          created_at: string;
+          dedupe_key: string;
+          email_sent_at: string | null;
+          email_status: Database["public"]["Enums"]["notification_channel_status"];
+          event_id: string | null;
+          hub_id: string | null;
+          id: string;
+          kind: Database["public"]["Enums"]["notification_kind"];
+          last_error: string | null;
+          payload: Json;
+          push_after: string | null;
+          push_sent_at: string | null;
+          push_status: Database["public"]["Enums"]["notification_channel_status"];
+          read_at: string | null;
+          seen_at: string | null;
+          user_id: string;
+        };
+        Insert: {
+          actor_id?: string | null;
+          attempts?: number;
+          chapter_id?: string | null;
+          created_at?: string;
+          dedupe_key: string;
+          email_sent_at?: string | null;
+          email_status?: Database["public"]["Enums"]["notification_channel_status"];
+          event_id?: string | null;
+          hub_id?: string | null;
+          id?: string;
+          kind: Database["public"]["Enums"]["notification_kind"];
+          last_error?: string | null;
+          payload?: Json;
+          push_after?: string | null;
+          push_sent_at?: string | null;
+          push_status?: Database["public"]["Enums"]["notification_channel_status"];
+          read_at?: string | null;
+          seen_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          actor_id?: string | null;
+          attempts?: number;
+          chapter_id?: string | null;
+          created_at?: string;
+          dedupe_key?: string;
+          email_sent_at?: string | null;
+          email_status?: Database["public"]["Enums"]["notification_channel_status"];
+          event_id?: string | null;
+          hub_id?: string | null;
+          id?: string;
+          kind?: Database["public"]["Enums"]["notification_kind"];
+          last_error?: string | null;
+          payload?: Json;
+          push_after?: string | null;
+          push_sent_at?: string | null;
+          push_status?: Database["public"]["Enums"]["notification_channel_status"];
+          read_at?: string | null;
+          seen_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_chapter_id_fkey";
+            columns: ["chapter_id"];
+            isOneToOne: false;
+            referencedRelation: "hub_chapters";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_hub_id_fkey";
+            columns: ["hub_id"];
+            isOneToOne: false;
+            referencedRelation: "hubs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       org_campuses: {
         Row: {
           created_at: string;
@@ -2002,6 +2146,10 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      broadcast_to_event: {
+        Args: { p_body: string; p_event_id: string };
+        Returns: Json;
+      };
       can_read_event: { Args: { p_event: string }; Returns: boolean };
       cancel_event: {
         Args: { p_event_id: string; p_reason?: string };
@@ -2264,6 +2412,21 @@ export type Database = {
         Args: { p_venue_id: string };
         Returns: Database["public"]["Enums"]["address_visibility"];
       };
+      enqueue_due_reminders: { Args: never; Returns: number };
+      enqueue_notification: {
+        Args: {
+          p_actor_id?: string;
+          p_batch?: boolean;
+          p_chapter_id?: string;
+          p_dedupe_key: string;
+          p_event_id?: string;
+          p_hub_id?: string;
+          p_kind: Database["public"]["Enums"]["notification_kind"];
+          p_payload?: Json;
+          p_user_id: string;
+        };
+        Returns: string;
+      };
       event_attendees: {
         Args: { p_event_id: string };
         Returns: {
@@ -2521,6 +2684,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      mark_notifications_read: { Args: { p_ids?: string[] }; Returns: number };
       materialize_all_event_series: {
         Args: { p_weeks?: number };
         Returns: number;
@@ -2570,7 +2734,31 @@ export type Database = {
           slug: string;
         }[];
       };
+      notification_event_payload: {
+        Args: { p_event_id: string };
+        Returns: Json;
+      };
+      notify_chapter_claim_reviewed: {
+        Args: { p_claim: Database["public"]["Tables"]["chapter_claims"]["Row"] };
+        Returns: string;
+      };
+      notify_event_audience: {
+        Args: {
+          p_actor: string;
+          p_event_id: string;
+          p_extra?: Json;
+          p_key: string;
+          p_kind: Database["public"]["Enums"]["notification_kind"];
+          p_statuses: Database["public"]["Enums"]["rsvp_status"][];
+        };
+        Returns: number;
+      };
+      notify_event_managers_joined: {
+        Args: { p_event_id: string; p_joiner: string };
+        Returns: number;
+      };
       purge_account_deletions: { Args: never; Returns: number };
+      purge_read_notifications: { Args: never; Returns: number };
       refresh_hub_stats: { Args: never; Returns: number };
       remove_chapter_member: {
         Args: { p_chapter: string; p_user: string };
@@ -2729,6 +2917,7 @@ export type Database = {
         };
       };
       touch_last_seen: { Args: never; Returns: undefined };
+      unread_notification_count: { Args: never; Returns: number };
       update_event: {
         Args: { p_args: Json; p_event_id: string };
         Returns: {
@@ -2905,6 +3094,20 @@ export type Database = {
       event_kind: "member" | "chapter" | "imported";
       event_status: "published" | "cancelled";
       event_visibility: "public" | "campus";
+      notification_channel_status: "pending" | "sent" | "skipped" | "failed";
+      notification_kind:
+        | "rsvp_confirmed"
+        | "attendee_joined"
+        | "waitlist_promoted"
+        | "rsvp_approved"
+        | "event_reminder_day"
+        | "event_reminder_2h"
+        | "event_cancelled"
+        | "event_updated"
+        | "checkin_prompt"
+        | "hub_new_event"
+        | "broadcast"
+        | "chapter_claim_update";
       org_kind: "university" | "company" | "community";
       org_role: "member" | "officer" | "admin";
       rsvp_status: "going" | "interested" | "waitlisted" | "cancelled";
@@ -3038,6 +3241,21 @@ export const Constants = {
       event_kind: ["member", "chapter", "imported"],
       event_status: ["published", "cancelled"],
       event_visibility: ["public", "campus"],
+      notification_channel_status: ["pending", "sent", "skipped", "failed"],
+      notification_kind: [
+        "rsvp_confirmed",
+        "attendee_joined",
+        "waitlist_promoted",
+        "rsvp_approved",
+        "event_reminder_day",
+        "event_reminder_2h",
+        "event_cancelled",
+        "event_updated",
+        "checkin_prompt",
+        "hub_new_event",
+        "broadcast",
+        "chapter_claim_update",
+      ],
       org_kind: ["university", "company", "community"],
       org_role: ["member", "officer", "admin"],
       rsvp_status: ["going", "interested", "waitlisted", "cancelled"],
