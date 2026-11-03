@@ -23,6 +23,7 @@ import { EventStateChip } from "@/components/events/event-state-chip";
 import { GuidelinesSheet } from "@/components/events/guidelines-sheet";
 import { RsvpBar } from "@/components/events/rsvp-bar";
 import { useRsvp } from "@/components/events/use-rsvp";
+import { ImportedChips, ImportedSourceSection } from "@/components/events/imported-source";
 import { HubBadges } from "@/components/hubs/hub-badges";
 import { TopBar } from "@/components/shell/top-bar";
 import { Avatar, AvatarStack } from "@/components/ui/avatar";
@@ -43,6 +44,7 @@ import {
   eventRsvpsQuery,
   type EventDetail,
 } from "@/lib/events";
+import { importLabelsQuery } from "@/lib/imports";
 import { eventShareUrl, shareLink } from "@/lib/share";
 import { formatVenueAddress } from "@/lib/venues";
 
@@ -146,6 +148,10 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
   const approvedOnly = event.address_visibility === "approved_only";
   const left = spotsLeft(event);
   const going = (rsvps.data ?? []).filter((r) => r.status === "going");
+  // Imported listings (D-037): no RSVP, a source block with "Register at source" instead.
+  const imported = event.kind === "imported";
+  const labels = useQuery({ ...importLabelsQuery([event.id]), enabled: imported });
+  const importLabel = imported ? (labels.data?.get(event.id) ?? null) : null;
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["events", event.id] });
@@ -192,10 +198,15 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
 
         <div className="flex flex-col gap-5 safe-px">
           <section className="flex flex-col gap-2.5">
-            {state || own || event.min_age === 21 || event.visibility === "campus" ? (
+            {state ||
+            own ||
+            importLabel ||
+            event.min_age === 21 ||
+            event.visibility === "campus" ? (
               <div className="flex flex-wrap gap-1.5">
                 <EventStateChip state={own} />
                 <EventStateChip state={state} />
+                {imported ? <ImportedChips label={importLabel} /> : null}
                 {/* Facts, not states: the neutral badges the hub page uses, not the info hue. */}
                 <HubBadges
                   minAge={event.min_age}
@@ -266,26 +277,28 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
                 </p>
               ) : null}
             </Row>
-            <Row icon={Users}>
-              <p className="font-semibold tabular">
-                {event.going_count} going
-                {event.capacity !== null ? ` of ${event.capacity}` : ""}
-                {left !== null && left > 0
-                  ? ` · ${left} ${left === 1 ? "spot" : "spots"} left`
-                  : ""}
-                {event.waitlist_count > 0 ? ` · ${event.waitlist_count} waiting` : ""}
-              </p>
-              {headcount ? <p className="text-[13px] text-text-2">{headcount}</p> : null}
-              {event.members_only ? (
-                <p className="text-[13px] text-text-2">Hub members only.</p>
-              ) : null}
-            </Row>
+            {imported ? null : (
+              <Row icon={Users}>
+                <p className="font-semibold tabular">
+                  {event.going_count} going
+                  {event.capacity !== null ? ` of ${event.capacity}` : ""}
+                  {left !== null && left > 0
+                    ? ` · ${left} ${left === 1 ? "spot" : "spots"} left`
+                    : ""}
+                  {event.waitlist_count > 0 ? ` · ${event.waitlist_count} waiting` : ""}
+                </p>
+                {headcount ? <p className="text-[13px] text-text-2">{headcount}</p> : null}
+                {event.members_only ? (
+                  <p className="text-[13px] text-text-2">Hub members only.</p>
+                ) : null}
+              </Row>
+            )}
             <Row icon={Ticket}>
               <p className="font-semibold">
                 {event.is_free ? "Free" : (event.price_text ?? "Paid")}
               </p>
             </Row>
-            {event.external_url ? (
+            {event.external_url && !imported ? (
               <Row icon={ExternalLink}>
                 <a
                   href={event.external_url}
@@ -303,6 +316,8 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
             <AddToCalendar event={event} location={calendarLocation(event)} />
           ) : null}
 
+          {imported ? <ImportedSourceSection event={event} label={importLabel} /> : null}
+
           {host ? (
             <section className="flex items-center gap-3">
               <Avatar src={host.avatar_url} name={host.first_name} size={44} />
@@ -313,25 +328,27 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
             </section>
           ) : null}
 
-          <section className="flex flex-col gap-2">
-            {rsvps.isPending ? (
-              <Skeleton className="h-8 w-48 rounded-control" />
-            ) : rsvps.isError ? (
-              <p className="text-[13px] text-text-2">Couldn't load who's going.</p>
-            ) : (
-              <AvatarStack
-                people={going.map((r) => ({
-                  src: r.profiles?.avatar_url,
-                  name: r.profiles?.first_name ?? "Member",
-                }))}
-                max={5}
-                size={32}
-                totalLabel={`${event.going_count} going${
-                  event.interested_count > 0 ? ` · ${event.interested_count} interested` : ""
-                }`}
-              />
-            )}
-          </section>
+          {imported ? null : (
+            <section className="flex flex-col gap-2">
+              {rsvps.isPending ? (
+                <Skeleton className="h-8 w-48 rounded-control" />
+              ) : rsvps.isError ? (
+                <p className="text-[13px] text-text-2">Couldn't load who's going.</p>
+              ) : (
+                <AvatarStack
+                  people={going.map((r) => ({
+                    src: r.profiles?.avatar_url,
+                    name: r.profiles?.first_name ?? "Member",
+                  }))}
+                  max={5}
+                  size={32}
+                  totalLabel={`${event.going_count} going${
+                    event.interested_count > 0 ? ` · ${event.interested_count} interested` : ""
+                  }`}
+                />
+              )}
+            </section>
+          )}
 
           {event.description ? (
             <section className="flex flex-col gap-1.5">
@@ -352,15 +369,17 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
         </div>
       </main>
 
-      <RsvpBar
-        event={event}
-        mine={mine}
-        isHost={isHost}
-        rsvp={rsvp}
-        onCheckIn={() => checkInMutation.mutate()}
-        checkingIn={checkInMutation.isPending}
-        onCancelEvent={() => setCancelOpen(true)}
-      />
+      {imported ? null : (
+        <RsvpBar
+          event={event}
+          mine={mine}
+          isHost={isHost}
+          rsvp={rsvp}
+          onCheckIn={() => checkInMutation.mutate()}
+          checkingIn={checkInMutation.isPending}
+          onCancelEvent={() => setCancelOpen(true)}
+        />
+      )}
       <GuidelinesSheet {...rsvp.guidelines} />
 
       <Sheet

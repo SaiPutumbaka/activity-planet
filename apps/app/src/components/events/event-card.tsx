@@ -1,32 +1,37 @@
 import { Link } from "@tanstack/react-router";
-import { ExternalLink, MapPin, Navigation } from "lucide-react";
+import { MapPin, Navigation } from "lucide-react";
 import { distanceBandLabel } from "@ap/core/feed";
 import { DefaultCover } from "@ap/ui/brand";
 
 import { Button } from "@/components/ui/button";
-import { buttonVariants } from "@/components/ui/button-variants";
 import { formatTime } from "@/lib/datetime";
 import type { FeedEvent } from "@/lib/events";
+import type { ImportLabel } from "@/lib/imports";
 import { canRsvp, eventState, isFull, rsvpState } from "./event-state";
 import { EventStateChip } from "./event-state-chip";
+import { ImportedCardFooter, ImportedChips } from "./imported-source";
 
 /**
  * One plan in the Home list. The whole card opens the event page; the quiet Going button RSVPs
  * in place (the parent owns the useRsvp controller and its guidelines sheet). The accent stays
  * on the event page's RsvpBar: a list of cards is not the place for N loud things.
  *
- * Imported listings (kind "imported") have no Going button: they show where they came from and
- * link out to the source, where people register (D-014, D-037). The distance is a band from
+ * Imported listings (kind "imported") have no Going button: they show where they came from, the
+ * source's chip and "Open to the public" where the source says so, a "Register at source" link
+ * out, a "Request removal" email and, for Georgia State sources, the not-affiliated line
+ * (D-014, D-022, D-037). `importLabel` comes from imported_event_labels(). The distance is a band from
  * feed_events_v2, never a number; an approved-only address reads "Approximate area".
  */
 export function EventCard({
   event,
   onGoing,
   pending,
+  importLabel,
 }: {
   event: FeedEvent;
   onGoing: () => void;
   pending: boolean;
+  importLabel?: ImportLabel | null;
 }) {
   const state = eventState(event);
   const ownStatus = event.rsvps[0]?.status;
@@ -43,7 +48,6 @@ export function EventCard({
   const imported = event.kind === "imported";
   const hub = event.hub_name ? { emoji: event.hub_emoji, name: event.hub_name } : null;
   const distance = distanceBandLabel(event.distance_band);
-  const source = event.source_name || "the organizer";
   const time = `${formatTime(event.starts_at, event.timezone)} to ${formatTime(event.ends_at, event.timezone)}`;
 
   return (
@@ -62,10 +66,11 @@ export function EventCard({
         )}
       </div>
       <div className="flex flex-col gap-1.5 p-4">
-        {myState || state ? (
+        {myState || state || (imported && importLabel) ? (
           <div className="flex flex-wrap gap-1.5">
             <EventStateChip state={myState} />
             <EventStateChip state={state} />
+            {imported ? <ImportedChips label={importLabel} /> : null}
           </div>
         ) : null}
         <h4 className="text-[17px] leading-snug font-bold tracking-[-0.01em]">{event.title}</h4>
@@ -90,21 +95,7 @@ export function EventCard({
           </p>
         ) : null}
         {imported ? (
-          <div className="mt-1 flex min-h-11 items-center justify-between gap-3">
-            <span className="min-w-0 truncate text-[13px] text-text-2">Listed by {source}</span>
-            {event.external_url ? (
-              <a
-                href={event.external_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={buttonVariants({ variant: "outline", className: "relative z-[2]" })}
-              >
-                Details
-                <ExternalLink className="size-4" aria-hidden="true" />
-                <span className="sr-only"> on {source} (opens in a new tab)</span>
-              </a>
-            ) : null}
-          </div>
+          <ImportedCardFooter event={event} label={importLabel} />
         ) : (
           <div className="mt-1 flex min-h-11 items-center justify-between gap-3">
             <span className="text-[13px] text-text-2 tabular">

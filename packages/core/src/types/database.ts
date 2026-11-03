@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase management API after
- * migrations 1 to 11 (schema_version 2.10). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 12 (schema_version 2.11). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -279,6 +279,75 @@ export type Database = {
             columns: ["venue_id"];
             isOneToOne: false;
             referencedRelation: "venues";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      event_imports: {
+        Row: {
+          content_hash: string;
+          event_id: string | null;
+          external_id: string;
+          first_seen_at: string;
+          host_org: string | null;
+          id: string;
+          is_primary: boolean;
+          last_seen_at: string;
+          missed_runs: number;
+          open_to_public: boolean | null;
+          point_source: string;
+          raw: Json;
+          removed_at: string | null;
+          removed_reason: string | null;
+          source_id: string;
+        };
+        Insert: {
+          content_hash: string;
+          event_id?: string | null;
+          external_id: string;
+          first_seen_at?: string;
+          host_org?: string | null;
+          id?: string;
+          is_primary?: boolean;
+          last_seen_at?: string;
+          missed_runs?: number;
+          open_to_public?: boolean | null;
+          point_source?: string;
+          raw?: Json;
+          removed_at?: string | null;
+          removed_reason?: string | null;
+          source_id: string;
+        };
+        Update: {
+          content_hash?: string;
+          event_id?: string | null;
+          external_id?: string;
+          first_seen_at?: string;
+          host_org?: string | null;
+          id?: string;
+          is_primary?: boolean;
+          last_seen_at?: string;
+          missed_runs?: number;
+          open_to_public?: boolean | null;
+          point_source?: string;
+          raw?: Json;
+          removed_at?: string | null;
+          removed_reason?: string | null;
+          source_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "event_imports_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_imports_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "feed_sources";
             referencedColumns: ["id"];
           },
         ];
@@ -588,6 +657,90 @@ export type Database = {
             columns: ["series_id"];
             isOneToOne: false;
             referencedRelation: "event_series";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      feed_sources: {
+        Row: {
+          attribution: string;
+          campus_id: string | null;
+          created_at: string;
+          cron_minute: number;
+          default_hub_id: string | null;
+          enabled: boolean;
+          homepage_url: string | null;
+          id: string;
+          item_count: number | null;
+          item_label: string | null;
+          kind: string;
+          last_error: string | null;
+          last_ok_at: string | null;
+          last_run_at: string | null;
+          last_sample: Json | null;
+          last_stats: Json | null;
+          name: string;
+          slug: string;
+          updated_at: string;
+          url: string;
+        };
+        Insert: {
+          attribution?: string;
+          campus_id?: string | null;
+          created_at?: string;
+          cron_minute?: number;
+          default_hub_id?: string | null;
+          enabled?: boolean;
+          homepage_url?: string | null;
+          id?: string;
+          item_count?: number | null;
+          item_label?: string | null;
+          kind: string;
+          last_error?: string | null;
+          last_ok_at?: string | null;
+          last_run_at?: string | null;
+          last_sample?: Json | null;
+          last_stats?: Json | null;
+          name: string;
+          slug: string;
+          updated_at?: string;
+          url: string;
+        };
+        Update: {
+          attribution?: string;
+          campus_id?: string | null;
+          created_at?: string;
+          cron_minute?: number;
+          default_hub_id?: string | null;
+          enabled?: boolean;
+          homepage_url?: string | null;
+          id?: string;
+          item_count?: number | null;
+          item_label?: string | null;
+          kind?: string;
+          last_error?: string | null;
+          last_ok_at?: string | null;
+          last_run_at?: string | null;
+          last_sample?: Json | null;
+          last_stats?: Json | null;
+          name?: string;
+          slug?: string;
+          updated_at?: string;
+          url?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "feed_sources_campus_id_fkey";
+            columns: ["campus_id"];
+            isOneToOne: false;
+            referencedRelation: "org_campuses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "feed_sources_default_hub_id_fkey";
+            columns: ["default_hub_id"];
+            isOneToOne: false;
+            referencedRelation: "hubs";
             referencedColumns: ["id"];
           },
         ];
@@ -948,6 +1101,51 @@ export type Database = {
             columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      import_hub_rules: {
+        Row: {
+          created_at: string;
+          hub_id: string;
+          id: string;
+          match_on: string;
+          pattern: string;
+          priority: number;
+          source_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          hub_id: string;
+          id?: string;
+          match_on?: string;
+          pattern: string;
+          priority?: number;
+          source_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          hub_id?: string;
+          id?: string;
+          match_on?: string;
+          pattern?: string;
+          priority?: number;
+          source_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "import_hub_rules_hub_id_fkey";
+            columns: ["hub_id"];
+            isOneToOne: false;
+            referencedRelation: "hubs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "import_hub_rules_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "feed_sources";
             referencedColumns: ["id"];
           },
         ];
@@ -2077,6 +2275,45 @@ export type Database = {
         Returns: {
           hub_id: string;
           members: number;
+        }[];
+      };
+      import_clip: { Args: { p_max: number; p_text: string }; Returns: string };
+      import_dispatch: { Args: { p_slug: string }; Returns: number };
+      import_dispatch_all: { Args: never; Returns: Json };
+      import_pick_hub: {
+        Args: {
+          p_categories: string;
+          p_host: string;
+          p_source_id: string;
+          p_title: string;
+        };
+        Returns: string;
+      };
+      import_record_error: {
+        Args: { p_error: string; p_sample?: Json; p_source_slug: string };
+        Returns: undefined;
+      };
+      import_schedule: { Args: never; Returns: number };
+      import_set_function_url: { Args: { p_url: string }; Returns: undefined };
+      import_upsert_batch: {
+        Args: { p_items: Json; p_source_slug: string };
+        Returns: Json;
+      };
+      import_verify_secret: { Args: { p_secret: string }; Returns: boolean };
+      imported_event_labels: {
+        Args: { p_event_ids: string[] };
+        Returns: {
+          affiliated_org_name: string;
+          approximate_location: boolean;
+          attribution: string;
+          event_id: string;
+          homepage_url: string;
+          host_org: string;
+          item_label: string;
+          open_to_public: boolean;
+          source_kind: string;
+          source_name: string;
+          source_slug: string;
         }[];
       };
       is_campus_org_member: { Args: { p_campus: string }; Returns: boolean };
