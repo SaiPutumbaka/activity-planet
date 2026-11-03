@@ -61,6 +61,9 @@ begin
    where h.is_active and h.min_age = 18 and h.id <> v_hub order by h.slug limit 1;
   perform set_config('test.hub', v_hub::text, true);
   perform set_config('test.hub2', v_hub2::text, true);
+  insert into public.hub_members (user_id, hub_id)
+  select current_setting('test.' || x)::uuid, v_hub from unnest(array['h', 'a']) x
+  on conflict do nothing;
 
   insert into public.hub_chapters (hub_id, area_id, slug, name)
   values (v_hub, v_area, 'secr-' || v_tag, 'Security Recheck Chapter')
