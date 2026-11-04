@@ -224,6 +224,14 @@ function YouPage() {
                   hint="Moderators approve who runs a chapter"
                 />
               ) : null}
+              {isMod.data ? (
+                <LinkRow
+                  to="/admin/places"
+                  label="Places"
+                  value="Review"
+                  hint="New public places, corrections and reports"
+                />
+              ) : null}
             </div>
           </section>
         ) : null}

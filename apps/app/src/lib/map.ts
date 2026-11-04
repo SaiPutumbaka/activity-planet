@@ -723,6 +723,13 @@ export function placeKindInfo(kind: string): { label: string; icon: MapIconKey }
   return PLACE_KINDS[kind] ?? { label: "Place", icon: "place" };
 }
 
+/** Every place kind for the add and correct forms, by label. */
+export const PLACE_KIND_OPTIONS: readonly { value: string; label: string }[] = Object.entries(
+  PLACE_KINDS,
+)
+  .map(([value, k]) => ({ value, label: k.label }))
+  .sort((a, b) => a.label.localeCompare(b.label));
+
 /* ------------------------------------------------------------------ */
 /* Bbox                                                                 */
 /* ------------------------------------------------------------------ */

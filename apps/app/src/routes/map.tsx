@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { List, LocateFixed, Map as MapIcon, SearchX } from "lucide-react";
+import { Crosshair, List, LocateFixed, Map as MapIcon, MapPinPlus, SearchX } from "lucide-react";
 import { z } from "zod";
 
 import { MapAttribution } from "@/components/map/attribution";
@@ -52,8 +52,15 @@ import { useResolvedTheme } from "@/lib/theme";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { prefersSaveData, supportsWebGL, useReducedMotion } from "@/lib/use-media";
 
+/** Adding a place needs a street-level view, so the pin lands on the right spot. */
+const ADD_PLACE_MIN_ZOOM = 15;
+
 /** MapLibre and its CSS load only here, after first paint (D-038, §9 load order). */
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
+/** The add-place form loads the first time someone taps Add. */
+const AddPlaceSheet = lazy(() =>
+  import("@/components/map/add-place-sheet").then((m) => ({ default: m.AddPlaceSheet })),
+);
 
 /**
  * `?hubs=<slug,slug>` selected non-sensitive hub chips (absent: All my hubs; a selected sensitive
@@ -386,6 +393,40 @@ function MapScreen({ userId }: { userId: string | null }) {
   }
   const geoapify = view.places.some((f) => f.geoapify);
 
+  // Add a place (§9): a crosshair over the map, then the form for the point under it. Without a
+  // map (list view, no WebGL) the point is the centre of the area being viewed.
+  const [adding, setAdding] = useState(false);
+  const [addPoint, setAddPoint] = useState<{ lat: number; lng: number } | null>(null);
+  const addHubs = useMemo(
+    () => chipHubs.filter((h) => h.joined && !h.sensitive && !eventsOnly.has(h.id)),
+    [chipHubs, eventsOnly],
+  );
+  const closeEnough = !canMap || camera.zoom >= ADD_PLACE_MIN_ZOOM;
+  function startAdding() {
+    setSearch(canMap && listView ? { view: "map", place: undefined } : { place: undefined });
+    setPanel("peek");
+    setAdding(true);
+  }
+  function useThisSpot() {
+    setAddPoint({ lat: camera.lat, lng: camera.lng });
+  }
+  function endAdding() {
+    setAdding(false);
+    setAddPoint(null);
+  }
+
+  const addButton = signedIn ? (
+    <Button
+      variant="secondary"
+      size="sm"
+      className="rounded-full"
+      onClick={startAdding}
+      aria-pressed={adding}
+      leading={<MapPinPlus className="size-4" aria-hidden="true" />}
+    >
+      Add
+    </Button>
+  ) : null;
   const toggleView = canMap ? (
     <Button
       variant="secondary"
@@ -545,6 +586,7 @@ function MapScreen({ userId }: { userId: string | null }) {
         title="Map"
         actions={
           <>
+            {addButton}
             {toggleView}
             {signIn}
           </>
@@ -607,6 +649,14 @@ function MapScreen({ userId }: { userId: string | null }) {
                     <LocateFixed className="size-4" aria-hidden="true" />
                   )}
                 </button>
+                {adding ? (
+                  <div
+                    className="pointer-events-none absolute inset-0 z-[6] flex items-center justify-center"
+                    aria-hidden="true"
+                  >
+                    <Crosshair className="size-10 text-text drop-shadow-[0_0_2px_rgb(255_255_255/0.9)]" />
+                  </div>
+                ) : null}
                 {layers.includes("places") && placesHidden && placesAsked ? (
                   <p className="pointer-events-none absolute inset-x-0 bottom-[8.25rem] z-[5] mx-auto w-fit rounded-control bg-toast px-3 py-1.5 text-[13px] font-semibold text-on-toast">
                     Zoom in to see places
@@ -617,6 +667,24 @@ function MapScreen({ userId }: { userId: string | null }) {
           </div>
         ) : !listView ? (
           <MapLoading />
+        ) : null}
+
+        {adding && !addPoint ? (
+          <div className="absolute inset-x-2 top-2 z-[7] flex flex-wrap items-center gap-2 rounded-tile bg-surface p-3 shadow-[0_2px_12px_rgb(0_0_0/0.18)]">
+            <p className="min-w-0 flex-1 basis-40 text-[14px]">
+              {listView || !canMap
+                ? "The pin goes at the centre of the area you're viewing."
+                : closeEnough
+                  ? "Move the map so the crosshair is on the spot."
+                  : "Zoom in closer to place the pin."}
+            </p>
+            <Button size="sm" variant="secondary" onClick={endAdding}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={useThisSpot} disabled={!closeEnough}>
+              Use this spot
+            </Button>
+          </div>
         ) : null}
 
         <ListPanel
@@ -643,6 +711,24 @@ function MapScreen({ userId }: { userId: string | null }) {
         timeZone={timeZone}
         onClose={() => setSearch({ place: undefined })}
       />
+      {signedIn && adding ? (
+        <Suspense fallback={null}>
+          <AddPlaceSheet
+            open={adding}
+            point={addPoint}
+            hubs={addHubs}
+            onClose={() => setAddPoint(null)}
+            onAdded={(id) => {
+              endAdding();
+              setSearch({ place: id });
+            }}
+            onOpenPlace={(id) => {
+              endAdding();
+              setSearch({ place: id });
+            }}
+          />
+        </Suspense>
+      ) : null}
       <CellSheet
         cell={openCell}
         signedIn={signedIn}

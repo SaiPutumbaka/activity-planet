@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CircleAlert, Inbox, ShieldX } from "lucide-react";
 import { toast } from "sonner";
 
+import { AdminTabs } from "@/components/admin/admin-tabs";
 import { ListSkeleton } from "@/components/hubs/hub-states";
 import { TopBar } from "@/components/shell/top-bar";
 import { Button } from "@/components/ui/button";
@@ -37,8 +38,9 @@ function ClaimsQueuePage() {
 
   return (
     <>
-      <TopBar title="Chapter claims" back />
+      <TopBar title="Moderation" back />
       <main className="flex flex-col gap-4 pt-2 pb-8 safe-px">
+        <AdminTabs current="/admin/claims" />
         {isMod.isPending ? (
           <ListSkeleton rows={3} rowClassName="h-32" />
         ) : isMod.isError ? (

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Suspense, lazy, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarPlus, Clock, ExternalLink, Globe, MapPin, Navigation, Pencil } from "lucide-react";
@@ -24,6 +24,18 @@ import {
 } from "@/lib/map";
 
 import { PlaceGlyph, PlanGlyph, ShowGlyph } from "./glyphs";
+import type { PlaceMode } from "./place-actions";
+
+// Signed-in tools (corrections, reports, own pin), loaded on first use so a signed-out visit to
+// the map never downloads them.
+const PlaceActionRow = lazy(() =>
+  import("./place-actions").then((m) => ({ default: m.PlaceActionRow })),
+);
+const CorrectionForm = lazy(() =>
+  import("./place-actions").then((m) => ({ default: m.CorrectionForm })),
+);
+const ReportForm = lazy(() => import("./place-actions").then((m) => ({ default: m.ReportForm })));
+const PublishForm = lazy(() => import("./place-actions").then((m) => ({ default: m.PublishForm })));
 
 /**
  * A link to an event page. The page lives under /_app and needs a session, so a signed-out
@@ -61,7 +73,8 @@ function platform() {
  * hours as text (no "Open now" yet), website, the §8 source line, directions in the device's own
  * maps app, "Plans here", "Start a plan here" (`/post?place=`, the venue prefilled; the plan then
  * makes the place a meeting spot for its hub) and "Improve it on OpenStreetMap" for OSM places.
- * Corrections and reports come with slice 11.
+ * Signed in, "Suggest a correction" and "Report" (slice 11), and for the viewer's own unreviewed
+ * pin Edit, "Share with everyone" / "Keep it private" and Delete; each opens in this same sheet.
  */
 export function PlaceSheet({
   placeId,
@@ -81,10 +94,39 @@ export function PlaceSheet({
   const d = detail.data;
   const hubList = d?.hubs ?? [];
   const adultsOnly = hubList.some((h) => adultHubIds.has(h.id));
+  // Back to the card whenever another place opens (updated while rendering, no effect).
+  const [mode, setMode] = useState<PlaceMode>("view");
+  const [modeFor, setModeFor] = useState(placeId);
+  if (modeFor !== placeId) {
+    setModeFor(placeId);
+    setMode("view");
+  }
+  const title =
+    mode === "correct" && d
+      ? d.mine && (d.private || d.pending)
+        ? "Edit place"
+        : "Suggest a correction"
+      : mode === "report"
+        ? "Report this place"
+        : mode === "publish"
+          ? "Share with everyone"
+          : (d?.name ?? "Place");
 
   return (
-    <Sheet open={Boolean(placeId)} onClose={onClose} title={d?.name ?? "Place"}>
-      {detail.isPending ? (
+    <Sheet open={Boolean(placeId)} onClose={onClose} title={title}>
+      {d && signedIn && mode === "correct" ? (
+        <Suspense fallback={null}>
+          <CorrectionForm detail={d} onDone={() => setMode("view")} />
+        </Suspense>
+      ) : d && signedIn && mode === "report" ? (
+        <Suspense fallback={null}>
+          <ReportForm detail={d} onDone={() => setMode("view")} />
+        </Suspense>
+      ) : d && signedIn && mode === "publish" ? (
+        <Suspense fallback={null}>
+          <PublishForm detail={d} onDone={() => setMode("view")} />
+        </Suspense>
+      ) : detail.isPending ? (
         <div className="flex flex-col gap-3 pt-2" aria-busy="true">
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-4 w-56" />
@@ -213,6 +255,12 @@ export function PlaceSheet({
                 <p className="pt-1 text-[13px] text-text-3">Sign in to see these plans.</p>
               )}
             </section>
+          ) : null}
+
+          {signedIn ? (
+            <Suspense fallback={null}>
+              <PlaceActionRow detail={d} onMode={setMode} onDeleted={onClose} />
+            </Suspense>
           ) : null}
 
           <div className="flex flex-col gap-1 border-t border-border pt-3 text-[13px] text-text-2">
