@@ -40,6 +40,7 @@ export type Route =
     }
   | { kind: "discovery_regions"; limit: number }
   | { kind: "discovery_regions_record" }
+  | { kind: "api_keys" }
   | { kind: "api_budget_take" }
   | { kind: "api_budget_return" }
   | { kind: "not_found" };
@@ -167,6 +168,7 @@ export function matchRoute(method: string, url: string): Route {
   if (method === "POST" && path === "/discovery/regions/record")
     return { kind: "discovery_regions_record" };
   // The lane 1 APIs' daily call budget (D-042 slice 10, migration 48).
+  if (method === "GET" && path === "/api-keys") return { kind: "api_keys" };
   if (method === "POST" && path === "/api-budget") return { kind: "api_budget_take" };
   if (method === "POST" && path === "/api-budget/return") return { kind: "api_budget_return" };
   const rows = /^\/tiles\/([0-9]{1,6})\/rows$/.exec(path);

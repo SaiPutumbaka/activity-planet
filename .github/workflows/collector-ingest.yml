@@ -26,7 +26,8 @@ name: Collector ingest
 #
 # Lane 1 (D-042 slice 10, migration 48): Ticketmaster Discovery and SeatGeek run once per
 # collector region (never for seeds-only city areas) when the repository secrets
-# TICKETMASTER_API_KEY and SEATGEEK_CLIENT_ID exist; without them the API lane is skipped and
+# TICKETMASTER_API_KEY and SEATGEEK_CLIENT_ID exist, or Edge Function secrets of those names on
+# the project the regions come from; without them the API lane is skipped and
 # nothing is asked of either API. Before collecting, the job takes the run's calls from the day's
 # budget on the project the regions come from (POST /collector/api-budget: Ticketmaster 1,000 a
 # UTC day, SeatGeek 1,000), and gives back what it did not send afterwards. Regions beyond the
@@ -220,6 +221,29 @@ jobs:
           n=$(python3 -I -c 'import json,sys;print(sum(1 for r in json.load(open(sys.argv[1]))["regions"] if r.get("collector")))' "$GITHUB_WORKSPACE/work/regions.json")
           echo "collector_regions=$n" >> "$GITHUB_OUTPUT"
 
+      # Lane 1 keys: the repository secrets when they exist, else the Edge Function secrets of the
+      # project the regions come from (FOUNDER-TODO 20b allows either), read through the
+      # collector function and masked. Prints only which keys are set.
+      - name: API keys
+        if: steps.mode.outputs.mode == 'city' || steps.regions.outputs.collector_regions != '0'
+        env:
+          FROM: ${{ steps.mode.outputs.regions_from }}
+          GH_TM: ${{ secrets.TICKETMASTER_API_KEY }}
+          GH_SG: ${{ secrets.SEATGEEK_CLIENT_ID }}
+        run: |
+          if [ "$FROM" = "production" ]; then ref="$PROD_PROJECT_REF"; secret="$PROD_COLLECTOR_SECRET"; else ref="$STAGING_PROJECT_REF"; secret="$STAGING_COLLECTOR_SECRET"; fi
+          tm="$GH_TM"; sg="$GH_SG"; from_tm=github; from_sg=github
+          if [ -z "$tm" ] || [ -z "$sg" ]; then
+            out=$(curl -sS --fail -H "x-collector-secret: $secret" "https://$ref.supabase.co/functions/v1/collector/api-keys" || echo '{}')
+            if [ -z "$tm" ]; then tm=$(printf '%s' "$out" | python3 -I -c 'import json,sys;print(json.load(sys.stdin).get("ticketmaster") or "")' 2>/dev/null || true); from_tm=supabase; fi
+            if [ -z "$sg" ]; then sg=$(printf '%s' "$out" | python3 -I -c 'import json,sys;print(json.load(sys.stdin).get("seatgeek") or "")' 2>/dev/null || true); from_sg=supabase; fi
+            unset out
+          fi
+          for v in "$tm" "$sg"; do if [ -n "$v" ]; then echo "::add-mask::$v"; fi; done
+          case "$tm$sg" in *[!A-Za-z0-9_-]*) echo "Refusing a key with unexpected characters"; exit 1 ;; esac
+          { echo "TICKETMASTER_API_KEY=$tm"; echo "SEATGEEK_CLIENT_ID=$sg"; } >> "$GITHUB_ENV"
+          echo "ticketmaster key: $([ -n "$tm" ] && echo "set ($from_tm)" || echo unset); seatgeek client id: $([ -n "$sg" ] && echo "set ($from_sg)" || echo unset)"
+
       # Lane 1 calls for this run from the day's budget (counts only). Without a key nothing is
       # asked and every adapter gets 0.
       - name: API budget, take
@@ -227,8 +251,6 @@ jobs:
         env:
           FROM: ${{ steps.mode.outputs.regions_from }}
           MODE: ${{ steps.mode.outputs.mode }}
-          TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
-          SEATGEEK_CLIENT_ID: ${{ secrets.SEATGEEK_CLIENT_ID }}
         run: |
           mkdir -p work
           if [ "$FROM" = "production" ]; then ref="$PROD_PROJECT_REF"; secret="$PROD_COLLECTOR_SECRET"; else ref="$STAGING_PROJECT_REF"; secret="$STAGING_COLLECTOR_SECRET"; fi
@@ -247,8 +269,6 @@ jobs:
           REGION: ${{ steps.mode.outputs.region }}
           MODE: ${{ steps.mode.outputs.mode }}
           MINUTES: ${{ steps.mode.outputs.minutes }}
-          TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
-          SEATGEEK_CLIENT_ID: ${{ secrets.SEATGEEK_CLIENT_ID }}
         run: |
           mkdir -p work
           if [ "$MODE" = "regions" ]; then

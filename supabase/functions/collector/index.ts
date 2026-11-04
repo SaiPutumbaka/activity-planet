@@ -211,6 +211,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
       return json({ regions });
     }
 
+    // The lane 1 keys when the founder stored them as this project's Edge Function secrets
+    // (FOUNDER-TODO 20b), for the collector job only (the collector secret is required above).
+    // Never logged; the job masks them. Null when unset, so the job skips the API lane.
+    if (route.kind === "api_keys") {
+      const key = (name: string) => (Deno.env.get(name) ?? "").trim() || null;
+      return json({
+        ticketmaster: key("TICKETMASTER_API_KEY"),
+        seatgeek: key("SEATGEEK_CLIENT_ID"),
+      });
+    }
+
     let body: unknown;
     try {
       body = await readJson(req);

@@ -587,6 +587,8 @@ Deno.test("api budget: routes and bodies (D-042 slice 10)", () => {
   assertEquals(matchRoute("POST", `${base}/api-budget`), { kind: "api_budget_take" });
   assertEquals(matchRoute("POST", `${base}/api-budget/return`), { kind: "api_budget_return" });
   assertEquals(matchRoute("GET", `${base}/api-budget`), { kind: "not_found" });
+  assertEquals(matchRoute("GET", `${base}/api-keys`), { kind: "api_keys" });
+  assertEquals(matchRoute("POST", `${base}/api-keys`), { kind: "not_found" });
   assertEquals(parseApiBudgetTakeBody({ api: "ticketmaster", calls: 100 }), {
     ok: true,
     args: { p_api: "ticketmaster", p_calls: 100 },
