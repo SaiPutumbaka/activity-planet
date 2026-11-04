@@ -1,0 +1,4 @@
+{
+  "month": "2026-11",
+  "note": "A push to a branch other than main that changes this file builds the staging ODbL dump as an artifact (places-dump.yml)."
+}
