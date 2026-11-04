@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 27 (schema_version 2.23). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 28 (schema_version 2.24). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -1992,6 +1992,50 @@ export type Database = {
           },
         ];
       };
+      place_tile_runs: {
+        Row: {
+          batches: Json;
+          finished_at: string | null;
+          loose: number;
+          received: number;
+          run_id: string;
+          source: Database["public"]["Enums"]["place_source"];
+          started_at: string;
+          stats: Json;
+          tile_id: number;
+        };
+        Insert: {
+          batches?: Json;
+          finished_at?: string | null;
+          loose?: number;
+          received?: number;
+          run_id: string;
+          source: Database["public"]["Enums"]["place_source"];
+          started_at?: string;
+          stats?: Json;
+          tile_id: number;
+        };
+        Update: {
+          batches?: Json;
+          finished_at?: string | null;
+          loose?: number;
+          received?: number;
+          run_id?: string;
+          source?: Database["public"]["Enums"]["place_source"];
+          started_at?: string;
+          stats?: Json;
+          tile_id?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "place_tile_runs_tile_id_fkey";
+            columns: ["tile_id"];
+            isOneToOne: false;
+            referencedRelation: "place_tiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       place_tiles: {
         Row: {
           bbox: unknown;
@@ -2042,6 +2086,7 @@ export type Database = {
           id: string;
           is_public: boolean;
           kind: string;
+          last_run_id: string | null;
           last_seen_at: string;
           lat: number | null;
           license: string;
@@ -2050,6 +2095,7 @@ export type Database = {
           location: unknown;
           locked_fields: string[];
           merged_into: string | null;
+          missed_runs: number;
           name: string;
           opening_hours: string | null;
           osm_ref: string | null;
@@ -2073,6 +2119,7 @@ export type Database = {
           id?: string;
           is_public?: boolean;
           kind: string;
+          last_run_id?: string | null;
           last_seen_at?: string;
           lat?: number | null;
           license?: string;
@@ -2081,6 +2128,7 @@ export type Database = {
           location: unknown;
           locked_fields?: string[];
           merged_into?: string | null;
+          missed_runs?: number;
           name: string;
           opening_hours?: string | null;
           osm_ref?: string | null;
@@ -2104,6 +2152,7 @@ export type Database = {
           id?: string;
           is_public?: boolean;
           kind?: string;
+          last_run_id?: string | null;
           last_seen_at?: string;
           lat?: number | null;
           license?: string;
@@ -2112,6 +2161,7 @@ export type Database = {
           location?: unknown;
           locked_fields?: string[];
           merged_into?: string | null;
+          missed_runs?: number;
           name?: string;
           opening_hours?: string | null;
           osm_ref?: string | null;
@@ -2770,6 +2820,7 @@ export type Database = {
         Args: { p_label: string; p_old_point?: unknown; p_point: unknown };
         Returns: boolean;
       };
+      collector_verify_secret: { Args: { p_secret: string }; Returns: boolean };
       complete_onboarding: {
         Args: {
           p_area_id?: string;
@@ -3095,6 +3146,15 @@ export type Database = {
           waitlist_enabled: boolean;
         }[];
       };
+      finish_place_tile: {
+        Args: {
+          p_count: number;
+          p_run_id: string;
+          p_source?: string;
+          p_tile_id: number;
+        };
+        Returns: Json;
+      };
       generate_handle: { Args: { p_email: string }; Returns: string };
       handle_available: { Args: { p_handle: string }; Returns: boolean };
       has_org_role: {
@@ -3174,6 +3234,16 @@ export type Database = {
           source_name: string;
           source_slug: string;
         }[];
+      };
+      ingest_places: {
+        Args: {
+          p_batch: Json;
+          p_batch_no?: number;
+          p_run_id: string;
+          p_source?: string;
+          p_tile_id: number;
+        };
+        Returns: Json;
       };
       is_campus_org_member: { Args: { p_campus: string }; Returns: boolean };
       is_chapter_captain: { Args: { p_chapter: string }; Returns: boolean };
@@ -3296,6 +3366,10 @@ export type Database = {
       place_tile_bbox: { Args: { p_id: number }; Returns: unknown };
       place_tile_id: { Args: { p_lat: number; p_lng: number }; Returns: number };
       place_tile_id_of: { Args: { p_point: unknown }; Returns: number };
+      place_tiles_queue: {
+        Args: { p_kinds?: string[]; p_limit?: number };
+        Returns: Json;
+      };
       project_url: { Args: never; Returns: string };
       purge_account_deletions: { Args: never; Returns: number };
       purge_read_notifications: { Args: never; Returns: number };
