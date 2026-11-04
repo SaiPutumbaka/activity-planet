@@ -230,12 +230,20 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
       return;
     }
 
+    let pageUrl = seed.url;
     if (seed.kind === "localist") {
       const days = Math.ceil((windowEnd.getTime() - windowStart.getTime()) / 86_400_000);
+      let fallback = false;
       for (let page = 1; page <= LOCALIST_MAX_PAGES; page++) {
         const url = localistEventsUrl(seed, days, page);
         const res = await fetcher.get(url, { accept: "application/json" });
-        if (!res.ok) return fail(run.key, res);
+        if (!res.ok) {
+          fail(run.key, res);
+          // A calendar whose robots.txt keeps us off its API is read as a page instead
+          // (schema.org markup and its own feed links), like any other calendar.
+          fallback = page === 1 && res.reason === "robots_disallowed";
+          break;
+        }
         fetched++;
         if (parseXRobotsTag(res.xRobotsTag).noindex) {
           errors.push({ sourceKey: run.key, url, reason: "noindex" });
@@ -251,11 +259,12 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
         for (const raw of parsed.events) run.raws.push({ raw, idPrefix: "", fallbackUrl: null });
         if (parsed.page >= parsed.totalPages || parsed.events.length === 0) return;
       }
-      return;
+      if (!fallback) return;
+      pageUrl = `${new URL(seed.url).origin}/`;
     }
 
-    visited.add(seed.url);
-    const res = await fetcher.get(seed.url);
+    visited.add(pageUrl);
+    const res = await fetcher.get(pageUrl);
     if (!res.ok) return fail(run.key, res);
     fetched++;
     if (seed.kind === "ics" || seed.kind === "rss") {

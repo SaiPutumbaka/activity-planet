@@ -272,6 +272,20 @@ describe("city seed files", () => {
     }
     const deny = Denylist.load();
     for (const s of atl!.seeds) expect(deny.check(s.url).denied, s.id).toBe(false);
+    // Every seed says honestly whether its endpoint was checked, and why it is off.
+    for (const s of atl!.seeds) {
+      expect(typeof s.verified, s.id).toBe("boolean");
+      if (s.enabled === false) expect(s.note?.length ?? 0, s.id).toBeGreaterThan(20);
+    }
+    // The documented Localist API is used for Kennesaw State rather than crawling its pages.
+    expect(atl!.seeds.find((s) => s.id === "atl-kennesaw-state")?.kind).toBe("localist");
+    // Hubs beyond campus: outdoors, arts, tech, volunteering.
+    const live = atl!.seeds.filter((s) => s.enabled !== false);
+    for (const hub of ["Outdoors", "Arts", "Tech", "Volunteer"])
+      expect(
+        live.some((s) => s.categories?.includes(hub)),
+        hub,
+      ).toBe(true);
   });
 
   it("matches cities to user regions by overlap", () => {

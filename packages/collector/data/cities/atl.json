@@ -1,5 +1,5 @@
 {
-  "$comment": "Atlanta seeds (D-040). Public calendars only; each is read through robots.txt, the denylist and the noindex/login checks, so a wrong or blocked URL costs one request and shows up as a skip in the dry run. URLs were written from public knowledge and have not been opened from this environment (no outbound access): every seed says so in its note until a person checks it. Georgia State is left out here because the D-037 importer already reads its Localist calendar and PIN.",
+  "$comment": "Atlanta seeds (D-040). Public calendars only; each is read through robots.txt, the denylist and the noindex/login checks, so a wrong or blocked URL costs one request and shows up as a skip in the dry run. 'verified': true means a live run read the endpoint (dry run 41849155715) or the URL was confirmed in D-039; false means the endpoint was inferred from the site's platform and public search results and has not been opened from the authoring environment (no outbound access). Seeds a site answered with 403, or with no machine-readable feed at all, are enabled: false with the reason in note. Georgia State is left out because the D-037 importer already reads its Localist calendar and PIN.",
   "region": {
     "id": "atl",
     "label": "Atlanta metro",
@@ -16,70 +16,85 @@
       "name": "Fulton County Library System events",
       "attribution": "Listed from the Fulton County Library System public calendar (fulcolibrary.org).",
       "host_org": "Fulton County Library System",
-      "note": "Library system. Unverified URL; discovery looks for schema.org events and iCal links."
+      "maxPages": 3,
+      "verified": false,
+      "note": "BiblioCommons-hosted library site. dry run 41849155715: crawl_delay_too_long (robots.txt Crawl-delay over 60 s). The collector now waits the delay out inside the per-host budget, so maxPages is kept small. BiblioCommons documents no public events feed; this reads schema.org markup only, if the pages carry any. Unverified."
     },
     {
       "id": "atl-dekalb-library",
       "kind": "page",
-      "url": "https://dekalblibrary.org/events/",
+      "url": "https://events.dekalblibrary.org/events",
       "name": "DeKalb County Public Library events",
       "attribution": "Listed from the DeKalb County Public Library public calendar (dekalblibrary.org).",
       "host_org": "DeKalb County Public Library",
-      "note": "Library system. Unverified URL."
+      "maxPages": 5,
+      "verified": false,
+      "note": "Events run on Communico at events.dekalblibrary.org (event pages are /event/<id>). dry run 41849155715: 0 items from the old dekalblibrary.org/events URL. Communico offers an RSS export only when the library has turned it on; discovery picks up its RSS link if present. Unverified: endpoint not opened from the authoring environment."
     },
     {
       "id": "atl-gwinnett-library",
       "kind": "page",
-      "url": "https://www.gwinnettpl.org/events/",
+      "url": "https://gwinnettpl.libnet.info/events",
       "name": "Gwinnett County Public Library events",
       "attribution": "Listed from the Gwinnett County Public Library public calendar (gwinnettpl.org).",
       "host_org": "Gwinnett County Public Library",
-      "note": "Library system. Unverified URL."
+      "maxPages": 5,
+      "verified": false,
+      "note": "Events run on Communico at gwinnettpl.libnet.info (event pages /event/<id>). dry run 41849155715: 0 items from gwinnettpl.org/events. As for DeKalb, Communico's RSS export exists only if the library enabled it. Unverified."
     },
     {
       "id": "atl-cobb-library",
       "kind": "page",
-      "url": "https://www.cobbcounty.org/library/events",
+      "url": "https://www.cobbcat.org/events",
       "name": "Cobb County Public Library events",
       "attribution": "Listed from the Cobb County Public Library public calendar (cobbcounty.org).",
       "host_org": "Cobb County Public Library",
-      "note": "Library system. Unverified URL."
+      "verified": false,
+      "note": "Cobb County Public Library's own site (cobbcat.org; press pages point to cobbcat.org/events and /calendar). dry run 41849155715: 0 items from cobbcounty.org/library/events. Platform and feed not confirmed. Unverified."
     },
     {
       "id": "atl-city-parks",
       "kind": "page",
+      "enabled": false,
       "url": "https://www.atlantaga.gov/government/departments/parks-recreation",
       "name": "City of Atlanta Parks and Recreation",
       "attribution": "Listed from the City of Atlanta Department of Parks and Recreation (atlantaga.gov).",
       "host_org": "City of Atlanta Parks and Recreation",
-      "note": "Parks department. Unverified URL; the department page links its calendar."
+      "verified": false,
+      "note": "dry run 41849155715: atlantaga.gov answers the bot with 403 (treated as auth_required). The city calendar (Home/Components/Calendar, Granicus/Vision) publishes no documented feed. Off until the city confirms a feed or allows the bot; ask via the Office of Communications."
     },
     {
       "id": "atl-dekalb-parks",
       "kind": "page",
-      "url": "https://www.dekalbcountyga.gov/parks",
+      "url": "https://www.dekalbcountyga.gov/events",
       "name": "DeKalb County Recreation, Parks and Cultural Affairs",
       "attribution": "Listed from DeKalb County Recreation, Parks and Cultural Affairs (dekalbcountyga.gov).",
       "host_org": "DeKalb County Parks",
-      "note": "Parks department. Unverified URL."
+      "maxPages": 10,
+      "verified": false,
+      "note": "DeKalb County's Drupal events calendar (public meetings and Recreation, Parks and Cultural Affairs programs). dry run 41849155715: 0 items from /parks. No iCal export confirmed; reads schema.org markup and any feed links. Unverified."
     },
     {
       "id": "atl-beltline",
-      "kind": "page",
-      "url": "https://beltline.org/events/",
+      "kind": "ics",
+      "url": "https://beltline.org/events/?ical=1",
       "name": "Atlanta BeltLine events",
       "attribution": "Listed from the Atlanta BeltLine public events calendar (beltline.org).",
       "host_org": "Atlanta BeltLine",
-      "note": "Unverified URL. WordPress calendars usually expose an ?ical=1 export, which discovery picks up."
+      "categories": ["Outdoors", "Community"],
+      "verified": false,
+      "note": "BeltLine's calendar is The Events Calendar for WordPress (its /events/list/, /events/month/ and /events/category/ URLs), whose documented list export is ?ical=1. dry run 41849155715: 0 items from the HTML page, so this reads the export directly. Endpoint unverified."
     },
     {
       "id": "atl-high-museum",
       "kind": "page",
+      "enabled": false,
       "url": "https://high.org/events/",
       "name": "High Museum of Art events",
       "attribution": "Listed from the High Museum of Art public events calendar (high.org).",
       "host_org": "High Museum of Art",
-      "note": "Museum. Unverified URL."
+      "verified": false,
+      "note": "dry run 41849155715: 0 items, no errors: no schema.org events or feed links on high.org/events (tickets run on Tessitura at high.org/tnew). No public machine-readable feed found. Off until one is."
     },
     {
       "id": "atl-history-center",
@@ -88,55 +103,65 @@
       "name": "Atlanta History Center events",
       "attribution": "Listed from the Atlanta History Center public events calendar (atlantahistorycenter.com).",
       "host_org": "Atlanta History Center",
-      "note": "Museum. Unverified URL."
+      "verified": true,
+      "note": "The Events Calendar (ECP 6.x) site. dry run 41849155715: 18 items from schema.org markup. /events/feed/ gave 500 and /feed/ is disallowed in robots.txt; discovery now prefers the page's ?ical=1 export when it is linked and skips per-event exports."
     },
     {
       "id": "atl-fernbank",
       "kind": "page",
+      "enabled": false,
       "url": "https://www.fernbankmuseum.org/events/",
       "name": "Fernbank Museum events",
       "attribution": "Listed from the Fernbank Museum public events calendar (fernbankmuseum.org).",
       "host_org": "Fernbank Museum",
-      "note": "Museum. Unverified URL."
+      "verified": false,
+      "note": "dry run 41849155715: 0 items, no errors from fernbankmuseum.org/events. No public machine-readable feed found. Off until one is."
     },
     {
       "id": "atl-civil-rights-center",
       "kind": "page",
+      "enabled": false,
       "url": "https://www.civilandhumanrights.org/events/",
       "name": "National Center for Civil and Human Rights events",
       "attribution": "Listed from the National Center for Civil and Human Rights public calendar (civilandhumanrights.org).",
       "host_org": "National Center for Civil and Human Rights",
-      "note": "Museum. Unverified URL."
+      "verified": false,
+      "note": "dry run 41849155715: 0 items, no errors from civilandhumanrights.org/events. No public machine-readable feed found. Off until one is."
     },
     {
       "id": "atl-georgia-tech",
       "kind": "page",
+      "enabled": false,
       "url": "https://www.calendar.gatech.edu/rss-feeds",
       "name": "Georgia Tech public calendar",
       "attribution": "Listed from the Georgia Tech public events calendar (calendar.gatech.edu).",
       "host_org": "Georgia Tech",
       "categories": ["Campus"],
-      "note": "Georgia Tech category RSS index (URL from D-039); discovery follows the feed links. Only feeds whose items carry event times yield items."
+      "verified": false,
+      "note": "Georgia Tech category RSS index (URL from D-039). dry run 41849155715: 0 items, no errors: its RSS items carry no event times, which the RSS reader requires. The campus calendar's 'Get Events' export has no confirmed ICS URL. Off until Institute Communications gives one; then add it as kind ics."
     },
     {
       "id": "atl-emory",
       "kind": "page",
+      "enabled": false,
       "url": "https://events.emory.edu/",
       "name": "Emory University public calendar",
       "attribution": "Listed from the Emory University public events calendar (events.emory.edu).",
       "host_org": "Emory University",
       "categories": ["Campus"],
-      "note": "University public calendar. Unverified URL; D-039 expects a Trumba feed URL from Emory Communications, which should replace this page seed (kind ics or rss) once given."
+      "verified": false,
+      "note": "Emory's calendar is Trumba (Emory Communications web guide). dry run 41849155715: 0 items from the HTML page, which is rendered by Trumba's script. Trumba publishes ICS/RSS at trumba.com/calendars/<web name>.ics, but Emory's web name is not public; off until Emory Communications (theweb@emory.edu) gives it (D-039), then switch to kind ics."
     },
     {
       "id": "atl-kennesaw-state",
-      "kind": "page",
-      "url": "https://calendar.kennesaw.edu/",
+      "kind": "localist",
+      "url": "https://calendar.kennesaw.edu/api/2/events",
       "name": "Kennesaw State University public calendar",
       "attribution": "Listed from the Kennesaw State University public events calendar (calendar.kennesaw.edu).",
       "host_org": "Kennesaw State University",
       "categories": ["Campus"],
-      "note": "University public calendar (Localist per D-039; Localist pages carry schema.org events and an iCal export). Unverified URL."
+      "verified": true,
+      "note": "Localist (confirmed by dry run 41849155715: 351 items from pages, plus /event/*/confirm and calendar.google.com links that are now skipped). Reads Localist's documented read-only API (/api/2/events, no key; developer.localist.com/doc/api) instead of crawling. Academic-calendar deadlines are dropped."
     },
     {
       "id": "atl-marietta-civicplus",
@@ -145,16 +170,121 @@
       "name": "City of Marietta calendar",
       "attribution": "Listed from the City of Marietta public calendar (mariettaga.gov).",
       "host_org": "City of Marietta",
-      "note": "CivicPlus iCalendar page (URL confirmed in D-039): lists one /common/modules/iCalendar/iCalendar.aspx?catID=... feed per calendar, which discovery follows."
+      "verified": true,
+      "note": "CivicPlus iCalendar page (URL confirmed in D-039; dry run 41849155715: 32 items). It lists one /common/modules/iCalendar/iCalendar.aspx?catID=... feed per calendar, which discovery follows."
     },
     {
       "id": "atl-decatur-civicplus",
       "kind": "page",
+      "enabled": false,
       "url": "https://www.decaturga.com/iCalendar.aspx",
       "name": "City of Decatur calendar",
       "attribution": "Listed from the City of Decatur public calendar (decaturga.com).",
       "host_org": "City of Decatur",
-      "note": "CivicPlus iCalendar page, as for Marietta. Unverified URL."
+      "verified": false,
+      "note": "dry run 41849155715: decaturga.com answers the bot with 403 on iCalendar.aspx. Off: a 403 means the site does not want automated access. Ask the city for a feed or an allow rule."
+    },
+    {
+      "id": "atl-piedmont-park",
+      "kind": "ics",
+      "url": "https://piedmontpark.org/calendar/?ical=1",
+      "name": "Piedmont Park Conservancy calendar",
+      "attribution": "Listed from the Piedmont Park Conservancy public calendar (piedmontpark.org).",
+      "host_org": "Piedmont Park Conservancy",
+      "categories": ["Outdoors", "Community"],
+      "verified": false,
+      "note": "The Events Calendar export: piedmontpark.org publishes ?ical=1 on its calendar views (seen in search results for /calendar/week/... and /calendar/month/...). The calendar-root export is unverified from this environment."
+    },
+    {
+      "id": "atl-park-pride",
+      "kind": "ics",
+      "url": "https://parkpride.org/events/?ical=1",
+      "name": "Park Pride events",
+      "attribution": "Listed from the Park Pride public events calendar (parkpride.org).",
+      "host_org": "Park Pride",
+      "categories": ["Outdoors", "Volunteer", "Community"],
+      "verified": false,
+      "note": "Park Pride (Atlanta and DeKalb parks nonprofit: volunteer workdays, park events). The Events Calendar; ?ical=1 exports seen on /events/month/... Root export unverified."
+    },
+    {
+      "id": "atl-contra-dance",
+      "kind": "ics",
+      "url": "https://www.contradance.org/events/?ical=1",
+      "name": "Atlanta Contra Dance Society events",
+      "attribution": "Listed from the Atlanta Contra Dance Society public calendar (contradance.org).",
+      "host_org": "Atlanta Contra Dance Society",
+      "categories": ["Dance", "Community"],
+      "verified": false,
+      "note": "Weekly contra dances (Volga Dance Academy, Decatur Recreation Center). The Events Calendar; ?ical=1 exports seen on /events/category/dance/... Root export unverified."
+    },
+    {
+      "id": "atl-alliance-offstage",
+      "kind": "ics",
+      "url": "https://www.alliancetheatre.org/offstage/?ical=1",
+      "name": "Alliance Theatre Offstage events",
+      "attribution": "Listed from the Alliance Theatre Offstage public calendar (alliancetheatre.org).",
+      "host_org": "Alliance Theatre",
+      "categories": ["Arts", "Theatre"],
+      "verified": false,
+      "note": "Workshops, classes and community programs. The Events Calendar; ?ical=1 exports seen on /offstage/month/... Root export unverified."
+    },
+    {
+      "id": "atl-artsatl-calendar",
+      "kind": "ics",
+      "url": "https://www.artsatl.org/calendar/?ical=1",
+      "name": "ArtsATL arts calendar",
+      "attribution": "Listed from the ArtsATL public arts calendar (artsatl.org).",
+      "categories": ["Arts"],
+      "verified": false,
+      "note": "Nonprofit arts publication's public calendar of Atlanta arts events. The Events Calendar; ?ical=1 exports seen on /calendar/<date>/. Root export unverified."
+    },
+    {
+      "id": "atl-botanical-garden",
+      "kind": "page",
+      "url": "https://atlantabg.org/calendar/",
+      "name": "Atlanta Botanical Garden events and classes",
+      "attribution": "Listed from the Atlanta Botanical Garden public events calendar (atlantabg.org).",
+      "host_org": "Atlanta Botanical Garden",
+      "categories": ["Outdoors", "Arts"],
+      "maxPages": 10,
+      "verified": false,
+      "note": "Calendar URLs (/calendar/category/atlanta-event/day/...) look like The Events Calendar; discovery prefers its ?ical=1 export if linked. Unverified."
+    },
+    {
+      "id": "atl-trees-atlanta",
+      "kind": "page",
+      "url": "https://www.treesatlanta.org/get-involved/events/",
+      "name": "Trees Atlanta events and volunteer days",
+      "attribution": "Listed from the Trees Atlanta public events calendar (treesatlanta.org).",
+      "host_org": "Trees Atlanta",
+      "categories": ["Outdoors", "Volunteer"],
+      "maxPages": 10,
+      "verified": false,
+      "note": "Volunteer planting and forest-restoration days most Saturdays, tree tours. Calendar URL from the volunteer page; platform not confirmed. Unverified."
+    },
+    {
+      "id": "atl-tech-village",
+      "kind": "page",
+      "url": "https://atlantatechvillage.com/events",
+      "name": "Atlanta Tech Village events",
+      "attribution": "Listed from the Atlanta Tech Village public events calendar (atlantatechvillage.com).",
+      "host_org": "Atlanta Tech Village",
+      "categories": ["Tech"],
+      "maxPages": 10,
+      "verified": false,
+      "note": "Startup and tech community events (event pages are /events/<slug>). Many link out to Eventbrite or Luma; Eventbrite links are denylisted and never fetched. Unverified."
+    },
+    {
+      "id": "atl-gwinnett-parks",
+      "kind": "page",
+      "url": "https://www.gwinnettcounty.com/calendar/parks-recreation",
+      "name": "Gwinnett County Parks and Recreation calendar",
+      "attribution": "Listed from the Gwinnett County Parks and Recreation public calendar (gwinnettcounty.com).",
+      "host_org": "Gwinnett County Parks and Recreation",
+      "categories": ["Outdoors", "Sports"],
+      "maxPages": 10,
+      "verified": false,
+      "note": "County parks calendar (concerts, clubs, art shows, special events). No feed confirmed. Unverified."
     },
     {
       "id": "atl-open-data-arcgis",
@@ -170,6 +300,7 @@
         "location": "LOCATION",
         "url": "URL"
       },
+      "verified": false,
       "note": "Off until a person finds an event layer: replace url with its FeatureServer/<n> endpoint and fields with its column names."
     },
     {
@@ -188,6 +319,7 @@
         "url": "event_url"
       },
       "geoColumn": "location",
+      "verified": false,
       "note": "Template only, off: no Atlanta-area Socrata event dataset is known yet. Copy this shape for any city on Socrata."
     }
   ]

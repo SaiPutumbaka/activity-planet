@@ -270,6 +270,42 @@ describe("Localist API seeds", () => {
     ]);
     expect(result.errors).toEqual([]);
   });
+
+  it("reads the calendar as a page when robots.txt keeps us off the API", async () => {
+    const c = fakeClock();
+    const page = [
+      fixture("jsonld-graph.html"),
+      '<a href="/event/fall_concert/confirm">Going</a>',
+      '<a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=x">Add</a>',
+    ].join("");
+    const { transport, log } = fakeTransport(
+      {
+        "https://calendar.example.edu/robots.txt": { body: "User-agent: *\nDisallow: /api/\n" },
+        "https://calendar.example.edu/": { body: page, headers: { "content-type": "text/html" } },
+      },
+      c.clock,
+    );
+    const fetcher = new PoliteFetcher({
+      denylist: Denylist.load(),
+      transport,
+      now: c.now,
+      sleep: c.sleep,
+    });
+    const result = await collect({
+      regions: [ATL],
+      cities: [{ region: ATL, seeds: [LOCALIST_SEED] }],
+      fetcher,
+      now: NOW,
+    });
+    expect(result.errors.map((e) => e.reason)).toContain("robots_disallowed");
+    expect(result.batches[0]!.items.length).toBeGreaterThan(0);
+    const paths = log.map((l) => new URL(l.url).pathname);
+    expect(paths.some((p) => p.startsWith("/api/"))).toBe(false);
+    expect(paths.some((p) => p.endsWith("/confirm"))).toBe(false);
+    expect(log.some((l) => l.url.includes("google.com"))).toBe(false);
+    // The confirm link and the fixture's /login link; the Google add-to-calendar button.
+    expect(result.stats.linksSkipped).toMatchObject({ action_page: 2, calendar_action: 1 });
+  });
 });
 
 describe("a page's own feed is preferred over crawling", () => {

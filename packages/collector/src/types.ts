@@ -52,6 +52,11 @@ export interface Seed {
   attribution: string;
   /** Short note on what the seed is and whether its URL has been checked by a person. */
   note?: string;
+  /**
+   * True once a live run has read the endpoint (or a person confirmed it); false while the URL
+   * is inferred from the site's platform. Informational: the collector runs both.
+   */
+  verified?: boolean;
   enabled?: boolean;
   /** True only when the source licenses its images for reuse; otherwise cover_url is never set. */
   imagesLicensed?: boolean;
