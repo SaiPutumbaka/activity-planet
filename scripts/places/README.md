@@ -46,3 +46,16 @@ The seed needs the slice 3 schema (migration `20261122000100_places_schema.sql`:
 5. `post` sends batches of 1,000 to `POST /collector/ingest/places`, then `POST /collector/tiles/{id}/done`. A tile whose row count fell more than 30% against its last count is not finished.
 
 Where it posts: staging for a dispatch (or a push of `extract_request.json`) from a branch other than main; production only for a dispatch from main with `production` typed into the input; the nightly schedule (03:17 UTC; refreshes of active tiles on Sundays only) only when the repository variable `PLACES_EXTRACT_SCHEDULE` is `production` and production's queue is not empty. A staging dispatch can add test tiles as wanted with `want_tiles` and lower the budget inputs.
+
+## Tile files (D-042 slices 3 and 4)
+
+`.github/workflows/places-files.yml` runs `build_place_files.py` after the nightly extract (09:43 UTC):
+
+1. `GET /collector/files/queue` (`place_files_queue`, migration 42) lists active and idle tiles with an OSM run and no file, an OSM run or rules change since their file, or a file a week old; tiles idle or retired for 180 days come back as `drop`. It also returns the hub rule table.
+2. `build` pages each tile's active public OSM rows (`GET /collector/tiles/{id}/rows`, 5,000 a page, osm_ref order) and writes `places/v{rules_version}/{tile}.{hash16}.json.gz` and `rules/v{rules_version}.{hash16}.json.gz` (hash16: the first 16 hex of the sha256 of the uncompressed JSON; gzip with a fixed mtime, so the same rows give the same name and bytes). A row is `[osm_ref, lng, lat, kind, name, rule_ids, address, locality, hours, website, tags]`.
+3. Staging (a dispatch or a push of `files_request.json` from a branch other than main): the files are a workflow artifact and are recorded on staging as built, not published (`POST /collector/files/record`, `published: false`), so the app is never offered them.
+4. Production (a dispatch from main with `production` typed, or the schedule when `PLACES_EXTRACT_SCHEDULE` is `production`): `publish` merges the build into the `gh-pages` branch (manifest `places/manifest.json`, replaced files kept 7 days, dropped tiles removed, `.nojekyll`, `index.html`, `LICENSE.md` with ODbL 1.0 and the OpenStreetMap credit), commits it as one orphan commit and force-pushes, then records the files as published.
+
+GitHub Pages serves every file with `Cache-Control: max-age=600` and `Access-Control-Allow-Origin: *` and cannot set other headers, so the app's service worker keeps the hashed files cache-first (`apps/app/vite.config.ts`). `headers.json` in each build lists the headers to set when the same layout moves to Cloudflare R2 (immutable for a year, `Content-Encoding: gzip`). The app reads the files only while `VITE_PLACES_BASE_URL` is set and `meta.places_files` is `on` (`apps/app/src/lib/place-files.ts`); otherwise every place comes from Postgres, which keeps all of them until slice 11.
+
+Measured on staging, Nov 4 (run 41896164171): 4 tiles, 28,960 places, 1,071,016 bytes gzipped (32 to 39 bytes a place); Freiburg (198375) 12,266 places in 479,058 bytes; the rules file 561 hubs in 25,517 bytes; the build took 4.4 seconds.
