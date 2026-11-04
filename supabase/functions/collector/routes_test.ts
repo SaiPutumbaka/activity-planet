@@ -3,7 +3,9 @@ import { assertEquals } from "jsr:@std/assert@1.0.19";
 import {
   matchRoute,
   parseCandidatesBody,
+  parseDiscoveryRegionsBody,
   parseDoneBody,
+  parseGateBody,
   parseSourcesRecordBody,
   parseDumpBody,
   parseEventsBody,
@@ -506,4 +508,75 @@ Deno.test("candidates body: url and automatic origin only", () => {
   }
   assertEquals(parseCandidatesBody([]), { ok: false, error: "invalid_body" });
   assertEquals(rpcError(JSON.stringify({ message: "candidates_invalid" })).status, 400);
+});
+
+Deno.test("discovery routes: gate, probe queue and regions (migration 47)", () => {
+  const hash = "0123456789abcdef0123456789abcdef";
+  assertEquals(matchRoute("GET", `${base}/discovery/gate?hash=${hash.toUpperCase()}`), {
+    kind: "gate_status",
+    hash,
+  });
+  assertEquals(matchRoute("GET", `${base}/discovery/gate?hash=xyz`), { kind: "not_found" });
+  assertEquals(matchRoute("POST", `${base}/discovery/gate`), { kind: "gate_record" });
+  assertEquals(matchRoute("GET", `${base}/discovery/queue?hash=${hash}`), {
+    kind: "probe_queue",
+    hash,
+    regions: null,
+    perRegion: 150,
+    limit: 500,
+  });
+  const id = "11111111-2222-3333-4444-555555555555";
+  assertEquals(
+    matchRoute("GET", `${base}/discovery/queue?hash=${hash}&regions=${id}&per_region=9999&limit=0`),
+    { kind: "probe_queue", hash, regions: [id], perRegion: 500, limit: 1 },
+  );
+  assertEquals(matchRoute("GET", `${base}/discovery/queue?hash=${hash}&regions=bad`), {
+    kind: "not_found",
+  });
+  assertEquals(matchRoute("GET", `${base}/discovery/queue`), { kind: "not_found" });
+  assertEquals(matchRoute("GET", `${base}/discovery/regions?limit=500`), {
+    kind: "discovery_regions",
+    limit: 100,
+  });
+  assertEquals(matchRoute("POST", `${base}/discovery/regions/record`), {
+    kind: "discovery_regions_record",
+  });
+  assertEquals(rpcError(JSON.stringify({ message: "discovery_gate_closed" })).status, 409);
+  assertEquals(rpcError(JSON.stringify({ message: "gate_invalid" })).status, 400);
+});
+
+Deno.test("gate body: counts and hosts only; passed is never passed through", () => {
+  const hash = "0123456789abcdef";
+  const good = {
+    run_id: "gh-1-1",
+    probe_hash: hash,
+    region: "atl",
+    expected: 9,
+    required: 6,
+    found: 7,
+    passed: true,
+    found_sites: ["atlantabg.org"],
+    counts: { candidates: 400 },
+  };
+  const parsed = parseGateBody(good);
+  assertEquals(parsed.ok, true);
+  if (parsed.ok) assertEquals("passed" in parsed.args.p_gate, false);
+  for (const bad of [
+    { ...good, run_id: "" },
+    { ...good, probe_hash: "XYZ" },
+    { ...good, region: "Atlanta Metro" },
+    { ...good, found: -1 },
+    { ...good, found_sites: "atlantabg.org" },
+    { ...good, counts: { "Bad Key": 1 } },
+    { ...good, counts: { n: 1.5 } },
+  ]) {
+    assertEquals(parseGateBody(bad).ok, false);
+  }
+  assertEquals(parseGateBody([]), { ok: false, error: "invalid_body" });
+  const id = "11111111-2222-3333-4444-555555555555";
+  assertEquals(parseDiscoveryRegionsBody({ regions: [id.toUpperCase()] }), {
+    ok: true,
+    args: { p_ids: [id] },
+  });
+  assertEquals(parseDiscoveryRegionsBody({ regions: ["x"] }).ok, false);
 });

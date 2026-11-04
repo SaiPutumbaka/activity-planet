@@ -29,12 +29,29 @@ export type Route =
   | { kind: "sources_record" }
   | { kind: "candidates"; limit: number; regions: string[] | null }
   | { kind: "candidates_add" }
+  | { kind: "gate_status"; hash: string }
+  | { kind: "gate_record" }
+  | {
+      kind: "probe_queue";
+      hash: string;
+      regions: string[] | null;
+      perRegion: number;
+      limit: number;
+    }
+  | { kind: "discovery_regions"; limit: number }
+  | { kind: "discovery_regions_record" }
   | { kind: "not_found" };
 
 /** collector_sources_for_regions' and source_candidates_due's largest region list (migration 46). */
 export const SOURCES_REGIONS_MAX = 100;
 /** source_candidates_record's and source_candidates_add's largest list (migration 46). */
 export const DISCOVERY_MAX = 500;
+
+/** The discovery probe's code hash (migration 47): 16 to 64 lower-case hex. */
+const PROBE_HASH = /^[0-9a-f]{16,64}$/;
+/** source_discovery_probe_queue's largest list and per-region cap (migration 47). */
+export const PROBE_QUEUE_MAX = 2000;
+export const PROBE_PER_REGION_MAX = 500;
 
 /** A comma-separated list of 1 to SOURCES_REGIONS_MAX uuids, lower-cased and deduplicated. */
 function regionList(raw: string | null): string[] | null {
@@ -116,6 +133,37 @@ export function matchRoute(method: string, url: string): Route {
     return { kind: "candidates", limit, regions };
   }
   if (method === "POST" && path === "/candidates") return { kind: "candidates_add" };
+  // The discovery probe and its Atlanta gate (D-042 slice 8, migration 47).
+  if (method === "GET" && path === "/discovery/gate") {
+    const hash = (u.searchParams.get("hash") ?? "").toLowerCase();
+    return PROBE_HASH.test(hash) ? { kind: "gate_status", hash } : { kind: "not_found" };
+  }
+  if (method === "POST" && path === "/discovery/gate") return { kind: "gate_record" };
+  if (method === "GET" && path === "/discovery/queue") {
+    const hash = (u.searchParams.get("hash") ?? "").toLowerCase();
+    if (!PROBE_HASH.test(hash)) return { kind: "not_found" };
+    const raw = u.searchParams.get("regions");
+    const regions = regionList(raw);
+    if (raw !== null && raw !== "" && !regions) return { kind: "not_found" };
+    const per = Number(u.searchParams.get("per_region") ?? "150");
+    const lim = Number(u.searchParams.get("limit") ?? "500");
+    return {
+      kind: "probe_queue",
+      hash,
+      regions,
+      perRegion: Number.isInteger(per) ? Math.min(PROBE_PER_REGION_MAX, Math.max(1, per)) : 150,
+      limit: Number.isInteger(lim) ? Math.min(PROBE_QUEUE_MAX, Math.max(1, lim)) : 500,
+    };
+  }
+  if (method === "GET" && path === "/discovery/regions") {
+    const lim = Number(u.searchParams.get("limit") ?? "10");
+    return {
+      kind: "discovery_regions",
+      limit: Number.isInteger(lim) ? Math.min(REGIONS_MAX, Math.max(1, lim)) : 10,
+    };
+  }
+  if (method === "POST" && path === "/discovery/regions/record")
+    return { kind: "discovery_regions_record" };
   const rows = /^\/tiles\/([0-9]{1,6})\/rows$/.exec(path);
   if (method === "GET" && rows) {
     const tileId = Number(rows[1]);
@@ -508,6 +556,71 @@ export function parseCandidatesBody(
   return { ok: true, args: { p_candidates: list as Record<string, unknown>[] } };
 }
 
+/**
+ * Body of POST /collector/discovery/gate: {run_id, probe_hash, region, expected, required, found,
+ * found_sites?, counts?}. source_discovery_gate_record checks it again and decides "passed" itself.
+ */
+export function parseGateBody(body: unknown): Parsed<{ p_gate: Record<string, unknown> }> {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return { ok: false, error: "invalid_body" };
+  }
+  const b = body as Record<string, unknown>;
+  if (typeof b.run_id !== "string" || !RUN_ID.test(b.run_id))
+    return { ok: false, error: "invalid_run_id" };
+  if (typeof b.probe_hash !== "string" || !PROBE_HASH.test(b.probe_hash))
+    return { ok: false, error: "invalid_gate" };
+  if (typeof b.region !== "string" || !/^[a-z0-9-]{2,40}$/.test(b.region))
+    return { ok: false, error: "invalid_gate" };
+  for (const k of ["expected", "required", "found"] as const) {
+    if (!Number.isInteger(b[k]) || (b[k] as number) < 0 || (b[k] as number) > 100)
+      return { ok: false, error: "invalid_gate" };
+  }
+  const sites = b.found_sites ?? [];
+  if (
+    !Array.isArray(sites) ||
+    sites.length > 100 ||
+    sites.some((h) => typeof h !== "string" || h.length > 253)
+  )
+    return { ok: false, error: "invalid_gate" };
+  const counts = b.counts ?? {};
+  if (typeof counts !== "object" || counts === null || Array.isArray(counts))
+    return { ok: false, error: "invalid_gate" };
+  for (const [k, v] of Object.entries(counts as Record<string, unknown>)) {
+    if (!/^[a-z0-9_]{1,40}$/.test(k) || !Number.isInteger(v) || (v as number) < 0)
+      return { ok: false, error: "invalid_gate" };
+  }
+  return {
+    ok: true,
+    args: {
+      p_gate: {
+        run_id: b.run_id,
+        probe_hash: b.probe_hash,
+        region: b.region,
+        expected: b.expected,
+        required: b.required,
+        found: b.found,
+        found_sites: sites,
+        counts,
+      },
+    },
+  };
+}
+
+/** Body of POST /collector/discovery/regions/record: {regions: ["<uuid>", ...]} (at most 100). */
+export function parseDiscoveryRegionsBody(body: unknown): Parsed<{ p_ids: string[] }> {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return { ok: false, error: "invalid_body" };
+  }
+  const list = (body as Record<string, unknown>).regions;
+  if (
+    !Array.isArray(list) ||
+    list.length > REGIONS_MAX ||
+    list.some((id) => typeof id !== "string" || !UUID.test(id))
+  )
+    return { ok: false, error: "invalid_regions" };
+  return { ok: true, args: { p_ids: (list as string[]).map((id) => id.toLowerCase()) } };
+}
+
 /** The database error names the RPCs raise, mapped to HTTP statuses for the job. */
 const RPC_ERRORS: Record<string, number> = {
   tile_unknown: 404,
@@ -535,6 +648,8 @@ const RPC_ERRORS: Record<string, number> = {
   regions_invalid: 400,
   results_invalid: 400,
   candidates_invalid: 400,
+  gate_invalid: 400,
+  discovery_gate_closed: 409,
 };
 
 /** Picks a known error name out of a PostgREST error body; anything else is a 502. */

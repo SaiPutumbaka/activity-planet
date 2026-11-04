@@ -34,6 +34,18 @@
 //   GET  /collector/candidates?limit=150&regions=<ids>    -> source_candidates_due() (to probe)
 //   POST /collector/candidates {candidates: [{url, origin, ...}]}
 //                                                         -> source_candidates_add()
+//   GET  /collector/discovery/gate?hash=<probe hash>      -> source_discovery_gate_status() (the
+//                                                            Atlanta gate; D-042 slice 8,
+//                                                            migration 47)
+//   POST /collector/discovery/gate {run_id, probe_hash, region, expected, required, found, ...}
+//                                                         -> source_discovery_gate_record()
+//   GET  /collector/discovery/queue?hash=&regions=&per_region=150&limit=500
+//                                                         -> source_discovery_probe_queue() (409
+//                                                            discovery_gate_closed until the gate
+//                                                            passed for that probe code)
+//   GET  /collector/discovery/regions?limit=10            -> source_discovery_regions_due()
+//   POST /collector/discovery/regions/record {regions: [<uuid>, ...]}
+//                                                         -> source_discovery_regions_record()
 //
 // The caller (a GitHub Actions job) sends the header x-collector-secret. The secret is generated
 // inside the database (vault secret collector_secret, migration 28) and checked here through
@@ -54,6 +66,8 @@ import {
   parseFilesRecordBody,
   parseIngestBody,
   parseCandidatesBody,
+  parseDiscoveryRegionsBody,
+  parseGateBody,
   parseRegionsRecordBody,
   parseSourcesRecordBody,
   rpcError,
@@ -177,6 +191,24 @@ Deno.serve(async (req: Request): Promise<Response> => {
       return json({ candidates });
     }
 
+    // The discovery probe (D-042 slice 8): gate status, the probe queue and regions to build.
+    if (route.kind === "gate_status") {
+      return json(await rpc("source_discovery_gate_status", { p_probe_hash: route.hash }));
+    }
+    if (route.kind === "probe_queue") {
+      const candidates = await rpc("source_discovery_probe_queue", {
+        p_probe_hash: route.hash,
+        p_regions: route.regions,
+        p_per_region: route.perRegion,
+        p_limit: route.limit,
+      });
+      return json({ candidates });
+    }
+    if (route.kind === "discovery_regions") {
+      const regions = await rpc("source_discovery_regions_due", { p_limit: route.limit });
+      return json({ regions });
+    }
+
     let body: unknown;
     try {
       body = await readJson(req);
@@ -251,6 +283,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!parsed.ok) return json({ error: parsed.error }, 400);
       const result = await rpc("source_candidates_add", { ...parsed.args });
       console.log("collector candidates", JSON.stringify(result));
+      return json(result);
+    }
+
+    if (route.kind === "gate_record") {
+      const parsed = parseGateBody(body);
+      if (!parsed.ok) return json({ error: parsed.error }, 400);
+      const result = await rpc("source_discovery_gate_record", { ...parsed.args });
+      console.log("collector gate", parsed.args.p_gate.run_id, JSON.stringify(result));
+      return json(result);
+    }
+
+    if (route.kind === "discovery_regions_record") {
+      const parsed = parseDiscoveryRegionsBody(body);
+      if (!parsed.ok) return json({ error: parsed.error }, 400);
+      const result = await rpc("source_discovery_regions_record", { ...parsed.args });
+      console.log("collector discovery regions", JSON.stringify(result));
       return json(result);
     }
 
