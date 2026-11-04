@@ -51,6 +51,14 @@ export interface CollectOptions {
   /** Seeds processed at once; per-host spacing still applies (default 4). */
   concurrency?: number;
   adapters?: ApiAdapter[];
+  /**
+   * Requests each API adapter may send this run, by adapter id: the calls the nightly job took
+   * from the day's budget (collector_api_budget_take, D-042 slice 10). Regions are served in
+   * order while calls are left; a region that gets none is not run (no batch, so nothing of it
+   * counts as missed), and one cut off mid-way is a partial read. An adapter missing from the
+   * map gets no calls. Unset: no budget (local runs), only each adapter's paging cap.
+   */
+  apiCalls?: Record<string, number>;
   log?: (line: string) => void;
   /**
    * --diagnose: called once per request (and per URL the precheck refused) with request
@@ -122,6 +130,11 @@ export interface CollectResult {
     requestsByHost: Record<string, number>;
     /** Discovered links never followed (Google Calendar pages, action pages), by reason. */
     linksSkipped: Record<string, number>;
+    /**
+     * Per API adapter that ran: requests sent and regions it read or left out for want of
+     * budget. Empty when no key is set.
+     */
+    api: Record<string, { calls: number; regions: number; skipped: number }>;
   };
 }
 
@@ -594,11 +607,44 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
       });
     }
   }
+  const apiLeft = new Map<string, number>();
+  const apiStats: CollectResult["stats"]["api"] = {};
+  for (const { adapter } of apiRuns) {
+    apiStats[adapter.id] ??= { calls: 0, regions: 0, skipped: 0 };
+    if (opts.apiCalls) apiLeft.set(adapter.id, Math.max(0, opts.apiCalls[adapter.id] ?? 0));
+  }
+  /** Takes one call from the adapter's budget; false when none is left. */
+  const takeCall = (id: string): boolean => {
+    const left = apiLeft.get(id);
+    if (left === undefined) return true;
+    if (left < 1) return false;
+    apiLeft.set(id, left - 1);
+    return true;
+  };
+  const apiSkipped = new Set<string>();
   const runApi = async ({ run, adapter, key, region }: (typeof apiRuns)[number]) => {
+    const stats = apiStats[adapter.id]!;
+    if (!takeCall(adapter.id)) {
+      apiSkipped.add(run.key);
+      stats.skipped++;
+      return;
+    }
+    stats.regions++;
     let url: string | null = adapter.firstUrl(region, { start: windowStart, end: windowEnd }, key);
     let first = true;
     while (url) {
       const current: string = url;
+      if (!first && !takeCall(adapter.id)) {
+        // The day's calls ran out mid-way: what was read stands, the rest is a gap.
+        errors.push({
+          sourceKey: run.key,
+          url: redactUrl(current),
+          reason: "api_budget_spent",
+          gap: true,
+        });
+        return;
+      }
+      stats.calls++;
       const res = await fetcher.get(current, { api: true, accept: "application/json" });
       if (!res.ok) return fail(run.key, res, current, true, first);
       first = false;
@@ -607,6 +653,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
         const page = adapter.parse(res.body, current);
         for (const raw of page.events) run.raws.push({ raw, idPrefix: "", fallbackUrl: null });
         diag(run.key, current, res, `api events=${page.events.length}`, true);
+        if (page.truncated) run.sampled = true;
         url = page.next;
       } catch {
         errors.push({ sourceKey: run.key, url: redactUrl(current), reason: "bad_json", gap: true });
@@ -629,7 +676,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
   ]);
 
   // Normalize, then region and window filters, then dedupe within each source.
-  const allRuns = [...seedRuns, ...apiRuns.map((a) => a.run)];
+  const allRuns = [...seedRuns, ...apiRuns.map((a) => a.run).filter((r) => !apiSkipped.has(r.key))];
   const skipped = new Map<string, Record<string, number>>();
   const bump = (key: string, reason: string) => {
     const s = skipped.get(key) ?? {};
@@ -743,6 +790,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
       skipped: totalSkipped,
       requestsByHost: Object.fromEntries(fetcher.requests),
       linksSkipped,
+      api: apiStats,
     },
   };
 }

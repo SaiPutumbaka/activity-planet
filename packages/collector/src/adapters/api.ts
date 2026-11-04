@@ -22,6 +22,11 @@ export interface ApiPage {
   events: RawEvent[];
   /** The next page's URL, or null when this was the last (or the paging cap is reached). */
   next: string | null;
+  /**
+   * More pages exist than the paging cap reads: the set is a sample, so an event missing from it
+   * may still be listed and must not count as missed (D-042 slice 10).
+   */
+  truncated?: boolean;
 }
 
 export interface ApiAdapter {
@@ -30,8 +35,31 @@ export interface ApiAdapter {
   attribution: string;
   /** Environment variable holding the key; the adapter is off when it is unset or empty. */
   envKey: string;
+  /** Most pages one region's query reads (the region's share of the daily call budget). */
+  maxPages: number;
   firstUrl(region: Region, window: ApiWindow, key: string): string;
   parse(body: string, requestUrl: string): ApiPage;
+}
+
+/**
+ * "From €25": the lowest price in the currency the API gives (Ticketmaster prices outside the US
+ * are not in dollars). A missing or malformed code is read as US dollars, both APIs' default.
+ */
+export function fromPrice(min: number | null, currency?: string | null): string | null {
+  if (min === null || !Number.isFinite(min) || min < 0) return null;
+  const code = currency && /^[A-Za-z]{3}$/.test(currency) ? currency.toUpperCase() : "USD";
+  try {
+    const f = new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: code,
+      currencyDisplay: "narrowSymbol",
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    });
+    return `From ${f.format(Math.round(min))}`;
+  } catch {
+    return `From $${Math.round(min)}`;
+  }
 }
 
 /** "2026-11-04T05:00:00Z": Ticketmaster rejects fractional seconds. */
@@ -48,6 +76,7 @@ export const ticketmaster: ApiAdapter = {
   name: "Ticketmaster",
   attribution: "Event data from the Ticketmaster Discovery API (ticketmaster.com).",
   envKey: "TICKETMASTER_API_KEY",
+  maxPages: TM_MAX_PAGES,
   firstUrl(region, window, key) {
     const u = new URL("https://app.ticketmaster.com/discovery/v2/events.json");
     u.searchParams.set("apikey", key);
@@ -59,6 +88,10 @@ export const ticketmaster: ApiAdapter = {
     u.searchParams.set("size", String(TM_PAGE_SIZE));
     u.searchParams.set("page", "0");
     u.searchParams.set("sort", "date,asc");
+    // Every locale: the default ("en") leaves out events listed only in the local language
+    // (a German venue's "de" listings). No countryCode: geoPoint and radius work worldwide, and a
+    // country filter would drop the other side of a border inside the radius.
+    u.searchParams.set("locale", "*");
     return u.toString();
   },
   parse(body, requestUrl) {
@@ -76,7 +109,8 @@ export const ticketmaster: ApiAdapter = {
         (str(start.localDate) && str(start.localTime)
           ? `${str(start.localDate)}T${str(start.localTime)}`
           : str(start.localDate));
-      if (!startValue || start.dateTBD === true) continue;
+      // test: Ticketmaster's own test listings, never real events.
+      if (!startValue || start.dateTBD === true || e.test === true) continue;
       const status = str(obj(dates.status).code)?.toLowerCase() ?? "";
       const price = obj(arr(e.priceRanges)[0]);
       const min = num(price.min);
@@ -102,7 +136,7 @@ export const ticketmaster: ApiAdapter = {
         cancelled: status === "cancelled" || status === "canceled",
         postponed: status === "postponed",
         isFree: null,
-        priceText: min !== null ? `From $${Math.round(min)}` : null,
+        priceText: fromPrice(min, str(price.currency)),
         categories,
         host: null,
         imageUrl: null,
@@ -118,7 +152,7 @@ export const ticketmaster: ApiAdapter = {
       u.searchParams.set("page", String(number + 1));
       next = u.toString();
     }
-    return { events, next };
+    return { events, next, truncated: next === null && number + 1 < total };
   },
 };
 
@@ -130,6 +164,7 @@ export const seatgeek: ApiAdapter = {
   name: "SeatGeek",
   attribution: "Event data from the SeatGeek Platform API (seatgeek.com).",
   envKey: "SEATGEEK_CLIENT_ID",
+  maxPages: SG_MAX_PAGES,
   firstUrl(region, window, key) {
     const u = new URL("https://api.seatgeek.com/2/events");
     u.searchParams.set("client_id", key);
@@ -171,7 +206,7 @@ export const seatgeek: ApiAdapter = {
         cancelled: status === "cancelled" || status === "canceled",
         postponed: status === "postponed",
         isFree: null,
-        priceText: lowest !== null ? `From $${Math.round(lowest)}` : null,
+        priceText: fromPrice(lowest, "USD"),
         categories: arr(e.taxonomies)
           .map((t) => str(obj(t).name))
           .filter((t): t is string => Boolean(t))
@@ -191,7 +226,7 @@ export const seatgeek: ApiAdapter = {
       u.searchParams.set("page", String(page + 1));
       next = u.toString();
     }
-    return { events, next };
+    return { events, next, truncated: next === null && page * per < total };
   },
 };
 
@@ -226,4 +261,29 @@ export function redactUrl(url: string): string {
   } catch {
     return "(bad url)";
   }
+}
+
+/** The API endpoints' hosts: their requests are limited by the day's call budget instead. */
+export const API_HOSTS: ReadonlySet<string> = new Set(["app.ticketmaster.com", "api.seatgeek.com"]);
+
+/**
+ * Calls to ask the day's budget for: every region's full paging (regions x maxPages), at most
+ * 1000 (collector_api_budget_take's largest request, D-042 slice 10).
+ */
+export function callsWanted(adapter: Pick<ApiAdapter, "maxPages">, regions: number): number {
+  return Math.min(1000, Math.max(0, regions) * adapter.maxPages);
+}
+
+/**
+ * The calls file `regions budget take` writes: {day, calls: {<adapter id>: n}}. Anything that is
+ * not a whole number from 0 to 1000 counts as 0, so a bad file sends no API request.
+ */
+export function readApiBudget(file: unknown): Record<string, number> {
+  const calls = obj(obj(file).calls);
+  const out: Record<string, number> = {};
+  for (const a of API_ADAPTERS) {
+    const n = calls[a.id];
+    out[a.id] = typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= 1000 ? n : 0;
+  }
+  return out;
 }

@@ -15,9 +15,25 @@
 //       zone looked up for it, stamped on the row (collector_regions_record). With --sources, each
 //       discovered source's result (items inside its region, outcome) goes to the lifecycle
 //       (POST /collector/sources/record): one good UTC day is probation, two enable it.
+//
+//   pnpm --filter collector regions budget take --to <base> --out api-budget.json
+//     (--regions regions.json | --region-count N)
+//       The lane 1 API calls this run may send (D-042 slice 10): for each adapter whose key is
+//       set (TICKETMASTER_API_KEY, SEATGEEK_CLIENT_ID), regions x pages from the day's budget.
+//       Without any key nothing is requested and every adapter gets 0.
+//
+//   pnpm --filter collector regions budget settle --to <base> --budget api-budget.json \
+//     --summary collected.json
+//       After the run: the calls granted but not sent go back to that day's budget.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
+import {
+  apiRegionCount,
+  type ApiBudgetFile,
+  settleApiBudget,
+  takeApiBudget,
+} from "./api-budget.ts";
 import type { CollectResult } from "./collect.ts";
 import { loadCities } from "./config.ts";
 import {
@@ -39,7 +55,8 @@ interface RegionsFile {
 }
 
 async function main(argv: string[]): Promise<number> {
-  const [command, ...rest] = argv;
+  const [command, sub, ...afterSub] = argv;
+  const rest = command === "budget" ? afterSub : argv.slice(1);
   const { values } = parseArgs({
     args: rest,
     options: {
@@ -53,6 +70,9 @@ async function main(argv: string[]): Promise<number> {
       batches: { type: "string" },
       sources: { type: "string" },
       "run-id": { type: "string" },
+      "region-count": { type: "string" },
+      budget: { type: "string" },
+      summary: { type: "string" },
     },
     allowPositionals: false,
   });
@@ -140,7 +160,54 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
 
-  console.error("usage: regions fetch|record ... (see src/regions-cli.ts)");
+  if (command === "budget" && sub === "take") {
+    if (!values.to || !values.out) throw new Error("budget take needs --to and --out");
+    let count: number;
+    if (values.regions) {
+      count = apiRegionCount(
+        (JSON.parse(readFileSync(values.regions, "utf8")) as RegionsFile).regions,
+      );
+    } else {
+      count = Number(values["region-count"] ?? "");
+      if (!Number.isInteger(count) || count < 0 || count > 100)
+        throw new Error("budget take needs --regions or --region-count 0..100");
+    }
+    const file = await takeApiBudget(
+      { baseUrl: values.to.replace(/\/+$/, ""), secret },
+      process.env as Record<string, string | undefined>,
+      count,
+    );
+    writeFileSync(values.out, JSON.stringify(file));
+    console.log(
+      `[api] regions=${count} on=${file.on.length ? file.on.join(",") : "none (no key set; lane 1 skipped)"} granted=${JSON.stringify(file.calls)}`,
+    );
+    return 0;
+  }
+
+  if (command === "budget" && sub === "settle") {
+    if (!values.to || !values.budget) throw new Error("budget settle needs --to and --budget");
+    const file = JSON.parse(readFileSync(values.budget, "utf8")) as ApiBudgetFile;
+    const used = values.summary
+      ? ((
+          JSON.parse(readFileSync(values.summary, "utf8")) as {
+            api?: Record<string, { calls: number }>;
+          }
+        ).api ?? {})
+      : {};
+    const back = await settleApiBudget(
+      { baseUrl: values.to.replace(/\/+$/, ""), secret },
+      file,
+      used,
+    );
+    console.log(
+      `[api] used=${JSON.stringify(Object.fromEntries(Object.entries(used).map(([k, v]) => [k, v.calls])))} returned=${JSON.stringify(back)}`,
+    );
+    return 0;
+  }
+
+  console.error(
+    "usage: regions fetch|record|budget take|budget settle ... (see src/regions-cli.ts)",
+  );
   return 2;
 }
 

@@ -30,6 +30,9 @@
 //                         redirects included (default 60); later ones are not sent
 //   --max-run-minutes <n> no request starts after this many minutes (default 9), so the
 //                         run ends in time however slow its hosts are
+//   --api-budget <path>   the API calls this run may send per adapter, as `regions budget take`
+//                         writes them ({"calls": {"ticketmaster": 100}}); an adapter not in it
+//                         sends none. Without it only each adapter's paging cap applies.
 //   --cache <path>        conditional-GET cache file (default .cache/http.json)
 //   --no-cache            do not read or write the cache
 //   --list                print the seeds that would run and exit, with no network
@@ -43,7 +46,7 @@
 
 import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
-import { API_ADAPTERS, enabledAdapters } from "./adapters/api.ts";
+import { API_ADAPTERS, API_HOSTS, enabledAdapters, readApiBudget } from "./adapters/api.ts";
 import { collect, type CollectResult, errorKey } from "./collect.ts";
 import { citiesFor, loadCities, loadRegions } from "./config.ts";
 import { formatDiagnostic } from "./diagnose.ts";
@@ -80,6 +83,7 @@ async function main(argv: string[]): Promise<number> {
       "slow-host-minutes": { type: "string" },
       "max-requests-per-host": { type: "string" },
       "max-run-minutes": { type: "string" },
+      "api-budget": { type: "string" },
       cache: { type: "string" },
       "no-cache": { type: "boolean", default: false },
       list: { type: "boolean", default: false },
@@ -171,12 +175,17 @@ async function main(argv: string[]): Promise<number> {
   const cache = values["no-cache"]
     ? new MemoryHttpCache()
     : new FileHttpCache(values.cache ?? DEFAULT_CACHE);
+  const apiCalls = values["api-budget"]
+    ? readApiBudget(JSON.parse(readFileSync(values["api-budget"], "utf8")))
+    : undefined;
   const started = Date.now();
   const fetcher = new PoliteFetcher({
     denylist: Denylist.load(),
     cache,
     slowHostBudgetMs: slowMinutes * 60_000,
     maxRequestsPerHost: perHost,
+    // The API endpoints are limited by the day's call budget, not the per-site cap.
+    maxRequestsFor: (host) => (API_HOSTS.has(host) ? 1000 : undefined),
     deadlineAt: started + runMinutes * 60_000,
   });
   const http = values.ingest
@@ -205,6 +214,7 @@ async function main(argv: string[]): Promise<number> {
       env,
       windowDays,
       maxPagesPerSeed: maxPages,
+      apiCalls,
       log: (l) => console.error(l),
       diagnose: values.diagnose ? (e) => console.error(formatDiagnostic(e)) : undefined,
     });
@@ -239,6 +249,7 @@ async function main(argv: string[]): Promise<number> {
     skipped: result.stats.skipped,
     errors: errorsByReason,
     linksSkipped: result.stats.linksSkipped,
+    api: result.stats.api ?? {},
     requests: Object.values(result.stats.requestsByHost).reduce((a, b) => a + b, 0),
     hosts: Object.keys(result.stats.requestsByHost).length,
     seconds: Math.round((Date.now() - started) / 1000),
@@ -265,7 +276,7 @@ async function main(argv: string[]): Promise<number> {
   if (values.json) console.log(JSON.stringify(summary));
   else
     console.log(
-      `[${http ? "ingest" : "dry-run"}] total sources=${summary.sources} fetched=${summary.fetched} raw=${summary.raw} items=${summary.items} requests=${summary.requests} hosts=${summary.hosts} seconds=${summary.seconds} errors=${JSON.stringify(errorsByReason)}`,
+      `[${http ? "ingest" : "dry-run"}] total sources=${summary.sources} fetched=${summary.fetched} raw=${summary.raw} items=${summary.items} requests=${summary.requests} hosts=${summary.hosts} seconds=${summary.seconds} api=${JSON.stringify(summary.api)} errors=${JSON.stringify(errorsByReason)}`,
     );
   if (http && http.results.some((r) => r.error)) {
     console.error(`${http.results.filter((r) => r.error).length} source(s) failed to post`);
