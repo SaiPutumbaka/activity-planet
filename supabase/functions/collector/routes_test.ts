@@ -1,6 +1,13 @@
 // deno test supabase/functions/collector
 import { assertEquals } from "jsr:@std/assert@1.0.19";
-import { matchRoute, parseDoneBody, parseDumpBody, parseIngestBody, rpcError } from "./routes.ts";
+import {
+  matchRoute,
+  parseDoneBody,
+  parseDumpBody,
+  parseEventsBody,
+  parseIngestBody,
+  rpcError,
+} from "./routes.ts";
 
 const base = "https://example.supabase.co/functions/v1/collector";
 
@@ -205,5 +212,51 @@ Deno.test("dump body: checked before the database sees it", () => {
   assertEquals(rpcError(JSON.stringify({ message: "sha256_invalid" })), {
     error: "sha256_invalid",
     status: 400,
+  });
+});
+
+Deno.test("events body: POST /ingest/events, shape checked before the database sees it", () => {
+  assertEquals(matchRoute("POST", `${base}/ingest/events`), { kind: "events" });
+  assertEquals(matchRoute("GET", `${base}/ingest/events`), { kind: "not_found" });
+  const source = { slug: "atl-botanical-garden", kind: "jsonld" };
+  assertEquals(
+    parseEventsBody({ run_id: "gh-9-1", source, items: [{ external_id: "a" }], complete: true }),
+    {
+      ok: true,
+      runId: "gh-9-1",
+      args: {
+        p_source: source,
+        p_items: [{ external_id: "a" }],
+        p_complete: true,
+        p_enable: false,
+      },
+    },
+  );
+  assertEquals(
+    parseEventsBody({ run_id: "r", source, items: [], complete: false, enable: true }).ok,
+    true,
+  );
+  assertEquals(
+    parseEventsBody({ run_id: "r", source: { slug: "Bad Slug" }, items: [], complete: true }),
+    {
+      ok: false,
+      error: "invalid_source",
+    },
+  );
+  assertEquals(parseEventsBody({ run_id: "r", source, items: {}, complete: true }), {
+    ok: false,
+    error: "invalid_items",
+  });
+  assertEquals(parseEventsBody({ run_id: "r", source, items: [] }), {
+    ok: false,
+    error: "invalid_complete",
+  });
+  assertEquals(
+    parseEventsBody({ run_id: "r", source, items: new Array(2001).fill({}), complete: true }),
+    { ok: false, error: "batch_too_large" },
+  );
+  assertEquals(rpcError(JSON.stringify({ message: "source_not_collector" })), {
+    error: "source_not_collector",
+    status: 409,
   });
 });

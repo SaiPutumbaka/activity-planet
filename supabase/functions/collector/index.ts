@@ -4,6 +4,10 @@
 //   GET  /collector/tiles?status=wanted,refresh&limit=20  -> place_tiles_queue()
 //   POST /collector/ingest/places {tile_id, run_id, source?, batch_no?, rows}
 //                                                         -> ingest_places() (<= 2,000 rows)
+//   POST /collector/ingest/events {run_id, source, items, complete, enable}
+//                                                         -> collector_ingest_events() (one event
+//                                                            source's complete item set, <= 2,000;
+//                                                            D-040 event collector, migration 37)
 //   POST /collector/tiles/{id}/done {run_id, count, source?}
 //                                                         -> finish_place_tile()
 //   GET  /collector/places/export?after=<cursor>&limit=5000
@@ -27,6 +31,7 @@ import {
   MAX_BODY_BYTES,
   parseDoneBody,
   parseDumpBody,
+  parseEventsBody,
   parseIngestBody,
   rpcError,
 } from "./routes.ts";
@@ -126,6 +131,24 @@ Deno.serve(async (req: Request): Promise<Response> => {
         JSON.stringify(result),
       );
       return json(result);
+    }
+
+    if (route.kind === "events") {
+      const parsed = parseEventsBody(body);
+      if (!parsed.ok)
+        return json({ error: parsed.error }, parsed.error === "batch_too_large" ? 413 : 400);
+      const result = await rpc("collector_ingest_events", { ...parsed.args });
+      // Counts only: first_error can quote an item, so it stays in the database (feed_sources).
+      const counts = { ...(result as Record<string, unknown>) };
+      delete counts.first_error;
+      console.log(
+        "collector events",
+        parsed.args.p_source.slug,
+        parsed.runId,
+        parsed.args.p_items.length,
+        JSON.stringify(counts),
+      );
+      return json(counts);
     }
 
     if (route.kind === "dump") {

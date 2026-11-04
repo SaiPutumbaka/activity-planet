@@ -2,6 +2,8 @@
 // so they run under `deno test` without network or secrets.
 
 export const MAX_BATCH_ROWS = 2000;
+/** collector_ingest_events' largest item set (migration 37). */
+export const MAX_EVENT_ITEMS = 2000;
 export const MAX_BODY_BYTES = 6 * 1024 * 1024;
 
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/;
@@ -14,6 +16,7 @@ export type PlaceSource = (typeof SOURCES)[number];
 export type Route =
   | { kind: "tiles"; statuses: string[]; limit: number }
   | { kind: "ingest" }
+  | { kind: "events" }
   | { kind: "done"; tileId: number }
   | { kind: "export"; after: string | null; limit: number }
   | { kind: "dump" }
@@ -34,6 +37,7 @@ export function matchRoute(method: string, url: string): Route {
     return { kind: "tiles", statuses: statuses.length ? statuses : ["wanted", "refresh"], limit };
   }
   if (method === "POST" && path === "/ingest/places") return { kind: "ingest" };
+  if (method === "POST" && path === "/ingest/events") return { kind: "events" };
   if (method === "GET" && path === "/places/export") {
     const afterRaw = u.searchParams.get("after");
     if (afterRaw !== null && afterRaw !== "" && !UUID.test(afterRaw)) return { kind: "not_found" };
@@ -139,6 +143,50 @@ export function parseDoneBody(tileId: number, body: unknown): Parsed<DoneArgs> {
   return { ok: true, args };
 }
 
+export interface EventsArgs {
+  p_source: Record<string, unknown>;
+  p_items: unknown[];
+  p_complete: boolean;
+  p_enable: boolean;
+}
+
+const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/**
+ * Body of POST /collector/ingest/events: {run_id, source: {slug, kind, url, name, attribution,
+ * lane, enabled, hubs?, homepage_url?, region?}, items: [...], complete, enable}. The shape is
+ * checked here; collector_ingest_events validates every field again.
+ */
+export function parseEventsBody(body: unknown): Parsed<EventsArgs> & { runId?: string } {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return { ok: false, error: "invalid_body" };
+  }
+  const b = body as Record<string, unknown>;
+  if (typeof b.run_id !== "string" || !RUN_ID.test(b.run_id))
+    return { ok: false, error: "invalid_run_id" };
+  const src = b.source;
+  if (typeof src !== "object" || src === null || Array.isArray(src))
+    return { ok: false, error: "invalid_source" };
+  const slug = (src as Record<string, unknown>).slug;
+  if (typeof slug !== "string" || slug.length < 3 || slug.length > 60 || !SLUG.test(slug))
+    return { ok: false, error: "invalid_source" };
+  if (!Array.isArray(b.items)) return { ok: false, error: "invalid_items" };
+  if (b.items.length > MAX_EVENT_ITEMS) return { ok: false, error: "batch_too_large" };
+  if (typeof b.complete !== "boolean") return { ok: false, error: "invalid_complete" };
+  if (b.enable !== undefined && typeof b.enable !== "boolean")
+    return { ok: false, error: "invalid_enable" };
+  return {
+    ok: true,
+    runId: b.run_id,
+    args: {
+      p_source: src as Record<string, unknown>,
+      p_items: b.items,
+      p_complete: b.complete,
+      p_enable: b.enable === true,
+    },
+  };
+}
+
 export interface DumpArgs {
   p_month: string;
   p_rows: number;
@@ -203,6 +251,8 @@ const RPC_ERRORS: Record<string, number> = {
   row_count_drop: 409,
   batch_too_large: 413,
   source_invalid: 400,
+  source_not_collector: 409,
+  items_invalid: 400,
   run_id_invalid: 400,
   batch_invalid: 400,
   batch_no_invalid: 400,
