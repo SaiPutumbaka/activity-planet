@@ -7,6 +7,7 @@ import {
   parseEventsBody,
   parseFilesRecordBody,
   parseIngestBody,
+  parseRegionsRecordBody,
   rpcError,
 } from "./routes.ts";
 
@@ -327,4 +328,68 @@ Deno.test("parseFilesRecordBody", () => {
     error: "invalid_rules",
   });
   assertEquals(parseFilesRecordBody([]), { ok: false, error: "invalid_body" });
+});
+
+Deno.test("regions routes: due list and record (migration 45)", () => {
+  assertEquals(matchRoute("GET", `${base}/regions`), { kind: "regions", limit: 20, all: false });
+  assertEquals(matchRoute("GET", `${base}/regions?due=1&limit=500`), {
+    kind: "regions",
+    limit: 100,
+    all: false,
+  });
+  assertEquals(matchRoute("GET", `${base}/regions?due=0&limit=0`), {
+    kind: "regions",
+    limit: 1,
+    all: true,
+  });
+  assertEquals(matchRoute("POST", `${base}/regions/record`), { kind: "regions_record" });
+  assertEquals(matchRoute("POST", `${base}/regions`), { kind: "not_found" });
+  assertEquals(matchRoute("GET", `${base}/regions/record`), { kind: "not_found" });
+});
+
+Deno.test("regions record body: ids, counts and an optional zone name", () => {
+  const id = "0B1C2D3E-4F50-4a6b-8c7d-9e0f1a2b3c4d";
+  const ok = parseRegionsRecordBody({
+    run_id: "gh-1-1",
+    regions: [
+      { id, sources: 2, items: 40, timezone: "America/New_York" },
+      { id, sources: 0, items: 0 },
+    ],
+  });
+  assertEquals(ok, {
+    ok: true,
+    runId: "gh-1-1",
+    args: {
+      p_regions: [
+        { id: id.toLowerCase(), sources: 2, items: 40, timezone: "America/New_York" },
+        { id: id.toLowerCase(), sources: 0, items: 0 },
+      ],
+    },
+  });
+  assertEquals(parseRegionsRecordBody({ run_id: "x", regions: [] }).ok, true);
+  assertEquals(parseRegionsRecordBody([]), { ok: false, error: "invalid_body" });
+  assertEquals(parseRegionsRecordBody({ regions: [] }), { ok: false, error: "invalid_run_id" });
+  for (const bad of [
+    { id: "nope", sources: 0, items: 0 },
+    { id, sources: -1, items: 0 },
+    { id, sources: 1.5, items: 0 },
+    { id, sources: 0 },
+    { id, sources: 0, items: 0, timezone: "Europe/Berlin; drop" },
+    { id, sources: 0, items: 0, timezone: 7 },
+    "x",
+  ]) {
+    assertEquals(parseRegionsRecordBody({ run_id: "r", regions: [bad] }), {
+      ok: false,
+      error: "invalid_regions",
+    });
+  }
+  const many = Array.from({ length: 101 }, () => ({ id, sources: 0, items: 0 }));
+  assertEquals(parseRegionsRecordBody({ run_id: "r", regions: many }), {
+    ok: false,
+    error: "invalid_regions",
+  });
+  assertEquals(rpcError(JSON.stringify({ message: "regions_invalid" })), {
+    error: "regions_invalid",
+    status: 400,
+  });
 });

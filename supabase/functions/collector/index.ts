@@ -21,6 +21,11 @@
 //                                                         -> place_tile_file_page()
 //   POST /collector/files/record {published, rules?, tiles?}
 //                                                         -> place_files_record()
+//   GET  /collector/regions?due=1&limit=20                -> collector_regions_due() (collector
+//                                                            regions not collected today; due=0
+//                                                            for all; D-042 slice 6, migration 45)
+//   POST /collector/regions/record {run_id, regions: [{id, sources, items, timezone?}]}
+//                                                         -> collector_regions_record()
 //
 // The caller (a GitHub Actions job) sends the header x-collector-secret. The secret is generated
 // inside the database (vault secret collector_secret, migration 28) and checked here through
@@ -40,6 +45,7 @@ import {
   parseEventsBody,
   parseFilesRecordBody,
   parseIngestBody,
+  parseRegionsRecordBody,
   rpcError,
 } from "./routes.ts";
 
@@ -139,6 +145,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    // Region points (0.1 degree) and radii for the nightly event run; no home counts, no user ids.
+    if (route.kind === "regions") {
+      const regions = await rpc("collector_regions_due", {
+        p_limit: route.limit,
+        p_all: route.all,
+      });
+      return json({ regions });
+    }
+
     let body: unknown;
     try {
       body = await readJson(req);
@@ -189,6 +204,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
         parsed.args.p_rows,
         parsed.args.p_published,
       );
+      return json(result);
+    }
+
+    if (route.kind === "regions_record") {
+      const parsed = parseRegionsRecordBody(body);
+      if (!parsed.ok) return json({ error: parsed.error }, 400);
+      const result = await rpc("collector_regions_record", { ...parsed.args });
+      console.log("collector regions", parsed.runId, JSON.stringify(result));
       return json(result);
     }
 

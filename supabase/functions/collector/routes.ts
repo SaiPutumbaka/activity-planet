@@ -23,7 +23,12 @@ export type Route =
   | { kind: "files_queue"; limit: number; all: boolean; tiles: number[] | null }
   | { kind: "file_rows"; tileId: number; after: string | null; limit: number }
   | { kind: "files_record" }
+  | { kind: "regions"; limit: number; all: boolean }
+  | { kind: "regions_record" }
   | { kind: "not_found" };
+
+/** collector_regions_due's and collector_regions_record's largest list (migration 45). */
+export const REGIONS_MAX = 100;
 
 /** place_tile_file_page's largest page and place_files_queue's largest list (migration 42). */
 export const FILE_PAGE = 5000;
@@ -72,6 +77,13 @@ export function matchRoute(method: string, url: string): Route {
     return { kind: "files_queue", limit, all: u.searchParams.get("all") === "1", tiles };
   }
   if (method === "POST" && path === "/files/record") return { kind: "files_record" };
+  // Collector regions for the nightly event run (D-042 slice 6, migration 45).
+  if (method === "GET" && path === "/regions") {
+    const limitRaw = Number(u.searchParams.get("limit") ?? "20");
+    const limit = Number.isInteger(limitRaw) ? Math.min(REGIONS_MAX, Math.max(1, limitRaw)) : 20;
+    return { kind: "regions", limit, all: u.searchParams.get("due") === "0" };
+  }
+  if (method === "POST" && path === "/regions/record") return { kind: "regions_record" };
   const rows = /^\/tiles\/([0-9]{1,6})\/rows$/.exec(path);
   if (method === "GET" && rows) {
     const tileId = Number(rows[1]);
@@ -319,6 +331,53 @@ export function parseFilesRecordBody(body: unknown): Parsed<{ p: Record<string, 
   return { ok: true, args: { p } };
 }
 
+export interface RegionsRecordArgs {
+  p_regions: { id: string; sources: number; items: number; timezone?: string }[];
+}
+
+const ZONE = /^[A-Za-z0-9_+/-]{1,64}$/;
+
+/**
+ * Body of POST /collector/regions/record: {run_id, regions: [{id, sources, items, timezone?}]}.
+ * collector_regions_record checks every field again (and the zone against pg_timezone_names).
+ */
+export function parseRegionsRecordBody(
+  body: unknown,
+): Parsed<RegionsRecordArgs> & { runId?: string } {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return { ok: false, error: "invalid_body" };
+  }
+  const b = body as Record<string, unknown>;
+  if (typeof b.run_id !== "string" || !RUN_ID.test(b.run_id))
+    return { ok: false, error: "invalid_run_id" };
+  if (!Array.isArray(b.regions) || b.regions.length > REGIONS_MAX)
+    return { ok: false, error: "invalid_regions" };
+  const out: RegionsRecordArgs["p_regions"] = [];
+  for (const r of b.regions) {
+    if (typeof r !== "object" || r === null || Array.isArray(r))
+      return { ok: false, error: "invalid_regions" };
+    const o = r as Record<string, unknown>;
+    if (typeof o.id !== "string" || !UUID.test(o.id))
+      return { ok: false, error: "invalid_regions" };
+    for (const k of ["sources", "items"] as const) {
+      if (!Number.isInteger(o[k]) || (o[k] as number) < 0 || (o[k] as number) > 999_999)
+        return { ok: false, error: "invalid_regions" };
+    }
+    const entry: RegionsRecordArgs["p_regions"][number] = {
+      id: o.id.toLowerCase(),
+      sources: o.sources as number,
+      items: o.items as number,
+    };
+    if (o.timezone !== undefined && o.timezone !== null) {
+      if (typeof o.timezone !== "string" || !ZONE.test(o.timezone))
+        return { ok: false, error: "invalid_regions" };
+      entry.timezone = o.timezone;
+    }
+    out.push(entry);
+  }
+  return { ok: true, runId: b.run_id, args: { p_regions: out } };
+}
+
 /** The database error names the RPCs raise, mapped to HTTP statuses for the job. */
 const RPC_ERRORS: Record<string, number> = {
   tile_unknown: 404,
@@ -343,6 +402,7 @@ const RPC_ERRORS: Record<string, number> = {
   rules_invalid: 400,
   record_invalid: 400,
   cursor_invalid: 400,
+  regions_invalid: 400,
 };
 
 /** Picks a known error name out of a PostgREST error body; anything else is a 502. */
