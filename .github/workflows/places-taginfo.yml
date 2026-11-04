@@ -9,6 +9,14 @@ name: Places taginfo check
 
 on:
   workflow_dispatch:
+  # Dispatch only works once this file is on the default branch, so on other branches the job
+  # also runs when the rules or this check change. Never on main pushes.
+  push:
+    branches-ignore: [main]
+    paths:
+      - "scripts/places/hub_place_rules.json"
+      - "scripts/places/taginfo_check.py"
+      - ".github/workflows/places-taginfo.yml"
 
 permissions:
   contents: read
