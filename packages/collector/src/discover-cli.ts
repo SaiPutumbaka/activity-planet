@@ -40,7 +40,7 @@ import {
   probeAll,
 } from "./discovery/discover.ts";
 import { euGated, zoneCountry } from "./discovery/eu.ts";
-import type { ProbeInput, ProbeResult } from "./discovery/probe.ts";
+import { probeHostAllowance, type ProbeInput, type ProbeResult } from "./discovery/probe.ts";
 import { probeHash } from "./discovery/version.ts";
 import { MemoryHttpCache } from "./net/cache.ts";
 import { PoliteFetcher } from "./net/fetcher.ts";
@@ -51,12 +51,14 @@ import { hostOf, siteOf } from "./util/url.ts";
 
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,90}$/;
 
-function fetcherFor(minutes: number, denylist: Denylist): PoliteFetcher {
+function fetcherFor(minutes: number, denylist: Denylist, perHost?: number): PoliteFetcher {
   return new PoliteFetcher({
     denylist,
     // From scratch: nothing remembered from earlier runs.
     cache: new MemoryHttpCache(),
     deadlineAt: Date.now() + minutes * 60_000,
+    // Each candidate host is probed once a run: its run-wide allowance is the probe's cap.
+    ...(perHost ? { maxRequestsFor: probeHostAllowance(perHost) } : {}),
   });
 }
 
@@ -120,7 +122,7 @@ async function main(argv: string[]): Promise<number> {
     if (values.record && !RUN_ID.test(values["run-id"] ?? ""))
       throw new Error("--record needs --run-id");
     const started = Date.now();
-    const fetcher = fetcherFor(caps.probeRunMinutes, denylist);
+    const fetcher = fetcherFor(caps.probeRunMinutes, denylist, caps.requestsPerHostPerProbe);
     const tiles = await fetchTileRows(svc, region);
     const built = await buildCandidates({
       region,
@@ -357,7 +359,7 @@ async function main(argv: string[]): Promise<number> {
       };
       byRegion.set(region.id, [...(byRegion.get(region.id) ?? []), input]);
     }
-    const fetcher = fetcherFor(caps.probeRunMinutes, denylist);
+    const fetcher = fetcherFor(caps.probeRunMinutes, denylist, caps.requestsPerHostPerProbe);
     const all: { r: ProbeResult; id: string }[] = [];
     for (const [rid, inputs] of byRegion) {
       const region = regions.get(rid) as Region;

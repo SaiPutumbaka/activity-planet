@@ -22,6 +22,7 @@ import {
   platformsIn,
   probe,
   ProbeFetcher,
+  probeHostAllowance,
   type ProbeResult,
   trumbaFeeds,
 } from "../src/discovery/probe.ts";
@@ -439,6 +440,31 @@ describe("probe", () => {
     const r = await pf.get(`${HOME}b`);
     expect(r.ok).toBe(false);
     expect(!r.ok && r.reason).toBe("host_budget_spent");
+  });
+});
+
+describe("probe request cap", () => {
+  it("counts redirect hops and robots.txt against a host's 8 requests", async () => {
+    const routes: Record<string, FakeResponse> = { ...robots };
+    for (let i = 0; i < 10; i++)
+      routes[`https://museum.example.org/p${i}`] = {
+        status: 301,
+        headers: { location: `https://museum.example.org/p${i}/` },
+      };
+    const c = fakeClock();
+    const { transport, log } = fakeTransport(routes, c.clock);
+    const fetcher = new PoliteFetcher({
+      denylist,
+      transport,
+      now: c.now,
+      sleep: c.sleep,
+      maxRequestsFor: probeHostAllowance(8),
+    });
+    const pf = new ProbeFetcher(fetcher, 8);
+    for (let i = 0; i < 10; i++) await pf.get(`https://museum.example.org/p${i}`);
+    expect(log.filter((l) => l.url.startsWith(HOME)).length).toBe(8);
+    expect(probeHostAllowance(8)("www.trumba.com")).toBeUndefined();
+    expect(probeHostAllowance(8)("museum.example.org")).toBe(8);
   });
 });
 

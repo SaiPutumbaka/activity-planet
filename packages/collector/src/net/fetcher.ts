@@ -98,6 +98,11 @@ export interface FetcherOptions {
   /** Requests per host per run, robots.txt and redirects included (default 60). */
   maxRequestsPerHost?: number;
   /**
+   * A different per-run allowance for some hosts (the discovery probe gives each candidate host
+   * 8 and shared calendar platforms more). Undefined keeps maxRequestsPerHost.
+   */
+  maxRequestsFor?: (host: string) => number | undefined;
+  /**
    * Clock time (ms, from `now`) after which no request is started (run_deadline), so a run
    * of slow or hanging hosts still ends on time. Unset: no deadline.
    */
@@ -126,6 +131,7 @@ export class PoliteFetcher {
   private readonly slowHostBudgetMs: number;
   readonly maxRequestsPerHost: number;
   private readonly deadlineAt: number | null;
+  private readonly maxRequestsFor: ((host: string) => number | undefined) | null;
   /** Requests granted so far to hosts with a long Crawl-delay. */
   private readonly slowGranted = new Map<string, number>();
   private readonly nextAt = new Map<string, number>();
@@ -149,12 +155,14 @@ export class PoliteFetcher {
     this.slowHostBudgetMs = opts.slowHostBudgetMs ?? SLOW_HOST_BUDGET_MS;
     this.maxRequestsPerHost = opts.maxRequestsPerHost ?? MAX_REQUESTS_PER_HOST;
     this.deadlineAt = opts.deadlineAt ?? null;
+    this.maxRequestsFor = opts.maxRequestsFor ?? null;
   }
 
   /** Why no further request may go to this host now (budget or deadline), or null. */
   private budgetProblem(host: string): "host_budget_spent" | "run_deadline" | null {
     if (this.deadlineAt !== null && this.now() >= this.deadlineAt) return "run_deadline";
-    if ((this.requests.get(host) ?? 0) >= this.maxRequestsPerHost) return "host_budget_spent";
+    const cap = this.maxRequestsFor?.(host) ?? this.maxRequestsPerHost;
+    if ((this.requests.get(host) ?? 0) >= cap) return "host_budget_spent";
     return null;
   }
 

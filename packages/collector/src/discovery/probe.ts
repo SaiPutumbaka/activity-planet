@@ -152,7 +152,8 @@ export function tecRoots(scan: PageScan): string[] {
  */
 export class ProbeFetcher implements Fetcher {
   private readonly memo = new Map<string, Promise<FetchResult>>();
-  private readonly perHost = new Map<string, number>();
+  /** The shared fetcher's per-host counts when this probe started. */
+  private readonly start: Map<string, number>;
   readonly pages = new Map<string, { body: string; type: string; xRobotsTag: string | null }>();
   sent = 0;
   gaps = 0;
@@ -164,6 +165,7 @@ export class ProbeFetcher implements Fetcher {
   constructor(inner: PoliteFetcher | Fetcher, cap: number) {
     this.inner = inner;
     this.cap = cap;
+    this.start = new Map(inner.requests);
   }
 
   get requests(): Map<string, number> {
@@ -189,24 +191,39 @@ export class ProbeFetcher implements Fetcher {
 
   private async fetch(url: string, opts: FetchOptions): Promise<FetchResult> {
     const host = hostOf(url);
-    const robotsRead = this.inner.robotsVerdict(url) !== "unchecked";
-    const used = (this.perHost.get(host) ?? 0) + (robotsRead ? 0 : 1);
-    if (used >= this.cap) return { ok: false, url, reason: "host_budget_spent" };
-    this.perHost.set(host, used + 1);
-    const before = this.inner.requests.get(host) ?? 0;
+    const used = this.inner.requests.get(host) ?? 0;
+    const start = this.start.get(host) ?? 0;
+    // This probe's requests to the host so far, robots.txt and redirect hops included.
+    if (used - start >= this.cap) return { ok: false, url, reason: "host_budget_spent" };
+    const before = [...this.inner.requests.values()].reduce((a, b) => a + b, 0);
     const res = await this.inner.get(url, opts);
-    const after = this.inner.requests.get(host) ?? 0;
+    const after = [...this.inner.requests.values()].reduce((a, b) => a + b, 0);
     this.sent += Math.max(after - before, 0);
     if (!res.ok) {
       if (res.reason === "run_deadline") this.deadline = true;
       else if (res.reason !== "host_budget_spent" && isGap(res.reason, res.status, false))
         this.gaps++;
-    } else if (res.ok) {
+    } else {
       const type = detectBodyType(res.body, res.contentType);
       this.pages.set(res.url, { body: res.body, type, xRobotsTag: res.xRobotsTag });
     }
     return res;
   }
+}
+
+/**
+ * The shared fetcher's per-host allowance for a probe run: each candidate host may get
+ * `perHost` requests in the whole run (robots.txt and redirects included), which is the design's
+ * 8 a probe because the run probes each host once. Calendar platforms that many candidates share
+ * (Trumba, LibCal, Communico, Localist, Google Calendar) and Wikidata keep the fetcher's default.
+ */
+export function probeHostAllowance(perHost: number): (host: string) => number | undefined {
+  return (host) =>
+    /(?:^|\.)(?:trumba\.com|libcal\.com|libnet\.info|localist\.com|google\.com|wikidata\.org)$/i.test(
+      host,
+    )
+      ? undefined
+      : perHost;
 }
 
 function failOutcome(res: Extract<FetchResult, { ok: false }>): ProbeOutcome {
