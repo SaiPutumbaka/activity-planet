@@ -1,14 +1,15 @@
 -- ============================================================================
--- Staging check for migration 20261202000100_collector_ingest_fixes.sql
--- (collector ingest review fixes). One transaction, asserts in DO blocks that
+-- Staging check for migrations 20261202000100_collector_ingest_fixes.sql
+-- (collector ingest review fixes) and 20261203000100_collector_images_licensed_fix.sql. One transaction, asserts in DO blocks that
 -- raise on failure, rolled back at the end. Prints pass/fail only, never
 -- titles, ids or points (the repo and its Action logs are public). Run as the
 -- staging_file of a staging_only migrate.yml run.
---   1 Static: schema_version 2.34; one collector_ingest_events (6 arguments),
+--   1 Static: schema_version 2.35; one collector_ingest_events (6 arguments),
 --     definer, service_role only; import_title_key and import_is_21_plus;
 --     the wine rule is gone and the drawing and kayaking rules are narrow.
 --   2 D-040 item rules: descriptions clipped to 300 characters, cover_url
---     dropped unless the source says images_licensed.
+--     dropped unless the source says images_licensed (a source that does not
+--     say is false, migration 39).
 --   3 Repeat posts in one run (same run id) count no missed runs; a new run
 --     does; two real misses still cancel.
 --   4 Seen ids keep a known item from being missed; 21+ items are skipped.
@@ -32,8 +33,8 @@ do $$
 declare
   v_sig text := 'public.collector_ingest_events(jsonb, jsonb, boolean, boolean, text, jsonb)';
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.34' then
-    raise exception 'FAIL schema_version is not 2.34';
+  if (select value from public.meta where key = 'schema_version') <> '2.35' then
+    raise exception 'FAIL schema_version is not 2.35';
   end if;
   if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'public' and p.proname = 'collector_ingest_events') <> 1 then
