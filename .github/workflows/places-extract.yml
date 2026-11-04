@@ -17,7 +17,7 @@ name: Places extract
 #     "production" and production's tiles queue has wanted tiles or tiles due a refresh.
 #
 # Guards: a tile with more than 60,000 rows fails before posting; the run refuses to post when the
-# database plus the estimated rows (900 bytes each, design 4.5) would pass the 150 MB cap; a tile
+# database plus the estimated rows (1,600 bytes each, measured in design 4.5) would pass the 150 MB cap; a tile
 # whose row count fell more than 30% against the tile's last count is not finished (nothing is
 # closed); after finishing, a drop against the previous run's seen count fails the run.
 #

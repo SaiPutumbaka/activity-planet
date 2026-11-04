@@ -79,6 +79,7 @@ member sets home point (owner-only, about 1 km)  ──► bump place_tiles.dema
   8. Finish with `POST /collector/tiles/{id}/done {run_id, count}`. The RPC marks rows from this tile that are missing from 2 consecutive runs as `closed`.
 - **Checks:** fail the run when a refresh tile's row count drops by more than 30% from the previous run. This guards against osmium filtering problems (the 2019 dev-list report) and broken extracts.
 - **Cost:** about 2 to 10 minutes a tile (an estimate). 20 tiles fit well inside the 6-hour job limit.
+- **As built (slice 5, `scripts/places/extract_places.py`):** the whole Atlanta run takes about 2.5 minutes with the extract cached (download 3 minutes when it is not). Differences from the steps above: lines are kept too (a named path becomes its midpoint, one row per name in a 2 km cell); every row goes to its own tile only and rows in the 2 km margin are dropped, so each element is posted once; unnamed courts, pools, tracks, playgrounds and similar facilities are kept with a made-up name ("Tennis court at Grant Park") unless they sit inside `landuse=residential`; the same name and kind within 150 m collapse into one row. Route relations (`route=hiking|mtb|…`) are not exported by `osmium export` and so add no rows yet. The job reads the collector secret from the target project's vault through the Management API (the token `migrate.yml` already uses) and masks it, so no new GitHub secret is needed. Named tiles that are not `wanted` or due a refresh are skipped unless `force` is set. Staging gets a dispatch from any branch but main (or a push of `scripts/places/extract_request.json`, since dispatch only works once the file is on main); production needs a dispatch from main with `production` typed in; the weekly schedule (Sunday 03:17 UTC) does nothing unless the variable `PLACES_EXTRACT_SCHEDULE` is `production`.
 
 ### 3.2 Geoapify gap fill (Edge Function `places-fill`, pg_cron every 15 min)
 - Runs only when `GEOAPIFY_SERVER_KEY` is set. This is a separate server-side key; `VITE_GEOAPIFY_KEY` stays a browser geocoding key.
@@ -174,14 +175,28 @@ Indexes:
 - `place_tiles (id int primary key, bbox box2d, status, demand int, osm_run_at, geoapify_run_at, last_member_at, row_count int)`. It has **no user id column**.
 - `collector_budget (day date, source text, used int)`.
 
-### 4.5 Size estimate
-- **Per row:** about 450 to 600 bytes of heap for each place, plus about 300 to 400 bytes of indexes (GiST ×2, GIN, trigram, unique). That is about 0.9 KB a place. The "1.2 KB" in the draft assumed fan-out rows in `place_hubs`, which this design avoids.
-- **A large metro (5 to 6 million people, e.g. greater Atlanta):** about 15k to 20k specific places plus 8k to 15k generic ones (cafés, bars, parks, libraries). At 25k to 35k rows that is about 25 to 32 MB.
-- **A city of about 1 million:** 4k to 8k rows, about 4 to 7 MB.
-- **150 MB cap:** about 5 large metros plus 10 to 15 cities at once. The database is 36 MB today.
-- **Lever if it gets tight:** skip generic `amenity=cafe|bar|pub|restaurant` (the largest group, used by about 130 generic hubs) and fetch them from Geoapify on demand for a single selected hub, without storing them. Next comes the static-file fallback in §9.
+### 4.5 Size (measured on staging, 2026-11-04)
+First Atlanta run: `places-extract.yml` runs 41832976451 (first ingest) and 41834781651 (forced refresh), Geofabrik `us/georgia` of 2026-11-04, rules_version 1, Atlanta's three tiles 178030, 178031 and 178751 (lat 33.5 to 34.5, lng -85 to -84).
 
-These are estimates. Measure after the first Atlanta run with `pg_total_relation_size('places')`.
+| Measure | Value |
+|---|---|
+| Georgia extract | 358 MB `.osm.pbf`; 62.6 MB after `osmium tags-filter`; 17.5 MB for the tiles' box plus 2 km |
+| Features exported | 370,933 points, lines and polygons (most match no rule or are dropped below) |
+| Rows kept | **16,693** one per OSM element: 3,322 / 9,119 / 4,252 per tile |
+| Biggest kinds | restaurant 3,027, court_field 2,331, worship 1,848, park 1,682, historic 1,426, shop 1,363, cafe 737, beach 704 (named `natural=water`), trail 415 |
+| Unnamed facilities given a name ("Tennis court at …") | about 2,100 |
+| Dropped | 29,565 unnamed lines, 20,041 unnamed non-facilities, 18,293 outside the tiles (the 2 km margin), 9,221 same name and kind within 150 m, 5,336 `access=private|no`, 4,021 unnamed facilities inside `landuse=residential`, 1,436 merged path segments, 626 unnamed non-public pools, 190 homes |
+| Payload | 3.9 MB of JSON, 17 batches of up to 1,000 rows; ingest took about 70 s the first time and 30 s on a refresh |
+| Table after the first ingest | 17.0 MB `pg_total_relation_size('places')`: heap 7.3 MB, indexes 9.7 MB, so **about 1.0 KB a row** |
+| Table after one refresh | 26.5 MB: heap 13.3 MB (every row is re-stamped, so the heap holds a second version until vacuum reuses the space), indexes 13.1 MB, so **about 1.6 KB a row at steady state** |
+| Largest index | trigram on `search_text`, 6.2 MB; the two GiST indexes 1.3 MB each, GIN on `rule_ids` 0.5 MB |
+| Staging database | 39.3 MB before, 56.1 MB after the first run, 65.6 MB after the refresh |
+
+What this means:
+- **A large metro is about 17k rows and 17 to 27 MB**, at the low end of the estimate above (25k to 35k rows), because unnamed POIs, private access, homes and near duplicates are dropped before ingest.
+- **The 150 MB cap holds about four metros of Atlanta's size** at the steady-state 1.6 KB a row, with the rest of the database at about 40 MB. That is fewer than the "5 large metros plus 10 to 15 cities" estimated earlier.
+- **Levers, in order:** (1) stamp `last_seen_at` without rewriting unchanged rows (a separate `place_seen` table or a per-tile run stamp), which removes the second heap version and brings the steady state back to about 1.0 KB a row; (2) drop or shrink the trigram index (6.2 MB, the largest) in favour of a prefix search; (3) skip generic `amenity=restaurant|fast_food|cafe|bar|pub` (about 4,000 of Atlanta's rows) and fetch them from Geoapify on demand; (4) the static-file fallback in §9.
+- The job's size check refuses to post when the database plus 1.6 KB per row it is about to send would pass 150 MB. Slice 15's size alarm at 120 MB still applies.
 
 ---
 
