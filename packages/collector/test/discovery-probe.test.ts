@@ -347,6 +347,42 @@ describe("probe", () => {
     expect(r.score).toBe(66);
   });
 
+  it("samples The Events Calendar's event pages when its export and list view say noindex", async () => {
+    const { fetcher, log } = fetcherWith({
+      ...robots,
+      [HOME]: {
+        body: html(
+          '<a href="/visit/">Visit</a>',
+          '<link rel="alternate" type="text/calendar" href="https://museum.example.org/events/?ical=1">',
+        ),
+      },
+      "https://museum.example.org/events/": {
+        body: html(
+          '<div class="tribe-events"><a href="/event/talk/">Talk</a><a href="/event/tour/">Tour</a><a href="/events/list/">List</a></div>',
+        ),
+      },
+      "https://museum.example.org/events/?ical=1": {
+        headers: { "content-type": "text/calendar", "x-robots-tag": "noindex" },
+        body: fixture("calendar.ics"),
+      },
+      "https://museum.example.org/events/list/": {
+        body: html("", '<meta name="robots" content="noindex, nofollow">'),
+      },
+      "https://museum.example.org/event/talk/": { body: html(eventLd("Talk")) },
+      "https://museum.example.org/event/tour/": { body: html(eventLd("Tour")) },
+    });
+    const r = await probe(
+      { url: HOME, host: "museum.example.org", origin: "osm", place_kind: "arts_venue" },
+      { fetcher, region: ATL, now: NOW },
+    );
+    expect(r.outcome).toBe("ok");
+    expect(r.kind).toBe("page");
+    expect(r.url).toBe("https://museum.example.org/events/");
+    expect(r.platform).toBe("tec");
+    expect(r.notes).toContain("tec_event_page_sample");
+    expect(log.filter((l) => l.url.startsWith(HOME)).length).toBeLessThanOrEqual(8);
+  });
+
   it("marks Localist calendars needs_permission without reading their events", async () => {
     const cal = "https://calendar.example.edu/";
     const { fetcher, log } = fetcherWith({

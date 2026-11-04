@@ -455,7 +455,7 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
 
   // Seeds to read, best first.
   const seeds: Seed[] = [];
-  const add = (kind: Seed["kind"], url: string) => {
+  const add = (kind: Seed["kind"], url: string, discover = kind === "page") => {
     if (seeds.some((s) => s.url === url)) return;
     seeds.push({
       id: `probe-${shortHash(url, 10)}`,
@@ -463,7 +463,7 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
       url,
       name: (c.name ?? c.host).slice(0, 80).padEnd(2, "."),
       attribution: `Events from ${c.host} (discovery probe)`,
-      discover: kind === "page",
+      discover,
       maxPages: 2,
     });
   };
@@ -483,6 +483,24 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
     }
   }
   for (const f of calendarFeeds.slice(0, 1)) add("ics", f);
+  // The Events Calendar: its exports often say noindex, and its list views can too, while each
+  // single event page is indexable and carries one schema.org Event. Two of the calendar's own
+  // event pages are a cheap sample; the source recorded is the calendar page that links them,
+  // which the nightly run reads with its full budget.
+  const reportAs = new Map<string, string>();
+  if (platforms.has("tec")) {
+    for (const s of seen.slice(1)) {
+      const singles = discoverLinks(s.scan, sameSite).pages.filter((u) =>
+        /\/events?\/[^/]+\/?$/i.test(new URL(u).pathname),
+      );
+      for (const u of singles.slice(0, 2)) {
+        add("page", u, false);
+        const seed = seeds[seeds.length - 1];
+        if (seed && seed.url === u) reportAs.set(seed.id, s.url);
+      }
+      if (reportAs.size > 0) break;
+    }
+  }
   for (const s of seen) if (s.events > 0) add("page", s.url);
   for (const s of seen.slice(1)) add("page", s.url);
   for (const f of calendarFeeds.slice(1)) add("ics", f);
@@ -500,7 +518,7 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
   // Read them, one at a time, until one gives items inside the region.
   let best: { seed: Seed; items: number; inRegion: number; type: string } | null = null;
   let anyNoindex = false;
-  for (const seed of seeds.slice(0, 3)) {
+  for (const seed of seeds.slice(0, 4)) {
     if (pf.deadline) break;
     const run = await collect({
       regions: [region],
@@ -566,13 +584,15 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
           : best.seed.kind === "rss"
             ? "rss"
             : "ics";
+  const sampledFrom = reportAs.get(best.seed.id);
+  if (sampledFrom) notes.push("tec_event_page_sample");
   const feedEvents = kind !== "page" && best.inRegion > 0;
   notes.push(`read kind=${kind} items=${best.items} in_region=${best.inRegion}`);
   return result(
     best.inRegion > 0 ? "ok" : "empty",
     {
       kind,
-      url: best.seed.url,
+      url: sampledFrom ?? best.seed.url,
       platform,
       items: best.items,
       in_region: best.inRegion,
