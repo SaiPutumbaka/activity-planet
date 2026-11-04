@@ -1,0 +1,38 @@
+name: Collector dry run
+
+# Runs the D-040 event collector against a seeded city with --dry-run: it fetches the real
+# sources (robots.txt, feeds, schema.org Event pages) and prints per-source counts and reasons
+# only. Nothing is written to a database, and no item text reaches the log beyond the counts the
+# CLI prints, because this repository and its Action logs are public.
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: "City seed file under packages/collector/data/cities (for example atl)"
+        type: string
+        default: atl
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Collect (dry run)
+        env:
+          REGION: ${{ inputs.region }}
+        run: |
+          case "$REGION" in
+            *[!a-z0-9-]*|"") echo "Refusing region: $REGION"; exit 1 ;;
+          esac
+          pnpm --filter collector collect --region "$REGION" --dry-run
