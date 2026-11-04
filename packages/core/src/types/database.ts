@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 46 (schema_version 2.42). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 47 (schema_version 2.43). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -2950,6 +2950,48 @@ export type Database = {
           },
         ];
       };
+      source_discovery_gates: {
+        Row: {
+          counts: Json;
+          created_at: string;
+          expected: number;
+          found: number;
+          found_sites: string[];
+          id: number;
+          passed: boolean;
+          probe_hash: string;
+          region: string;
+          required: number;
+          run_id: string;
+        };
+        Insert: {
+          counts?: Json;
+          created_at?: string;
+          expected: number;
+          found: number;
+          found_sites?: string[];
+          id?: never;
+          passed: boolean;
+          probe_hash: string;
+          region: string;
+          required: number;
+          run_id: string;
+        };
+        Update: {
+          counts?: Json;
+          created_at?: string;
+          expected?: number;
+          found?: number;
+          found_sites?: string[];
+          id?: never;
+          passed?: boolean;
+          probe_hash?: string;
+          region?: string;
+          required?: number;
+          run_id?: string;
+        };
+        Relationships: [];
+      };
       source_probe_results: {
         Row: {
           candidate_id: string;
@@ -4294,6 +4336,29 @@ export type Database = {
         Args: { p_country: string; p_origin: string };
         Returns: boolean;
       };
+      source_discovery_gate_open: {
+        Args: { p_probe_hash: string };
+        Returns: boolean;
+      };
+      source_discovery_gate_record: { Args: { p_gate: Json }; Returns: Json };
+      source_discovery_gate_status: {
+        Args: { p_probe_hash: string };
+        Returns: Json;
+      };
+      source_discovery_probe_queue: {
+        Args: {
+          p_limit?: number;
+          p_per_region?: number;
+          p_probe_hash: string;
+          p_regions?: string[];
+        };
+        Returns: Json;
+      };
+      source_discovery_regions_due: {
+        Args: { p_limit?: number };
+        Returns: Json;
+      };
+      source_discovery_regions_record: { Args: { p_ids: Json }; Returns: Json };
       source_url_check: { Args: { p_url: string }; Returns: Json };
       source_url_host: { Args: { p_url: string }; Returns: string };
       submit_attendance: {
