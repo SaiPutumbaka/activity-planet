@@ -74,3 +74,11 @@ verify_jwt = false
 # not match the vault secret collector_secret (checked through collector_verify_secret,
 # service_role only). The secret is generated inside the database and is in no file.
 verify_jwt = false
+
+[functions.places-fill]
+# The caller is the database (pg_cron job places-fill and a ping when a place tile becomes
+# fillable, both through pg_net and public.places_fill_dispatch, migration 43), not a user, so
+# the gateway JWT check is off; the function refuses any request whose x-collector-secret header
+# does not match the vault secret collector_secret (collector_verify_secret, service_role only).
+# GEOAPIFY_SERVER_KEY is an optional Edge Function secret; without it the function does nothing.
+verify_jwt = false
