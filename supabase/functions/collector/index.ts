@@ -6,6 +6,11 @@
 //                                                         -> ingest_places() (<= 2,000 rows)
 //   POST /collector/tiles/{id}/done {run_id, count, source?}
 //                                                         -> finish_place_tile()
+//   GET  /collector/places/export?after=<cursor>&limit=5000
+//                                                         -> places_odbl_page() (the monthly
+//                                                            ODbL dump, slice 14)
+//   POST /collector/runs/dump {month, rows, bytes, sha256, published, counts?}
+//                                                         -> record_place_dump()
 //
 // The caller (a GitHub Actions job) sends the header x-collector-secret. The secret is generated
 // inside the database (vault secret collector_secret, migration 28) and checked here through
@@ -14,9 +19,17 @@
 // job never holds the service-role key. The gateway JWT check is off for this function
 // (config.toml) because the caller is not a user.
 //
-// Responses carry counts and error names only, never row data. SUPABASE_URL and
+// Responses carry counts and error names only, never row data, except the export route: its rows
+// are the public place facts the monthly ODbL release publishes anyway (no ids, no member data). SUPABASE_URL and
 // SUPABASE_SERVICE_ROLE_KEY are injected by Supabase.
-import { matchRoute, MAX_BODY_BYTES, parseDoneBody, parseIngestBody, rpcError } from "./routes.ts";
+import {
+  matchRoute,
+  MAX_BODY_BYTES,
+  parseDoneBody,
+  parseDumpBody,
+  parseIngestBody,
+  rpcError,
+} from "./routes.ts";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -88,6 +101,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
       return json({ tiles });
     }
 
+    if (route.kind === "export") {
+      const page = await rpc("places_odbl_page", { p_after: route.after, p_limit: route.limit });
+      return json(page);
+    }
+
     let body: unknown;
     try {
       body = await readJson(req);
@@ -106,6 +124,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
         parsed.args.p_tile_id,
         parsed.args.p_run_id,
         JSON.stringify(result),
+      );
+      return json(result);
+    }
+
+    if (route.kind === "dump") {
+      const parsed = parseDumpBody(body);
+      if (!parsed.ok) return json({ error: parsed.error }, 400);
+      const result = await rpc("record_place_dump", { ...parsed.args });
+      console.log(
+        "collector dump",
+        parsed.args.p_month,
+        parsed.args.p_rows,
+        parsed.args.p_published,
       );
       return json(result);
     }

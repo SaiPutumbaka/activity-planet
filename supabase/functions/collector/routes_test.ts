@@ -1,6 +1,6 @@
 // deno test supabase/functions/collector
 import { assertEquals } from "jsr:@std/assert@1.0.19";
-import { matchRoute, parseDoneBody, parseIngestBody, rpcError } from "./routes.ts";
+import { matchRoute, parseDoneBody, parseDumpBody, parseIngestBody, rpcError } from "./routes.ts";
 
 const base = "https://example.supabase.co/functions/v1/collector";
 
@@ -117,4 +117,93 @@ Deno.test("rpc errors: known names keep their meaning, the rest are 502", () => 
     status: 502,
   });
   assertEquals(rpcError("not json"), { error: "rpc_failed", status: 502 });
+});
+
+Deno.test("export and dump routes (slice 14)", () => {
+  assertEquals(matchRoute("GET", `${base}/places/export`), {
+    kind: "export",
+    after: null,
+    limit: 5000,
+  });
+  assertEquals(
+    matchRoute(
+      "GET",
+      `${base}/places/export?after=0F8FAD5B-D9CB-469F-A165-70867728950E&limit=99999`,
+    ),
+    { kind: "export", after: "0f8fad5b-d9cb-469f-a165-70867728950e", limit: 5000 },
+  );
+  assertEquals(matchRoute("GET", `${base}/places/export?limit=0`), {
+    kind: "export",
+    after: null,
+    limit: 1,
+  });
+  assertEquals(matchRoute("GET", `${base}/places/export?after=1;drop`), { kind: "not_found" });
+  assertEquals(matchRoute("POST", `${base}/places/export`), { kind: "not_found" });
+  assertEquals(matchRoute("POST", `${base}/runs/dump`), { kind: "dump" });
+  assertEquals(matchRoute("GET", `${base}/runs/dump`), { kind: "not_found" });
+});
+
+Deno.test("dump body: checked before the database sees it", () => {
+  const sha = "a".repeat(64);
+  assertEquals(
+    parseDumpBody({
+      month: "2026-11",
+      rows: 10,
+      bytes: 2048,
+      sha256: sha,
+      published: true,
+      counts: { osm: 9, user: 1 },
+    }),
+    {
+      ok: true,
+      args: {
+        p_month: "2026-11",
+        p_rows: 10,
+        p_bytes: 2048,
+        p_sha256: sha,
+        p_published: true,
+        p_counts: { osm: 9, user: 1 },
+      },
+    },
+  );
+  assertEquals(
+    parseDumpBody({ month: "2026-13", rows: 1, bytes: 1, sha256: sha, published: false }),
+    {
+      ok: false,
+      error: "invalid_month",
+    },
+  );
+  assertEquals(
+    parseDumpBody({ month: "2026-11", rows: -1, bytes: 1, sha256: sha, published: false }),
+    {
+      ok: false,
+      error: "invalid_rows",
+    },
+  );
+  assertEquals(
+    parseDumpBody({ month: "2026-11", rows: 1, bytes: 1, sha256: "XYZ", published: false }),
+    {
+      ok: false,
+      error: "invalid_sha256",
+    },
+  );
+  assertEquals(parseDumpBody({ month: "2026-11", rows: 1, bytes: 1, sha256: sha }), {
+    ok: false,
+    error: "invalid_published",
+  });
+  assertEquals(
+    parseDumpBody({
+      month: "2026-11",
+      rows: 1,
+      bytes: 1,
+      sha256: sha,
+      published: false,
+      counts: { "a b": 1 },
+    }),
+    { ok: false, error: "invalid_counts" },
+  );
+  assertEquals(rpcError(JSON.stringify({ message: "sha256_invalid" })), {
+    error: "sha256_invalid",
+    status: 400,
+  });
 });
