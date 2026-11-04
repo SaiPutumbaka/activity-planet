@@ -82,3 +82,11 @@ verify_jwt = false
 # does not match the vault secret collector_secret (collector_verify_secret, service_role only).
 # GEOAPIFY_SERVER_KEY is an optional Edge Function secret; without it the function does nothing.
 verify_jwt = false
+
+[functions.place-files]
+# Two callers (D-042 slice 11, migration 49): the database (pg_cron job place-match through pg_net
+# and public.place_match_dispatch, with the x-collector-secret header checked through
+# collector_verify_secret) and signed-in members asking for a file place's row (the function checks
+# the user token with the Auth API itself). So the gateway JWT check is off. Files are read from
+# PLACES_BASE_URL (optional Edge Function secret) or meta.places_base_url.
+verify_jwt = false

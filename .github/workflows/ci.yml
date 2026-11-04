@@ -35,7 +35,7 @@ jobs:
       - run: pnpm build
 
   # Deno unit tests for the import-feed adapters (fixture payloads; no network) and the collector
-  # request parsing and the Geoapify places fill (fake I/O).
+  # request parsing, the Geoapify places fill and the place-file matching (fake I/O).
   functions:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -44,7 +44,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.1.4
-      - run: deno test --allow-read supabase/functions/import-feed supabase/functions/collector supabase/functions/places-fill
+      - run: deno test --allow-read supabase/functions/import-feed supabase/functions/collector supabase/functions/places-fill supabase/functions/place-files
 
   # Hub map place rules (D-041): rebuild the JSON from the research tables, regenerate the seed and
   # the osmium filter, and fail if anything differs from what is committed (stdlib only); then the
