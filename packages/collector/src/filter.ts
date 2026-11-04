@@ -1,5 +1,7 @@
 // Coverage follows users: an item is kept when its point is inside one of the requested
-// regions, or, with no point, when its source is seeded for one of them (the source's own city).
+// regions, or, with no point, when its source's own area (the seeded city, or the region an API
+// was asked about) is centred inside one of them. A small region at the edge of a city does not
+// get the city's coordinate-less events.
 // Then the run window, then dedupe within the run.
 
 import type { ImportItem, Lane, Region } from "./types.ts";
@@ -7,11 +9,19 @@ import { haversineKm } from "./util/geo.ts";
 
 export type FilterReason = "outside_region" | "ended" | "beyond_window" | "duplicate_in_run";
 
-export function inAnyRegion(item: ImportItem, regions: Region[]): boolean {
-  if (item.lat === null || item.lng === null) return true;
-  return regions.some(
-    (r) => haversineKm(r.lat, r.lng, item.lat as number, item.lng as number) <= r.radiusKm,
-  );
+export function inAnyRegion(
+  item: ImportItem,
+  regions: Region[],
+  sourceArea?: Pick<Region, "lat" | "lng">,
+): boolean {
+  const point =
+    item.lat !== null && item.lng !== null
+      ? { lat: item.lat, lng: item.lng }
+      : sourceArea
+        ? { lat: sourceArea.lat, lng: sourceArea.lng }
+        : null;
+  if (!point) return true;
+  return regions.some((r) => haversineKm(r.lat, r.lng, point.lat, point.lng) <= r.radiusKm);
 }
 
 export function windowReason(item: ImportItem, start: Date, end: Date): FilterReason | null {

@@ -112,38 +112,38 @@ describe("denylist (data/denylist.json)", () => {
 
 describe("noindex, nofollow and X-Robots-Tag", () => {
   it("reads robots meta tags for robots and our bot only", () => {
-    expect(metaDirectives([{ name: "robots", content: "noindex, follow" }])).toEqual({
+    expect(metaDirectives([{ name: "robots", content: "noindex, follow" }])).toMatchObject({
       noindex: true,
       nofollow: false,
     });
-    expect(metaDirectives([{ name: "ROBOTS", content: "none" }])).toEqual({
+    expect(metaDirectives([{ name: "ROBOTS", content: "none" }])).toMatchObject({
       noindex: true,
       nofollow: true,
     });
-    expect(metaDirectives([{ name: "activityplanetbot", content: "nofollow" }])).toEqual({
+    expect(metaDirectives([{ name: "activityplanetbot", content: "nofollow" }])).toMatchObject({
       noindex: false,
       nofollow: true,
     });
-    expect(metaDirectives([{ name: "googlebot", content: "noindex" }])).toEqual({
+    expect(metaDirectives([{ name: "googlebot", content: "noindex" }])).toMatchObject({
       noindex: false,
       nofollow: false,
     });
   });
   it("reads X-Robots-Tag with and without bot prefixes", () => {
-    expect(parseXRobotsTag("noindex")).toEqual({ noindex: true, nofollow: false });
-    expect(parseXRobotsTag("googlebot: noindex, nofollow")).toEqual({
+    expect(parseXRobotsTag("noindex")).toMatchObject({ noindex: true, nofollow: false });
+    expect(parseXRobotsTag("googlebot: noindex, nofollow")).toMatchObject({
       noindex: false,
       nofollow: false,
     });
-    expect(parseXRobotsTag("googlebot: noindex, ActivityPlanetBot: nofollow")).toEqual({
+    expect(parseXRobotsTag("googlebot: noindex, ActivityPlanetBot: nofollow")).toMatchObject({
       noindex: false,
       nofollow: true,
     });
-    expect(parseXRobotsTag("unavailable_after: 2027-01-01, noindex")).toEqual({
+    expect(parseXRobotsTag("unavailable_after: 2027-01-01, noindex")).toMatchObject({
       noindex: true,
       nofollow: false,
     });
-    expect(parseXRobotsTag(null)).toEqual({ noindex: false, nofollow: false });
+    expect(parseXRobotsTag(null)).toMatchObject({ noindex: false, nofollow: false });
   });
 });
 

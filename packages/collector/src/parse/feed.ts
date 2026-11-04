@@ -8,16 +8,54 @@ import type { RawEvent } from "../types.ts";
 import { decodeEntities, htmlToText, plain } from "../util/text.ts";
 import { httpsUrl } from "../util/url.ts";
 
+// Every scan below is a single forward pass (find an opening tag, then its closing tag from
+// there, and stop when none is left), so a feed full of unclosed tags costs linear time, not a
+// lazy-regex rescan to the end of the file for each one.
+
+/** CDATA sections unwrapped; an unclosed one runs to the end. */
 function unwrapCdata(text: string): string {
-  return text.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
+  let out = "";
+  let pos = 0;
+  for (;;) {
+    const i = text.indexOf("<![CDATA[", pos);
+    if (i < 0) break;
+    out += text.slice(pos, i);
+    const j = text.indexOf("]]>", i + 9);
+    if (j < 0) return out + text.slice(i + 9);
+    out += text.slice(i + 9, j);
+    pos = j + 3;
+  }
+  return out + text.slice(pos);
+}
+
+/** Inner text of each element `prefix + name` (self-closed ones give ""), in document order. */
+function elements(xml: string, name: string, prefix: string): string[] {
+  const open = new RegExp(`<${prefix}${name}\\b[^<>]{0,4000}?(/?)>`, "gi");
+  const close = new RegExp(`</${prefix}${name}\\s*>`, "gi");
+  const out: string[] = [];
+  let pos = 0;
+  for (;;) {
+    open.lastIndex = pos;
+    const m = open.exec(xml);
+    if (!m) break;
+    const bodyStart = m.index + m[0].length;
+    if (m[1] === "/") {
+      out.push("");
+      pos = bodyStart;
+      continue;
+    }
+    close.lastIndex = bodyStart;
+    const c = close.exec(xml);
+    if (!c) break;
+    out.push(xml.slice(bodyStart, c.index));
+    pos = c.index + c[0].length;
+  }
+  return out;
 }
 
 /** Every value of a child element, with or without a namespace prefix. */
 function tagValues(xml: string, name: string, prefix = "(?:[\\w-]+:)?"): string[] {
-  const re = new RegExp(`<${prefix}${name}\\b[^>]*?(?:/>|>([\\s\\S]*?)</${prefix}${name}>)`, "gi");
-  const out: string[] = [];
-  for (const m of xml.matchAll(re)) out.push(unwrapCdata(m[1] ?? "").trim());
-  return out;
+  return elements(xml, name, prefix).map((v) => unwrapCdata(v).trim());
 }
 
 function tagValue(xml: string, name: string, prefix?: string): string | null {
@@ -25,7 +63,7 @@ function tagValue(xml: string, name: string, prefix?: string): string | null {
 }
 
 function attrOf(xml: string, tag: string, attr: string, where?: RegExp): string | null {
-  const re = new RegExp(`<(?:[\\w-]+:)?${tag}\\b([^>]*)>`, "gi");
+  const re = new RegExp(`<(?:[\\w-]+:)?${tag}\\b([^<>]{0,4000})>`, "gi");
   for (const m of xml.matchAll(re)) {
     const attrs = m[1] ?? "";
     if (where && !where.test(attrs)) continue;
@@ -35,23 +73,38 @@ function attrOf(xml: string, tag: string, attr: string, where?: RegExp): string 
   return null;
 }
 
+/** Text of the first element carrying class `cls` that has a closing tag. */
 function byClass(html: string, cls: string): string | null {
-  const m = new RegExp(
-    `<(\\w+)[^>]*class="[^"]*\\b${cls}\\b[^"]*"[^>]*>([\\s\\S]*?)</\\1>`,
-    "i",
-  ).exec(html);
-  return m ? htmlToText(m[2] ?? "") || null : null;
+  const open = new RegExp(
+    `<(\\w+)\\b[^<>]{0,4000}?\\bclass="[^"<>]{0,1000}?\\b${cls}\\b[^<>]{0,4000}>`,
+    "gi",
+  );
+  const unclosed = new Set<string>();
+  for (const m of html.matchAll(open)) {
+    const tag = (m[1] ?? "").toLowerCase();
+    if (unclosed.has(tag)) continue;
+    const close = new RegExp(`</${tag}\\s*>`, "gi");
+    close.lastIndex = m.index + m[0].length;
+    const c = close.exec(html);
+    if (!c) {
+      unclosed.add(tag);
+      continue;
+    }
+    return htmlToText(html.slice(m.index + m[0].length, c.index)) || null;
+  }
+  return null;
 }
 
 function datetimeByClass(html: string, cls: string): string | null {
   const m =
     new RegExp(
-      `<\\w+[^>]*class="[^"]*\\b${cls}\\b[^"]*"[^>]*(?:datetime|title)="([^"]+)"`,
+      `<\\w+[^<>]{0,4000}?class="[^"<>]{0,1000}?\\b${cls}\\b[^"<>]{0,1000}"[^<>]{0,4000}?(?:datetime|title)="([^"<>]+)"`,
       "i",
     ).exec(html) ??
-    new RegExp(`<\\w+[^>]*(?:datetime|title)="([^"]+)"[^>]*class="[^"]*\\b${cls}\\b`, "i").exec(
-      html,
-    );
+    new RegExp(
+      `<\\w+[^<>]{0,4000}?(?:datetime|title)="([^"<>]+)"[^<>]{0,4000}?class="[^"<>]{0,1000}?\\b${cls}\\b`,
+      "i",
+    ).exec(html);
   return m?.[1] ?? null;
 }
 
@@ -68,14 +121,8 @@ export function isFeed(body: string): boolean {
 export function parseFeed(xml: string, opts: FeedOptions): RawEvent[] {
   const out: RawEvent[] = [];
   const blocks = [
-    ...[...xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].map((m) => ({
-      atom: false,
-      body: m[1] ?? "",
-    })),
-    ...[...xml.matchAll(/<entry\b[^>]*>([\s\S]*?)<\/entry>/gi)].map((m) => ({
-      atom: true,
-      body: m[1] ?? "",
-    })),
+    ...elements(xml, "item", "").map((body) => ({ atom: false, body })),
+    ...elements(xml, "entry", "").map((body) => ({ atom: true, body })),
   ];
   for (const { atom, body } of blocks) {
     const link = atom

@@ -1,6 +1,11 @@
 // The only way the collector reaches the network (D-040 politeness rules):
-//   - https only; every URL and every redirect hop is checked against the denylist and the
-//     login-page patterns before it is requested,
+//   - https only, port 443, public hosts only: every URL and every redirect hop is checked
+//     against private and loopback addresses, the denylist and the login-page patterns before
+//     it is requested, and the default transport re-checks every resolved address when the
+//     connection opens (DNS rebinding),
+//   - API-lane redirects may only land on another official API endpoint, and custom headers
+//     never follow a redirect to another host,
+//   - API responses are never cached (their URLs carry keys),
 //   - robots.txt is read once per host per run (conditional GET across runs) and obeyed,
 //   - at most one request per 2 seconds per host (longer when robots.txt sets Crawl-delay),
 //   - an identifying User-Agent with a link to the bot page and no email,
@@ -8,9 +13,11 @@
 //   - a timeout per request and a cap on body size; anything bigger is abandoned.
 // The transport, clock and sleep are injected, so tests run against fixtures with no network.
 
+import { Agent, fetch as undiciFetch } from "undici";
 import { Denylist } from "../policy/denylist.ts";
 import { isLoginUrl } from "../policy/meta.ts";
 import { ALLOW_ALL, DISALLOW_ALL, type Robots, robotsForStatus } from "../policy/robots.ts";
+import { publicHostProblem, safeLookup } from "./address.ts";
 import { type HttpCache, MemoryHttpCache } from "./cache.ts";
 
 export const USER_AGENT = "ActivityPlanetBot/0.1 (+https://activity-planet.vercel.app/bot)";
@@ -25,6 +32,7 @@ export type Transport = (url: string, init: RequestInit) => Promise<Response>;
 
 export type FetchFailReason =
   | "not_https"
+  | "private_address"
   | "denylisted"
   | "login_page"
   | "robots_disallowed"
@@ -91,7 +99,7 @@ export class PoliteFetcher {
 
   constructor(opts: FetcherOptions) {
     this.denylist = opts.denylist;
-    this.transport = opts.transport ?? ((url, init) => fetch(url, init));
+    this.transport = opts.transport ?? defaultTransport();
     this.cache = opts.cache ?? new MemoryHttpCache();
     this.now = opts.now ?? (() => Date.now());
     this.sleep = opts.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
@@ -110,6 +118,7 @@ export class PoliteFetcher {
       return "not_https";
     }
     if (u.protocol !== "https:") return "not_https";
+    if (publicHostProblem(u)) return "private_address";
     if (this.denylist.check(url, { allowApi: opts.api === true }).denied) return "denylisted";
     if (!opts.api && isLoginUrl(url)) return "login_page";
     return null;
@@ -117,10 +126,22 @@ export class PoliteFetcher {
 
   async get(url: string, opts: FetchOptions = {}): Promise<FetchResult> {
     let current = url;
+    let originalHost: string;
+    try {
+      originalHost = new URL(url).host;
+    } catch {
+      return { ok: false, url, reason: "not_https" };
+    }
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
       const pre = this.precheck(current, opts);
       if (pre) return { ok: false, url: current, reason: pre };
       const host = new URL(current).host;
+      // An API redirect may only land on another official endpoint (never on a web page).
+      if (opts.api && hop > 0 && !this.denylist.isApiEndpoint(current)) {
+        return { ok: false, url: current, reason: "http_error", detail: "api_redirect_off_api" };
+      }
+      // Custom headers (API keys and the like) are for the host they were meant for.
+      const hopOpts = host === originalHost ? opts : { ...opts, headers: undefined };
 
       let interval = this.minIntervalMs;
       if (!opts.api) {
@@ -137,7 +158,7 @@ export class PoliteFetcher {
         }
       }
 
-      const res = await this.request(current, host, interval, opts);
+      const res = await this.request(current, host, interval, hopOpts);
       if (!res.ok || res.redirect === null) return res.ok ? res.result : res;
       current = res.redirect;
     }
@@ -153,7 +174,11 @@ export class PoliteFetcher {
       p = (async () => {
         let target = `${key}/robots.txt`;
         for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-          if (!target.startsWith("https://") || this.denylist.check(target).denied)
+          if (
+            !target.startsWith("https://") ||
+            publicHostProblem(new URL(target)) ||
+            this.denylist.check(target).denied
+          )
             return DISALLOW_ALL;
           const res = await this.request(target, new URL(target).host, this.minIntervalMs, {
             accept: "text/plain",
@@ -197,7 +222,8 @@ export class PoliteFetcher {
     | Extract<FetchResult, { ok: false }>
   > {
     await this.slot(host, intervalMs);
-    const cached = this.cache.get(url);
+    // API URLs carry keys (apikey=, client_id=): they never reach the persisted cache.
+    const cached = opts.api ? undefined : this.cache.get(url);
     const headers: Record<string, string> = {
       "user-agent": this.userAgent,
       accept:
@@ -293,21 +319,36 @@ export class PoliteFetcher {
     }
 
     const xRobotsTag = response.headers.get("x-robots-tag");
-    this.cache.set({
-      url,
-      etag: response.headers.get("etag"),
-      lastModified: response.headers.get("last-modified"),
-      contentType,
-      xRobotsTag,
-      body,
-      fetchedAt: this.now(),
-    });
+    if (!opts.api)
+      this.cache.set({
+        url,
+        etag: response.headers.get("etag"),
+        lastModified: response.headers.get("last-modified"),
+        contentType,
+        xRobotsTag,
+        body,
+        fetchedAt: this.now(),
+      });
     return {
       ok: true,
       redirect: null,
       result: { ok: true, url, status, contentType, xRobotsTag, body, notModified: false },
     };
   }
+}
+
+/**
+ * fetch over an undici Agent whose DNS lookup refuses non-public addresses. The check runs as
+ * each connection opens, so it covers every redirect hop and a name that rebinds between the
+ * precheck and the connect.
+ */
+export function defaultTransport(): Transport {
+  const agent = new Agent({ connect: { lookup: safeLookup } });
+  return async (url, init) =>
+    (await undiciFetch(url, {
+      ...(init as Parameters<typeof undiciFetch>[1]),
+      dispatcher: agent,
+    })) as unknown as Response;
 }
 
 /** The body as text, or null once it passes maxBytes (the rest is never downloaded). */

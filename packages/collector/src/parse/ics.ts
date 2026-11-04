@@ -121,12 +121,22 @@ function civilOfUtc(d: Date): Civil {
   };
 }
 
+/** zonedToUtc results by (zone, wall time): Intl lookups dominate expansion cost. */
+const instantCache = new Map<string, number>();
+const INSTANT_CACHE_MAX = 100_000;
+
 export function instantOf(civil: Civil, zone: string): Date {
-  return zone === "UTC"
-    ? new Date(
-        Date.UTC(civil.year, civil.month - 1, civil.day, civil.hour, civil.minute, civil.second),
-      )
-    : zonedToUtc(civil, zone);
+  if (zone === "UTC")
+    return new Date(
+      Date.UTC(civil.year, civil.month - 1, civil.day, civil.hour, civil.minute, civil.second),
+    );
+  const key = `${zone}|${civil.year}-${civil.month}-${civil.day}T${civil.hour}:${civil.minute}:${civil.second}`;
+  const hit = instantCache.get(key);
+  if (hit !== undefined) return new Date(hit);
+  const at = zonedToUtc(civil, zone);
+  if (instantCache.size >= INSTANT_CACHE_MAX) instantCache.clear();
+  instantCache.set(key, at.getTime());
+  return at;
 }
 
 /** RFC 5545 3.3.6 DURATION ("PT1H30M", "P1D", "-PT15M") in milliseconds, or null. */
@@ -162,6 +172,8 @@ function all(props: Prop[], name: string): Prop[] {
 }
 
 const MAX_INSTANCES_PER_EVENT = 200;
+/** Recurrence work allowed per file (see ExpandOptions.budget). */
+export const EXPANSION_BUDGET = 50_000;
 
 export function parseIcs(text: string, opts: IcsOptions): RawEvent[] {
   const root = parseComponents(text);
@@ -201,13 +213,21 @@ export function parseIcs(text: string, opts: IcsOptions): RawEvent[] {
   }
 
   const out: RawEvent[] = [];
+  const budget = { left: EXPANSION_BUDGET };
   const inWindow = (s: Date, e: Date) =>
     e.getTime() > opts.windowStart.getTime() && s.getTime() < opts.windowEnd.getTime();
 
-  const emit = (ev: Component, start: Date, end: Date, allDay: boolean, id: string | null) => {
+  /** Adds the instance when it is public and in the window; says whether it did. */
+  const emit = (
+    ev: Component,
+    start: Date,
+    end: Date,
+    allDay: boolean,
+    id: string | null,
+  ): boolean => {
     const cls = first(ev.props, "CLASS")?.value.trim().toUpperCase();
-    if (cls === "PRIVATE" || cls === "CONFIDENTIAL") return;
-    if (!inWindow(start, end)) return;
+    if (cls === "PRIVATE" || cls === "CONFIDENTIAL") return false;
+    if (!inWindow(start, end)) return false;
     const text = (name: string) => unescapeText(first(ev.props, name)?.value ?? "").trim();
     const geo = /^\s*(-?\d+(?:\.\d+)?)\s*[;,]\s*(-?\d+(?:\.\d+)?)\s*$/.exec(
       first(ev.props, "GEO")?.value ?? "",
@@ -238,6 +258,7 @@ export function parseIcs(text: string, opts: IcsOptions): RawEvent[] {
       host: organizer?.params.CN ? organizer.params.CN.replace(/^"|"$/g, "") : null,
       sourceUrl: opts.sourceUrl,
     });
+    return true;
   };
 
   /** Start, end and all-day of a component, or null when it has no usable DTSTART. */
@@ -310,7 +331,13 @@ export function parseIcs(text: string, opts: IcsOptions): RawEvent[] {
     const from = new Date(opts.windowStart.getTime() - Math.max(t.durationMs, 0));
     const starts = new Map<number, Date>();
     const civils = rule
-      ? expandRRule(rule, t.start.civil, { toInstant, until, from, to: opts.windowEnd })
+      ? expandRRule(rule, t.start.civil, {
+          toInstant,
+          until,
+          from,
+          to: opts.windowEnd,
+          budget,
+        })
       : [t.start.civil];
     for (const c of civils) {
       const at = toInstant(c);
@@ -321,7 +348,9 @@ export function parseIcs(text: string, opts: IcsOptions): RawEvent[] {
         const r = parseIcsTime({ ...rd, value: v }, zoneFor);
         if (!r) continue;
         const at = instantOf(r.civil, r.zone);
-        if (at.getTime() <= opts.windowEnd.getTime()) starts.set(at.getTime(), at);
+        // Past RDATEs are dropped here so they cannot use up the per-event cap.
+        if (at.getTime() <= opts.windowEnd.getTime() && at.getTime() > from.getTime())
+          starts.set(at.getTime(), at);
       }
     }
     for (const ex of all(ev.props, "EXDATE")) {
@@ -340,14 +369,17 @@ export function parseIcs(text: string, opts: IcsOptions): RawEvent[] {
       }
     }
 
+    // Only instances that are actually emitted count toward the cap.
     let n = 0;
     for (const at of [...starts.values()].sort((a, b) => a.getTime() - b.getTime())) {
       if (n >= MAX_INSTANCES_PER_EVENT) break;
+      if (at.getTime() <= from.getTime() && !own.has(at.getTime())) continue;
       const override = own.get(at.getTime());
+      let emitted = false;
       if (override) {
         const ot = timesOf(override);
         if (ot)
-          emit(
+          emitted = emit(
             override,
             ot.startAt,
             new Date(ot.startAt.getTime() + ot.durationMs),
@@ -356,7 +388,7 @@ export function parseIcs(text: string, opts: IcsOptions): RawEvent[] {
           );
         own.delete(at.getTime());
       } else {
-        emit(
+        emitted = emit(
           ev,
           at,
           new Date(at.getTime() + t.durationMs),
@@ -364,7 +396,7 @@ export function parseIcs(text: string, opts: IcsOptions): RawEvent[] {
           `${uid}#${at.toISOString()}`,
         );
       }
-      n++;
+      if (emitted) n++;
     }
   }
   return out;

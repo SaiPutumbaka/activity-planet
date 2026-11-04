@@ -36,28 +36,67 @@ export function decodeEntities(text: string): string {
   });
 }
 
-/** HTML to plain text: block ends become line breaks, tags go, entities decode, spaces collapse. */
-export function htmlToText(html: string): string {
-  const text = html
-    .replace(/\r\n?/g, "\n")
-    .replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, " ")
+/**
+ * Drops <script> and <style> elements in one forward pass. An element with no closing tag runs
+ * to the end of the text, as a browser reads it. Linear in the input, whatever it holds.
+ */
+function dropScriptsAndStyles(html: string): string {
+  const open = /<(script|style)\b/gi;
+  let out = "";
+  let pos = 0;
+  for (;;) {
+    open.lastIndex = pos;
+    const m = open.exec(html);
+    if (!m) break;
+    out += html.slice(pos, m.index) + " ";
+    const close = new RegExp(`</${m[1]}\\s*>`, "gi");
+    close.lastIndex = m.index + m[0].length;
+    const c = close.exec(html);
+    if (!c) return out;
+    pos = c.index + c[0].length;
+  }
+  return out + html.slice(pos);
+}
+
+/** Tags go; [^<>] keeps the scan linear even when a "<" never closes. */
+function stripTags(text: string): string {
+  return text
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, "\n")
-    .replace(/<[^>]+>/g, " ");
-  return decodeEntities(text)
+    .replace(/<\/(p|div|li|h[1-6]|tr)\s*>/gi, "\n")
+    .replace(/<[^<>]*>/g, " ");
+}
+
+/**
+ * HTML to plain text: block ends become line breaks, tags go, entities decode, spaces collapse.
+ * Decoding can reveal markup that was escaped ("&lt;img onerror=...&gt;"), so decode and strip
+ * repeat until the text stops changing, and no "<" or ">" survives.
+ */
+export function htmlToText(html: string): string {
+  let text = stripTags(dropScriptsAndStyles(html.replace(/\r\n?/g, "\n")));
+  for (let i = 0; i < 4; i++) {
+    const next = stripTags(decodeEntities(text));
+    if (next === text) break;
+    text = next;
+  }
+  return noAngles(text)
     .replace(/[ \t\u00a0]+/g, " ")
     .replace(/ *\n */g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
-/** Decoded text; escaped HTML inside is decoded first, then stripped. */
+/** "<" and ">" as look-alike angle quotes, so no item text can carry markup. */
+function noAngles(text: string): string {
+  return text.replace(/</g, "\u2039").replace(/>/g, "\u203a");
+}
+
+/** Decoded text; escaped HTML inside is decoded first, then stripped. No markup survives. */
 export function plain(value: string | null | undefined): string {
   if (!value) return "";
   const decoded = decodeEntities(value);
-  return /<[a-z!/][^>]*>/i.test(decoded)
+  return /<[a-z!/][^<>]*>/i.test(decoded)
     ? htmlToText(decoded)
-    : decoded.replace(/\s+/g, " ").trim();
+    : noAngles(decoded).replace(/\s+/g, " ").trim();
 }
 
 /** One line: every run of whitespace becomes a single space. */
@@ -70,6 +109,7 @@ export function oneLine(value: string): string {
  * ending with an ellipsis when cut.
  */
 export function excerpt(text: string, max: number): string {
+  if (max <= 0) return "";
   const clean = text.trim();
   if (clean.length <= max) return clean;
   const cut = clean.slice(0, max - 1);

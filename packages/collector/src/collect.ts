@@ -11,12 +11,12 @@ import { arcgisUrl, parseArcgis, parseSocrata, socrataUrl } from "./adapters/ope
 import { citiesFor } from "./config.ts";
 import { type Candidate, dedupe, inAnyRegion, windowReason } from "./filter.ts";
 import type { FetchResult, PoliteFetcher } from "./net/fetcher.ts";
-import { normalize } from "./normalize.ts";
+import { EXCERPT_MAX, normalize } from "./normalize.ts";
 import { isFeed, parseFeed } from "./parse/feed.ts";
 import { discoverLinks, scanHtml } from "./parse/html.ts";
 import { parseIcs } from "./parse/ics.ts";
 import { jsonLdEvents, schemaEvents } from "./parse/schema.ts";
-import { metaDirectives, parseXRobotsTag } from "./policy/meta.ts";
+import { mergeDirectives, metaDirectives, parseXRobotsTag, snippetLimit } from "./policy/meta.ts";
 import type { CityFile, RawEvent, Region, Seed, SourceBatch } from "./types.ts";
 import { hostOf, shortHash, siteOf } from "./util/url.ts";
 
@@ -67,7 +67,7 @@ interface SourceRun {
   order: number;
   seed?: Seed;
   /** Raw events with their normalize context bits. */
-  raws: { raw: RawEvent; idPrefix: string; fallbackUrl: string | null }[];
+  raws: { raw: RawEvent; idPrefix: string; fallbackUrl: string | null; snippetMax?: number }[];
 }
 
 const CALENDAR_TYPE = /text\/calendar|application\/calendar/i;
@@ -136,7 +136,8 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
   const zoneFor = (run: SourceRun) => run.region.timezone ?? "UTC";
 
   const readFeed = (run: SourceRun, res: Extract<FetchResult, { ok: true }>, idPrefix: string) => {
-    if (parseXRobotsTag(res.xRobotsTag).noindex) {
+    const directives = parseXRobotsTag(res.xRobotsTag);
+    if (directives.noindex) {
       errors.push({ sourceKey: run.key, url: res.url, reason: "noindex" });
       return;
     }
@@ -155,7 +156,8 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
       return;
     }
     const fallback = run.seed?.kind === "page" ? run.seed.url : null;
-    for (const raw of events) run.raws.push({ raw, idPrefix, fallbackUrl: fallback });
+    const snippetMax = snippetLimit(directives, EXCERPT_MAX);
+    for (const raw of events) run.raws.push({ raw, idPrefix, fallbackUrl: fallback, snippetMax });
   };
 
   const readPage = (
@@ -173,17 +175,17 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
       errors.push({ sourceKey: run.key, url: res.url, reason: "login_page" });
       return none;
     }
-    const header = parseXRobotsTag(res.xRobotsTag);
-    const meta = metaDirectives(scan.metas);
-    const noindex = header.noindex || meta.noindex;
-    const nofollow = header.nofollow || meta.nofollow;
+    const directives = mergeDirectives(parseXRobotsTag(res.xRobotsTag), metaDirectives(scan.metas));
+    const { noindex, nofollow } = directives;
+    const snippetMax = snippetLimit(directives, EXCERPT_MAX);
     if (noindex) errors.push({ sourceKey: run.key, url: res.url, reason: "noindex" });
     else {
       const events = [
         ...jsonLdEvents(scan.jsonLd, { pageUrl: res.url }),
         ...schemaEvents(scan.microdata, { pageUrl: res.url }),
       ];
-      for (const raw of events) run.raws.push({ raw, idPrefix: "p:", fallbackUrl: res.url });
+      for (const raw of events)
+        run.raws.push({ raw, idPrefix: "p:", fallbackUrl: res.url, snippetMax });
     }
     if (!discover || nofollow) return none;
     const site = siteOf(hostOf(res.url));
@@ -313,7 +315,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
   for (const run of allRuns) {
     skipped.set(run.key, skipped.get(run.key) ?? {});
     const region = run.region;
-    for (const { raw, idPrefix, fallbackUrl } of run.raws) {
+    for (const { raw, idPrefix, fallbackUrl, snippetMax } of run.raws) {
       rawCount++;
       const res = normalize(raw, {
         region,
@@ -323,12 +325,13 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
         imagesLicensed: run.seed?.imagesLicensed === true,
         hostOrg: run.seed?.host_org ?? null,
         extraCategories: run.seed?.categories,
+        snippetMax,
       });
       if (!res.ok) {
         bump(run.key, res.reason);
         continue;
       }
-      if (!inAnyRegion(res.item, opts.regions)) {
+      if (!inAnyRegion(res.item, opts.regions, region)) {
         bump(run.key, "outside_region");
         continue;
       }

@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "domhandler": "^6.0.1",
-    "htmlparser2": "^12.0.0"
+    "htmlparser2": "^12.0.0",
+    "undici": "^7.16.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

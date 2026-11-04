@@ -1,11 +1,39 @@
 // Page-level permissions: robots meta tags and X-Robots-Tag headers (noindex: read nothing
-// from the page; nofollow: discover nothing from it), and login pages, which are never read.
+// from the page; nofollow: discover nothing from it; nosnippet: no excerpt; max-snippet:N: an
+// excerpt of at most N characters), and login pages, which are never read.
 
 import { BOT_TOKEN } from "./robots.ts";
 
 export interface IndexDirectives {
   noindex: boolean;
   nofollow: boolean;
+  nosnippet: boolean;
+  /** max-snippet:N when N >= 0 (0 means no snippet); null when unlimited or unset. */
+  maxSnippet: number | null;
+}
+
+function empty(): IndexDirectives {
+  return { noindex: false, nofollow: false, nosnippet: false, maxSnippet: null };
+}
+
+/** Both sets apply: the stricter value of each directive wins. */
+export function mergeDirectives(a: IndexDirectives, b: IndexDirectives): IndexDirectives {
+  const limits = [a.maxSnippet, b.maxSnippet].filter((n): n is number => n !== null);
+  return {
+    noindex: a.noindex || b.noindex,
+    nofollow: a.nofollow || b.nofollow,
+    nosnippet: a.nosnippet || b.nosnippet,
+    maxSnippet: limits.length ? Math.min(...limits) : null,
+  };
+}
+
+/**
+ * The longest excerpt the directives allow, given our own cap: 0 for nosnippet or
+ * max-snippet:0, else the smaller of max-snippet and the cap.
+ */
+export function snippetLimit(d: IndexDirectives, cap: number): number {
+  if (d.nosnippet) return 0;
+  return d.maxSnippet === null ? cap : Math.min(cap, d.maxSnippet);
 }
 
 /** Directives from one robots meta content or X-Robots-Tag value ("noindex, nofollow", "none"). */
@@ -14,6 +42,12 @@ function parseDirectiveList(value: string, into: IndexDirectives): void {
     const d = raw.trim().toLowerCase();
     if (d === "noindex" || d === "none") into.noindex = true;
     if (d === "nofollow" || d === "none") into.nofollow = true;
+    if (d === "nosnippet") into.nosnippet = true;
+    const max = /^max-snippet\s*:\s*(-?\d+)$/.exec(d);
+    if (max) {
+      const n = Number(max[1]);
+      if (n >= 0) into.maxSnippet = into.maxSnippet === null ? n : Math.min(into.maxSnippet, n);
+    }
   }
 }
 
@@ -22,7 +56,7 @@ function parseDirectiveList(value: string, into: IndexDirectives): void {
  * name ("googlebot: noindex"); only ours and unprefixed ones apply.
  */
 export function parseXRobotsTag(header: string | null | undefined): IndexDirectives {
-  const out: IndexDirectives = { noindex: false, nofollow: false };
+  const out = empty();
   if (!header) return out;
   // Split on commas that start a new "agent:" section, keeping directive lists together.
   const sections = header.split(/,(?=\s*[A-Za-z0-9_-]+\s*:)/);
@@ -43,7 +77,7 @@ export function parseXRobotsTag(header: string | null | undefined): IndexDirecti
 
 /** Robots meta tags: name="robots" and name="activityplanetbot" apply; other bots' names do not. */
 export function metaDirectives(metas: { name: string; content: string }[]): IndexDirectives {
-  const out: IndexDirectives = { noindex: false, nofollow: false };
+  const out = empty();
   for (const m of metas) {
     const name = m.name.trim().toLowerCase();
     if (name === "robots" || name === BOT_TOKEN) parseDirectiveList(m.content, out);

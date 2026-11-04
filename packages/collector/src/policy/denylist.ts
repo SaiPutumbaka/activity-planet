@@ -4,6 +4,7 @@
 // apiAllow, and only the API lane may use it.
 
 import { readFileSync } from "node:fs";
+import { siteOf } from "../util/url.ts";
 
 export interface DenylistData {
   domains: { domain: string; reason?: string }[];
@@ -48,16 +49,24 @@ export class Denylist {
     for (const d of this.domains) {
       if (h === d.domain || h.endsWith(`.${d.domain}`)) return d.reason;
     }
-    const labels = h.split(".");
+    // "eventbrite.com", "www.eventbrite.co.uk", "eventbrite.events": the name is the site's
+    // own label, second to last, or third to last under a two-part suffix (co.uk, com.au).
+    const name = siteOf(h).split(".")[0] ?? "";
     for (const t of this.anyTld) {
-      // "eventbrite.com", "www.eventbrite.co.uk", "eventbrite.ca": the name is a label that is
-      // followed only by suffix-like labels (two or three letters, or com/org/net).
-      const i = labels.lastIndexOf(t.name);
-      if (i < 0 || i === labels.length - 1) continue;
-      const rest = labels.slice(i + 1);
-      if (rest.length <= 2 && rest.every((l) => /^[a-z]{2,3}$/.test(l))) return t.reason;
+      if (name === t.name) return t.reason;
     }
     return null;
+  }
+
+  /** Whether a URL is one of the official API endpoints in apiAllow. */
+  isApiEndpoint(url: string): boolean {
+    try {
+      const u = new URL(url);
+      const host = u.hostname.toLowerCase();
+      return this.apiAllow.some((a) => a.host === host && u.pathname.startsWith(a.pathPrefix));
+    } catch {
+      return false;
+    }
   }
 
   /** Verdict for a URL. allowApi: the caller is the API lane calling an official endpoint. */

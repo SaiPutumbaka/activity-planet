@@ -173,15 +173,53 @@ export interface ExpandOptions {
   /** Expansion stops at the first occurrence starting after this. */
   to: Date;
   maxPeriods?: number;
+  /**
+   * Work left for the whole file (one unit per period and per candidate time), shared across
+   * events so one calendar cannot spend unbounded CPU. Expansion stops when it reaches 0.
+   */
+  budget?: { left: number };
+}
+
+/**
+ * The first period worth walking when the rule has no COUNT: two periods before the one that
+ * holds `from`, so a rule whose DTSTART is decades old starts near the window instead of at
+ * 1970. With COUNT every earlier instance counts toward the limit, so the walk starts at 0.
+ */
+export function firstUsefulPeriod(rule: RRule, dtstart: Civil, from: Date): number {
+  if (rule.count !== null) return 0;
+  const fy = from.getUTCFullYear();
+  const fm = from.getUTCMonth() + 1;
+  const spanDays = Math.floor(
+    (Date.UTC(fy, fm - 1, from.getUTCDate()) -
+      Date.UTC(dtstart.year, dtstart.month - 1, dtstart.day)) /
+      86_400_000,
+  );
+  if (spanDays <= 0) return 0;
+  let periods: number;
+  switch (rule.freq) {
+    case "DAILY":
+      periods = spanDays;
+      break;
+    case "WEEKLY":
+      periods = Math.floor(spanDays / 7);
+      break;
+    case "MONTHLY":
+      periods = (fy - dtstart.year) * 12 + (fm - dtstart.month);
+      break;
+    case "YEARLY":
+      periods = fy - dtstart.year;
+      break;
+  }
+  return Math.max(0, Math.floor(periods / rule.interval) - 2);
 }
 
 /** Occurrence start times (wall clock, event zone) of a rule, DTSTART first. */
 export function expandRRule(rule: RRule, dtstart: Civil, opts: ExpandOptions): Civil[] {
   const out: Civil[] = [];
+  const budget = opts.budget ?? { left: Number.POSITIVE_INFINITY };
   const startMs = opts.toInstant(dtstart).getTime();
   let count = 0;
-  const take = (c: Civil): boolean => {
-    const t = opts.toInstant(c).getTime();
+  const take = (c: Civil, t: number): boolean => {
     if (opts.until && t > opts.until.getTime()) return false;
     if (t > opts.to.getTime()) return false;
     count++;
@@ -189,13 +227,16 @@ export function expandRRule(rule: RRule, dtstart: Civil, opts: ExpandOptions): C
     return rule.count === null || count < rule.count;
   };
   // DTSTART is always the first instance (RFC 5545 3.8.5.3), matching the rule or not.
-  if (!take(dtstart) || rule.unsupported) return out;
+  if (!take(dtstart, startMs) || rule.unsupported) return out;
   const maxPeriods = opts.maxPeriods ?? 20000;
-  for (let k = 0; k < maxPeriods; k++) {
+  const k0 = firstUsefulPeriod(rule, dtstart, opts.from);
+  for (let k = k0; k < k0 + maxPeriods; k++) {
+    if (--budget.left < 0) return out;
     for (const c of period(rule, dtstart, k)) {
+      if (--budget.left < 0) return out;
       const t = opts.toInstant(c).getTime();
       if (t <= startMs) continue;
-      if (!take(c)) return out;
+      if (!take(c, t)) return out;
     }
   }
   return out;

@@ -38,6 +38,11 @@ export interface NormalizeContext {
   idPrefix?: string;
   hostOrg?: string | null;
   extraCategories?: string[];
+  /**
+   * The longest excerpt the source allows (nosnippet: 0, max-snippet:N: N); never above
+   * EXCERPT_MAX. Unset means EXCERPT_MAX.
+   */
+  snippetMax?: number;
 }
 
 export type NormalizeResult = { ok: true; item: ImportItem } | { ok: false; reason: SkipReason };
@@ -89,7 +94,10 @@ export function normalize(raw: RawEvent, ctx: NormalizeContext): NormalizeResult
     item: {
       external_id: externalId,
       title: clip(title, TITLE_MAX),
-      description: excerpt(oneLine(plain(raw.description)), EXCERPT_MAX),
+      description: excerpt(
+        oneLine(plain(raw.description)),
+        Math.max(0, Math.min(EXCERPT_MAX, ctx.snippetMax ?? EXCERPT_MAX)),
+      ),
       starts_at: startsAt,
       ends_at: new Date(endMs).toISOString(),
       all_day: allDay,
