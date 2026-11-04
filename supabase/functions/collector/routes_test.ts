@@ -229,6 +229,8 @@ Deno.test("events body: POST /ingest/events, shape checked before the database s
         p_items: [{ external_id: "a" }],
         p_complete: true,
         p_enable: false,
+        p_run_id: "gh-9-1",
+        p_seen: [],
       },
     },
   );
@@ -255,6 +257,14 @@ Deno.test("events body: POST /ingest/events, shape checked before the database s
     parseEventsBody({ run_id: "r", source, items: new Array(2001).fill({}), complete: true }),
     { ok: false, error: "batch_too_large" },
   );
+  const withSeen = parseEventsBody({ run_id: "r", source, items: [], seen: ["a"], complete: true });
+  assertEquals(withSeen.ok && withSeen.args.p_seen, ["a"]);
+  for (const seen of [{}, [1], [""], ["x".repeat(201)], new Array(2001).fill("a")]) {
+    assertEquals(parseEventsBody({ run_id: "r", source, items: [], seen, complete: true }), {
+      ok: false,
+      error: "invalid_seen",
+    });
+  }
   assertEquals(rpcError(JSON.stringify({ message: "source_not_collector" })), {
     error: "source_not_collector",
     status: 409,

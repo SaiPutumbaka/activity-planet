@@ -271,6 +271,97 @@ describe("Localist API seeds", () => {
     expect(result.errors).toEqual([]);
   });
 
+  it("marks the set partial when a later page fails, and complete when it is gone", async () => {
+    const run = async (page2: FakeResponse) => {
+      const c = fakeClock();
+      const { transport } = fakeTransport(
+        {
+          "https://calendar.example.edu/robots.txt": { body: "User-agent: *\nAllow: /\n" },
+          "https://calendar.example.edu/api/2/events?days=60&pp=100&page=1": {
+            body: LOCALIST_PAGE_1,
+            headers: { "content-type": "application/json" },
+          },
+          "https://calendar.example.edu/api/2/events?days=60&pp=100&page=2": page2,
+        },
+        c.clock,
+      );
+      const fetcher = new PoliteFetcher({
+        denylist: Denylist.load(),
+        transport,
+        now: c.now,
+        sleep: c.sleep,
+      });
+      const result = await collect({
+        regions: [ATL],
+        cities: [{ region: ATL, seeds: [LOCALIST_SEED] }],
+        fetcher,
+        now: NOW,
+      });
+      return result.batches[0]!;
+    };
+    // 503 or 429 on page 2: page 2's events were not read, so none may count as missed.
+    for (const status of [503, 429]) {
+      const batch = await run({ status });
+      expect(batch.items).toHaveLength(1);
+      expect(batch.complete).toBe(false);
+    }
+    // A page that is gone (404 on a later page) is an answer.
+    expect((await run({ status: 404 })).complete).toBe(true);
+  });
+
+  it("sends the ids of events it filtered out as seen, never their text", async () => {
+    const LATER = JSON.stringify({
+      events: [
+        {
+          event: {
+            id: 301,
+            title: "Spring Recital",
+            localist_url: "https://calendar.example.edu/event/recital",
+            event_instances: [{ event_instance: { id: 7, start: "2027-03-20T19:00:00-04:00" } }],
+          },
+        },
+        {
+          event: {
+            id: 302,
+            title: "Poetry Night",
+            localist_url: "https://calendar.example.edu/event/poetry",
+            event_instances: [{ event_instance: { id: 8, start: "2026-11-20T19:00:00-05:00" } }],
+          },
+        },
+      ],
+      page: { current: 1, size: 100, total: 1 },
+    });
+    const c = fakeClock();
+    const { transport } = fakeTransport(
+      {
+        "https://calendar.example.edu/robots.txt": { body: "User-agent: *\nAllow: /\n" },
+        "https://calendar.example.edu/api/2/events?days=60&pp=100&page=1": {
+          body: LATER,
+          headers: { "content-type": "application/json" },
+        },
+      },
+      c.clock,
+    );
+    const fetcher = new PoliteFetcher({
+      denylist: Denylist.load(),
+      transport,
+      now: c.now,
+      sleep: c.sleep,
+    });
+    const result = await collect({
+      regions: [ATL],
+      cities: [{ region: ATL, seeds: [LOCALIST_SEED] }],
+      fetcher,
+      now: NOW,
+    });
+    const batch = result.batches[0]!;
+    expect(batch.items.map((i) => i.title)).toEqual(["Poetry Night"]);
+    expect(batch.seen).toHaveLength(1);
+    expect(batch.seen![0]).not.toContain("Recital");
+    expect(batch.skipped).toMatchObject({ beyond_window: 1 });
+    expect(batch.complete).toBe(true);
+  });
+
   it("honours X-Robots-Tag nosnippet and noindex on the API response", async () => {
     const ONE_PAGE = JSON.stringify({
       events: [
@@ -427,6 +518,22 @@ describe("a page's own feed is preferred over crawling", () => {
     expect(urls).toContain("https://museum.example.org/event/one/?ical=1");
     expect(urls).toContain("https://museum.example.org/event/one/");
     expect(urls).toContain("https://museum.example.org/event/two/");
+  });
+
+  it("marks the set partial when one of the page's feeds fails, not when one is gone", async () => {
+    const twoFeeds = (status: number) => ({
+      ...routes,
+      "https://museum.example.org/events/": html(
+        page + '<link rel="alternate" type="text/calendar" href="/classes/?ical=1">',
+      ),
+      "https://museum.example.org/classes/?ical=1": { status },
+    });
+    const failed = await runWith(seed, twoFeeds(503));
+    expect(failed.urls).toContain("https://museum.example.org/classes/?ical=1");
+    expect(failed.result.batches[0]!.items.length).toBeGreaterThan(0);
+    expect(failed.result.batches[0]!.complete).toBe(false);
+    const gone = await runWith(seed, twoFeeds(410));
+    expect(gone.result.batches[0]!.complete).toBe(true);
   });
 
   it("still crawls pages when the seed asks for it", async () => {

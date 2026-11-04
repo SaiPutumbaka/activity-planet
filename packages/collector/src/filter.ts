@@ -2,7 +2,8 @@
 // regions, or, with no point, when its source's own area (the seeded city, or the region an API
 // was asked about) is centred inside one of them. A small region at the edge of a city does not
 // get the city's coordinate-less events.
-// Then the run window, then dedupe within the run.
+// Then the run window, then dedupe within each source (copies across sources are linked by the
+// database).
 
 import type { ImportItem, Lane, Region } from "./types.ts";
 import { haversineKm } from "./util/geo.ts";
@@ -50,13 +51,19 @@ export interface Candidate {
 }
 
 /**
- * Items that survive dedupe, and how many each source lost. Within a source the external id
- * must be unique (import_upsert_batch skips duplicate_in_batch); across sources one copy of an
- * event is kept so the feed does not show it twice.
+ * Items that survive dedupe, how many each source lost, and the external ids of the copies
+ * dropped. Dedupe is within a source only: the same external id, title (letters and digits) and
+ * start minute, or URL and start minute, listed twice. Copies of one event from two sources are
+ * all sent; import_upsert_batch links them with the same title key (import_title_key) or URL and
+ * start minute, so each source keeps seeing its own copy and never counts it as missed. Sources
+ * are posted in lane order (feeds, then APIs, then pages), so the official calendar's copy is
+ * usually the primary.
  */
 export function dedupe(candidates: Candidate[]): {
   kept: Candidate[];
   dropped: Map<string, number>;
+  /** Per source, the external ids of dropped copies whose id no kept item has. */
+  notSent: Map<string, Set<string>>;
 } {
   const sorted = [...candidates].sort((a, b) => {
     const lane = LANE_RANK[a.item.lane] - LANE_RANK[b.item.lane];
@@ -71,12 +78,14 @@ export function dedupe(candidates: Candidate[]): {
   const byUrl = new Set<string>();
   const kept: Candidate[] = [];
   const dropped = new Map<string, number>();
+  const droppedIds: Candidate[] = [];
   for (const c of sorted) {
     const idKey = `${c.sourceKey}\u0000${c.item.external_id}`;
-    const key = dedupeKey(c.item);
-    const urlKey = `${c.item.url}|${c.item.starts_at.slice(0, 16)}`;
+    const key = `${c.sourceKey}\u0000${dedupeKey(c.item)}`;
+    const urlKey = `${c.sourceKey}\u0000${c.item.url}|${c.item.starts_at.slice(0, 16)}`;
     if (byId.has(idKey) || byKey.has(key) || byUrl.has(urlKey)) {
       dropped.set(c.sourceKey, (dropped.get(c.sourceKey) ?? 0) + 1);
+      droppedIds.push(c);
       continue;
     }
     byId.add(idKey);
@@ -84,6 +93,13 @@ export function dedupe(candidates: Candidate[]): {
     byUrl.add(urlKey);
     kept.push(c);
   }
+  const notSent = new Map<string, Set<string>>();
+  for (const c of droppedIds) {
+    if (byId.has(`${c.sourceKey}\u0000${c.item.external_id}`)) continue;
+    const s = notSent.get(c.sourceKey) ?? new Set<string>();
+    s.add(c.item.external_id);
+    notSent.set(c.sourceKey, s);
+  }
   kept.sort((a, b) => a.order - b.order || a.item.starts_at.localeCompare(b.item.starts_at));
-  return { kept, dropped };
+  return { kept, dropped, notSent };
 }

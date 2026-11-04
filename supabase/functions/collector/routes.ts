@@ -148,13 +148,21 @@ export interface EventsArgs {
   p_items: unknown[];
   p_complete: boolean;
   p_enable: boolean;
+  /** The job's run: a second post for the source in the same run counts no missed runs. */
+  p_run_id: string;
+  /** External ids the source still lists that the job did not send (ids only). */
+  p_seen: string[];
 }
+
+/** collector_ingest_events' largest seen-id list (migration 38). */
+export const MAX_SEEN_IDS = 2000;
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 /**
  * Body of POST /collector/ingest/events: {run_id, source: {slug, kind, url, name, attribution,
- * lane, enabled, hubs?, homepage_url?, region?}, items: [...], complete, enable}. The shape is
+ * lane, enabled, hubs?, homepage_url?, images_licensed?, region?}, items: [...], seen?: [external
+ * ids], complete, enable}. The shape is
  * checked here; collector_ingest_events validates every field again.
  */
 export function parseEventsBody(body: unknown): Parsed<EventsArgs> & { runId?: string } {
@@ -175,6 +183,13 @@ export function parseEventsBody(body: unknown): Parsed<EventsArgs> & { runId?: s
   if (typeof b.complete !== "boolean") return { ok: false, error: "invalid_complete" };
   if (b.enable !== undefined && typeof b.enable !== "boolean")
     return { ok: false, error: "invalid_enable" };
+  const seen = b.seen ?? [];
+  if (
+    !Array.isArray(seen) ||
+    seen.length > MAX_SEEN_IDS ||
+    seen.some((id) => typeof id !== "string" || id.length < 1 || id.length > 200)
+  )
+    return { ok: false, error: "invalid_seen" };
   return {
     ok: true,
     runId: b.run_id,
@@ -183,6 +198,8 @@ export function parseEventsBody(body: unknown): Parsed<EventsArgs> & { runId?: s
       p_items: b.items,
       p_complete: b.complete,
       p_enable: b.enable === true,
+      p_run_id: b.run_id,
+      p_seen: seen as string[],
     },
   };
 }

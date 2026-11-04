@@ -31,7 +31,7 @@ import { parseIcs } from "./parse/ics.ts";
 import { isPerEventExport } from "./parse/links.ts";
 import { jsonLdEvents, schemaEvents } from "./parse/schema.ts";
 import { mergeDirectives, metaDirectives, parseXRobotsTag, snippetLimit } from "./policy/meta.ts";
-import { INCOMPLETE_REASONS, type SourceInfo, sourceForApi, sourceForSeed } from "./sources.ts";
+import { isGap, type SourceInfo, sourceForApi, sourceForSeed } from "./sources.ts";
 import type { CityFile, RawEvent, Region, Seed, SourceBatch } from "./types.ts";
 import { hostOf, shortHash, siteOf } from "./util/url.ts";
 
@@ -64,6 +64,8 @@ export interface SourceError {
   status?: number;
   /** not_a_feed: what the body was instead (html, json, text, empty, ...). */
   detected?: string;
+  /** Part of the source was not read (sources.ts isGap): its batch is not complete. */
+  gap?: boolean;
 }
 
 /** The summary key for an error: "not_a_feed:html", or the bare reason. */
@@ -75,6 +77,12 @@ const count = (text: string, re: RegExp): number => text.match(re)?.length ?? 0;
 
 /** Listing views (The Events Calendar's /list/, /month/, ?eventDisplay=list) read per seed. */
 export const MAX_LISTING_VIEWS = 3;
+
+/** Posting order by the source's lane: official feeds first, then APIs, then page markup. */
+const LANE_POST_ORDER: Record<SourceInfo["lane"], number> = { feed: 0, api: 1, page: 2 };
+
+/** The most external ids one batch sends as seen (collector_ingest_events' limit). */
+export const MAX_SEEN_IDS = 2000;
 
 /** Fetch failures that mean the host's or the run's budget is spent: the seed stops there. */
 const BUDGET_STOP = new Set<string>(["host_budget_spent", "crawl_budget_spent", "run_deadline"]);
@@ -189,8 +197,15 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
     res: Extract<FetchResult, { ok: false }>,
     requested: string = res.url,
     api = false,
+    first = false,
   ) => {
-    errors.push({ sourceKey, url: redactUrl(res.url), reason: res.reason, status: res.status });
+    errors.push({
+      sourceKey,
+      url: redactUrl(res.url),
+      reason: res.reason,
+      status: res.status,
+      gap: isGap(res.reason, res.status, first),
+    });
     log(
       `skip ${sourceKey} ${redactUrl(res.url)}: ${res.reason}${res.status ? ` (${res.status})` : ""}`,
     );
@@ -369,7 +384,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
           ? socrataUrl(seed, region, { start: windowStart, end: windowEnd })
           : arcgisUrl(seed, region);
       const res = await fetcher.get(url, { accept: "application/json" });
-      if (!res.ok) return fail(run.key, res, url);
+      if (!res.ok) return fail(run.key, res, url, false, true);
       fetched++;
       try {
         const events =
@@ -377,7 +392,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
         for (const raw of events) run.raws.push({ raw, idPrefix: "", fallbackUrl: null });
         diag(run.key, url, res, `${seed.kind} events=${events.length}`);
       } catch {
-        errors.push({ sourceKey: run.key, url: redactUrl(url), reason: "bad_json" });
+        errors.push({ sourceKey: run.key, url: redactUrl(url), reason: "bad_json", gap: true });
         diag(run.key, url, res, `bad_json detected=${detectBodyType(res.body, res.contentType)}`);
       }
       return;
@@ -391,7 +406,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
         const url = localistEventsUrl(seed, days, page);
         const res = await fetcher.get(url, { accept: "application/json" });
         if (!res.ok) {
-          fail(run.key, res, url);
+          fail(run.key, res, url, false, page === 1);
           // A calendar whose robots.txt keeps us off its API is read as a page instead
           // (schema.org markup and its own feed links), like any other calendar.
           fallback = page === 1 && res.reason === "robots_disallowed";
@@ -408,7 +423,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
         try {
           parsed = parseLocalist(res.body, url);
         } catch {
-          errors.push({ sourceKey: run.key, url: redactUrl(url), reason: "bad_json" });
+          errors.push({ sourceKey: run.key, url: redactUrl(url), reason: "bad_json", gap: true });
           diag(run.key, url, res, `bad_json detected=${detectBodyType(res.body, res.contentType)}`);
           return;
         }
@@ -430,7 +445,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
 
     visited.add(pageUrl);
     const res = await fetcher.get(pageUrl);
-    if (!res.ok) return fail(run.key, res, pageUrl);
+    if (!res.ok) return fail(run.key, res, pageUrl, false, true);
     fetched++;
     if (seed.kind === "ics" || seed.kind === "rss") {
       const read = readFeed(run, res, "");
@@ -577,10 +592,12 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
   }
   const runApi = async ({ run, adapter, key, region }: (typeof apiRuns)[number]) => {
     let url: string | null = adapter.firstUrl(region, { start: windowStart, end: windowEnd }, key);
+    let first = true;
     while (url) {
       const current: string = url;
       const res = await fetcher.get(current, { api: true, accept: "application/json" });
-      if (!res.ok) return fail(run.key, res, current, true);
+      if (!res.ok) return fail(run.key, res, current, true, first);
+      first = false;
       fetched++;
       try {
         const page = adapter.parse(res.body, current);
@@ -588,7 +605,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
         diag(run.key, current, res, `api events=${page.events.length}`, true);
         url = page.next;
       } catch {
-        errors.push({ sourceKey: run.key, url: redactUrl(current), reason: "bad_json" });
+        errors.push({ sourceKey: run.key, url: redactUrl(current), reason: "bad_json", gap: true });
         diag(
           run.key,
           current,
@@ -607,7 +624,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
     pool(apiRuns, Math.max(1, Math.min(2, concurrency)), runApi),
   ]);
 
-  // Normalize, then region and window filters, then dedupe across the run.
+  // Normalize, then region and window filters, then dedupe within each source.
   const allRuns = [...seedRuns, ...apiRuns.map((a) => a.run)];
   const skipped = new Map<string, Record<string, number>>();
   const bump = (key: string, reason: string) => {
@@ -616,6 +633,15 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
     skipped.set(key, s);
   };
   const candidates: Candidate[] = [];
+  // External ids a source still lists that the run does not send (outside the regions, past
+  // the window, a duplicate within the source): sent as `seen`, so they count as listed and are
+  // never cancelled for it. An item that ended is not needed (only upcoming events are missed).
+  const notSent = new Map<string, Set<string>>();
+  const markNotSent = (key: string, id: string) => {
+    const set = notSent.get(key) ?? new Set<string>();
+    set.add(id);
+    notSent.set(key, set);
+  };
   let rawCount = 0;
   for (const run of allRuns) {
     skipped.set(run.key, skipped.get(run.key) ?? {});
@@ -638,17 +664,20 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
       }
       if (!inAnyRegion(res.item, opts.regions, region)) {
         bump(run.key, "outside_region");
+        markNotSent(run.key, res.item.external_id);
         continue;
       }
       const w = windowReason(res.item, windowStart, windowEnd);
       if (w) {
         bump(run.key, w);
+        if (w === "beyond_window") markNotSent(run.key, res.item.external_id);
         continue;
       }
       candidates.push({ sourceKey: run.key, item: res.item, order: run.order });
     }
   }
-  const { kept, dropped } = dedupe(candidates);
+  const { kept, dropped, notSent: dupIds } = dedupe(candidates);
+  for (const [key, ids] of dupIds) for (const id of ids) markNotSent(key, id);
   for (const [key, n] of dropped) {
     const s = skipped.get(key) ?? {};
     s.duplicate_in_run = (s.duplicate_in_run ?? 0) + n;
@@ -663,21 +692,34 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
     errorsBySource.set(e.sourceKey, s);
   }
 
-  const batches: SourceBatch[] = allRuns.map((run) => ({
-    sourceKey: run.key,
-    sourceName: run.name,
-    attribution: run.attribution,
-    regionId: run.regionId,
-    items: kept.filter((c) => c.sourceKey === run.key).map((c) => c.item),
-    skipped: skipped.get(run.key) ?? {},
-    errors: errorsBySource.get(run.key) ?? {},
-    // A sampled set (listing views) is never complete: an event missing from today's views may
-    // still be listed, so it must not count toward the two missed runs that cancel it.
-    complete:
-      run.sampled !== true &&
-      !errors.some((e) => e.sourceKey === run.key && INCOMPLETE_REASONS.has(e.reason)),
-    source: run.source,
-  }));
+  // Posted in lane order (feeds, then APIs, then pages), so when two sources list one event
+  // the official calendar's copy makes it and the others link to it.
+  const laneOrder = (run: SourceRun) => LANE_POST_ORDER[run.source.lane];
+  const batches: SourceBatch[] = [...allRuns]
+    .sort((a, b) => laneOrder(a) - laneOrder(b) || a.order - b.order)
+    .map((run) => {
+      const items = kept.filter((c) => c.sourceKey === run.key).map((c) => c.item);
+      const sent = new Set(items.map((i) => i.external_id));
+      const seen = [...(notSent.get(run.key) ?? [])]
+        .filter((id) => !sent.has(id))
+        .slice(0, MAX_SEEN_IDS);
+      return {
+        sourceKey: run.key,
+        sourceName: run.name,
+        attribution: run.attribution,
+        regionId: run.regionId,
+        items,
+        seen,
+        skipped: skipped.get(run.key) ?? {},
+        errors: errorsBySource.get(run.key) ?? {},
+        // A sampled set (listing views) is never complete: an event missing from today's views
+        // may still be listed, so it must not count toward the two missed runs that cancel it.
+        // Nor is a set with any failed fetch other than an answer (sources.ts isGap): a 5xx or
+        // 429 on page 3 of an API, or on one of a page's feeds, leaves those events unread.
+        complete: run.sampled !== true && !errors.some((e) => e.sourceKey === run.key && e.gap),
+        source: run.source,
+      };
+    });
 
   const totalSkipped: Record<string, number> = {};
   for (const s of skipped.values())

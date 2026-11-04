@@ -21,6 +21,11 @@ export interface SourceInfo {
   enabled: boolean;
   /** Hub slugs from the seed; the first active 18+ one becomes the source's default hub. */
   hubs: string[];
+  /**
+   * The seed says the source licenses its images for reuse (seed imagesLicensed). Without it
+   * collector_ingest_events drops every cover_url.
+   */
+  images_licensed: boolean;
   region: { lat: number; lng: number; radius_km: number; label: string; timezone: string | null };
 }
 
@@ -82,6 +87,7 @@ export function sourceForSeed(seed: Seed, cityRegion: Region): SourceInfo {
     lane: SEED_LANE[seed.kind],
     enabled: seed.enabled !== false,
     hubs: seed.hubs ?? [],
+    images_licensed: seed.imagesLicensed === true,
     region: regionOf(cityRegion),
   };
 }
@@ -101,23 +107,35 @@ export function sourceForApi(
     lane: "api",
     enabled: true,
     hubs: [],
+    images_licensed: false,
     region: regionOf(region),
   };
 }
 
 /**
- * Fetch failures that mean part of the source was not read this run, so a missing item may
- * still be listed: the RPC counts no missed runs for the batch (import_upsert_batch's partial
- * runs). A persistent 4xx/5xx on one side URL, noindex and robots.txt Disallow are answers,
- * not gaps, so they keep the batch complete.
+ * Fetch failures that are answers, not gaps: policy refusals (https only, private addresses,
+ * the denylist, sign-in pages), robots.txt Disallow, and noindex. Any other failed fetch
+ * (5xx, 429, 401/403, timeouts, budgets, redirects, unsupported types, a crawl delay we will not
+ * wait for) means part of the source was not read this run, so a missing item may still be
+ * listed: the batch is then partial and the RPC counts no missed runs for it.
  */
-export const INCOMPLETE_REASONS = new Set<string>([
-  "timeout",
-  "network_error",
-  "robots_unavailable",
-  "host_budget_spent",
-  "crawl_budget_spent",
-  "run_deadline",
-  "too_large",
-  "bad_json",
+const ANSWER_REASONS = new Set<string>([
+  "not_https",
+  "private_address",
+  "denylisted",
+  "login_page",
+  "robots_disallowed",
+  "noindex",
+  "not_a_feed",
 ]);
+
+/**
+ * True when a failure leaves a gap in the source's set. A 404 or 410 is an answer only on a
+ * side URL (a discovered feed, a listing view, an event page, a later API page that is gone);
+ * on the source's first request it means nothing was read.
+ */
+export function isGap(reason: string, status: number | undefined, first: boolean): boolean {
+  if (ANSWER_REASONS.has(reason)) return false;
+  if (reason === "http_error" && (status === 404 || status === 410) && !first) return false;
+  return true;
+}

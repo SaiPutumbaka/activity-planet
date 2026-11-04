@@ -157,6 +157,12 @@ export interface SourceBatch {
   attribution: string;
   regionId: string;
   items: ImportItem[];
+  /**
+   * External ids the source still lists that this run does not send (outside the regions,
+   * past the window, a duplicate within the source). The RPC counts them as seen, so a known
+   * event is not cancelled because the client filtered it. Ids only, never item text.
+   */
+  seen?: string[];
   /** Why items were dropped before ingest, by reason. */
   skipped: Record<string, number>;
   /**

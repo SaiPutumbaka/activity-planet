@@ -60,6 +60,7 @@ const RESULT_KEYS = [
   "missed",
   "cancelled",
   "handed_off",
+  "repeat_run",
 ] as const;
 
 export interface HttpIngestOptions {
@@ -89,7 +90,7 @@ export class HttpIngest implements Ingest {
 
   /** Creates or updates a source's row without items (a seed that is off). */
   async sync(source: SourceInfo): Promise<IngestResult> {
-    return this.post(source, [], true, `${source.slug}`);
+    return this.post(source, [], [], true, `${source.slug}`);
   }
 
   async send(batch: SourceBatch): Promise<IngestResult> {
@@ -101,18 +102,22 @@ export class HttpIngest implements Ingest {
       );
       return r;
     }
-    return this.post(batch.source, batch.items, batch.complete, batch.sourceKey);
+    return this.post(batch.source, batch.items, batch.seen ?? [], batch.complete, batch.sourceKey);
   }
 
   private async post(
     source: SourceInfo,
     items: unknown[],
+    seen: string[],
     complete: boolean,
     key: string,
   ): Promise<IngestResult> {
     const f = this.opts.fetch ?? fetch;
     let status = 0;
     let body: Record<string, unknown> = {};
+    // A 5xx can come back after collector_ingest_events committed (a gateway timeout). The
+    // retry carries the same run_id, so the database reads it as a repeat of this run's post for
+    // the source and counts no missed runs a second time.
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         const res = await f(`${this.opts.baseUrl}/ingest/events`, {
@@ -125,6 +130,7 @@ export class HttpIngest implements Ingest {
             run_id: this.opts.runId,
             source,
             items,
+            seen,
             complete,
             enable: this.opts.enable,
           }),

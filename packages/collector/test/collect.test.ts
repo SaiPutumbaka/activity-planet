@@ -294,6 +294,8 @@ describe("collect (fixtures, no network)", () => {
     expect(calls[0]!.url).toBe("https://abc.supabase.co/functions/v1/collector/ingest/events");
     expect(calls[0]!.headers["x-collector-secret"]).toBe("s".repeat(64));
     expect(calls[0]!.body).toMatchObject({ run_id: "gh-1-1", enable: true });
+    expect(Array.isArray(calls[0]!.body.seen)).toBe(true);
+    expect(calls[0]!.body.source).toHaveProperty("images_licensed");
     expect(Array.isArray(calls[0]!.body.items)).toBe(true);
     expect(lines[0]).toMatch(
       /^\[ingest\] source=\S+ sent=\d+ enabled=true total=3 inserted=2 linked_duplicates=1/,

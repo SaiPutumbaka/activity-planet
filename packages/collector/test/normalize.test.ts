@@ -186,18 +186,19 @@ describe("radius, window and dedupe", () => {
     expect(windowReason(item({ start: "2026-11-04T11:00:00Z" }), NOW, WINDOW_END)).toBeNull(); // still running
   });
 
-  it("dedupes by id within a source and by title+start or url+start across sources", () => {
+  it("dedupes within a source by id, title+start or url+start, and keeps copies across sources", () => {
     const c = (sourceKey: string, i: ImportItem, order: number): Candidate => ({
       sourceKey,
       item: i,
       order,
     });
     const a = item();
-    const { kept, dropped } = dedupe([
+    const { kept, dropped, notSent } = dedupe([
       c("page-src", { ...item({ lane: "page", uid: "p1" }) }, 0),
       c("feed-src", a, 1),
       c("feed-src", { ...a }, 1), // same id, same source
       c("api-src", item({ lane: "api", uid: "x9", title: "COMMUNITY  clean-up!" }), 2),
+      c("api-src", item({ lane: "api", uid: "x8", title: "Community clean up" }), 2),
       c(
         "api-src",
         item({ lane: "api", uid: "x10", title: "Different", url: "https://example.org/e/1" }),
@@ -209,20 +210,28 @@ describe("radius, window and dedupe", () => {
         2,
       ),
     ]);
+    // Cross-source copies are all sent (the database links them); within a source one is kept.
     expect(kept.map((k) => `${k.sourceKey}:${k.item.external_id}`)).toEqual([
+      "page-src:p1",
       "feed-src:u1",
+      "api-src:x9",
       "api-src:x11",
     ]);
-    expect(Object.fromEntries(dropped)).toEqual({ "feed-src": 1, "page-src": 1, "api-src": 2 });
+    // x8: same title letters and start as x9; x10: same URL and start as x9.
+    expect(Object.fromEntries(dropped)).toEqual({ "feed-src": 1, "api-src": 2 });
+    // A dropped copy with its own id is reported, so the RPC still counts it as listed.
+    expect(Object.fromEntries([...notSent].map(([k, v]) => [k, [...v]]))).toEqual({
+      "api-src": ["x8", "x10"],
+    });
   });
 
-  it("prefers the copy with a point when lanes tie", () => {
+  it("prefers the copy with a point when lanes tie within a source", () => {
     const withPoint = item({ uid: "b" });
     const without = item({ uid: "a", lat: null, lng: null });
     const { kept } = dedupe([
       { sourceKey: "s1", item: without, order: 0 },
-      { sourceKey: "s2", item: withPoint, order: 1 },
+      { sourceKey: "s1", item: withPoint, order: 0 },
     ]);
-    expect(kept.map((k) => k.sourceKey)).toEqual(["s2"]);
+    expect(kept.map((k) => k.item.external_id)).toEqual(["b"]);
   });
 });
