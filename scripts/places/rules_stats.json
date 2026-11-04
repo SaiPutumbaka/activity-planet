@@ -1,0 +1,24 @@
+{
+ "rules_version": 1,
+ "hubs": 612,
+ "place_mode": {
+  "generic": 130,
+  "none": 46,
+  "specific": 436
+ },
+ "rules": 703,
+ "rules_verified": 0,
+ "base_tags": 268,
+ "hub_rule_links": 1422,
+ "kinds": 47,
+ "tags_in_research": 505,
+ "taginfo": {
+  "fetched_at": null,
+  "tags_with_counts": 0,
+  "tags_under_threshold": 0,
+  "min_uses": 50
+ },
+ "dropped_filter_values": {},
+ "dropped_tags": [],
+ "hubs_with_places_but_no_rules": []
+}

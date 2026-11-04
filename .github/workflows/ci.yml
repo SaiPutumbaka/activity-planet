@@ -44,3 +44,20 @@ jobs:
         with:
           deno-version: v2.1.4
       - run: deno test --allow-read supabase/functions/import-feed
+
+  # Hub map place rules (D-041): rebuild the JSON from the research tables, regenerate the seed and
+  # the osmium filter, and fail if anything differs from what is committed. Python stdlib only.
+  place-rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild hub_place_rules.json from scripts/places/rules
+        run: python3 -I scripts/places/build_rules_json.py
+      - name: Regenerate supabase/seed/place_rules.sql and scripts/places/filters.txt
+        run: python3 -I scripts/places/gen_place_rules.py --check
+      - name: Fail if a generated file differs from the commit
+        run: |
+          git status --porcelain -- scripts/places supabase/seed
+          git diff --exit-code -- scripts/places supabase/seed
+          test -z "$(git status --porcelain -- scripts/places supabase/seed)"
