@@ -9,7 +9,8 @@
 --     clients, no client writes on places, tile helpers, account deletion
 --     covers places.
 --   2 Seed: 47 kinds, 575 verified rules, 1332 hub-rule links, place modes
---     436 / 130 / 46, the four flagged hubs 'none'.
+--     436 / 130 / 46 over the catalog (hubs outside it stay 'specific'), the
+--     four flagged hubs 'none'.
 --   3 ODbL separation: imported and venue rows carry no user id, member rows
 --     no import keys, only member rows are private, ODbL-1.0 only, the tag
 --     allowlist.
@@ -187,10 +188,14 @@ begin
   if (select count(*) from public.hub_place_rules) <> 1332 then
     raise exception 'FAIL hub_place_rules count is %', (select count(*) from public.hub_place_rules);
   end if;
-  if (select count(*) from public.hubs where place_mode = 'specific') <> 436
-     or (select count(*) from public.hubs where place_mode = 'generic') <> 130
-     or (select count(*) from public.hubs where place_mode = 'none') <> 46 then
-    raise exception 'FAIL place modes are not 436 / 130 / 46';
+  -- The catalog's 612 hubs are 436 / 130 / 46; a hub made outside the catalog
+  -- (for example from a hub request) keeps the default 'specific'.
+  if (select count(*) from public.hubs where place_mode = 'generic') <> 130
+     or (select count(*) from public.hubs where place_mode = 'none') <> 46
+     or (select count(*) from public.hubs) < 612
+     or (select count(*) from public.hubs where place_mode = 'specific') - 436
+        <> (select count(*) from public.hubs) - 612 then
+    raise exception 'FAIL place modes are not 436 / 130 / 46 over the catalog';
   end if;
   if (select count(*) from public.hubs
        where slug in ('hunting', 'knife-collecting', 'cliff-diving', 'spearfishing') and place_mode = 'none') <> 4 then
