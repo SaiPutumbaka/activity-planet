@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 40 (schema_version 2.36). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 41 (schema_version 2.37). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -2313,6 +2313,7 @@ export type Database = {
           keep: boolean;
           last_member_at: string | null;
           osm_run_at: string | null;
+          queue_reason: string | null;
           row_count: number;
           status: Database["public"]["Enums"]["place_tile_status"];
           updated_at: string;
@@ -2327,6 +2328,7 @@ export type Database = {
           keep?: boolean;
           last_member_at?: string | null;
           osm_run_at?: string | null;
+          queue_reason?: string | null;
           row_count?: number;
           status?: Database["public"]["Enums"]["place_tile_status"];
           updated_at?: string;
@@ -2341,6 +2343,7 @@ export type Database = {
           keep?: boolean;
           last_member_at?: string | null;
           osm_run_at?: string | null;
+          queue_reason?: string | null;
           row_count?: number;
           status?: Database["public"]["Enums"]["place_tile_status"];
           updated_at?: string;
@@ -3804,9 +3807,17 @@ export type Database = {
         Args: { p_env1: unknown; p_env2: unknown };
         Returns: boolean;
       };
+      place_tiles_mapping_reason_in_view: {
+        Args: { p_env1: unknown; p_env2: unknown };
+        Returns: string;
+      };
       place_tiles_note_member_homes: { Args: never; Returns: Json };
       place_tiles_queue: {
         Args: { p_kinds?: string[]; p_limit?: number };
+        Returns: Json;
+      };
+      place_tiles_set_queue_reasons: {
+        Args: { p_reasons: Json };
         Returns: Json;
       };
       places_in_view: {
