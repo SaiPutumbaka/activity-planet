@@ -8,9 +8,9 @@
 --     five-argument signature, service_role only (authenticated is refused);
 --     the place_rules_forget_deleted trigger exists and no client can call
 --     its function.
---   2 Drop guard (as service_role): a 60-row run finishes; a 41-row run is
+--   2 Drop guard (as service_role): a 100-row run finishes; a 69-row run is
 --     refused with row_count_drop and nothing is missed, closed or stamped;
---     a 42-row run (exactly 70%) finishes; a 10-row run is refused, then
+--     a 70-row run (exactly 70%) finishes; a 10-row run is refused, then
 --     finishes with p_allow_drop; a 5-row run after it is not guarded (the
 --     last run saw fewer than 50 rows).
 --   3 Deleted rules: deleting a rule removes its id from places.rule_ids
@@ -156,25 +156,25 @@ declare
   v_at    timestamptz;
   v_err   text;
 begin
-  -- Run 1: 60 rows.
-  perform public.ingest_places(v_t, 'pgd-r1', pg_temp.rows(60));
-  v_res := public.finish_place_tile(v_t, 'pgd-r1', 60);
-  if (v_res ->> 'seen')::integer <> 60 or (v_res ->> 'missed')::integer <> 0 then
+  -- Run 1: 100 rows.
+  perform public.ingest_places(v_t, 'pgd-r1', pg_temp.rows(100));
+  v_res := public.finish_place_tile(v_t, 'pgd-r1', 100);
+  if (v_res ->> 'seen')::integer <> 100 or (v_res ->> 'missed')::integer <> 0 then
     raise exception 'FAIL run 1: %', v_res;
   end if;
   perform pg_temp.age_runs();
   select osm_run_at into v_at from public.place_tiles where id = v_t;
 
-  -- Run 2: 41 of 60 (68%) is refused before anything changes.
-  perform public.ingest_places(v_t, 'pgd-r2', pg_temp.rows(41));
+  -- Run 2: 69 of 100 is refused before anything changes.
+  perform public.ingest_places(v_t, 'pgd-r2', pg_temp.rows(69));
   v_ok := false;
   begin
-    perform public.finish_place_tile(v_t, 'pgd-r2', 41);
+    perform public.finish_place_tile(v_t, 'pgd-r2', 69);
   exception when check_violation then
     v_ok := sqlerrm = 'row_count_drop';
   end;
   if not v_ok then
-    raise exception 'FAIL a 32%% drop was not refused with row_count_drop';
+    raise exception 'FAIL a 31%% drop was not refused with row_count_drop';
   end if;
   if exists (select 1 from public.places where tile_id = v_t and (missed_runs > 0 or status <> 'active')) then
     raise exception 'FAIL a refused run missed or closed rows';
@@ -184,16 +184,16 @@ begin
     raise exception 'FAIL a refused run was stamped or finished';
   end if;
 
-  -- Run 3: 42 of 60 (exactly 70%) finishes; 18 rows get one miss, none close.
-  perform public.ingest_places(v_t, 'pgd-r3', pg_temp.rows(42));
-  v_res := public.finish_place_tile(v_t, 'pgd-r3', 42);
-  if (v_res ->> 'previous_seen')::integer <> 60 or (v_res ->> 'seen')::integer <> 42
-     or (v_res ->> 'missed')::integer <> 18 or (v_res ->> 'closed')::integer <> 0 then
+  -- Run 3: 70 of 100 (exactly 70%) finishes; 30 rows get one miss, none close.
+  perform public.ingest_places(v_t, 'pgd-r3', pg_temp.rows(70));
+  v_res := public.finish_place_tile(v_t, 'pgd-r3', 70);
+  if (v_res ->> 'previous_seen')::integer <> 100 or (v_res ->> 'seen')::integer <> 70
+     or (v_res ->> 'missed')::integer <> 30 or (v_res ->> 'closed')::integer <> 0 then
     raise exception 'FAIL run 3 at 70%%: %', v_res;
   end if;
   perform pg_temp.age_runs();
 
-  -- Run 4: 10 of 42 is refused, then accepted with p_allow_drop (50 missed; the 18 missed
+  -- Run 4: 10 of 70 is refused, then accepted with p_allow_drop (90 missed; the 30 missed
   -- in run 3 close).
   perform public.ingest_places(v_t, 'pgd-r4', pg_temp.rows(10));
   v_ok := false;
@@ -212,8 +212,8 @@ begin
     raise exception 'FAIL refused run 4 closed rows';
   end if;
   v_res := public.finish_place_tile(v_t, 'pgd-r4', 10, 'osm', true);
-  if (v_res ->> 'seen')::integer <> 10 or (v_res ->> 'missed')::integer <> 50
-     or (v_res ->> 'closed')::integer <> 18 then
+  if (v_res ->> 'seen')::integer <> 10 or (v_res ->> 'missed')::integer <> 90
+     or (v_res ->> 'closed')::integer <> 30 then
     raise exception 'FAIL run 4 with allow_drop: %', v_res;
   end if;
   v_res := public.finish_place_tile(v_t, 'pgd-r4', 10, 'osm', false);
