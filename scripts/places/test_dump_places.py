@@ -42,9 +42,17 @@ class CheckRow(unittest.TestCase):
             with self.assertRaises(dp.DumpError, msg=str(over)):
                 dp.check_row(row(**over), 0)
 
-    def test_no_uuid_anywhere(self):
-        with self.assertRaises(dp.DumpError):
-            dp.check_row(row(name="Spot 0f8fad5b-d9cb-469f-a165-70867728950e"), 0)
+    def test_no_uuid_outside_the_website(self):
+        uid = "0f8fad5b-d9cb-469f-a165-70867728950e"
+        for over in ({"name": f"Spot {uid}"}, {"tags": {"brand": uid}}, {"opening_hours": uid},
+                     {"kind": f"park_{uid.upper()}"}):
+            with self.assertRaises(dp.DumpError, msg=str(over)):
+                dp.check_row(row(**over), 0)
+
+    def test_uuid_in_website_is_allowed(self):
+        # Real OSM websites can hold a uuid (staging, Nov 2026: n1640743906, n11350855624).
+        dp.check_row(row(website="https://example.org/venues/0f8fad5b-d9cb-469f-a165-70867728950e"), 0)
+        dp.check_row(row(osm_ref="n11350855624", website="https://x.example/?id=0F8FAD5B-D9CB-469F-A165-70867728950E"), 0)
 
 
 class Paging(unittest.TestCase):

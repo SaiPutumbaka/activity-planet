@@ -65,8 +65,8 @@ def check_row(row, n):
     for k in ("opening_hours", "website"):
         if row[k] is not None and not isinstance(row[k], str):
             raise DumpError(f"row {n}: bad {k}")
-    # No id of any kind: a uuid anywhere in the row means something leaked into it.
-    if UUID_LIKE.search(json.dumps(row)):
+    # No id of ours: a uuid outside the website (a public OSM URL may hold one) means a leak.
+    if UUID_LIKE.search(json.dumps({k: v for k, v in row.items() if k != "website"}, ensure_ascii=False)):
         raise DumpError(f"row {n}: holds an id")
 
 
