@@ -248,6 +248,13 @@ export function probeScore(
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
+/** A calendar export (ICS, webcal, The Events Calendar's ?ical=1, CivicPlus, Trumba, Google). */
+export function isCalendarExport(url: string): boolean {
+  return /\.ics(?:$|[?#])|[?&](?:ical|ics|outlook-ical)=1\b|iCalendar\.aspx|\/ical\/|format=ical/i.test(
+    url,
+  );
+}
+
 const FILE_PATH = /\.(pdf|jpe?g|png|gif|svg|webp|docx?|xlsx?|pptx?|zip|mp[34]|mov)$/i;
 
 interface Seen {
@@ -419,16 +426,26 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
       maxPages: 2,
     });
   };
+  // Calendar exports first (one), then pages whose own markup has events, then the event pages
+  // (collect() follows their feeds, listing views and event links), then RSS feeds last: a
+  // site's blog feed (/feed/) or a single event's feed rarely carries event times.
+  const calendarFeeds: string[] = [];
+  const rssFeeds: string[] = [];
   for (const s of seen) {
     const found = discoverLinks(s.scan, sameSite);
     const feeds = [...found.feeds, ...trumbaFeeds(s.body), ...googleEmbedFeeds(s.body)].filter(
       (u) => !isPerEventExport(u),
     );
-    for (const f of feeds)
-      add(/rss|atom|feed|format=rss/i.test(f) && !/ical|\.ics/i.test(f) ? "rss" : "ics", f);
+    for (const f of feeds) {
+      if (isCalendarExport(f)) calendarFeeds.push(f);
+      else if (!/\/comments\/feed\/?$/i.test(new URL(f).pathname)) rssFeeds.push(f);
+    }
   }
+  for (const f of calendarFeeds.slice(0, 1)) add("ics", f);
   for (const s of seen) if (s.events > 0) add("page", s.url);
   for (const s of seen.slice(1)) add("page", s.url);
+  for (const f of calendarFeeds.slice(1)) add("ics", f);
+  for (const f of rssFeeds) add("rss", f);
   const jsonLd = Math.max(0, ...seen.map((s) => s.events));
   if (seeds.length === 0) {
     notes.push(noindexPages > 0 ? "pages_noindex" : "nothing_found");
