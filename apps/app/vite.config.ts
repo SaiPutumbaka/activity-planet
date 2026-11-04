@@ -80,7 +80,17 @@ export default defineConfig(({ mode }) => ({
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//],
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+        // MapLibre (about 270 KB gzip) is lazy-loaded on the Map tab only (D-038). Keep it out of
+        // the install-time precache so people who never open the map never download it; it is
+        // cached on first use instead (hashed file names, so cache-first is safe).
+        globIgnores: ["**/map-canvas-*.{js,css}"],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) =>
+              url.origin === self.location.origin && /\/assets\/map-canvas-/.test(url.pathname),
+            handler: "CacheFirst",
+            options: { cacheName: "map-canvas", expiration: { maxEntries: 4 } },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: "StaleWhileRevalidate",

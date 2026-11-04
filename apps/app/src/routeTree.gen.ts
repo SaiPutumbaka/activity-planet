@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as MapRouteImport } from './routes/map'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppChatsRouteImport } from './routes/_app/chats'
@@ -44,6 +45,11 @@ const AppRoute = AppRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MapRoute = MapRouteImport.update({
+  id: '/map',
+  path: '/map',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -176,6 +182,7 @@ const AppEventsIdEditRoute = AppEventsIdEditRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
   '/chats': typeof AppChatsRoute
   '/hubs': typeof AppHubsRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
+  '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
   '/chats': typeof AppChatsRoute
   '/hubs': typeof AppHubsRoute
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
   '/_app/chats': typeof AppChatsRoute
   '/_app/hubs': typeof AppHubsRoute
@@ -264,6 +273,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/map'
     | '/onboarding'
     | '/chats'
     | '/hubs'
@@ -291,6 +301,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/map'
     | '/onboarding'
     | '/chats'
     | '/hubs'
@@ -320,6 +331,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/auth'
+    | '/map'
     | '/onboarding'
     | '/_app/chats'
     | '/_app/hubs'
@@ -350,6 +362,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  MapRoute: typeof MapRoute
   OnboardingRoute: typeof OnboardingRoute
 }
 
@@ -367,6 +380,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/map': {
+      id: '/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof MapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -614,6 +634,7 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  MapRoute: MapRoute,
   OnboardingRoute: OnboardingRoute,
 }
 export const routeTree = rootRouteImport

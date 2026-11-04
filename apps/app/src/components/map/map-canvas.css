@@ -1,0 +1,31 @@
+/*
+ * MapLibre's zoom buttons in the app's colours (§9: light and dark). Loaded with the canvas chunk
+ * only. The control icons are dark SVG backgrounds, so dark mode inverts them. The dark rules are
+ * written twice, like tokens.css: the system setting unless the app pinned light, and the app's
+ * explicit dark choice.
+ */
+.maplibregl-ctrl-group:not(:empty) {
+  background: var(--color-surface);
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 0.1);
+}
+.maplibregl-ctrl-group button + button {
+  border-top-color: var(--color-border);
+}
+.maplibregl-ctrl-group button:not(:disabled):hover {
+  background-color: var(--color-surface-2);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .maplibregl-ctrl-group .maplibregl-ctrl-icon {
+    filter: invert(1);
+  }
+  :root:not([data-theme="light"]) .maplibregl-ctrl-group:not(:empty) {
+    box-shadow: 0 0 0 1px var(--color-border-strong);
+  }
+}
+:root[data-theme="dark"] .maplibregl-ctrl-group .maplibregl-ctrl-icon {
+  filter: invert(1);
+}
+:root[data-theme="dark"] .maplibregl-ctrl-group:not(:empty) {
+  box-shadow: 0 0 0 1px var(--color-border-strong);
+}

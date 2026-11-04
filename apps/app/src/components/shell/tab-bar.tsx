@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { Home, MessageCircle, PlusSquare, UserRound, Users } from "lucide-react";
+import { Home, Map as MapIcon, PlusSquare, UserRound, Users } from "lucide-react";
 
 const TABS = [
   { to: "/", label: "Home", icon: Home, exact: true },
   { to: "/hubs", label: "Hubs", icon: Users },
   { to: "/post", label: "Post", icon: PlusSquare },
-  { to: "/chats", label: "Chats", icon: MessageCircle },
+  // Map takes the Chats slot until messaging ships; Chats is an icon in the Home top bar.
+  { to: "/map", label: "Map", icon: MapIcon },
   { to: "/you", label: "You", icon: UserRound },
 ] as const;
 
