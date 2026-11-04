@@ -132,17 +132,23 @@ interface GeoapifyResult {
   place_id?: string;
 }
 
-/** Up to five US address suggestions biased to downtown Atlanta. Empty without a key. */
+/** A point to rank nearby suggestions first (the host's saved home); none means no bias. */
+export type GeoBias = { lat: number; lng: number } | null;
+
+/**
+ * Up to five address suggestions anywhere in the world (D-040), ranked near `bias` when given.
+ * Empty without a key.
+ */
 export async function geoapifyAutocomplete(
   text: string,
+  bias: GeoBias = null,
   signal?: AbortSignal,
 ): Promise<GeoSuggestion[]> {
   if (!geoapifyKey) return [];
   const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
   url.searchParams.set("text", text);
   url.searchParams.set("limit", "5");
-  url.searchParams.set("filter", "countrycode:us");
-  url.searchParams.set("bias", "proximity:-84.3880,33.7490");
+  if (bias) url.searchParams.set("bias", `proximity:${bias.lng},${bias.lat}`);
   url.searchParams.set("format", "json");
   url.searchParams.set("apiKey", geoapifyKey);
   const res = await fetch(url, { signal });
@@ -158,7 +164,7 @@ export async function geoapifyAutocomplete(
         city: r.city ?? "",
         state: r.state_code ?? r.state ?? "",
         postal_code: r.postcode ?? "",
-        country: (r.country_code ?? "us").toUpperCase(),
+        country: (r.country_code ?? "").toUpperCase(),
         lat: r.lat,
         lng: r.lon,
         place_id: r.place_id,
@@ -168,11 +174,11 @@ export async function geoapifyAutocomplete(
   });
 }
 
-export const geoapifyQuery = (text: string) => {
+export const geoapifyQuery = (text: string, bias: GeoBias = null) => {
   const q = text.trim();
   return queryOptions({
-    queryKey: ["geoapify", q.toLowerCase()] as const,
-    queryFn: ({ signal }) => geoapifyAutocomplete(q, signal),
+    queryKey: ["geoapify", q.toLowerCase(), bias?.lat ?? null, bias?.lng ?? null] as const,
+    queryFn: ({ signal }) => geoapifyAutocomplete(q, bias, signal),
     enabled: geoapifyKey !== null && q.length >= 4,
     staleTime: 5 * 60_000,
     retry: 0,

@@ -8,8 +8,13 @@ export default function LandingPage() {
         Find your people and something to do with them this week.
       </h1>
       <p className="text-lg text-text-2">
-        Hubs for every interest, real plans, real connection. Launching in Atlanta in January 2027.
-        This page is being rebuilt; the full site arrives in the coming weeks.
+        Hubs for every interest, real plans and real people, wherever you live. Tell it where you
+        are and it shows what&apos;s happening around you first: plans posted by people near you,
+        plus public events from local calendars.
+      </p>
+      <p className="text-sm text-text-2">
+        For adults 18 and over, anywhere. This page is being rebuilt; the full site arrives in the
+        coming weeks.
       </p>
       <a
         href={APP_URL}

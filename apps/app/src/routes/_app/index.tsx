@@ -3,7 +3,7 @@ import { Link, createFileRoute, getRouteApi, useNavigate } from "@tanstack/react
 import { useQuery } from "@tanstack/react-query";
 import { CalendarX, ChevronDown, LocateFixed, MapPin, Search } from "lucide-react";
 import { z } from "zod";
-import { groupFeed } from "@ap/core/feed";
+import { FEED_TIMEZONE, groupFeed } from "@ap/core/feed";
 
 import { AttendancePromptCard } from "@/components/events/attendance-prompt-card";
 import { EventCard } from "@/components/events/event-card";
@@ -31,9 +31,18 @@ const searchSchema = z.object({
   free: z.boolean().optional(),
 });
 
+/** The viewer's own time zone for Today / This week, wherever they are; the feed's default otherwise. */
+function viewerTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || FEED_TIMEZONE;
+  } catch {
+    return FEED_TIMEZONE;
+  }
+}
+
 /**
- * Home: Feed v2 (D-036). Plans near the viewer's home area (or, after they tap "Use my
- * location", near them) plus everything in their hubs, in Today / This week / Later over 30
+ * Home: Feed v2 (D-036, D-040). Plans near the viewer's saved home, anywhere in the world (or,
+ * after they tap "Use my location", near them) plus everything in their hubs, in Today / This week / Later over 30
  * days. Imported listings sit in their own shelf below. Nothing here asks for location.
  * Above it all, a "Did you go?" card for the newest plan the viewer hasn't answered for.
  */
@@ -99,6 +108,9 @@ function Feed({ userId }: { userId: string }) {
       userId,
       point: origin.point,
       areaId: origin.homeArea?.id ?? null,
+      homeKey: origin.homePoint
+        ? `${origin.homePoint.lat},${origin.homePoint.lng}`
+        : (origin.homeLabel ?? null),
       radiusKm,
       hubId: hubFilter?.id,
       free: search.free,
@@ -107,7 +119,7 @@ function Feed({ userId }: { userId: string }) {
   });
 
   const now = new Date();
-  const groups = groupFeed(feed.data?.events ?? [], now);
+  const groups = groupFeed(feed.data?.events ?? [], now, viewerTimeZone());
   const filtered = Boolean(hubFilter) || Boolean(search.free);
 
   function setFilter(next: { hub?: string; free?: boolean }) {
@@ -121,7 +133,11 @@ function Feed({ userId }: { userId: string }) {
           type="button"
           onClick={() => setSheetOpen(true)}
           className="inline-flex h-9 items-center gap-1.5 self-start rounded-control border border-border bg-surface px-3 text-[14px] font-semibold hover:bg-surface-2"
-          aria-label={`Showing plans in ${origin.label}, within ${radiusKm} km. Change`}
+          aria-label={
+            origin.label === "Near you"
+              ? `Showing plans near you, within ${radiusKm} km. Change`
+              : `Showing plans around ${origin.label}, within ${radiusKm} km. Change`
+          }
         >
           {origin.point ? (
             <LocateFixed className="size-4 text-text-2" aria-hidden="true" />
@@ -181,7 +197,7 @@ function Feed({ userId }: { userId: string }) {
         <>
           {feed.data.widened ? (
             <p className="text-[13px] text-text-2" role="status">
-              Showing more of Atlanta
+              Not much close by, so this goes a little further out
               <span className="tabular"> (within {feed.data.radiusKm} km)</span>.
             </p>
           ) : null}

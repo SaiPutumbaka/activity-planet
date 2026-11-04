@@ -284,6 +284,8 @@ export interface FeedParams {
   point: { lat: number; lng: number } | null;
   /** The saved home area; part of the key so a change refetches (the server reads it itself). */
   areaId: string | null;
+  /** The saved home point or label, also only part of the key (the server reads profile_private). */
+  homeKey?: string | null;
   /** The radius to start from (the saved feed_radius_km). */
   radiusKm: number;
   hubId?: string;
@@ -310,6 +312,7 @@ export const feedQuery = (p: FeedParams) =>
         lat: p.point?.lat ?? null,
         lng: p.point?.lng ?? null,
         areaId: p.areaId,
+        home: p.homeKey ?? null,
         radiusKm: p.radiusKm,
         hubId: p.hubId ?? null,
         free: Boolean(p.free),
