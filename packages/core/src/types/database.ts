@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 32 (schema_version 2.28). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 33 (schema_version 2.29). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -3304,6 +3304,11 @@ export type Database = {
         Args: { p_series_id: string; p_weeks?: number };
         Returns: number;
       };
+      meeting_spot_refresh: { Args: { p_venue_id: string }; Returns: undefined };
+      meeting_spot_sync_place: {
+        Args: { p_place_id: string };
+        Returns: undefined;
+      };
       my_chapter_claims: {
         Args: never;
         Returns: {
@@ -3424,6 +3429,7 @@ export type Database = {
       purge_account_deletions: { Args: never; Returns: number };
       purge_read_notifications: { Args: never; Returns: number };
       refresh_hub_stats: { Args: never; Returns: number };
+      refresh_meeting_spots: { Args: never; Returns: number };
       remove_chapter_member: {
         Args: { p_chapter: string; p_user: string };
         Returns: undefined;
@@ -3697,6 +3703,36 @@ export type Database = {
       };
       upsert_venue: {
         Args: { p_args: Json };
+        Returns: {
+          address_line1: string;
+          address_line2: string;
+          campus_id: string | null;
+          city: string;
+          country: string | null;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          is_public: boolean;
+          lat: number | null;
+          lng: number | null;
+          location: unknown;
+          name: string;
+          place_id: string | null;
+          place_ref: string | null;
+          postal_code: string;
+          search_text: string | null;
+          state: string;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "venues";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      venue_for_place: {
+        Args: { p_place_id: string };
         Returns: {
           address_line1: string;
           address_line2: string;
