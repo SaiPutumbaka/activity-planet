@@ -302,7 +302,7 @@ describe("collect (fixtures, no network)", () => {
     expect(lines.join("\n")).not.toContain("s".repeat(64));
   });
 
-  it("marks a batch incomplete when robots.txt is unavailable, complete otherwise", async () => {
+  it("marks a batch incomplete when robots.txt is unavailable or the set is sampled from listing views and event pages", async () => {
     const { result } = await run(
       {},
       {
@@ -312,8 +312,10 @@ describe("collect (fixtures, no network)", () => {
     );
     const byKey = Object.fromEntries(result.batches.map((b) => [b.sourceKey, b]));
     expect(byKey["test-library"]!.complete).toBe(false);
-    expect(byKey["test-parks"]!.complete).toBe(true);
-    // A denylisted seed is an answer, not a gap.
+    // crawlPages: the event pages are a sample of the calendar.
+    expect(byKey["test-parks"]!.complete).toBe(false);
+    // robots.txt Disallow and a denylisted seed are answers, not gaps.
+    expect(byKey["test-blocked"]!.complete).toBe(true);
     expect(byKey["test-meetup"]!.complete).toBe(true);
   });
 

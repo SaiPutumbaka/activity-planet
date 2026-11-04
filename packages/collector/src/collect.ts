@@ -126,6 +126,11 @@ interface SourceRun {
   seed?: Seed;
   /** The feed_sources row the run's batch is for. */
   source: SourceInfo;
+  /**
+   * True when the items came from listing views and event pages (lane 3 behind a listing):
+   * views are dated and capped, so the set is a sample of the calendar, not all of it.
+   */
+  sampled?: boolean;
   /** Raw events with their normalize context bits. */
   raws: { raw: RawEvent; idPrefix: string; fallbackUrl: string | null; snippetMax?: number }[];
 }
@@ -495,6 +500,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
     seedPages: string[],
     covered: Set<string>,
   ) => {
+    run.sampled = true;
     const pages: string[] = [...seedPages];
     let views = 0;
     groupLoop: for (const group of groups) {
@@ -665,7 +671,11 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
     items: kept.filter((c) => c.sourceKey === run.key).map((c) => c.item),
     skipped: skipped.get(run.key) ?? {},
     errors: errorsBySource.get(run.key) ?? {},
-    complete: !errors.some((e) => e.sourceKey === run.key && INCOMPLETE_REASONS.has(e.reason)),
+    // A sampled set (listing views) is never complete: an event missing from today's views may
+    // still be listed, so it must not count toward the two missed runs that cancel it.
+    complete:
+      run.sampled !== true &&
+      !errors.some((e) => e.sourceKey === run.key && INCOMPLETE_REASONS.has(e.reason)),
     source: run.source,
   }));
 

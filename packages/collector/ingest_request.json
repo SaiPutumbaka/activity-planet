@@ -1,5 +1,5 @@
 {
   "$comment": "A push to a branch other than main that changes this file runs collector-ingest.yml against STAGING for this region (workflow_dispatch needs the workflow on main).",
   "region": "atl",
-  "requested": "2026-11-04T17:25Z (second run: unchanged and missed counts)"
+  "requested": "2026-11-04T17:40Z (third run: sampled page sets are partial)"
 }
