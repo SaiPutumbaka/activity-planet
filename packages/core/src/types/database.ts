@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 31 (schema_version 2.27). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 32 (schema_version 2.28). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -3394,6 +3394,10 @@ export type Database = {
       place_tile_bbox: { Args: { p_id: number }; Returns: unknown };
       place_tile_id: { Args: { p_lat: number; p_lng: number }; Returns: number };
       place_tile_id_of: { Args: { p_point: unknown }; Returns: number };
+      place_tiles_mapping_in_view: {
+        Args: { p_env1: unknown; p_env2: unknown };
+        Returns: boolean;
+      };
       place_tiles_queue: {
         Args: { p_kinds?: string[]; p_limit?: number };
         Returns: Json;

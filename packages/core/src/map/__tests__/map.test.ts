@@ -13,7 +13,10 @@ const sample = {
   ],
   plans: [["e1", -84.39, 33.76, "member", 1, 2 | 4, "Pickup", 1793885164]],
   shows: [],
-  cells: [[-84.4, 33.8, 2, ["e2", "e3"], [0, 5]]],
+  cells: [
+    [-84.4, 33.8, 2, ["e2", "e3"], [0, 5], ["Night run", "Board games"], [1793885164, 1793971564]],
+  ],
+  mapping: true,
   zoom_in: false,
   truncated: true,
   no_hubs: false,
@@ -49,11 +52,18 @@ describe("decodeMapView", () => {
       lat: 33.8,
       count: 2,
       events: [
-        { id: "e2", hubId: "h-a" },
-        { id: "e3", hubId: null },
+        { id: "e2", hubId: "h-a", title: "Night run", startsAt: new Date(1793885164000) },
+        { id: "e3", hubId: null, title: "Board games", startsAt: new Date(1793971564000) },
       ],
     });
     expect(v.truncated).toBe(true);
+    expect(v.mapping).toBe(true);
+  });
+
+  it("reads a migration 29 cell without titles or starts", () => {
+    const v = decodeMapView({ hubs: [], cells: [[1, 2, 1, ["e9"], [null]]] });
+    expect(v.cells[0]?.events).toEqual([{ id: "e9", hubId: null, title: "", startsAt: null }]);
+    expect(v.mapping).toBe(false);
   });
 
   it("keeps null layers null (zoom_in, layer off)", () => {

@@ -79,7 +79,8 @@ export interface MapCell {
   lng: number;
   lat: number;
   count: number;
-  events: { id: string; hubId: string | null }[];
+  /** Title and start arrived with migration 32 (empty and null before). */
+  events: { id: string; hubId: string | null; title: string; startsAt: Date | null }[];
 }
 
 export interface MapView {
@@ -92,6 +93,8 @@ export interface MapView {
   truncated: boolean;
   noHubs: boolean;
   generic: boolean;
+  /** Migration 32: a place tile in view is still being mapped. */
+  mapping: boolean;
 }
 
 type Raw = Record<string, unknown>;
@@ -162,11 +165,18 @@ export function decodeMapView(data: unknown): MapView {
   const cells = asArray(d.cells).map((row): MapCell => {
     const r = asArray(row);
     const hubIdx = asArray(r[4]);
+    const titles = asArray(r[5]);
+    const starts = asArray(r[6]);
     return {
       lng: Number(r[0]),
       lat: Number(r[1]),
       count: Number(r[2]),
-      events: asArray(r[3]).map((id, i) => ({ id: String(id), hubId: hubAt(hubs, hubIdx[i]) })),
+      events: asArray(r[3]).map((id, i) => ({
+        id: String(id),
+        hubId: hubAt(hubs, hubIdx[i]),
+        title: String(titles[i] ?? ""),
+        startsAt: typeof starts[i] === "number" ? new Date((starts[i] as number) * 1000) : null,
+      })),
     };
   });
   return {
@@ -179,6 +189,7 @@ export function decodeMapView(data: unknown): MapView {
     truncated: d.truncated === true,
     noHubs: d.no_hubs === true,
     generic: d.generic === true,
+    mapping: d.mapping === true,
   };
 }
 
