@@ -7,7 +7,8 @@ name: Collector ingest
 # import_upsert_batch on the items (collector_ingest_events, migration 37).
 #
 # Where it posts:
-#   * STAGING on every run, from any ref (workflow_dispatch) and on the schedule. Staging sources
+#   * STAGING on every run, from any ref (workflow_dispatch, or a push to a branch other than main
+#     that changes packages/collector/ingest_request.json) and on the schedule. Staging sources
 #     are switched on (--enable).
 #   * PRODUCTION only from main, and only when the repository variable COLLECTOR_PRODUCTION is
 #     "true" (default off). Production rows are created switched off and stay as the database has
@@ -28,6 +29,13 @@ on:
         description: "City seed file under packages/collector/data/cities (for example atl)"
         type: string
         default: atl
+  # A branch other than main can run it before the file reaches main (workflow_dispatch only
+  # works for workflows on the default branch): a push that changes
+  # packages/collector/ingest_request.json posts that file's region to STAGING only.
+  push:
+    branches-ignore: [main]
+    paths:
+      - "packages/collector/ingest_request.json"
   schedule:
     - cron: "41 */6 * * *"
 
@@ -58,12 +66,16 @@ jobs:
           PROD_VAR: ${{ vars.COLLECTOR_PRODUCTION }}
         run: |
           region="${IN_REGION:-atl}"
+          if [ "$EVENT" = "push" ]; then
+            if [ "$REF" = "refs/heads/main" ]; then echo "never on main pushes"; exit 1; fi
+            region=$(python3 -I -c 'import json;print(json.load(open("packages/collector/ingest_request.json"))["region"])')
+          fi
           case "$region" in
             *[!a-z0-9-]*|"") echo "Refusing region: $region"; exit 1 ;;
           esac
           test -f "packages/collector/data/cities/$region.json" || { echo "No such city file: $region"; exit 1; }
           production=false
-          if [ "$REF" = "refs/heads/main" ] && [ "$PROD_VAR" = "true" ]; then production=true; fi
+          if [ "$EVENT" != "push" ] && [ "$REF" = "refs/heads/main" ] && [ "$PROD_VAR" = "true" ]; then production=true; fi
           echo "event=$EVENT region=$region staging=true production=$production"
           {
             echo "region=$region"
