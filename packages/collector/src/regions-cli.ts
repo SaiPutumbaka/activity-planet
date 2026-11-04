@@ -6,12 +6,15 @@
 //     --out regions.json [--sources-out sources.json] [--all] [--limit 20]
 //       Due collector regions (or every one with --all), zones looked up offline where the row
 //       has none, plus the area of every city file that contains one (seeds only). With
-//       --sources-out, the discovered sources the database lists for them (none until slice 7).
+//       --sources-out, the discovered sources the database lists for them (probation, enabled
+//       and paused sources due a retry; migration 46).
 //
 //   pnpm --filter collector regions record --to https://<ref>.supabase.co/functions/v1/collector \
-//     --regions regions.json --batches batches.json --run-id <id>
+//     --regions regions.json --batches batches.json --run-id <id> [--sources sources.json]
 //       After the run was posted: per collector region, the sources and items it got, and the
-//       zone looked up for it, stamped on the row (collector_regions_record).
+//       zone looked up for it, stamped on the row (collector_regions_record). With --sources, each
+//       discovered source's result (items inside its region, outcome) goes to the lifecycle
+//       (POST /collector/sources/record): one good UTC day is probation, two enable it.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
@@ -22,7 +25,9 @@ import {
   fetchRegions,
   fetchSources,
   recordRegions,
+  recordSources,
   regionCounts,
+  sourceResults,
   withCityRegions,
 } from "./regions.ts";
 import type { Region } from "./types.ts";
@@ -46,6 +51,7 @@ async function main(argv: string[]): Promise<number> {
       limit: { type: "string" },
       regions: { type: "string" },
       batches: { type: "string" },
+      sources: { type: "string" },
       "run-id": { type: "string" },
     },
     allowPositionals: false,
@@ -111,6 +117,26 @@ async function main(argv: string[]): Promise<number> {
     console.log(
       `[regions] recorded=${entries.length} with_items=${withItems} without_items=${entries.length - withItems} result=${JSON.stringify(result)}`,
     );
+    if (values.sources) {
+      const results = sourceResults(
+        JSON.parse(readFileSync(values.sources, "utf8")),
+        file.regions,
+        saved.result.batches,
+      );
+      if (results.length === 0) {
+        console.log("[sources] no discovered sources in this run; nothing recorded");
+      } else {
+        const lifecycle = await recordSources(
+          { baseUrl: values.to.replace(/\/+$/, ""), secret, runId },
+          results,
+        );
+        const byOutcome: Record<string, number> = {};
+        for (const r of results) byOutcome[r.outcome] = (byOutcome[r.outcome] ?? 0) + 1;
+        console.log(
+          `[sources] recorded=${results.length} outcomes=${JSON.stringify(byOutcome)} result=${JSON.stringify(lifecycle)}`,
+        );
+      }
+    }
     return 0;
   }
 

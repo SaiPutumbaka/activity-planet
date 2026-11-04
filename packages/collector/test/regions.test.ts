@@ -8,8 +8,10 @@ import {
   fetchRegions,
   fetchSources,
   recordRegions,
+  recordSources,
   regionCounts,
   regionFromRow,
+  sourceResults,
   withCityRegions,
   zoneAt,
 } from "../src/regions.ts";
@@ -225,5 +227,86 @@ describe("collector regions (D-042 slice 6)", () => {
     const apiHosts = log.filter((l) => l.url.startsWith("https://app.ticketmaster.com/"));
     expect(apiHosts).toHaveLength(1);
     expect(result.batches.some((b) => b.sourceKey === "ticketmaster-atl")).toBe(false);
+  });
+
+  it("turns each discovered source's batch into a lifecycle result (migration 46)", () => {
+    const C1 = "aaaaaaaa-1111-4111-8111-111111111111";
+    const C2 = "bbbbbbbb-2222-4222-8222-222222222222";
+    const C3 = "cccccccc-3333-4333-8333-333333333333";
+    const C4 = "dddddddd-4444-4444-8444-444444444444";
+    const item = (lat: number | null, lng: number | null) =>
+      ({ lat, lng }) as unknown as ImportItem;
+    const batch = (
+      key: string,
+      items: ImportItem[],
+      errors: Record<string, number> = {},
+      complete = true,
+    ) => ({ sourceKey: key, items, errors, complete }) as unknown as SourceBatch;
+    const entry = (candidate: string, seed: string, region = ID_ATL) => ({
+      region_id: region,
+      candidate_id: candidate,
+      status: "probation",
+      seed: { id: seed },
+    });
+    const results = sourceResults(
+      {
+        sources: [
+          entry(C1, "disc-a"),
+          entry(C2, "disc-b"),
+          entry(C3, "disc-c"),
+          entry(C4, "disc-d"),
+          entry(C4, "disc-d"),
+          entry("not-a-uuid", "disc-e"),
+          entry(C1, "disc-f", ID_LEIPZIG),
+          entry(C1, "disc-missing"),
+        ],
+      },
+      [collectorAtl],
+      [
+        batch("disc-a", [item(33.75, -84.39), item(51.3, 12.4), item(null, null)], {
+          http_error: 1,
+        }),
+        batch("disc-b", [item(51.3, 12.4)]),
+        batch("disc-c", [], { robots_disallowed: 1 }),
+        batch("disc-d", [], { "not_a_feed:html": 2 }, false),
+        batch("disc-e", [item(33.75, -84.39)]),
+        batch("disc-f", [item(33.75, -84.39)]),
+      ],
+    );
+    expect(results).toEqual([
+      { candidate_id: C1, outcome: "ok", items: 3, in_region: 1, errors: 1, complete: true },
+      { candidate_id: C2, outcome: "empty", items: 1, in_region: 0, errors: 0, complete: true },
+      { candidate_id: C3, outcome: "robots", items: 0, in_region: 0, errors: 1, complete: true },
+      { candidate_id: C4, outcome: "no_feed", items: 0, in_region: 0, errors: 2, complete: false },
+    ]);
+    expect(sourceResults({}, [collectorAtl], [])).toEqual([]);
+  });
+
+  it("posts discovered source results in chunks and sums the counts", async () => {
+    const bodies: unknown[] = [];
+    const f = (async (_url: string, init: RequestInit = {}) => {
+      bodies.push(JSON.parse(init.body as string));
+      return new Response(JSON.stringify({ recorded: 2, probation: 1, repeat: 0 }));
+    }) as typeof fetch;
+    const r = {
+      candidate_id: "aaaaaaaa-1111-4111-8111-111111111111",
+      outcome: "ok" as const,
+      items: 1,
+      in_region: 1,
+      errors: 0,
+      complete: true,
+    };
+    const out = await recordSources(
+      { baseUrl: BASE, secret: SECRET, fetch: f, runId: "gh-2-1" },
+      Array.from({ length: 501 }, () => r),
+    );
+    expect(bodies).toHaveLength(2);
+    expect((bodies[0] as { run_id: string; results: unknown[] }).results).toHaveLength(500);
+    expect((bodies[1] as { run_id: string }).run_id).toBe("gh-2-1");
+    expect(out).toEqual({ recorded: 4, probation: 2, repeat: 0 });
+    const bad = (async () => new Response("{}", { status: 400 })) as typeof fetch;
+    await expect(
+      recordSources({ baseUrl: BASE, secret: SECRET, fetch: bad, runId: "r" }, [r]),
+    ).rejects.toThrow(/sources\/record failed: 400/);
   });
 });

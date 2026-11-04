@@ -11,11 +11,13 @@ name: Collector ingest
 #     collected today, from GET /collector/regions on the project whose members they are
 #     (production when production posting is on, else staging), at most region_limit a night.
 #     Each region gets the seeds of every hand-written city file that overlaps it, plus the
-#     discovered sources the database lists for it (GET /collector/sources, D-042 slice 7; none
-#     until that route exists). A city file whose area contains a collector region also runs as
+#     discovered sources the database lists for it (GET /collector/sources, D-042 slice 7,
+#     migration 46: probation and enabled ones). A city file whose area contains a collector region also runs as
 #     its own area (seeds only), so Atlanta keeps its 60 km. Zones missing on a region are looked
 #     up offline (tz-lookup). After the posts, each region's counts (sources and items inside it)
-#     and its looked-up zone are recorded on that same project (POST /collector/regions/record).
+#     and its looked-up zone are recorded on that same project (POST /collector/regions/record),
+#     and each discovered source's result goes to its lifecycle there (POST
+#     /collector/sources/record): a good run on two separate UTC days switches it on.
 #     "all" does the same for every region, collected today or not.
 #   * region "<city id>": one city seed file only (packages/collector/data/cities), as before.
 #   All regions of a run are collected in one pass with one fetcher, so the per-host spacing
@@ -258,7 +260,8 @@ jobs:
             --summary "$GITHUB_WORKSPACE/work/production.json"
 
       # Each collector region's sources and items inside it, and its looked-up zone, on the
-      # project the regions came from. Counts only in the log.
+      # project the regions came from, then each discovered source's result for its lifecycle
+      # (migration 46). Counts only in the log.
       - name: Regions, record the run
         if: steps.mode.outputs.mode == 'regions' && steps.regions.outputs.collector_regions != '0'
         env:
@@ -268,7 +271,8 @@ jobs:
           if [ "$FROM" = "production" ]; then ref="$PROD_PROJECT_REF"; secret="$PROD_COLLECTOR_SECRET"; else ref="$STAGING_PROJECT_REF"; secret="$STAGING_COLLECTOR_SECRET"; fi
           COLLECTOR_SECRET="$secret" pnpm --silent --filter collector regions record \
             --to "https://$ref.supabase.co/functions/v1/collector" --run-id "$RUN_ID-$FROM" \
-            --regions "$GITHUB_WORKSPACE/work/regions.json" --batches "$GITHUB_WORKSPACE/work/batches.json"
+            --regions "$GITHUB_WORKSPACE/work/regions.json" --batches "$GITHUB_WORKSPACE/work/batches.json" \
+            --sources "$GITHUB_WORKSPACE/work/sources.json"
 
       - name: Summary
         if: always()

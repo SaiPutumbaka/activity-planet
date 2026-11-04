@@ -7,6 +7,9 @@
 //   fetchRegions   GET  <base>/regions?due=1&limit=N  (collector_regions_due, migration 45)
 //   fetchSources   GET  <base>/sources?regions=<ids>  (404 until slice 7: no discovered sources)
 //   recordRegions  POST <base>/regions/record         (collector_regions_record)
+//   recordSources  POST <base>/sources/record         (source_candidates_record, migration 46:
+//                                                      each discovered source's run result, which
+//                                                      moves it through probation to enabled)
 //
 // Nothing here prints a region's point: public logs carry counts and region ids only.
 
@@ -229,8 +232,8 @@ export async function fetchRegions(
 }
 
 /**
- * Discovered sources for the run's collector regions. Until the discovery data model exists
- * (slice 7) the route answers 404 and the run has hand-written seeds only.
+ * Discovered sources for the run's collector regions (collector_sources_for_regions, migration
+ * 46). A 404 (a project without migration 46) means none: the run has hand-written seeds only.
  */
 export async function fetchSources(
   opts: ServiceOptions,
@@ -263,6 +266,97 @@ export async function recordRegions(
     });
     if (status !== 200 || typeof body !== "object" || body === null)
       throw new Error(`POST /regions/record failed: ${status}`);
+    for (const [k, v] of Object.entries(body as Record<string, unknown>))
+      if (typeof v === "number") out[k] = (out[k] ?? 0) + v;
+  }
+  return out;
+}
+
+/** One discovered source's result for POST /collector/sources/record (migration 46). */
+export interface SourceResult {
+  candidate_id: string;
+  outcome: "ok" | "empty" | "no_feed" | "error" | "blocked" | "robots" | "noindex" | "denylisted";
+  items: number;
+  in_region: number;
+  errors: number;
+  complete: boolean;
+}
+
+/** source_candidates_record's largest list. */
+const SOURCE_RESULTS_MAX = 500;
+
+/**
+ * The run's result for each discovered source in the sources file: how many of its kept items
+ * fall inside its collector region, and the outcome the database's lifecycle reads (a good run
+ * needs at least one such item and a complete read). Sources that produced no batch (the run's
+ * deadline came first) are left out, so they neither gain nor lose a day. Counts only.
+ */
+export function sourceResults(
+  data: unknown,
+  regions: Region[],
+  batches: SourceBatch[],
+): SourceResult[] {
+  const list = Array.isArray((data as { sources?: unknown })?.sources)
+    ? ((data as { sources: unknown[] }).sources as unknown[])
+    : [];
+  const out: SourceResult[] = [];
+  const done = new Set<string>();
+  for (const e of list) {
+    const o = (e ?? {}) as Record<string, unknown>;
+    const seedId = (o.seed as { id?: unknown } | undefined)?.id;
+    if (typeof o.candidate_id !== "string" || !UUID.test(o.candidate_id)) continue;
+    if (typeof seedId !== "string" || done.has(seedId)) continue;
+    const region = regions.find((r) => r.collector && r.id === o.region_id);
+    const batch = batches.find((b) => b.sourceKey === seedId);
+    if (!region || !batch) continue;
+    done.add(seedId);
+    let inRegion = 0;
+    for (const it of batch.items) {
+      if (it.lat === null || it.lng === null) continue;
+      if (haversineKm(region.lat, region.lng, it.lat, it.lng) <= region.radiusKm) inRegion++;
+    }
+    const errs = batch.errors ?? {};
+    const keys = Object.keys(errs);
+    const has = (reason: string) => keys.some((k) => k === reason || k.startsWith(`${reason}:`));
+    const errors = Object.values(errs).reduce((n, v) => n + v, 0);
+    let outcome: SourceResult["outcome"];
+    if (inRegion > 0) outcome = "ok";
+    else if (has("denylisted")) outcome = "denylisted";
+    else if (has("robots_disallowed")) outcome = "robots";
+    else if (has("noindex")) outcome = "noindex";
+    else if (has("login_page")) outcome = "blocked";
+    else if (keys.length === 0) outcome = "empty";
+    else if (keys.every((k) => k.startsWith("not_a_feed"))) outcome = "no_feed";
+    else outcome = "error";
+    out.push({
+      candidate_id: o.candidate_id,
+      outcome,
+      items: batch.items.length,
+      in_region: inRegion,
+      errors,
+      complete: batch.complete,
+    });
+  }
+  return out;
+}
+
+/** Posts the discovered sources' results; returns the lifecycle's summed counts. */
+export async function recordSources(
+  opts: ServiceOptions & { runId: string },
+  results: SourceResult[],
+): Promise<Record<string, number>> {
+  checkService(opts);
+  const out: Record<string, number> = {};
+  for (let i = 0; i < results.length; i += SOURCE_RESULTS_MAX) {
+    const { status, body } = await call(opts, "/sources/record", {
+      method: "POST",
+      body: JSON.stringify({
+        run_id: opts.runId,
+        results: results.slice(i, i + SOURCE_RESULTS_MAX),
+      }),
+    });
+    if (status !== 200 || typeof body !== "object" || body === null)
+      throw new Error(`POST /sources/record failed: ${status}`);
     for (const [k, v] of Object.entries(body as Record<string, unknown>))
       if (typeof v === "number") out[k] = (out[k] ?? 0) + v;
   }
