@@ -112,3 +112,21 @@ Retention after deletion (the Privacy Policy and the Play Data safety form must 
 | Everything deleted in step 1 and 2                                                                           | no                         | removed at once                                                                                                 |                                                                            |
 
 Not wired yet, each with a TODO block in the function: Apple token revocation (needs the Apple refresh token stored at first sign-in; Capacitor), processor fan-out (`processors_notified` stays empty until a processor holds personal data), anonymizing messages (no table yet). `purge_account_deletions()` needs a pg_cron schedule once that extension is enabled on the project; until then it is run by hand with the service role. The support mailbox is a placeholder (FOUNDER-TODO item 16).
+
+## 12. Hub map places: Terms and Privacy text (D-041, slice 14)
+
+The Terms of Service and Privacy Policy are drafted for the attorney (section 6) and are not yet pages on the site. These clauses go into them as written; the public page `/map-data` on the site (`apps/web/src/app/map-data/page.tsx`) already says the same in plain words, and the place card links to it.
+
+**Terms of Service, "Places and map data":**
+
+> The places on the Activity Planet map form a database made available under the Open Database License 1.0 (ODbL). It includes data from OpenStreetMap, © OpenStreetMap contributors, also available under the ODbL, and, in some areas, from Geoapify, which is built on OpenStreetMap data. When you add a place, or suggest a correction to one, you grant everyone a licence to the facts you contribute (its name, location, kind, address, opening hours and website) under the ODbL 1.0, and you confirm you have the right to share them. A place you keep to "Only me" is not published. Your name, account and any note you write to moderators are never part of a place and are not licensed. We publish public places every month as an open download. We may edit, merge, hide or remove any place. Do not add a private home, a place that puts someone at risk, or anything you are not allowed to share.
+
+**Terms of Service, credits:** the map shows "© OpenStreetMap contributors", "OpenMapTiles" and "OpenFreeMap" at all times, and "Powered by Geoapify" while Geoapify places are on screen. These credits must not be removed from screenshots or embeds of the map.
+
+**Privacy Policy, "Map":**
+
+> When you use the map, your device loads map tiles directly from OpenFreeMap, which receives your IP address and the area you are viewing. We do not log which areas or places you look at. If you add a place, we keep who added it so you can edit or delete your own pin and so moderators can act on abuse; that link is never shown to other members, never published, and is removed when you delete your account (private and pending places are deleted; reviewed public places stay without your name). Place reports and corrections are kept with the reason and the change, and lose your name when you delete your account. To decide which areas of the map to keep, we look at whether any active member's saved home area falls in a roughly 50 km square; we store only the day this was last true for that square, never who.
+
+**Monthly ODbL release (what the dump holds):** `places-YYYY-MM.ndjson.gz` with `source, osm_ref, name, kind, lat, lng, tags, opening_hours, website` for public, active, reviewed places only; a README with the ODbL notice and credits; `SHA256SUMS`. No ids, accounts, statuses, reports, notes, private pins or pending places. Built by `.github/workflows/places-dump.yml` from `places_odbl_export` (migration 35) through the collector function; released only from `main`.
+
+Attorney questions (FOUNDER-TODO item 12): the ODbL share-alike scope for a database that mixes member facts with OSM data; Geoapify's free-plan "Limited Commercial Use" wording against republishing its rows in the dump (if it does not allow it, `places_odbl_export` drops `source = 'geoapify'`, one line).

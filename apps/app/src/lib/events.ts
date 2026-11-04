@@ -376,6 +376,47 @@ export const feedQuery = (p: FeedParams) =>
 
 export type FeedEvent = QueryData<ReturnType<typeof feedQuery>>["events"][number];
 
+/**
+ * The "Shows and games" row (D-041 slice 10): feed_events_v2 with p_listing_kind 'show', the
+ * next 30 days within 50 km (ticketed shows draw from further than a pickup game), at most 20.
+ * Only asked for while shows_available() is true. Shows link out like imported listings, so no
+ * RSVP lookup; the regular feed never holds them (p_listing_kind defaults to 'plan').
+ */
+export const showsFeedQuery = (
+  p: Pick<FeedParams, "userId" | "point" | "areaId" | "homeKey" | "timeZone">,
+) =>
+  queryOptions({
+    queryKey: [
+      "feed",
+      "shows",
+      p.userId,
+      {
+        lat: p.point?.lat ?? null,
+        lng: p.point?.lng ?? null,
+        areaId: p.areaId,
+        home: p.homeKey ?? null,
+        timeZone: p.timeZone ?? null,
+      },
+    ] as const,
+    queryFn: async () => {
+      const now = new Date();
+      const { data, error } = await supabase.rpc("feed_events_v2", {
+        p_from: new Date(now.getTime() - 3 * 3_600_000).toISOString(),
+        p_to: new Date(now.getTime() + FEED_WINDOW_DAYS * 86_400_000).toISOString(),
+        p_radius_km: 50,
+        p_limit: 20,
+        p_listing_kind: "show",
+        ...(p.point ? { p_lat: p.point.lat, p_lng: p.point.lng } : {}),
+        ...(p.timeZone ? { p_timezone: p.timeZone } : {}),
+      });
+      if (error) throw error;
+      return data
+        .filter((e) => !isOver(e.ends_at, now))
+        .map((e) => ({ ...e, rsvps: [] as { status: RsvpStatus }[] }));
+    },
+    staleTime: 5 * 60_000,
+  });
+
 /** The hubs the viewer can post in, with the fields the form needs (21+ hubs force the flag). */
 export const myPostableHubsQuery = (userId: string) =>
   queryOptions({

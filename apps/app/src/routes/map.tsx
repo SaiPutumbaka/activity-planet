@@ -47,6 +47,7 @@ import {
   type MapWhen,
 } from "@/lib/map";
 import { getProfile, hubCatalogQuery, myHubsQuery, type CatalogHub } from "@/lib/profile";
+import { hiddenMapLayers, showsAvailableQuery } from "@/lib/shows";
 import { supabase } from "@/lib/supabase";
 import { useResolvedTheme } from "@/lib/theme";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
@@ -194,6 +195,7 @@ function MapScreen({ userId }: { userId: string | null }) {
   // never in a shared link, the history or the host's request logs.
   const myHubs = useQuery({ ...myHubsQuery(userId ?? ""), enabled: signedIn });
   const catalog = useQuery(hubCatalogQuery);
+  const showsAvailable = useQuery(showsAvailableQuery);
   const [privateSlugs, setPrivateSlugs] = useState<string[]>([]);
   const urlSlugs = parseHubsParam(search.hubs);
   const selectedSlugs = useMemo(() => {
@@ -606,6 +608,7 @@ function MapScreen({ userId }: { userId: string | null }) {
           onLayers={onLayers}
           when={when}
           onWhen={(w) => setSearch({ when: w === "week" ? undefined : w })}
+          hidden={hiddenMapLayers(showsAvailable.data, query.data?.shows.length ?? 0)}
         />
       </div>
 

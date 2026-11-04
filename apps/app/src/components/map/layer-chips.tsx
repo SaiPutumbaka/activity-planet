@@ -11,7 +11,8 @@ import {
 import { LayerGlyph } from "./glyphs";
 
 /**
- * Layer chips (Places, Plans, Shows and games; at least one stays on) and the time chips (Today,
+ * Layer chips (Places, Plans, Shows and games, the last hidden while there are no shows; at
+ * least one stays on) and the time chips (Today,
  * This week, 30 days). Both filter locally or re-key one request; nothing here asks for location.
  */
 export function LayerChips({
@@ -19,8 +20,11 @@ export function LayerChips({
   onLayers,
   when,
   onWhen,
+  hidden = [],
 }: {
   layers: readonly MapLayer[];
+  /** Layers with no chip (Shows and games while there are none, D-041 slice 10). */
+  hidden?: readonly MapLayer[];
   onLayers: (next: MapLayer[]) => void;
   when: MapWhen;
   onWhen: (next: MapWhen) => void;
@@ -28,7 +32,7 @@ export function LayerChips({
   return (
     <div className="no-scrollbar -mx-4 flex items-center gap-2 overflow-x-auto px-4 py-0.5">
       <div role="group" aria-label="Show on the map" className="flex gap-2">
-        {MAP_LAYERS.map((layer) => (
+        {MAP_LAYERS.filter((layer) => !hidden.includes(layer)).map((layer) => (
           <Chip
             key={layer}
             selected={layers.includes(layer)}

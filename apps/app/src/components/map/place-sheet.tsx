@@ -9,6 +9,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
 import { formatRelativeDay, formatTime } from "@/lib/datetime";
+import { SITE_URL } from "@/lib/site";
 import {
   CELL_NOTE,
   canStartPlan,
@@ -277,6 +278,18 @@ export function PlaceSheet({
                 <ExternalLink className="size-3.5" aria-hidden="true" />
               </a>
             ) : null}
+            <p className="text-[12px] text-text-3">
+              Place facts are open data under the{" "}
+              <a
+                href={`${SITE_URL}/map-data`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:text-text-2"
+              >
+                ODbL
+              </a>
+              .
+            </p>
           </div>
         </div>
       )}

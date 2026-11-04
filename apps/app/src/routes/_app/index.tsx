@@ -10,6 +10,7 @@ import { EventCard } from "@/components/events/event-card";
 import { GuidelinesSheet } from "@/components/events/guidelines-sheet";
 import { useRsvp } from "@/components/events/use-rsvp";
 import { ImportedShelf } from "@/components/feed/imported-shelf";
+import { ShowsRow } from "@/components/feed/shows-row";
 import { LocationSheet } from "@/components/feed/location-sheet";
 import { ChatsButton } from "@/components/shell/chats-button";
 import { InboxBell } from "@/components/shell/inbox-bell";
@@ -35,7 +36,7 @@ const searchSchema = z.object({
 /**
  * Home: Feed v2 (D-036, D-040). Plans near the viewer's saved home, anywhere in the world (or,
  * after they tap "Use my location", near them) plus everything in their hubs, in Today / This week / Later over 30
- * days. Imported listings sit in their own shelf below. Nothing here asks for location.
+ * days. Shows and games (only once any exist, D-041) and imported listings sit in their own rows below. Nothing here asks for location.
  * Above it all, a "Did you go?" card for the newest plan the viewer hasn't answered for.
  */
 export const Route = createFileRoute("/_app/")({
@@ -264,6 +265,19 @@ function Feed({ userId }: { userId: string }) {
             ))
           )}
 
+          {filtered ? null : (
+            <ShowsRow
+              userId={userId}
+              point={origin.point}
+              areaId={origin.homeArea?.id ?? null}
+              homeKey={
+                origin.homePoint
+                  ? `${origin.homePoint.lat},${origin.homePoint.lng}`
+                  : (origin.homeLabel ?? null)
+              }
+              timeZone={deviceZone}
+            />
+          )}
           <ImportedShelf events={groups.imported} />
         </>
       )}

@@ -27,6 +27,7 @@ import { Route as AuthResetRouteImport } from './routes/auth/reset'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as AppAdminClaimsRouteImport } from './routes/_app/admin/claims'
+import { Route as AppAdminHealthRouteImport } from './routes/_app/admin/health'
 import { Route as AppAdminPlacesRouteImport } from './routes/_app/admin/places'
 import { Route as AppChaptersSlugRouteImport } from './routes/_app/chapters_.$slug'
 import { Route as AppEventsIdRouteImport } from './routes/_app/events_.$id'
@@ -128,6 +129,11 @@ const AppAdminClaimsRoute = AppAdminClaimsRouteImport.update({
   path: '/admin/claims',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminHealthRoute = AppAdminHealthRouteImport.update({
+  id: '/admin/health',
+  path: '/admin/health',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminPlacesRoute = AppAdminPlacesRouteImport.update({
   id: '/admin/places',
   path: '/admin/places',
@@ -203,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/admin/claims': typeof AppAdminClaimsRoute
+  '/admin/health': typeof AppAdminHealthRoute
   '/admin/places': typeof AppAdminPlacesRoute
   '/chapters/$slug': typeof AppChaptersSlugRoute
   '/events/$id': typeof AppEventsIdRoute
@@ -233,6 +240,7 @@ export interface FileRoutesByTo {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/': typeof AppIndexRoute
   '/admin/claims': typeof AppAdminClaimsRoute
+  '/admin/health': typeof AppAdminHealthRoute
   '/admin/places': typeof AppAdminPlacesRoute
   '/chapters/$slug': typeof AppChaptersSlugRoute
   '/events/$id': typeof AppEventsIdRoute
@@ -265,6 +273,7 @@ export interface FileRoutesById {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/claims': typeof AppAdminClaimsRoute
+  '/_app/admin/health': typeof AppAdminHealthRoute
   '/_app/admin/places': typeof AppAdminPlacesRoute
   '/_app/chapters_/$slug': typeof AppChaptersSlugRoute
   '/_app/events_/$id': typeof AppEventsIdRoute
@@ -297,6 +306,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/admin/claims'
+    | '/admin/health'
     | '/admin/places'
     | '/chapters/$slug'
     | '/events/$id'
@@ -327,6 +337,7 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/'
     | '/admin/claims'
+    | '/admin/health'
     | '/admin/places'
     | '/chapters/$slug'
     | '/events/$id'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/_app/'
     | '/_app/admin/claims'
+    | '/_app/admin/health'
     | '/_app/admin/places'
     | '/_app/chapters_/$slug'
     | '/_app/events_/$id'
@@ -506,6 +518,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminClaimsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/health': {
+      id: '/_app/admin/health'
+      path: '/admin/health'
+      fullPath: '/admin/health'
+      preLoaderRoute: typeof AppAdminHealthRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/places': {
       id: '/_app/admin/places'
       path: '/admin/places'
@@ -594,6 +613,7 @@ interface AppRouteChildren {
   AppYouRoute: typeof AppYouRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminClaimsRoute: typeof AppAdminClaimsRoute
+  AppAdminHealthRoute: typeof AppAdminHealthRoute
   AppAdminPlacesRoute: typeof AppAdminPlacesRoute
   AppChaptersSlugRoute: typeof AppChaptersSlugRoute
   AppEventsIdRoute: typeof AppEventsIdRoute
@@ -615,6 +635,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppYouRoute: AppYouRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminClaimsRoute: AppAdminClaimsRoute,
+  AppAdminHealthRoute: AppAdminHealthRoute,
   AppAdminPlacesRoute: AppAdminPlacesRoute,
   AppChaptersSlugRoute: AppChaptersSlugRoute,
   AppEventsIdRoute: AppEventsIdRoute,
