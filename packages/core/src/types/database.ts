@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 33 (schema_version 2.29). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 34 (schema_version 2.30). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -1891,6 +1891,67 @@ export type Database = {
         };
         Relationships: [];
       };
+      place_edits: {
+        Row: {
+          changes: Json;
+          created_at: string;
+          id: string;
+          note: string;
+          place_id: string;
+          proposed_by: string | null;
+          review_note: string | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          status: string;
+        };
+        Insert: {
+          changes: Json;
+          created_at?: string;
+          id?: string;
+          note?: string;
+          place_id: string;
+          proposed_by?: string | null;
+          review_note?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          status?: string;
+        };
+        Update: {
+          changes?: Json;
+          created_at?: string;
+          id?: string;
+          note?: string;
+          place_id?: string;
+          proposed_by?: string | null;
+          review_note?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "place_edits_place_id_fkey";
+            columns: ["place_id"];
+            isOneToOne: false;
+            referencedRelation: "places";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "place_edits_proposed_by_fkey";
+            columns: ["proposed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "place_edits_reviewed_by_fkey";
+            columns: ["reviewed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       place_hubs: {
         Row: {
           created_at: string;
@@ -1950,6 +2011,112 @@ export type Database = {
           sort?: number;
         };
         Relationships: [];
+      };
+      place_mod_actions: {
+        Row: {
+          action: string;
+          created_at: string;
+          id: string;
+          item_id: string;
+          item_kind: string;
+          moderator_id: string | null;
+          note: string | null;
+          place_id: string;
+        };
+        Insert: {
+          action: string;
+          created_at?: string;
+          id?: string;
+          item_id: string;
+          item_kind: string;
+          moderator_id?: string | null;
+          note?: string | null;
+          place_id: string;
+        };
+        Update: {
+          action?: string;
+          created_at?: string;
+          id?: string;
+          item_id?: string;
+          item_kind?: string;
+          moderator_id?: string | null;
+          note?: string | null;
+          place_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "place_mod_actions_moderator_id_fkey";
+            columns: ["moderator_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "place_mod_actions_place_id_fkey";
+            columns: ["place_id"];
+            isOneToOne: false;
+            referencedRelation: "places";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      place_reports: {
+        Row: {
+          created_at: string;
+          id: string;
+          note: string;
+          place_id: string;
+          reason: string;
+          reporter_id: string | null;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          status: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          note?: string;
+          place_id: string;
+          reason: string;
+          reporter_id?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          note?: string;
+          place_id?: string;
+          reason?: string;
+          reporter_id?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "place_reports_place_id_fkey";
+            columns: ["place_id"];
+            isOneToOne: false;
+            referencedRelation: "places";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "place_reports_reporter_id_fkey";
+            columns: ["reporter_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "place_reports_resolved_by_fkey";
+            columns: ["resolved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       place_rules: {
         Row: {
@@ -2660,6 +2827,7 @@ export type Database = {
     };
     Functions: {
       accept_guidelines: { Args: never; Returns: string };
+      add_place: { Args: { p_args: Json }; Returns: Json };
       approve_rsvp: {
         Args: { p_approved?: boolean; p_event_id: string; p_user_id: string };
         Returns: {
@@ -2966,6 +3134,7 @@ export type Database = {
         Args: { p_venue_id: string };
         Returns: Database["public"]["Enums"]["address_visibility"];
       };
+      delete_my_place: { Args: { p_place: string }; Returns: undefined };
       dismiss_attendance_prompt: {
         Args: { p_event_id: string };
         Returns: undefined;
@@ -3309,6 +3478,17 @@ export type Database = {
         Args: { p_place_id: string };
         Returns: undefined;
       };
+      mod_place_facts: { Args: { p_id: string }; Returns: Json };
+      mod_place_queue: { Args: { p_limit?: number }; Returns: Json };
+      mod_resolve_place: {
+        Args: {
+          p_action: string;
+          p_id: string;
+          p_kind: string;
+          p_note?: string;
+        };
+        Returns: Json;
+      };
       my_chapter_claims: {
         Args: never;
         Returns: {
@@ -3394,8 +3574,37 @@ export type Database = {
           title: string;
         }[];
       };
+      place_apply_changes: {
+        Args: {
+          p_changes: Json;
+          p_lock: boolean;
+          p_place: string;
+          p_via: string;
+        };
+        Returns: undefined;
+      };
+      place_caller_can_see: { Args: { p_id: string }; Returns: boolean };
+      place_check_hubs: {
+        Args: { p_default: boolean; p_hubs: Json; p_kind: string };
+        Returns: string[];
+      };
+      place_clean_changes: { Args: { p_changes: Json }; Returns: Json };
       place_detail: { Args: { p_id: string }; Returns: Json };
+      place_duplicates: {
+        Args: {
+          p_exclude?: string;
+          p_kind: string;
+          p_name: string;
+          p_point: unknown;
+        };
+        Returns: Json;
+      };
       place_is_mine: { Args: { p_id: string }; Returns: boolean };
+      place_near_private: {
+        Args: { p_point: unknown; p_uid: string };
+        Returns: string;
+      };
+      place_raise_near: { Args: { p_why: string }; Returns: undefined };
       place_tile_bbox: { Args: { p_id: number }; Returns: unknown };
       place_tile_id: { Args: { p_lat: number; p_lng: number }; Returns: number };
       place_tile_id_of: { Args: { p_point: unknown }; Returns: number };
@@ -3457,6 +3666,10 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      report_place: {
+        Args: { p_note?: string; p_place: string; p_reason: string };
+        Returns: Json;
       };
       request_account_deletion: {
         Args: { p_reason?: string };
@@ -3537,6 +3750,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      set_my_place_visibility: {
+        Args: { p_confirm?: boolean; p_place: string; p_public: boolean };
+        Returns: Json;
+      };
       set_my_timezone: { Args: { p_timezone: string }; Returns: Json };
       set_project_url: { Args: { p_url: string }; Returns: Json };
       set_rsvp: {
@@ -3602,6 +3819,10 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      suggest_place_edit: {
+        Args: { p_changes: Json; p_note?: string; p_place: string };
+        Returns: Json;
       };
       touch_last_seen: { Args: never; Returns: undefined };
       unread_notification_count: { Args: never; Returns: number };
