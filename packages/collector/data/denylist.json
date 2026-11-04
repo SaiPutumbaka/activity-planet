@@ -1,0 +1,49 @@
+{
+  "$comment": "D-040: sites whose terms forbid automated collection, or that are behind logins. The collector never fetches a URL on these, whatever lane or link led to it. 'domains' match the domain and every subdomain. 'anyTld' matches the name as the site's own label under any suffix (eventbrite.com, eventbrite.co.uk, eventbrite.events). 'apiAllow' lists the official API endpoints that are the only permitted way in, by host and path prefix. Add entries here, never in code; removing one needs a decision in docs/DECISIONS.md.",
+  "domains": [
+    { "domain": "facebook.com", "reason": "Meta terms forbid automated collection; login wall" },
+    { "domain": "fb.com", "reason": "Meta" },
+    { "domain": "fb.me", "reason": "Meta short links" },
+    { "domain": "instagram.com", "reason": "Meta terms forbid automated collection; login wall" },
+    { "domain": "threads.net", "reason": "Meta terms forbid automated collection; login wall" },
+    { "domain": "threads.com", "reason": "Meta (Threads)" },
+    { "domain": "m.me", "reason": "Meta Messenger short links" },
+    { "domain": "meetup.com", "reason": "Terms forbid scraping" },
+    { "domain": "meetu.ps", "reason": "Meetup short links" },
+    { "domain": "linkedin.com", "reason": "Terms forbid automated collection; litigates (D-004)" },
+    { "domain": "lnkd.in", "reason": "LinkedIn short links" },
+    {
+      "domain": "joinhandshake.com",
+      "reason": "Login wall; terms forbid automated collection (D-004)"
+    },
+    { "domain": "x.com", "reason": "Terms forbid automated collection" },
+    { "domain": "twitter.com", "reason": "Terms forbid automated collection" },
+    { "domain": "t.co", "reason": "X short links" },
+    { "domain": "tiktok.com", "reason": "Terms forbid automated collection" },
+    { "domain": "evbuc.com", "reason": "Eventbrite link and CDN domain" }
+  ],
+  "anyTld": [
+    { "name": "eventbrite", "reason": "Terms forbid scraping; no free public search API" },
+    {
+      "name": "ticketmaster",
+      "reason": "Web pages are off limits; only app.ticketmaster.com/discovery/ via the Discovery API"
+    },
+    { "name": "livenation", "reason": "Ticketmaster group web pages" },
+    {
+      "name": "seatgeek",
+      "reason": "Web pages are off limits; only api.seatgeek.com/2/ via the Platform API"
+    },
+    {
+      "name": "nextdoor",
+      "reason": "Login wall; terms forbid automated collection (nextdoor.com, .co.uk, .ca, .com.au and others)"
+    }
+  ],
+  "apiAllow": [
+    {
+      "host": "app.ticketmaster.com",
+      "pathPrefix": "/discovery/v2/",
+      "reason": "Ticketmaster Discovery API"
+    },
+    { "host": "api.seatgeek.com", "pathPrefix": "/2/", "reason": "SeatGeek Platform API" }
+  ]
+}

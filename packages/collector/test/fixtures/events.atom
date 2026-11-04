@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:xcal="urn:ietf:params:xml:ns:xcal">
+  <title>Museum programs</title>
+  <entry>
+    <title type="html">Members&#39; Night &amp; Tour</title>
+    <id>tag:museum.example.org,2026:program-55</id>
+    <link rel="alternate" href="https://museum.example.org/programs/members-night"/>
+    <updated>2026-11-01T10:00:00Z</updated>
+    <summary>An evening in the galleries.</summary>
+    <xcal:dtstart>2026-11-20T19:00:00</xcal:dtstart>
+    <xcal:dtend>2026-11-20T21:00:00</xcal:dtend>
+    <xcal:location>Main Hall</xcal:location>
+  </entry>
+  <entry>
+    <title>Press release</title>
+    <id>tag:museum.example.org,2026:press-1</id>
+    <link href="https://museum.example.org/press/1"/>
+    <updated>2026-11-01T10:00:00Z</updated>
+  </entry>
+</feed>

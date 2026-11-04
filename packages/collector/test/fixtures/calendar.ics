@@ -1,0 +1,96 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//CivicPlus//iCalendar//EN
+X-WR-CALNAME:City Calendar
+X-WR-TIMEZONE:America/New_York
+BEGIN:VTIMEZONE
+TZID:Eastern Time
+X-LIC-LOCATION:America/New_York
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:single-1@example.gov
+DTSTART;TZID=America/New_York:20261110T190000
+DTEND;TZID=America/New_York:20261110T203000
+SUMMARY:Farmers Market\, Square Edition
+DESCRIPTION:Fresh produce\nand music. More at https://www.example.gov/market
+LOCATION:Marietta Square\, 50 N Park Sq
+GEO:33.9526;-84.5499
+CATEGORIES:Community,Food
+ORGANIZER;CN="City of Example":mailto:events@example.gov
+END:VEVENT
+BEGIN:VEVENT
+UID:weekly-1@example.gov
+DTSTART;TZID=Eastern Time:20261028T180000
+DURATION:PT1H30M
+RRULE:FREQ=WEEKLY;BYDAY=WE;COUNT=8
+EXDATE;TZID=Eastern Time:20261111T180000
+SUMMARY:Weekly Run Club
+URL:https://www.example.gov/run-club
+END:VEVENT
+BEGIN:VEVENT
+UID:weekly-1@example.gov
+RECURRENCE-ID;TZID=Eastern Time:20261118T180000
+DTSTART;TZID=Eastern Time:20261118T190000
+DTEND;TZID=Eastern Time:20261118T200000
+SUMMARY:Weekly Run Club (late start)
+URL:https://www.example.gov/run-club
+END:VEVENT
+BEGIN:VEVENT
+UID:weekly-1@example.gov
+RECURRENCE-ID;TZID=Eastern Time:20261125T180000
+DTSTART;TZID=Eastern Time:20261125T180000
+DURATION:PT1H30M
+STATUS:CANCELLED
+SUMMARY:Weekly Run Club
+URL:https://www.example.gov/run-club
+END:VEVENT
+BEGIN:VEVENT
+UID:allday-1@example.gov
+DTSTART;VALUE=DATE:20261121
+DTEND;VALUE=DATE:20261122
+SUMMARY:Fall Festival
+URL:https://www.example.gov/fall-fest
+END:VEVENT
+BEGIN:VEVENT
+UID:monthly-1@example.gov
+DTSTART:20260908T230000Z
+DTEND:20260909T010000Z
+RRULE:FREQ=MONTHLY;BYDAY=2TU
+SUMMARY:Second Tuesday Council Meeting
+URL:https://www.example.gov/council
+END:VEVENT
+BEGIN:VEVENT
+UID:lastfri-1@example.gov
+DTSTART;TZID=America/New_York:20261030T200000
+RRULE:FREQ=MONTHLY;BYDAY=-1FR;UNTIL=20261231T235959Z
+SUMMARY:Last Friday Art Walk
+URL:https://www.example.gov/art-walk
+END:VEVENT
+BEGIN:VEVENT
+UID:private-1@example.gov
+CLASS:PRIVATE
+DTSTART:20261112T150000Z
+SUMMARY:Staff only
+END:VEVENT
+BEGIN:VEVENT
+UID:floating-1@example.gov
+DTSTART:20261112T100000
+DTEND:20261112T110000
+SUMMARY:Floating Story Time
+URL:https://www.example.gov/story
+END:VEVENT
+BEGIN:VEVENT
+UID:windows-1@example.gov
+DTSTART;TZID=Eastern Standard Time:20261113T120000
+DTEND;TZID=Eastern Standard Time:20261113T130000
+SUMMARY:Lunch and Learn with a very long folded summary that continues on the
+  next line
+URL:https://www.example.gov/lunch
+END:VEVENT
+BEGIN:VEVENT
+UID:old-1@example.gov
+DTSTART:20250101T150000Z
+SUMMARY:Long gone
+URL:https://www.example.gov/old
+END:VEVENT
+END:VCALENDAR

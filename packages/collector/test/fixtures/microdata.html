@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Calendar</title>
+  </head>
+  <body>
+    <div itemscope itemtype="https://schema.org/Event">
+      <a itemprop="url" href="/events/knitting-circle"
+        ><span itemprop="name">Knitting Circle</span></a
+      >
+      <time itemprop="startDate" datetime="2026-11-16T14:00">Nov 16, 2 pm</time>
+      <meta itemprop="endDate" content="2026-11-16T15:30" />
+      <div itemprop="location" itemscope itemtype="https://schema.org/Place">
+        <span itemprop="name">Ponce de Leon Branch</span>
+        <div itemprop="address" itemscope itemtype="https://schema.org/PostalAddress">
+          <span itemprop="streetAddress">980 Ponce de Leon Ave NE</span>,
+          <span itemprop="addressLocality">Atlanta</span>
+        </div>
+        <div itemprop="geo" itemscope itemtype="https://schema.org/GeoCoordinates">
+          <meta itemprop="latitude" content="33.7737" />
+          <meta itemprop="longitude" content="-84.3570" />
+        </div>
+      </div>
+      <p itemprop="description">Yarn provided. Beginners welcome.</p>
+      <img itemprop="image" src="/img/knit.jpg" alt="" />
+    </div>
+    <div itemscope itemtype="http://schema.org/SportsEvent">
+      <span itemprop="name">Pickup Soccer</span>
+      <span itemprop="startDate" content="2026-11-17T18:00:00-05:00">Tue 6 pm</span>
+      <span itemprop="location">Grant Park field 2</span>
+    </div>
+    <div itemscope itemtype="https://schema.org/Organization">
+      <span itemprop="name">Not an event</span>
+    </div>
+  </body>
+</html>

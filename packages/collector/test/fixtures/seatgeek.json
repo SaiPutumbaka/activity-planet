@@ -1,0 +1,33 @@
+{
+  "events": [
+    {
+      "id": 6100001,
+      "title": "Atlanta United FC vs. Inter Miami",
+      "short_title": "United vs. Miami",
+      "url": "https://seatgeek.com/atlanta-united-tickets/6100001",
+      "datetime_utc": "2026-11-28T00:00:00",
+      "datetime_local": "2026-11-27T19:00:00",
+      "time_tbd": false,
+      "date_tbd": false,
+      "datetime_tbd": false,
+      "type": "mls",
+      "taxonomies": [{ "name": "sports" }, { "name": "soccer" }],
+      "stats": { "lowest_price": 41 },
+      "venue": {
+        "name": "Mercedes-Benz Stadium",
+        "address": "1 AMB Drive NW",
+        "city": "Atlanta",
+        "timezone": "America/New_York",
+        "location": { "lat": 33.7554, "lon": -84.4008 }
+      }
+    },
+    {
+      "id": 6100002,
+      "title": "Far Away Show",
+      "url": "https://seatgeek.com/far/6100002",
+      "datetime_utc": "2026-11-29T01:00:00",
+      "venue": { "name": "Somewhere", "location": { "lat": 40.7128, "lon": -74.006 } }
+    }
+  ],
+  "meta": { "total": 2, "page": 1, "per_page": 100 }
+}

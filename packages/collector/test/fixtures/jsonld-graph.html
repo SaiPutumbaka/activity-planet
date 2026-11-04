@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Events at the Park</title>
+    <meta name="robots" content="index, follow" />
+    <link rel="alternate" type="text/calendar" title="iCal" href="/events/?ical=1" />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      href="https://parks.example.gov/events/feed/"
+    />
+    <link rel="stylesheet" href="/style.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          { "@type": "WebSite", "@id": "https://parks.example.gov/#site", "name": "Parks" },
+          {
+            "@type": "Place",
+            "@id": "https://parks.example.gov/#piedmont",
+            "name": "Piedmont Park",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "1320 Monroe Dr NE",
+              "addressLocality": "Atlanta",
+              "addressRegion": "GA",
+              "postalCode": "30306"
+            },
+            "geo": { "@type": "GeoCoordinates", "latitude": 33.7851, "longitude": -84.3738 }
+          },
+          {
+            "@type": "Event",
+            "@id": "https://parks.example.gov/events/yoga/#event",
+            "name": "Sunrise Yoga in the Park",
+            "startDate": "2026-11-15T08:00",
+            "endDate": "2026-11-15T09:00",
+            "url": "https://parks.example.gov/events/yoga/",
+            "description": "<p>Bring a mat. All levels welcome.</p>",
+            "location": { "@id": "https://parks.example.gov/#piedmont" },
+            "image": "https://parks.example.gov/img/yoga.jpg",
+            "isAccessibleForFree": true,
+            "eventStatus": "https://schema.org/EventScheduled",
+            "organizer": { "@type": "Organization", "name": "Piedmont Park Conservancy" }
+          },
+          {
+            "@type": "MusicEvent",
+            "name": "Jazz on the Lawn",
+            "startDate": "2026-11-21T18:30:00-05:00",
+            "endDate": "2026-11-21T21:00:00-05:00",
+            "url": "/events/jazz/",
+            "location": "Piedmont Park Lawn, Atlanta, GA",
+            "offers": [
+              { "@type": "Offer", "price": "15.00", "priceCurrency": "USD" },
+              { "@type": "Offer", "price": "25", "priceCurrency": "USD" }
+            ],
+            "eventStatus": "https://schema.org/EventCancelled"
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <a href="/events/yoga/">Yoga</a>
+    <a href="/events/jazz/" rel="nofollow">Jazz</a>
+    <a href="/events/tai-chi/">Tai chi</a>
+    <a href="https://other.example.com/events/x">Elsewhere</a>
+    <a href="/login?returnUrl=/events">Sign in</a>
+    <a href="webcal://parks.example.gov/calendar.ics">Subscribe</a>
+    <a href="https://www.facebook.com/events/123">Facebook</a>
+  </body>
+</html>

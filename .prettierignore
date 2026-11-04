@@ -8,3 +8,6 @@ scripts/places/rule_ids.json
 scripts/places/rules_stats.json
 scripts/places/taginfo_counts.json
 scripts/places/extract_rules.json
+# Collector fixtures are real-world-shaped pages and feeds; keep them as authored.
+packages/collector/test/fixtures
+packages/collector/.cache

@@ -9,6 +9,7 @@
   "scripts": {
     "dev:web": "pnpm --filter @ap/web dev",
     "dev:app": "pnpm --filter @ap/app dev",
+    "collect": "pnpm --filter @ap/collector collect",
     "build": "pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "pnpm -r --if-present lint",
