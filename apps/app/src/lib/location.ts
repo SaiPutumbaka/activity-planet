@@ -177,6 +177,8 @@ export function clearFeedLocation(): void {
   }
   try {
     localStorage.removeItem(DENIED_KEY);
+    // The Map tab's last view (lib/map.ts saveCamera) is about as revealing as the device point.
+    localStorage.removeItem("ap-map-view");
   } catch {
     /* storage unavailable */
   }
@@ -231,6 +233,29 @@ function requestDevicePoint(): Promise<LocationResult> {
       { enableHighAccuracy: false, maximumAge: 600_000, timeout: 8_000 },
     );
   });
+}
+
+/**
+ * The device point and the denial flag without the feed's home-area queries, for screens that also
+ * work signed out (the Map tab). Same store as useFeedOrigin, so a point given on one screen is
+ * used on the other.
+ */
+export function useDevicePoint(): {
+  point: DevicePoint | null;
+  denied: boolean;
+  locate: () => Promise<LocationResult>;
+} {
+  const point = useSyncExternalStore(
+    subscribe,
+    () => devicePoint,
+    () => null,
+  );
+  const isDenied = useSyncExternalStore(
+    subscribe,
+    () => denied,
+    () => false,
+  );
+  return { point, denied: isDenied, locate: requestDevicePoint };
 }
 
 export type FeedOrigin =

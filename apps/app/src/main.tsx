@@ -38,6 +38,8 @@ supabase.auth.onAuthStateChange((event, session) => {
     queryClient.removeQueries({ queryKey: ["my-hubs"] });
     queryClient.removeQueries({ queryKey: ["feed"] });
     queryClient.removeQueries({ queryKey: ["feed-prefs"] });
+    // Map views can hold the previous person's own private and pending places (lib/map.ts).
+    queryClient.removeQueries({ queryKey: ["map"] });
     clearFeedLocation();
   }
   setTimeout(() => void router.invalidate(), 0);

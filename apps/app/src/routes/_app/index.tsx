@@ -11,6 +11,7 @@ import { GuidelinesSheet } from "@/components/events/guidelines-sheet";
 import { useRsvp } from "@/components/events/use-rsvp";
 import { ImportedShelf } from "@/components/feed/imported-shelf";
 import { LocationSheet } from "@/components/feed/location-sheet";
+import { ChatsButton } from "@/components/shell/chats-button";
 import { InboxBell } from "@/components/shell/inbox-bell";
 import { TopBar } from "@/components/shell/top-bar";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ function HomePage() {
             <Button variant="secondary" size="icon-sm" className="rounded-full" aria-label="Search">
               <Search className="size-5" aria-hidden="true" />
             </Button>
+            <ChatsButton />
             <InboxBell userId={session.user.id} />
           </>
         }
