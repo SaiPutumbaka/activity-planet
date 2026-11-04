@@ -2,7 +2,9 @@
 import { assertEquals } from "jsr:@std/assert@1.0.19";
 import {
   matchRoute,
+  parseCandidatesBody,
   parseDoneBody,
+  parseSourcesRecordBody,
   parseDumpBody,
   parseEventsBody,
   parseFilesRecordBody,
@@ -392,4 +394,116 @@ Deno.test("regions record body: ids, counts and an optional zone name", () => {
     error: "regions_invalid",
     status: 400,
   });
+});
+
+Deno.test("discovered sources and candidate routes (migration 46)", () => {
+  const base = "https://x.supabase.co/functions/v1/collector";
+  const a = "0B1C2D3E-4F50-4a6b-8c7d-9e0f1a2b3c4d";
+  const b = "1b1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d";
+  assertEquals(matchRoute("GET", `${base}/sources?regions=${a},${b},${a}`), {
+    kind: "sources",
+    regions: [a.toLowerCase(), b],
+  });
+  assertEquals(matchRoute("GET", `${base}/sources`), { kind: "not_found" });
+  assertEquals(matchRoute("GET", `${base}/sources?regions=nope`), { kind: "not_found" });
+  const many = Array.from({ length: 101 }, () => a).join(",");
+  assertEquals(matchRoute("GET", `${base}/sources?regions=${many}`), { kind: "not_found" });
+  assertEquals(matchRoute("POST", `${base}/sources/record`), { kind: "sources_record" });
+  assertEquals(matchRoute("GET", `${base}/candidates`), {
+    kind: "candidates",
+    limit: 150,
+    regions: null,
+  });
+  assertEquals(matchRoute("GET", `${base}/candidates?limit=9999&regions=${b}`), {
+    kind: "candidates",
+    limit: 500,
+    regions: [b],
+  });
+  assertEquals(matchRoute("GET", `${base}/candidates?regions=x`), { kind: "not_found" });
+  assertEquals(matchRoute("POST", `${base}/candidates`), { kind: "candidates_add" });
+});
+
+Deno.test("sources record body: outcomes, kinds and counts", () => {
+  const id = "0B1C2D3E-4F50-4a6b-8c7d-9e0f1a2b3c4d";
+  const ok = parseSourcesRecordBody({
+    run_id: "gh-9-1",
+    results: [
+      {
+        candidate_id: id,
+        outcome: "ok",
+        kind: "ics",
+        url: "https://lib.example.org/events.ics",
+        platform: "libcal",
+        items: 12,
+        in_region: 9,
+        requests: 3,
+        errors: 0,
+        complete: true,
+      },
+      { candidate_id: id, outcome: "empty", items: null },
+    ],
+  });
+  assertEquals(ok, {
+    ok: true,
+    runId: "gh-9-1",
+    args: {
+      p_results: [
+        {
+          candidate_id: id.toLowerCase(),
+          run_id: "gh-9-1",
+          outcome: "ok",
+          kind: "ics",
+          url: "https://lib.example.org/events.ics",
+          platform: "libcal",
+          items: 12,
+          in_region: 9,
+          requests: 3,
+          errors: 0,
+          complete: true,
+        },
+        { candidate_id: id.toLowerCase(), run_id: "gh-9-1", outcome: "empty" },
+      ],
+    },
+  });
+  assertEquals(parseSourcesRecordBody({ results: [] }), { ok: false, error: "invalid_run_id" });
+  for (const bad of [
+    { candidate_id: "x", outcome: "ok" },
+    { candidate_id: id, outcome: "great" },
+    { candidate_id: id, outcome: "ok", kind: "localist" },
+    { candidate_id: id, outcome: "ok", url: "http://a.org/" },
+    { candidate_id: id, outcome: "ok", platform: "Bad Name" },
+    { candidate_id: id, outcome: "ok", items: -1 },
+    { candidate_id: id, outcome: "ok", errors: 1.5 },
+    { candidate_id: id, outcome: "ok", complete: "yes" },
+    7,
+  ]) {
+    assertEquals(parseSourcesRecordBody({ run_id: "r", results: [bad] }), {
+      ok: false,
+      error: "invalid_results",
+    });
+  }
+  const many = Array.from({ length: 501 }, () => ({ candidate_id: id, outcome: "ok" }));
+  assertEquals(parseSourcesRecordBody({ run_id: "r", results: many }).ok, false);
+  assertEquals(rpcError(JSON.stringify({ message: "results_invalid" })).status, 400);
+});
+
+Deno.test("candidates body: url and automatic origin only", () => {
+  const c = { url: "https://lib.example.org/", origin: "osm", score: 70 };
+  assertEquals(parseCandidatesBody({ candidates: [c] }), {
+    ok: true,
+    args: { p_candidates: [c] },
+  });
+  for (const bad of [
+    { url: "https://a.org/", origin: "member" },
+    { origin: "osm" },
+    { url: "https://a.org/" + "x".repeat(500), origin: "wikidata" },
+    null,
+  ]) {
+    assertEquals(parseCandidatesBody({ candidates: [bad] }), {
+      ok: false,
+      error: "invalid_candidates",
+    });
+  }
+  assertEquals(parseCandidatesBody([]), { ok: false, error: "invalid_body" });
+  assertEquals(rpcError(JSON.stringify({ message: "candidates_invalid" })).status, 400);
 });

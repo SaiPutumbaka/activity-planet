@@ -26,6 +26,14 @@
 //                                                            for all; D-042 slice 6, migration 45)
 //   POST /collector/regions/record {run_id, regions: [{id, sources, items, timezone?}]}
 //                                                         -> collector_regions_record()
+//   GET  /collector/sources?regions=<ids>                 -> collector_sources_for_regions() (the
+//                                                            discovered sources of the regions as
+//                                                            seeds; D-042 slice 7, migration 46)
+//   POST /collector/sources/record {run_id, results: [{candidate_id, outcome, ...}]}
+//                                                         -> source_candidates_record() (lifecycle)
+//   GET  /collector/candidates?limit=150&regions=<ids>    -> source_candidates_due() (to probe)
+//   POST /collector/candidates {candidates: [{url, origin, ...}]}
+//                                                         -> source_candidates_add()
 //
 // The caller (a GitHub Actions job) sends the header x-collector-secret. The secret is generated
 // inside the database (vault secret collector_secret, migration 28) and checked here through
@@ -45,7 +53,9 @@ import {
   parseEventsBody,
   parseFilesRecordBody,
   parseIngestBody,
+  parseCandidatesBody,
   parseRegionsRecordBody,
+  parseSourcesRecordBody,
   rpcError,
 } from "./routes.ts";
 
@@ -154,6 +164,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
       return json({ regions });
     }
 
+    // Discovered sources as seeds and candidates to probe: public calendar URLs, no user ids.
+    if (route.kind === "sources") {
+      const sources = await rpc("collector_sources_for_regions", { p_regions: route.regions });
+      return json({ sources });
+    }
+    if (route.kind === "candidates") {
+      const candidates = await rpc("source_candidates_due", {
+        p_limit: route.limit,
+        p_regions: route.regions,
+      });
+      return json({ candidates });
+    }
+
     let body: unknown;
     try {
       body = await readJson(req);
@@ -212,6 +235,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!parsed.ok) return json({ error: parsed.error }, 400);
       const result = await rpc("collector_regions_record", { ...parsed.args });
       console.log("collector regions", parsed.runId, JSON.stringify(result));
+      return json(result);
+    }
+
+    if (route.kind === "sources_record") {
+      const parsed = parseSourcesRecordBody(body);
+      if (!parsed.ok) return json({ error: parsed.error }, 400);
+      const result = await rpc("source_candidates_record", { ...parsed.args });
+      console.log("collector sources", parsed.runId, JSON.stringify(result));
+      return json(result);
+    }
+
+    if (route.kind === "candidates_add") {
+      const parsed = parseCandidatesBody(body);
+      if (!parsed.ok) return json({ error: parsed.error }, 400);
+      const result = await rpc("source_candidates_add", { ...parsed.args });
+      console.log("collector candidates", JSON.stringify(result));
       return json(result);
     }
 

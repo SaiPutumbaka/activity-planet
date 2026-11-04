@@ -25,7 +25,24 @@ export type Route =
   | { kind: "files_record" }
   | { kind: "regions"; limit: number; all: boolean }
   | { kind: "regions_record" }
+  | { kind: "sources"; regions: string[] }
+  | { kind: "sources_record" }
+  | { kind: "candidates"; limit: number; regions: string[] | null }
+  | { kind: "candidates_add" }
   | { kind: "not_found" };
+
+/** collector_sources_for_regions' and source_candidates_due's largest region list (migration 46). */
+export const SOURCES_REGIONS_MAX = 100;
+/** source_candidates_record's and source_candidates_add's largest list (migration 46). */
+export const DISCOVERY_MAX = 500;
+
+/** A comma-separated list of 1 to SOURCES_REGIONS_MAX uuids, lower-cased and deduplicated. */
+function regionList(raw: string | null): string[] | null {
+  if (raw === null || raw === "") return null;
+  const ids = raw.split(",").map((s) => s.trim().toLowerCase());
+  if (ids.length > SOURCES_REGIONS_MAX || ids.some((id) => !UUID.test(id))) return null;
+  return [...new Set(ids)];
+}
 
 /** collector_regions_due's and collector_regions_record's largest list (migration 45). */
 export const REGIONS_MAX = 100;
@@ -84,6 +101,21 @@ export function matchRoute(method: string, url: string): Route {
     return { kind: "regions", limit, all: u.searchParams.get("due") === "0" };
   }
   if (method === "POST" && path === "/regions/record") return { kind: "regions_record" };
+  // Discovered sources (D-042 slice 7, migration 46).
+  if (method === "GET" && path === "/sources") {
+    const regions = regionList(u.searchParams.get("regions"));
+    return regions ? { kind: "sources", regions } : { kind: "not_found" };
+  }
+  if (method === "POST" && path === "/sources/record") return { kind: "sources_record" };
+  if (method === "GET" && path === "/candidates") {
+    const limitRaw = Number(u.searchParams.get("limit") ?? "150");
+    const limit = Number.isInteger(limitRaw) ? Math.min(DISCOVERY_MAX, Math.max(1, limitRaw)) : 150;
+    const raw = u.searchParams.get("regions");
+    const regions = regionList(raw);
+    if (raw !== null && raw !== "" && !regions) return { kind: "not_found" };
+    return { kind: "candidates", limit, regions };
+  }
+  if (method === "POST" && path === "/candidates") return { kind: "candidates_add" };
   const rows = /^\/tiles\/([0-9]{1,6})\/rows$/.exec(path);
   if (method === "GET" && rows) {
     const tileId = Number(rows[1]);
@@ -378,6 +410,104 @@ export function parseRegionsRecordBody(
   return { ok: true, runId: b.run_id, args: { p_regions: out } };
 }
 
+const OUTCOMES = new Set([
+  "ok",
+  "empty",
+  "no_feed",
+  "error",
+  "blocked",
+  "robots",
+  "noindex",
+  "needs_permission",
+  "denylisted",
+]);
+
+/**
+ * Body of POST /collector/sources/record: {run_id, results: [{candidate_id, outcome, kind?, url?,
+ * platform?, items?, in_region?, requests?, errors?, complete?}]}. The run id is copied onto each
+ * result; source_candidates_record checks every field again and applies the lifecycle.
+ */
+export function parseSourcesRecordBody(
+  body: unknown,
+): Parsed<{ p_results: Record<string, unknown>[] }> & { runId?: string } {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return { ok: false, error: "invalid_body" };
+  }
+  const b = body as Record<string, unknown>;
+  if (typeof b.run_id !== "string" || !RUN_ID.test(b.run_id))
+    return { ok: false, error: "invalid_run_id" };
+  if (!Array.isArray(b.results) || b.results.length > DISCOVERY_MAX)
+    return { ok: false, error: "invalid_results" };
+  const out: Record<string, unknown>[] = [];
+  for (const r of b.results) {
+    if (typeof r !== "object" || r === null || Array.isArray(r))
+      return { ok: false, error: "invalid_results" };
+    const o = r as Record<string, unknown>;
+    if (typeof o.candidate_id !== "string" || !UUID.test(o.candidate_id))
+      return { ok: false, error: "invalid_results" };
+    if (typeof o.outcome !== "string" || !OUTCOMES.has(o.outcome))
+      return { ok: false, error: "invalid_results" };
+    const e: Record<string, unknown> = {
+      candidate_id: o.candidate_id.toLowerCase(),
+      run_id: b.run_id,
+      outcome: o.outcome,
+    };
+    if (o.kind !== undefined && o.kind !== null) {
+      if (o.kind !== "ics" && o.kind !== "rss" && o.kind !== "page")
+        return { ok: false, error: "invalid_results" };
+      e.kind = o.kind;
+    }
+    if (o.url !== undefined && o.url !== null) {
+      if (typeof o.url !== "string" || !o.url.startsWith("https://") || o.url.length > 500)
+        return { ok: false, error: "invalid_results" };
+      e.url = o.url;
+    }
+    if (o.platform !== undefined && o.platform !== null) {
+      if (typeof o.platform !== "string" || !/^[a-z0-9_]{1,40}$/.test(o.platform))
+        return { ok: false, error: "invalid_results" };
+      e.platform = o.platform;
+    }
+    for (const k of ["items", "in_region", "requests", "errors"] as const) {
+      if (o[k] === undefined || o[k] === null) continue;
+      if (!Number.isInteger(o[k]) || (o[k] as number) < 0 || (o[k] as number) > 9_999_999)
+        return { ok: false, error: "invalid_results" };
+      e[k] = o[k];
+    }
+    if (o.complete !== undefined && o.complete !== null) {
+      if (typeof o.complete !== "boolean") return { ok: false, error: "invalid_results" };
+      e.complete = o.complete;
+    }
+    out.push(e);
+  }
+  return { ok: true, runId: b.run_id, args: { p_results: out } };
+}
+
+/**
+ * Body of POST /collector/candidates: {candidates: [{url, origin osm|wikidata, region_id?, name?,
+ * place_kind?, wikidata_id?, country?, score?}]}. source_candidates_add applies the D-040 URL
+ * rules and the denylist and counts what it refused.
+ */
+export function parseCandidatesBody(
+  body: unknown,
+): Parsed<{ p_candidates: Record<string, unknown>[] }> {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return { ok: false, error: "invalid_body" };
+  }
+  const list = (body as Record<string, unknown>).candidates;
+  if (!Array.isArray(list) || list.length > DISCOVERY_MAX)
+    return { ok: false, error: "invalid_candidates" };
+  for (const c of list) {
+    if (typeof c !== "object" || c === null || Array.isArray(c))
+      return { ok: false, error: "invalid_candidates" };
+    const o = c as Record<string, unknown>;
+    if (typeof o.url !== "string" || o.url.length > 500)
+      return { ok: false, error: "invalid_candidates" };
+    if (o.origin !== "osm" && o.origin !== "wikidata")
+      return { ok: false, error: "invalid_candidates" };
+  }
+  return { ok: true, args: { p_candidates: list as Record<string, unknown>[] } };
+}
+
 /** The database error names the RPCs raise, mapped to HTTP statuses for the job. */
 const RPC_ERRORS: Record<string, number> = {
   tile_unknown: 404,
@@ -403,6 +533,8 @@ const RPC_ERRORS: Record<string, number> = {
   record_invalid: 400,
   cursor_invalid: 400,
   regions_invalid: 400,
+  results_invalid: 400,
+  candidates_invalid: 400,
 };
 
 /** Picks a known error name out of a PostgREST error body; anything else is a 502. */
