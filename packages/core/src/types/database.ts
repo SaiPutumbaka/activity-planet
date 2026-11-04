@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 24 (schema_version 2.20). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 25 (schema_version 2.21). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -1835,8 +1835,10 @@ export type Database = {
           email: string;
           feed_radius_km: number;
           home_area_id: string | null;
+          home_count_noted_at: string | null;
           home_label: string | null;
           home_point: unknown;
+          home_region_noted_at: string | null;
           home_set_at: string | null;
           last_seen_at: string | null;
           location: unknown;
@@ -1851,8 +1853,10 @@ export type Database = {
           email: string;
           feed_radius_km?: number;
           home_area_id?: string | null;
+          home_count_noted_at?: string | null;
           home_label?: string | null;
           home_point?: unknown;
+          home_region_noted_at?: string | null;
           home_set_at?: string | null;
           last_seen_at?: string | null;
           location?: unknown;
@@ -1867,8 +1871,10 @@ export type Database = {
           email?: string;
           feed_radius_km?: number;
           home_area_id?: string | null;
+          home_count_noted_at?: string | null;
           home_label?: string | null;
           home_point?: unknown;
+          home_region_noted_at?: string | null;
           home_set_at?: string | null;
           last_seen_at?: string | null;
           location?: unknown;
