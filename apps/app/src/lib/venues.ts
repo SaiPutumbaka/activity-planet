@@ -38,6 +38,29 @@ export async function upsertVenue(args: UpsertVenueArgs): Promise<Venue> {
   return data;
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * "Start a plan here" (`/post?place=<id>`, migration 33): the public venue that is this map
+ * place, made from the place's public facts the first time. Null when the id is not a uuid or the
+ * place is not an active public place the viewer can see (place_not_found).
+ */
+export async function venueForPlace(placeId: string): Promise<Venue | null> {
+  if (!UUID.test(placeId)) return null;
+  const { data, error } = await supabase.rpc("venue_for_place", { p_place_id: placeId });
+  if (error?.code === "P0002") return null;
+  if (error) throw error;
+  return data;
+}
+
+export const venueForPlaceQuery = (placeId: string) =>
+  queryOptions({
+    queryKey: ["venues", "for-place", placeId] as const,
+    queryFn: () => venueForPlace(placeId),
+    staleTime: Infinity,
+    retry: 1,
+  });
+
 const VENUE_SEARCH_SELECT =
   "id,name,address_line1,address_line2,city,state,postal_code,is_public,place_id" as const;
 

@@ -599,6 +599,27 @@ export function sourceLine(
   }
 }
 
+/**
+ * "Start a plan here" works for an active public place only: venue_for_place (migration 33)
+ * makes a public venue from its public facts. A private pin or a place waiting for review has none.
+ */
+export function canStartPlan(d: Pick<PlaceDetail, "private" | "pending">): boolean {
+  return !d.private && !d.pending;
+}
+
+/**
+ * The `/post` search for "Start a plan here": the place, and the hub to preselect, which is the
+ * first of the viewer's joined hubs the place is listed for, a specific one before a generic one.
+ */
+export function startPlanSearch(d: Pick<PlaceDetail, "id" | "hubs">): {
+  place: string;
+  hub?: string;
+} {
+  const joined = d.hubs.filter((h) => h.joined && h.slug);
+  const hub = joined.find((h) => !h.general) ?? joined[0];
+  return hub ? { place: d.id, hub: hub.slug } : { place: d.id };
+}
+
 /* ------------------------------------------------------------------ */
 /* Place kinds and pin icons                                            */
 /* ------------------------------------------------------------------ */

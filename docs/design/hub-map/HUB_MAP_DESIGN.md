@@ -93,6 +93,14 @@ An `after insert or update` trigger on `events` runs when a published, public-vi
 - It upserts `places(source='venue', source_id=venue_id)` and links `place_hubs(via='events', weight = count of public plans in the last 180 days)`.
 - Private venues and approved-only events never create places.
 
+**Slice 9 notes (2026-11-04, as built).** Migration 33 (`20261127000100_meeting_spots.sql`), test `supabase/tests/meeting_spots.sql`. Triggers on `event_addresses` (insert, delete, venue change), `events` (status, visibility, address visibility, hub, start) and `venues` (public flag, point, name) call `meeting_spot_refresh(venue)`, which owns the venue-to-place link:
+- A public venue first keeps a `place_ref` to an active public place from another source, else is matched to the nearest active public place (OSM, Geoapify, reviewed member) within 60 m with the same or a close name (trigram 0.45), so a plan at a court already on the map adds to that court instead of a second pin. Only when nothing matches does it get its own `places(source='venue', kind='spot')` row, and only while it has a qualifying plan; the row goes when the last one does.
+- A qualifying plan is published, `visibility='public'`, `address_visibility='public'`, and started in the last 180 days or upcoming. `place_hubs(via='events', weight = count)` per hub; inactive, events-only and sensitive hubs get no link; member and moderator links are never touched.
+- A venue going private loses `place_ref` in a before trigger (the `event_set_location` private flip would otherwise hit `venues_place_ref_public`) and its spot row is deleted.
+- `refresh_meeting_spots()` runs weekly (pg_cron `refresh-meeting-spots`, Monday 04:37 UTC) and once in the migration as a backfill: weights follow the 180-day window, spots move onto OSM places once the extract has them, and links of deleted venues are re-synced.
+- "Start a plan here" calls `venue_for_place(place)` (authenticated, definer): the place's existing public venue, or a new public venue from its public facts with `place_ref` set and the caller as creator (the twenty-a-day venue limit applies; account deletion already clears `created_by` on public venues). `/post?place=<id>&hub=<slug>` prefills that venue; the plan then links the place through the trigger. Only active public places qualify (no private pins, nothing pending).
+- Deviation: flag 16 ("meeting spot") stays tied to `source='venue'`; an OSM place that gained `events` links shows under the hub but keeps its own kind and flags (`places_in_view` was not rebuilt).
+
 ### 3.4 Other sources (later, quarterly)
 - Wikidata (CC0): website and Wikipedia links for museums, libraries and universities, matched by the OSM `wikidata` tag. Respect its limits (5 parallel queries, a real User-Agent).
 - City open data (courts, parks): only datasets that are public domain, CC0 or ODbL-compatible. Skip anything with an unstated licence. Atlanta has no courts layer found yet.

@@ -10,6 +10,7 @@ import {
   defaultEventFormValues,
   toCreateEventArgs,
   toCreateEventSeriesArgs,
+  withVenue,
   type EventArgsContext,
   type EventFormValues,
 } from "@/components/events/event-form-schema";
@@ -22,17 +23,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { chapterKeys, myManagedChaptersQuery } from "@/lib/chapters";
 import { DEFAULT_TIMEZONE } from "@/lib/datetime";
 import { createEvent, createEventSeries, myPostableHubsQuery } from "@/lib/events";
+import { venueForPlaceQuery } from "@/lib/venues";
 
 const appRoute = getRouteApi("/_app");
 const searchSchema = z.object({
   hub: z.string().optional(),
   chapterId: z.string().optional(),
+  /** A map place (the place sheet's "Start a plan here"): its venue is prefilled. */
+  place: z.string().optional(),
 });
 
 /**
  * Post a plan: one form, create_event or (weekly) create_event_series, then the event page.
  * `?hub=<slug>` preselects the hub (a hub page's "start a plan here"); `?chapterId=<id>` posts
- * as that chapter when the viewer captains or organizes it.
+ * as that chapter when the viewer captains or organizes it; `?place=<id>` (the map's "Start a
+ * plan here") prefills the venue with that place's public venue (venue_for_place, migration 33),
+ * so the plan makes the place a meeting spot for its hub.
  */
 export const Route = createFileRoute("/_app/post")({
   validateSearch: searchSchema,
@@ -45,14 +51,17 @@ export const Route = createFileRoute("/_app/post")({
 
 function PostPage() {
   const { session, profile } = appRoute.useRouteContext();
-  const { hub: hubSlug, chapterId } = Route.useSearch();
+  const { hub: hubSlug, chapterId, place } = Route.useSearch();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const hubs = useQuery(myPostableHubsQuery(session.user.id));
   const managed = useQuery(myManagedChaptersQuery(session.user.id));
+  const placeVenue = useQuery({ ...venueForPlaceQuery(place ?? ""), enabled: Boolean(place) });
+  // A place that can't be used (gone, or not public) just leaves the venue empty.
+  const venue = place ? (placeVenue.data ?? null) : null;
   // "Post as" is an extra; a failed load just means posting as yourself.
   const chapters = managed.data ?? [];
-  const loading = hubs.isPending || managed.isPending;
+  const loading = hubs.isPending || managed.isPending || (Boolean(place) && placeVenue.isPending);
 
   const initialValues = useMemo(() => {
     const list = hubs.data ?? [];
@@ -65,8 +74,9 @@ function PostPage() {
       });
     }
     const chosen = list.find((h) => h.slug === hubSlug) ?? list[0];
-    return defaultEventFormValues({ hubId: chosen?.id ?? "", timeZone: DEFAULT_TIMEZONE });
-  }, [hubs.data, managed.data, hubSlug, chapterId]);
+    const values = defaultEventFormValues({ hubId: chosen?.id ?? "", timeZone: DEFAULT_TIMEZONE });
+    return venue ? withVenue(values, venue) : values;
+  }, [hubs.data, managed.data, hubSlug, chapterId, venue]);
 
   function invalidateLists() {
     void queryClient.invalidateQueries({ queryKey: ["feed"] });
@@ -122,19 +132,28 @@ function PostPage() {
             }
           />
         ) : (
-          <EventForm
-            mode="create"
-            initialValues={initialValues}
-            // Remount when a chapter link arrives after the form first rendered.
-            key={initialValues.postAs}
-            hubs={hubs.data}
-            chapters={chapters}
-            canCampus={profile.home_org_id !== null}
-            campusId={profile.home_campus_id}
-            timeZone={DEFAULT_TIMEZONE}
-            submitLabel="Post plan"
-            onSubmit={onSubmit}
-          />
+          <>
+            {place && !venue ? (
+              <p className="text-[13px] text-text-2" role="status">
+                {placeVenue.isError
+                  ? "Couldn't load that place. Pick where to meet below."
+                  : "That place isn't available any more. Pick where to meet below."}
+              </p>
+            ) : null}
+            <EventForm
+              mode="create"
+              initialValues={initialValues}
+              // Remount when a chapter link or a place's venue arrives after the form first rendered.
+              key={`${initialValues.postAs}:${initialValues.venueId ?? ""}`}
+              hubs={hubs.data}
+              chapters={chapters}
+              canCampus={profile.home_org_id !== null}
+              campusId={profile.home_campus_id}
+              timeZone={DEFAULT_TIMEZONE}
+              submitLabel="Post plan"
+              onSubmit={onSubmit}
+            />
+          </>
         )}
       </main>
     </>

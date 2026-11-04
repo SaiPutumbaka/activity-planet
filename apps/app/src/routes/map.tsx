@@ -292,18 +292,22 @@ function MapScreen({ userId }: { userId: string | null }) {
   // place_mode never changes, so what one response said about a hub holds for later views (a
   // one-chip request only lists that hub).
   const [eventsOnly, setEventsOnly] = useState<ReadonlySet<string>>(() => new Set());
-  useEffect(() => {
+  // Updated while rendering when a new response arrives (no effect, so no cascading render).
+  const [seenHubs, setSeenHubs] = useState<typeof query.data | undefined>(undefined);
+  if (query.data !== seenHubs) {
+    setSeenHubs(query.data);
     const hubs = query.data?.hubs;
-    if (!hubs?.length) return;
-    setEventsOnly((prev) => {
-      const next = new Set(prev);
+    if (hubs?.length) {
+      const next = new Set(eventsOnly);
       for (const h of hubs) {
         if (h.placeMode === "none") next.add(h.id);
         else next.delete(h.id);
       }
-      return next.size === prev.size && [...next].every((id) => prev.has(id)) ? prev : next;
-    });
-  }, [query.data]);
+      if (next.size !== eventsOnly.size || ![...next].every((id) => eventsOnly.has(id))) {
+        setEventsOnly(next);
+      }
+    }
+  }
   // Alcohol and gambling hubs (§7.8): their places carry "21+ at venue".
   const adultHubIds = useMemo(
     () =>

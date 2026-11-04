@@ -6,6 +6,7 @@ import {
   postAsArgs,
   toCreateEventArgs,
   toCreateEventSeriesArgs,
+  withVenue,
   type EventArgsContext,
   type EventFormValues,
 } from "../event-form-schema";
@@ -103,5 +104,24 @@ describe("weekly series", () => {
       values({ repeatWeekly: true, startsOn: "2027-01-12", endsOn: "2027-03-01", weeks: "" }),
     );
     expect(parsed.success).toBe(true);
+  });
+});
+
+describe("withVenue (Start a plan here)", () => {
+  it("picks the place's public venue and posts it", () => {
+    const v = withVenue(defaultEventFormValues({ hubId: "hub-1", timeZone: TZ, now: NOW }), {
+      id: "venue-1",
+      name: "Court",
+      is_public: true,
+    });
+    expect(v).toMatchObject({
+      locationMode: "venue",
+      venueId: "venue-1",
+      venueName: "Court",
+      venueIsPublic: true,
+    });
+    const args = toCreateEventArgs({ ...v, title: "Pickup basketball" }, ctx);
+    expect(args.venue_id).toBe("venue-1");
+    expect(args.address_visibility).toBe("public");
   });
 });

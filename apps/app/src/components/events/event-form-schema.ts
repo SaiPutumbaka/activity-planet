@@ -405,3 +405,17 @@ export function toUpdateEventArgs(
   delete patch.timezone;
   return patch as UpdateEventArgs;
 }
+
+/** The form with a public venue picked (the map place's venue). */
+export function withVenue(
+  values: EventFormValues,
+  venue: { id: string; name: string; is_public: boolean },
+): EventFormValues {
+  return {
+    ...values,
+    locationMode: "venue",
+    venueId: venue.id,
+    venueName: venue.name,
+    venueIsPublic: venue.is_public,
+  };
+}

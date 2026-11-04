@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, ExternalLink, Globe, MapPin, Navigation, Pencil } from "lucide-react";
+import { CalendarPlus, Clock, ExternalLink, Globe, MapPin, Navigation, Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button-variants";
@@ -11,12 +11,14 @@ import { cn } from "@/lib/cn";
 import { formatRelativeDay, formatTime } from "@/lib/datetime";
 import {
   CELL_NOTE,
+  canStartPlan,
   cellLabel,
   detectPlatform,
   directionsUrl,
   isMapUnavailable,
   placeDetailQuery,
   sourceLine,
+  startPlanSearch,
   type MapCell,
   type MapFeature,
 } from "@/lib/map";
@@ -57,8 +59,9 @@ function platform() {
 /**
  * A place's card (§9, the existing Sheet): name, kind, hubs, the address for public places only,
  * hours as text (no "Open now" yet), website, the §8 source line, directions in the device's own
- * maps app, and "Improve it on OpenStreetMap" for OSM places. Corrections, reports and "Start a
- * plan here" with the place prefilled come with slices 9 and 11.
+ * maps app, "Plans here", "Start a plan here" (`/post?place=`, the venue prefilled; the plan then
+ * makes the place a meeting spot for its hub) and "Improve it on OpenStreetMap" for OSM places.
+ * Corrections and reports come with slice 11.
  */
 export function PlaceSheet({
   placeId,
@@ -77,7 +80,6 @@ export function PlaceSheet({
   const detail = useQuery({ ...placeDetailQuery(placeId ?? ""), enabled: Boolean(placeId) });
   const d = detail.data;
   const hubList = d?.hubs ?? [];
-  const firstJoined = hubList.find((h) => h.joined);
   const adultsOnly = hubList.some((h) => adultHubIds.has(h.id));
 
   return (
@@ -163,12 +165,13 @@ export function PlaceSheet({
               <Navigation className="size-[18px]" aria-hidden="true" />
               Directions
             </a>
-            {signedIn && firstJoined ? (
+            {signedIn && canStartPlan(d) ? (
               <Link
                 to="/post"
-                search={{ hub: firstJoined.slug }}
+                search={startPlanSearch(d)}
                 className={buttonVariants({ variant: "secondary", size: "md" })}
               >
+                <CalendarPlus className="size-[18px]" aria-hidden="true" />
                 Start a plan here
               </Link>
             ) : null}
@@ -177,6 +180,11 @@ export function PlaceSheet({
             Directions open in your phone's maps app. Your location isn't sent to us.
           </p>
 
+          {d.plansHere.length === 0 && signedIn && canStartPlan(d) ? (
+            <p className="text-[13px] text-text-2">
+              No plans here yet. Start one and it shows up here for everyone.
+            </p>
+          ) : null}
           {d.plansHere.length ? (
             <section>
               <h3 className="pb-1 text-[13px] font-bold tracking-wide text-text-2 uppercase">

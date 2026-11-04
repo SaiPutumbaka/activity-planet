@@ -33,6 +33,8 @@ import {
   planHubRequest,
   snapBBox,
   sourceLine,
+  canStartPlan,
+  startPlanSearch,
   timeWindow,
   toggleHubChip,
   toggleLayer,
@@ -740,5 +742,38 @@ describe("map overlay data", () => {
     const plans = happeningsGeoJSON({ ...view, shows: [] }).features.map((f) => f.properties.icon);
     expect(plans[1]).toBe(PLAN_IMPORTED_IMAGE);
     expect(plans[0]).not.toBe(plans[1]);
+  });
+});
+
+describe("Start a plan here", () => {
+  const h = (slug: string, joined: boolean, general: boolean) => ({
+    id: `id-${slug}`,
+    slug,
+    name: slug,
+    emoji: "",
+    joined,
+    general,
+  });
+
+  it("is offered for active public places only", () => {
+    expect(canStartPlan({ private: false, pending: false })).toBe(true);
+    expect(canStartPlan({ private: true, pending: false })).toBe(false);
+    expect(canStartPlan({ private: false, pending: true })).toBe(false);
+  });
+
+  it("passes the place and the first joined specific hub", () => {
+    expect(
+      startPlanSearch({
+        id: "p1",
+        hubs: [h("parks", true, true), h("chess", false, false), h("basketball", true, false)],
+      }),
+    ).toEqual({ place: "p1", hub: "basketball" });
+    expect(startPlanSearch({ id: "p1", hubs: [h("parks", true, true)] })).toEqual({
+      place: "p1",
+      hub: "parks",
+    });
+    expect(startPlanSearch({ id: "p1", hubs: [h("chess", false, false)] })).toEqual({
+      place: "p1",
+    });
   });
 });
