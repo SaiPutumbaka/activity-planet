@@ -1,0 +1,7 @@
+{
+  "_about": "Push trigger for places-files.yml on branches other than main (workflow_dispatch only works once the workflow is on main). A push that changes this file builds the static place files for tiles (empty: the queue) from STAGING into a workflow artifact and records them on staging as built, never published. Bump nonce to run again.",
+  "tiles": "",
+  "all": false,
+  "max_tiles": 50,
+  "nonce": 1
+}
