@@ -160,6 +160,8 @@ async function main(argv: string[]): Promise<number> {
           console.log(
             `[probe] ${r.candidate.host}${mark} outcome=${r.outcome} kind=${r.kind ?? "-"} platform=${r.platform ?? "-"} platforms=${r.platforms.join(",") || "-"} items=${r.items} in_region=${r.in_region} requests=${r.requests} errors=${r.errors} score=${r.score} notes=${r.notes.join("|")}`,
           );
+        // The gate's own sites: every request, so a miss can be explained (public pages only).
+        if (mark) for (const t of r.trace) console.log(`[trace] ${r.candidate.host} ${t}`);
       },
     });
     const report = gateReport(results, built.candidates, cfg.gate.expected, cfg.gate.required);

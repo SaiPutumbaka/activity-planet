@@ -73,6 +73,8 @@ export interface ProbeResult {
   score: number;
   /** Fixed words for the log: what the probe saw (no page text). */
   notes: string[];
+  /** Each request: host and path, status or failure reason (no page text). */
+  trace: string[];
 }
 
 export interface ProbeContext {
@@ -155,8 +157,11 @@ export class ProbeFetcher implements Fetcher {
   /** The shared fetcher's per-host counts when this probe started. */
   private readonly start: Map<string, number>;
   readonly pages = new Map<string, { body: string; type: string; xRobotsTag: string | null }>();
-  sent = 0;
   gaps = 0;
+  /** Hosts this probe asked for (and landed on), for its request count. */
+  private readonly touched = new Set<string>();
+  /** One line per request (host, path, status or failure): for the gate's log of public sites. */
+  readonly trace: string[] = [];
   deadline = false;
 
   private readonly inner: PoliteFetcher | Fetcher;
@@ -170,6 +175,13 @@ export class ProbeFetcher implements Fetcher {
 
   get requests(): Map<string, number> {
     return this.inner.requests;
+  }
+
+  /** Requests this probe sent, robots.txt and redirect hops included. */
+  get sent(): number {
+    let n = 0;
+    for (const h of this.touched) n += (this.inner.requests.get(h) ?? 0) - (this.start.get(h) ?? 0);
+    return n;
   }
 
   precheck(url: string, opts?: FetchOptions) {
@@ -195,10 +207,21 @@ export class ProbeFetcher implements Fetcher {
     const start = this.start.get(host) ?? 0;
     // This probe's requests to the host so far, robots.txt and redirect hops included.
     if (used - start >= this.cap) return { ok: false, url, reason: "host_budget_spent" };
-    const before = [...this.inner.requests.values()].reduce((a, b) => a + b, 0);
     const res = await this.inner.get(url, opts);
-    const after = [...this.inner.requests.values()].reduce((a, b) => a + b, 0);
-    this.sent += Math.max(after - before, 0);
+    this.touched.add(host);
+    this.touched.add(hostOf(res.url));
+    if (this.trace.length < 40) {
+      let path = res.url;
+      try {
+        const u = new URL(res.url);
+        path = `${u.host}${u.pathname}${u.search ? "?…" : ""}`.slice(0, 100);
+      } catch {
+        // keep the raw string
+      }
+      this.trace.push(
+        `${path} ${res.ok ? res.status : `${res.reason}${res.status ? `:${res.status}` : ""}`}`,
+      );
+    }
     if (!res.ok) {
       if (res.reason === "run_deadline") this.deadline = true;
       else if (res.reason !== "host_budget_spent" && isGap(res.reason, res.status, false))
@@ -311,6 +334,7 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
       complete: !pf.deadline,
       deadline: pf.deadline,
       notes,
+      trace: pf.trace,
       ...extra,
       score: probeScore(c, {
         ...signals,
