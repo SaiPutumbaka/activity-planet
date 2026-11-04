@@ -607,6 +607,14 @@ def http_json(method, url, secret, body=None, retries=3):
     return 0, {"error": "network"}
 
 
+def load_previous(path):
+    """{tile id: previous seen count or None} from the workflow's server query (previous.json)."""
+    if not path or not os.path.exists(path):
+        die("no previous counts file; the drop guard needs the server's counts")
+    raw = json.load(open(path, encoding="utf-8"))
+    return {int(k): (None if v is None else int(v)) for k, v in raw.items()}
+
+
 def guard_ok(count, previous):
     """The 30% drop check: False when a tile that had GUARD_MIN_ROWS rows lost more than 30%."""
     return previous is None or previous < GUARD_MIN_ROWS or count >= DROP_GUARD * previous
@@ -694,9 +702,14 @@ def cmd_post(a):
     if len(secret) < 32:
         die("COLLECTOR_SECRET is not set")
     base = a.base_url.rstrip("/")
-    queue = json.load(open(a.queue, encoding="utf-8")) if a.queue and os.path.exists(a.queue) else {"tiles": []}
-    previous = {int(t["id"]): t.get("row_count") for t in queue.get("tiles", [])}
+    # The previous count of every tile comes from the server (the last finished OSM run's seen
+    # count, what finish_place_tile's row_count_drop guard compares against), not from the tiles
+    # queue, which lists only wanted and due tiles and counts rows of every source.
+    previous = load_previous(a.previous)
     tids = [int(x) for x in a.tiles.split(",") if x]
+    missing = [t for t in tids if t not in previous]
+    if missing:
+        die(f"no previous count from the server for tiles {missing}")
     results = {}
     failed = []
     for t in tids:
@@ -705,7 +718,7 @@ def cmd_post(a):
             die(f"no rows file for tile {t}")
         rows = [json.loads(line) for line in open(path, encoding="utf-8") if line.strip()]
         prev = previous.get(t)
-        if not guard_ok(len(rows), prev):
+        if not a.allow_drop and not guard_ok(len(rows), prev):
             log(f"tile {t}: GUARD {len(rows)} rows against {prev} before; more than a 30% drop, not posted")
             failed.append(t)
             results[str(t)] = {"error": "row_count_drop", "rows": len(rows), "previous": prev}
@@ -729,21 +742,22 @@ def cmd_post(a):
             failed.append(t)
             results[str(t)] = {"error": "ingest_failed", **totals}
             continue
-        status, res = http_json("POST", f"{base}/tiles/{t}/done", secret,
-                                {"run_id": a.run_id, "count": totals["received"], "source": "osm"})
+        done = {"run_id": a.run_id, "count": totals["received"], "source": "osm"}
+        if a.allow_drop:
+            done["allow_drop"] = True
+        status, res = http_json("POST", f"{base}/tiles/{t}/done", secret, done)
         if status != 200 or not isinstance(res, dict):
             err = res.get("error") if isinstance(res, dict) else None
-            log(f"tile {t}: done failed: HTTP {status} {err}")
+            if err == "row_count_drop":
+                log(f"tile {t}: GUARD the server refused to finish: {totals['received']} rows against the last "
+                    "run's count, more than a 30% drop; nothing missed or closed")
+            else:
+                log(f"tile {t}: done failed: HTTP {status} {err}")
             failed.append(t)
             results[str(t)] = {"error": f"done_{err or status}", **totals}
             continue
         result = {**totals, "skipped": dict(skipped), **{k: res.get(k) for k in (
             "seen", "missed", "closed", "previous_seen", "active", "row_count")}}
-        if not guard_ok(totals["received"], res.get("previous_seen")):
-            log(f"tile {t}: GUARD after finish: {totals['received']} rows against {res.get('previous_seen')} "
-                "in the last run (one miss counted, nothing closed yet)")
-            failed.append(t)
-            result["error"] = "row_count_drop_after_finish"
         results[str(t)] = result
         log(f"tile {t}: {json.dumps(result)}")
     with open(a.out, "w", encoding="utf-8") as fh:
@@ -778,7 +792,8 @@ def main(argv=None):
     s.add_argument("--tiles", required=True)
     s.add_argument("--rows-dir", required=True)
     s.add_argument("--run-id", required=True)
-    s.add_argument("--queue")
+    s.add_argument("--previous", required=True)
+    s.add_argument("--allow-drop", action="store_true")
     s.add_argument("--out", required=True)
     s.set_defaults(fn=cmd_post)
     a = p.parse_args(argv)

@@ -50,6 +50,8 @@ export interface DoneArgs {
   p_run_id: string;
   p_count: number;
   p_source: PlaceSource;
+  /** Only sent when true, so finish_place_tile keeps its row_count_drop guard by default. */
+  p_allow_drop?: true;
 }
 
 export type Parsed<T> = { ok: true; args: T } | { ok: false; error: string };
@@ -97,7 +99,7 @@ export function parseIngestBody(body: unknown): Parsed<IngestArgs> {
   };
 }
 
-/** Body of POST /collector/tiles/{id}/done: {run_id, count, source?}. */
+/** Body of POST /collector/tiles/{id}/done: {run_id, count, source?, allow_drop?}. */
 export function parseDoneBody(tileId: number, body: unknown): Parsed<DoneArgs> {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
     return { ok: false, error: "invalid_body" };
@@ -109,10 +111,17 @@ export function parseDoneBody(tileId: number, body: unknown): Parsed<DoneArgs> {
     return { ok: false, error: "invalid_count" };
   const src = source(b.source);
   if (!src) return { ok: false, error: "invalid_source" };
-  return {
-    ok: true,
-    args: { p_tile_id: tileId, p_run_id: b.run_id, p_count: b.count as number, p_source: src },
+  if (b.allow_drop !== undefined && b.allow_drop !== null && typeof b.allow_drop !== "boolean") {
+    return { ok: false, error: "invalid_allow_drop" };
+  }
+  const args: DoneArgs = {
+    p_tile_id: tileId,
+    p_run_id: b.run_id,
+    p_count: b.count as number,
+    p_source: src,
   };
+  if (b.allow_drop === true) args.p_allow_drop = true;
+  return { ok: true, args };
 }
 
 /** The database error names the RPCs raise, mapped to HTTP statuses for the job. */
@@ -123,6 +132,7 @@ const RPC_ERRORS: Record<string, number> = {
   run_finished: 409,
   count_mismatch: 409,
   empty_run: 409,
+  row_count_drop: 409,
   batch_too_large: 413,
   source_invalid: 400,
   run_id_invalid: 400,

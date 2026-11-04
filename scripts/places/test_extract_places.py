@@ -136,6 +136,15 @@ class RuleMatch(unittest.TestCase):
         self.assertTrue(ep.guard_ok(700, 1000))
         self.assertFalse(ep.guard_ok(699, 1000))
 
+    def test_load_previous(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "previous.json")
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump({"178030": 17000, "178031": None}, fh)
+            self.assertEqual(ep.load_previous(path), {178030: 17000, 178031: None})
+            with self.assertRaises(SystemExit):
+                ep.load_previous(os.path.join(d, "missing.json"))
+
 
 @unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
 class Evaluate(unittest.TestCase):

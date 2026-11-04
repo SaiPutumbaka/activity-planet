@@ -17,9 +17,11 @@ name: Places extract
 #     "production" and production's tiles queue has wanted tiles or tiles due a refresh.
 #
 # Guards: a tile with more than 60,000 rows fails before posting; the run refuses to post when the
-# database plus the estimated rows (1,600 bytes each, measured in design 4.5) would pass the 150 MB cap; a tile
-# whose row count fell more than 30% against the tile's last count is not finished (nothing is
-# closed); after finishing, a drop against the previous run's seen count fails the run.
+# places table plus the estimated new rows (1,600 bytes each, measured in design 4.5) would pass
+# the 150 MB places cap, or the whole database plus them would pass 450 MB (the 500 MB plan less
+# headroom); a tile whose row count fell more than 30% against its last finished run's seen count
+# (read from the server for every tile) is not posted, and finish_place_tile refuses the same drop
+# (row_count_drop) before anything is missed or closed. allow_drop accepts a drop on purpose.
 #
 # Secrets: none of its own. It links the target project with SUPABASE_ACCESS_TOKEN and the
 # database password (as migrate.yml does), reads the collector secret that migration 28 generated
@@ -40,6 +42,10 @@ on:
         default: true
       force:
         description: "Run named tiles even when they are not wanted or due a refresh"
+        type: boolean
+        default: false
+      allow_drop:
+        description: "Finish tiles whose row count fell more than 30% (a drop you expect, such as a removed rule)"
         type: boolean
         default: false
       production:
@@ -63,7 +69,8 @@ concurrency:
 env:
   STAGING_PROJECT_REF: gzrscndzzggxmcwnvvcq
   PROD_PROJECT_REF: gtesfiqxqontescqpllo
-  DB_CAP_BYTES: "157286400"
+  PLACES_CAP_BYTES: "157286400"
+  DB_CAP_BYTES: "471859200"
   USER_AGENT: "ActivityPlanet-places/1 (+https://github.com/SaiPutumbaka/activity-planet)"
 
 jobs:
@@ -81,10 +88,11 @@ jobs:
           IN_REGION: ${{ inputs.region }}
           IN_POST: ${{ inputs.post }}
           IN_FORCE: ${{ inputs.force }}
+          IN_ALLOW_DROP: ${{ inputs.allow_drop }}
           IN_PRODUCTION: ${{ inputs.production }}
           SCHEDULE_VAR: ${{ vars.PLACES_EXTRACT_SCHEDULE }}
         run: |
-          target=none; region=""; post=false; force=false
+          target=none; region=""; post=false; force=false; allow_drop=false
           case "$EVENT" in
             schedule)
               if [ "$SCHEDULE_VAR" = "production" ] && [ "$REF" = "refs/heads/main" ]; then
@@ -93,7 +101,7 @@ jobs:
                 echo "Scheduled run: PLACES_EXTRACT_SCHEDULE is not production; nothing to do."
               fi ;;
             workflow_dispatch)
-              region="$IN_REGION"; force="$IN_FORCE"; post="$IN_POST"
+              region="$IN_REGION"; force="$IN_FORCE"; post="$IN_POST"; allow_drop="$IN_ALLOW_DROP"
               if [ "$REF" = "refs/heads/main" ]; then
                 if [ "$IN_PRODUCTION" = "production" ]; then target=production; else target=none; post=false; fi
               else
@@ -105,7 +113,8 @@ jobs:
               target=staging
               region=$(python3 -I -c 'import json;print(json.load(open("scripts/places/extract_request.json"))["region"])')
               post=$(python3 -I -c 'import json;print(str(json.load(open("scripts/places/extract_request.json")).get("post", False)).lower())')
-              force=$(python3 -I -c 'import json;print(str(json.load(open("scripts/places/extract_request.json")).get("force", False)).lower())') ;;
+              force=$(python3 -I -c 'import json;print(str(json.load(open("scripts/places/extract_request.json")).get("force", False)).lower())')
+              allow_drop=$(python3 -I -c 'import json;print(str(json.load(open("scripts/places/extract_request.json")).get("allow_drop", False)).lower())') ;;
           esac
           case "$region" in *[!a-zA-Z0-9,_-]*) echo "Refusing region: $region"; exit 1 ;; esac
           if [ "$target" = "none" ] && [ "$EVENT" = "schedule" ]; then region=""; fi
@@ -114,10 +123,11 @@ jobs:
           ref=""
           [ "$target" = "staging" ] && ref="$STAGING_PROJECT_REF"
           [ "$target" = "production" ] && ref="$PROD_PROJECT_REF"
-          echo "target=$target region=$region post=$post force=$force"
+          [ "$allow_drop" = "true" ] || allow_drop=false
+          echo "target=$target region=$region post=$post force=$force allow_drop=$allow_drop"
           {
             echo "target=$target"; echo "project_ref=$ref"; echo "region=$region"
-            echo "post=$post"; echo "force=$force"
+            echo "post=$post"; echo "force=$force"; echo "allow_drop=$allow_drop"
             echo "week=$(date -u +%G-W%V)"
             echo "run_id=gh-${{ github.run_id }}-${{ github.run_attempt }}"
           } >> "$GITHUB_OUTPUT"
@@ -183,6 +193,23 @@ jobs:
           tiles=$(python3 -I scripts/places/extract_places.py tiles $args)
           echo "tiles: ${tiles:-none}"
           echo "tiles=$tiles" >> "$GITHUB_OUTPUT"
+
+      # Every named tile's previous count, from the server: the seen count of its last finished OSM
+      # run (what finish_place_tile's row_count_drop guard uses), or none. Tile ids and counts only.
+      - name: Previous counts
+        if: steps.tiles.outputs.tiles != '' && steps.mode.outputs.post == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          TILES: ${{ steps.tiles.outputs.tiles }}
+        run: |
+          case "$TILES" in *[!0-9,]*) echo "bad tiles"; exit 1 ;; esac
+          out=$(supabase db query --linked "select 'PREV:' || string_agg(t.id || '=' || coalesce((select r.stats ->> 'seen' from public.place_tile_runs r where r.tile_id = t.id and r.source = 'osm' and r.finished_at is not null order by r.finished_at desc, r.started_at desc limit 1), 'none'), ',' order by t.id) as v from unnest(array[$TILES]::integer[]) as t(id)")
+          prev=$(printf '%s' "$out" | grep -o 'PREV:[0-9a-z=,]*' | head -1 | cut -d: -f2)
+          [ -n "$prev" ] || { echo "could not read the previous counts"; exit 1; }
+          PREV="$prev" python3 -I -c 'import json, os
+          d = {k: (None if v == "none" else int(v)) for k, v in (x.split("=") for x in os.environ["PREV"].split(","))}
+          json.dump(d, open("work/previous.json", "w"))
+          print("previous seen counts:", d)'
 
       - name: Install osmium and shapely
         if: steps.tiles.outputs.tiles != ''
@@ -290,22 +317,35 @@ jobs:
               --features "work/features_$safe.geojsonseq" --residential "work/res_$safe.geojsonseq" --out-dir work/rows
           done < work/groupnames.txt
 
+      # Two limits (design 4.5 and 10): places at most 150 MB, and the whole database at most 450 MB.
+      # Rows a tile gains over its previous count are charged 1,600 bytes each (steady state after a
+      # refresh); rows it already has are charged 600 bytes, the growth measured from the first
+      # ingest (1.0 KB a row) to after a refresh (1.6 KB a row), since they are already counted.
       - name: Size check
         if: steps.tiles.outputs.tiles != ''
         env:
           DB_BYTES: ${{ steps.before.outputs.db_bytes }}
+          PLACES_BYTES: ${{ steps.before.outputs.places_bytes }}
         run: |
           python3 -I - <<'EOF'
           import glob, json, os
-          rows = est = js = 0
+          prev = json.load(open("work/previous.json")) if os.path.exists("work/previous.json") else {}
+          per_row, per_existing = 1600, 600
+          rows = new = est = js = 0
           for p in glob.glob("work/rows/stats_*.json"):
-              for t in json.load(open(p))["tiles"].values():
-                  rows += t["rows"]; est += t["est_db_bytes"]; js += t["json_bytes"]
+              for tid, t in json.load(open(p))["tiles"].items():
+                  rows += t["rows"]; js += t["json_bytes"]
+                  gain = max(0, t["rows"] - (prev.get(tid) or 0))
+                  new += gain; est += gain * per_row + (t["rows"] - gain) * per_existing
           db = int(os.environ.get("DB_BYTES") or 0)
-          cap = int(os.environ["DB_CAP_BYTES"])
-          print(f"rows {rows}, JSON {js} bytes, estimated {est} database bytes; database now {db or 'not read'}; cap {cap}")
-          if db and db + est > cap:
-              raise SystemExit("size check: the database would pass the 150 MB cap; not posting")
+          places = int(os.environ.get("PLACES_BYTES") or 0)
+          places_cap = int(os.environ["PLACES_CAP_BYTES"]); db_cap = int(os.environ["DB_CAP_BYTES"])
+          print(f"rows {rows} ({new} new), JSON {js} bytes, estimated {est} new database bytes; "
+                f"places now {places or 'not read'} (cap {places_cap}); database now {db or 'not read'} (cap {db_cap})")
+          if places and places + est > places_cap:
+              raise SystemExit("size check: places would pass the 150 MB cap; not posting")
+          if db and db + est > db_cap:
+              raise SystemExit("size check: the database would pass 450 MB; not posting")
           EOF
 
       - name: Post to the collector
@@ -314,9 +354,12 @@ jobs:
           PROJECT_REF: ${{ steps.mode.outputs.project_ref }}
           TILES: ${{ steps.tiles.outputs.tiles }}
           RUN_ID: ${{ steps.mode.outputs.run_id }}
+          ALLOW_DROP: ${{ steps.mode.outputs.allow_drop }}
         run: |
+          extra=""
+          [ "$ALLOW_DROP" = "true" ] && extra="--allow-drop"
           python3 -I scripts/places/extract_places.py post --base-url "https://$PROJECT_REF.supabase.co/functions/v1/collector" \
-            --tiles "$TILES" --rows-dir work/rows --run-id "$RUN_ID" --queue work/queue.json --out work/rows/post_results.json
+            --tiles "$TILES" --rows-dir work/rows --run-id "$RUN_ID" --previous work/previous.json $extra --out work/rows/post_results.json
 
       - name: Database size after
         if: always() && steps.tiles.outputs.tiles != '' && steps.mode.outputs.post == 'true'

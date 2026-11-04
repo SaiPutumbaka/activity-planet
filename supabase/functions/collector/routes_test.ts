@@ -84,6 +84,21 @@ Deno.test("done body: run id and a non-negative count", () => {
   });
 });
 
+Deno.test("done body: allow_drop is sent only when true", () => {
+  assertEquals(parseDoneBody(5, { run_id: "r1", count: 3, allow_drop: true }), {
+    ok: true,
+    args: { p_tile_id: 5, p_run_id: "r1", p_count: 3, p_source: "osm", p_allow_drop: true },
+  });
+  assertEquals(parseDoneBody(5, { run_id: "r1", count: 3, allow_drop: false }), {
+    ok: true,
+    args: { p_tile_id: 5, p_run_id: "r1", p_count: 3, p_source: "osm" },
+  });
+  assertEquals(parseDoneBody(5, { run_id: "r1", count: 3, allow_drop: "yes" }), {
+    ok: false,
+    error: "invalid_allow_drop",
+  });
+});
+
 Deno.test("rpc errors: known names keep their meaning, the rest are 502", () => {
   assertEquals(rpcError(JSON.stringify({ code: "P0002", message: "tile_unknown" })), {
     error: "tile_unknown",
@@ -91,6 +106,10 @@ Deno.test("rpc errors: known names keep their meaning, the rest are 502", () => 
   });
   assertEquals(rpcError(JSON.stringify({ message: "count_mismatch" })), {
     error: "count_mismatch",
+    status: 409,
+  });
+  assertEquals(rpcError(JSON.stringify({ message: "row_count_drop" })), {
+    error: "row_count_drop",
     status: 409,
   });
   assertEquals(rpcError(JSON.stringify({ message: "something else" })), {
