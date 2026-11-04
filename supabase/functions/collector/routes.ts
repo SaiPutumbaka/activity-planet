@@ -40,6 +40,8 @@ export type Route =
     }
   | { kind: "discovery_regions"; limit: number }
   | { kind: "discovery_regions_record" }
+  | { kind: "api_budget_take" }
+  | { kind: "api_budget_return" }
   | { kind: "not_found" };
 
 /** collector_sources_for_regions' and source_candidates_due's largest region list (migration 46). */
@@ -164,6 +166,9 @@ export function matchRoute(method: string, url: string): Route {
   }
   if (method === "POST" && path === "/discovery/regions/record")
     return { kind: "discovery_regions_record" };
+  // The lane 1 APIs' daily call budget (D-042 slice 10, migration 48).
+  if (method === "POST" && path === "/api-budget") return { kind: "api_budget_take" };
+  if (method === "POST" && path === "/api-budget/return") return { kind: "api_budget_return" };
   const rows = /^\/tiles\/([0-9]{1,6})\/rows$/.exec(path);
   if (method === "GET" && rows) {
     const tileId = Number(rows[1]);
@@ -621,6 +626,44 @@ export function parseDiscoveryRegionsBody(body: unknown): Parsed<{ p_ids: string
   return { ok: true, args: { p_ids: (list as string[]).map((id) => id.toLowerCase()) } };
 }
 
+/** The lane 1 APIs with a daily call budget (collector_api_budget_cap, migration 48). */
+export const BUDGET_APIS = ["ticketmaster", "seatgeek"] as const;
+/** collector_api_budget_take's and _return's largest request. */
+export const API_CALLS_MAX = 1000;
+
+function apiCalls(o: Record<string, unknown>): { api: string; calls: number } | null {
+  if (typeof o.api !== "string" || !(BUDGET_APIS as readonly string[]).includes(o.api)) return null;
+  if (typeof o.calls !== "number" || !Number.isInteger(o.calls)) return null;
+  if (o.calls < 1 || o.calls > API_CALLS_MAX) return null;
+  return { api: o.api, calls: o.calls };
+}
+
+/** Body of POST /collector/api-budget: {api: "ticketmaster" | "seatgeek", calls: 1..1000}. */
+export function parseApiBudgetTakeBody(body: unknown): Parsed<{ p_api: string; p_calls: number }> {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return { ok: false, error: "invalid_body" };
+  }
+  const c = apiCalls(body as Record<string, unknown>);
+  return c
+    ? { ok: true, args: { p_api: c.api, p_calls: c.calls } }
+    : { ok: false, error: "calls_invalid" };
+}
+
+/** Body of POST /collector/api-budget/return: {api, day: "YYYY-MM-DD", calls: 1..1000}. */
+export function parseApiBudgetReturnBody(
+  body: unknown,
+): Parsed<{ p_api: string; p_day: string; p_calls: number }> {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return { ok: false, error: "invalid_body" };
+  }
+  const o = body as Record<string, unknown>;
+  const c = apiCalls(o);
+  if (!c) return { ok: false, error: "calls_invalid" };
+  if (typeof o.day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(o.day))
+    return { ok: false, error: "day_invalid" };
+  return { ok: true, args: { p_api: c.api, p_day: o.day, p_calls: c.calls } };
+}
+
 /** The database error names the RPCs raise, mapped to HTTP statuses for the job. */
 const RPC_ERRORS: Record<string, number> = {
   tile_unknown: 404,
@@ -650,6 +693,9 @@ const RPC_ERRORS: Record<string, number> = {
   candidates_invalid: 400,
   gate_invalid: 400,
   discovery_gate_closed: 409,
+  api_invalid: 400,
+  calls_invalid: 400,
+  day_invalid: 400,
 };
 
 /** Picks a known error name out of a PostgREST error body; anything else is a 502. */

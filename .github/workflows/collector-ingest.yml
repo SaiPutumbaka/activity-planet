@@ -24,6 +24,16 @@ name: Collector ingest
 #   (one request per 2 s), robots.txt, the 60-requests-per-host cap and the run deadline hold
 #   across regions, and a seed shared by two regions is read once.
 #
+# Lane 1 (D-042 slice 10, migration 48): Ticketmaster Discovery and SeatGeek run once per
+# collector region (never for seeds-only city areas) when the repository secrets
+# TICKETMASTER_API_KEY and SEATGEEK_CLIENT_ID exist; without them the API lane is skipped and
+# nothing is asked of either API. Before collecting, the job takes the run's calls from the day's
+# budget on the project the regions come from (POST /collector/api-budget: Ticketmaster 1,000 a
+# UTC day, SeatGeek 1,000), and gives back what it did not send afterwards. Regions beyond the
+# budget are left out that night (no batch, so nothing of theirs counts as missed). Their sources
+# are listing_kind show (the "Shows and games" row); keys stay in the runner's environment and
+# are redacted from every logged URL.
+#
 # Where it posts:
 #   * STAGING on every run, from any ref (workflow_dispatch, or a push to a branch other than main
 #     that changes packages/collector/ingest_request.json) and on the schedule. Staging sources
@@ -32,7 +42,7 @@ name: Collector ingest
 #     "true" (default off). Production rows are created switched off and stay as the database has
 #     them: a source is switched on there by a deliberate data change, never by this job.
 #
-# Secrets: none of its own. Like places-extract.yml it links the target project with
+# Secrets: only the two optional API keys above. Like places-extract.yml it links the target project with
 # SUPABASE_ACCESS_TOKEN and that project's database password, reads the collector secret that
 # migration 28 generated in the project's vault, masks it, and uses it only as the
 # x-collector-secret header. The service-role key never reaches the job.
@@ -210,12 +220,35 @@ jobs:
           n=$(python3 -I -c 'import json,sys;print(sum(1 for r in json.load(open(sys.argv[1]))["regions"] if r.get("collector")))' "$GITHUB_WORKSPACE/work/regions.json")
           echo "collector_regions=$n" >> "$GITHUB_OUTPUT"
 
+      # Lane 1 calls for this run from the day's budget (counts only). Without a key nothing is
+      # asked and every adapter gets 0.
+      - name: API budget, take
+        if: steps.mode.outputs.mode == 'city' || steps.regions.outputs.collector_regions != '0'
+        env:
+          FROM: ${{ steps.mode.outputs.regions_from }}
+          MODE: ${{ steps.mode.outputs.mode }}
+          TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
+          SEATGEEK_CLIENT_ID: ${{ secrets.SEATGEEK_CLIENT_ID }}
+        run: |
+          mkdir -p work
+          if [ "$FROM" = "production" ]; then ref="$PROD_PROJECT_REF"; secret="$PROD_COLLECTOR_SECRET"; else ref="$STAGING_PROJECT_REF"; secret="$STAGING_COLLECTOR_SECRET"; fi
+          if [ "$MODE" = "regions" ]; then
+            set -- --regions "$GITHUB_WORKSPACE/work/regions.json"
+          else
+            set -- --region-count 1
+          fi
+          COLLECTOR_SECRET="$secret" pnpm --silent --filter collector regions budget take \
+            --to "https://$ref.supabase.co/functions/v1/collector" "$@" \
+            --out "$GITHUB_WORKSPACE/work/api-budget.json"
+
       - name: Collect once
         if: steps.mode.outputs.mode == 'city' || steps.regions.outputs.collector_regions != '0'
         env:
           REGION: ${{ steps.mode.outputs.region }}
           MODE: ${{ steps.mode.outputs.mode }}
           MINUTES: ${{ steps.mode.outputs.minutes }}
+          TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
+          SEATGEEK_CLIENT_ID: ${{ secrets.SEATGEEK_CLIENT_ID }}
         run: |
           mkdir -p work
           if [ "$MODE" = "regions" ]; then
@@ -227,7 +260,19 @@ jobs:
           # --diagnose: one stderr line per request (status, host, media type, size, robots.txt
           # and parser verdicts, page-type hints); metadata and counts only.
           pnpm --filter collector collect "$@" --dry-run --diagnose --max-run-minutes "$MINUTES" \
+            --api-budget "$GITHUB_WORKSPACE/work/api-budget.json" \
             --save "$GITHUB_WORKSPACE/work/batches.json" --summary "$GITHUB_WORKSPACE/work/collected.json"
+
+      # The calls granted but not sent go back to that day (none when no key is set).
+      - name: API budget, settle
+        if: always() && hashFiles('work/api-budget.json') != ''
+        env:
+          FROM: ${{ steps.mode.outputs.regions_from }}
+        run: |
+          if [ "$FROM" = "production" ]; then ref="$PROD_PROJECT_REF"; secret="$PROD_COLLECTOR_SECRET"; else ref="$STAGING_PROJECT_REF"; secret="$STAGING_COLLECTOR_SECRET"; fi
+          COLLECTOR_SECRET="$secret" pnpm --silent --filter collector regions budget settle \
+            --to "https://$ref.supabase.co/functions/v1/collector" \
+            --budget "$GITHUB_WORKSPACE/work/api-budget.json" --summary "$GITHUB_WORKSPACE/work/collected.json"
 
       - name: Staging, post
         if: steps.mode.outputs.mode == 'city' || steps.regions.outputs.collector_regions != '0'

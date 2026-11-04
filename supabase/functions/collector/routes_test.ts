@@ -2,6 +2,8 @@
 import { assertEquals } from "jsr:@std/assert@1.0.19";
 import {
   matchRoute,
+  parseApiBudgetReturnBody,
+  parseApiBudgetTakeBody,
   parseCandidatesBody,
   parseDiscoveryRegionsBody,
   parseDoneBody,
@@ -579,4 +581,36 @@ Deno.test("gate body: counts and hosts only; passed is never passed through", ()
     args: { p_ids: [id] },
   });
   assertEquals(parseDiscoveryRegionsBody({ regions: ["x"] }).ok, false);
+});
+
+Deno.test("api budget: routes and bodies (D-042 slice 10)", () => {
+  assertEquals(matchRoute("POST", `${base}/api-budget`), { kind: "api_budget_take" });
+  assertEquals(matchRoute("POST", `${base}/api-budget/return`), { kind: "api_budget_return" });
+  assertEquals(matchRoute("GET", `${base}/api-budget`), { kind: "not_found" });
+  assertEquals(parseApiBudgetTakeBody({ api: "ticketmaster", calls: 100 }), {
+    ok: true,
+    args: { p_api: "ticketmaster", p_calls: 100 },
+  });
+  for (const bad of [
+    { api: "eventbrite", calls: 1 },
+    { api: "seatgeek", calls: 0 },
+    { api: "seatgeek", calls: 1001 },
+    { api: "seatgeek", calls: 1.5 },
+    { api: "seatgeek" },
+  ]) {
+    assertEquals(parseApiBudgetTakeBody(bad).ok, false);
+  }
+  assertEquals(parseApiBudgetTakeBody([]), { ok: false, error: "invalid_body" });
+  assertEquals(parseApiBudgetReturnBody({ api: "seatgeek", day: "2026-11-04", calls: 3 }), {
+    ok: true,
+    args: { p_api: "seatgeek", p_day: "2026-11-04", p_calls: 3 },
+  });
+  assertEquals(parseApiBudgetReturnBody({ api: "seatgeek", day: "Nov 4", calls: 3 }), {
+    ok: false,
+    error: "day_invalid",
+  });
+  assertEquals(rpcError(JSON.stringify({ message: "calls_invalid" })), {
+    error: "calls_invalid",
+    status: 400,
+  });
 });

@@ -26,7 +26,7 @@
 //     --summary collected.json
 //       After the run: the calls granted but not sent go back to that day's budget.
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import {
   apiRegionCount,
@@ -187,13 +187,17 @@ async function main(argv: string[]): Promise<number> {
   if (command === "budget" && sub === "settle") {
     if (!values.to || !values.budget) throw new Error("budget settle needs --to and --budget");
     const file = JSON.parse(readFileSync(values.budget, "utf8")) as ApiBudgetFile;
-    const used = values.summary
-      ? ((
-          JSON.parse(readFileSync(values.summary, "utf8")) as {
-            api?: Record<string, { calls: number }>;
-          }
-        ).api ?? {})
-      : {};
+    // Without the run's summary the calls sent are unknown: nothing goes back (the grant stands).
+    if (!values.summary || !existsSync(values.summary)) {
+      console.log("[api] no run summary; nothing returned");
+      return 0;
+    }
+    const used =
+      (
+        JSON.parse(readFileSync(values.summary, "utf8")) as {
+          api?: Record<string, { calls: number }>;
+        }
+      ).api ?? {};
     const back = await settleApiBudget(
       { baseUrl: values.to.replace(/\/+$/, ""), secret },
       file,

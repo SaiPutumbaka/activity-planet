@@ -66,6 +66,8 @@ import {
   parseFilesRecordBody,
   parseIngestBody,
   parseCandidatesBody,
+  parseApiBudgetReturnBody,
+  parseApiBudgetTakeBody,
   parseDiscoveryRegionsBody,
   parseGateBody,
   parseRegionsRecordBody,
@@ -299,6 +301,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!parsed.ok) return json({ error: parsed.error }, 400);
       const result = await rpc("source_discovery_regions_record", { ...parsed.args });
       console.log("collector discovery regions", JSON.stringify(result));
+      return json(result);
+    }
+
+    // The lane 1 APIs' daily call budget (D-042 slice 10): counts only, no key ever reaches here.
+    if (route.kind === "api_budget_take") {
+      const parsed = parseApiBudgetTakeBody(body);
+      if (!parsed.ok) return json({ error: parsed.error }, 400);
+      const result = await rpc("collector_api_budget_take", { ...parsed.args });
+      console.log("collector api budget take", JSON.stringify(result));
+      return json(result);
+    }
+    if (route.kind === "api_budget_return") {
+      const parsed = parseApiBudgetReturnBody(body);
+      if (!parsed.ok) return json({ error: parsed.error }, 400);
+      const result = await rpc("collector_api_budget_return", { ...parsed.args });
+      console.log("collector api budget return", JSON.stringify(result));
       return json(result);
     }
 
