@@ -154,6 +154,7 @@ declare
   v_res   jsonb;
   v_ok    boolean;
   v_at    timestamptz;
+  v_err   text;
 begin
   -- Run 1: 60 rows.
   perform public.ingest_places(v_t, 'pgd-r1', pg_temp.rows(60));
@@ -196,13 +197,16 @@ begin
   -- in run 3 close).
   perform public.ingest_places(v_t, 'pgd-r4', pg_temp.rows(10));
   v_ok := false;
+  v_err := null;
   begin
-    perform public.finish_place_tile(v_t, 'pgd-r4', 10, 'osm');
+    v_res := public.finish_place_tile(v_t, 'pgd-r4', 10, 'osm');
   exception when check_violation then
+    v_err := sqlerrm;
     v_ok := sqlerrm = 'row_count_drop';
   end;
   if not v_ok then
-    raise exception 'FAIL run 4 was not refused';
+    raise exception 'FAIL run 4 was not refused: error %, counts seen % previous_seen %',
+      v_err, v_res ->> 'seen', v_res ->> 'previous_seen';
   end if;
   if (select count(*) from public.places where tile_id = v_t and status = 'closed') <> 0 then
     raise exception 'FAIL refused run 4 closed rows';
