@@ -134,13 +134,13 @@ begin
   if not (v ->> 'passed')::boolean or not public.source_discovery_gate_open(v_hash) then
     raise exception 'FAIL a passing gate run did not open the gate %', v;
   end if;
-  if (select cardinality(found_sites) from public.source_discovery_gates where run_id = 'gate-p-' || v_tag) <> 1 then
+  if (select cardinality(g.found_sites) from public.source_discovery_gates g where g.run_id = 'gate-p-' || v_tag) <> 1 then
     raise exception 'FAIL found_sites not deduplicated';
   end if;
   v := public.source_discovery_gate_record(jsonb_build_object(
          'run_id', 'gate-p-' || v_tag, 'probe_hash', v_hash, 'region', 'atl', 'expected', 9, 'required', 6, 'found', 0));
   if (v ->> 'recorded')::boolean or not (v ->> 'repeat')::boolean
-     or (select found from public.source_discovery_gates where run_id = 'gate-p-' || v_tag) <> 6 then
+     or (select g.found from public.source_discovery_gates g where g.run_id = 'gate-p-' || v_tag) <> 6 then
     raise exception 'FAIL a repeated gate run_id was not ignored';
   end if;
   v := public.source_discovery_gate_status(v_hash);
