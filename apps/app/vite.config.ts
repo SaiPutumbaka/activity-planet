@@ -91,6 +91,21 @@ export default defineConfig(({ mode }) => ({
             handler: "CacheFirst",
             options: { cacheName: "map-canvas", expiration: { maxEntries: 4 } },
           },
+          // Static place tile files (D-042 slice 5, lib/place-files.ts): the names carry a content
+          // hash, so a cached file is never stale. GitHub Pages sends max-age=600 and cannot be
+          // told otherwise; this keeps them cache-first on the device for 60 days instead.
+          {
+            urlPattern: ({ url }) =>
+              /\/places\/v\d+\/\d+\.[0-9a-f]{16}\.json\.gz$|\/rules\/v\d+\.[0-9a-f]{16}\.json\.gz$/.test(
+                url.pathname,
+              ),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "place-files",
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 60 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: "StaleWhileRevalidate",

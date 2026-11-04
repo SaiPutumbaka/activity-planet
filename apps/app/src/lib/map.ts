@@ -66,9 +66,14 @@ export interface MapInViewArgs {
   p_from: string;
   p_to: string;
   p_generic: boolean;
+  /**
+   * Migration 42 (D-042 slice 5): read OpenStreetMap places of tiles with a published file from
+   * the static files (place_files in the answer). Sent only while VITE_PLACES_BASE_URL is set.
+   */
+  p_files?: boolean;
 }
 
-export type PlacesInViewArgs = Omit<MapInViewArgs, "p_layers" | "p_from" | "p_to">;
+export type PlacesInViewArgs = Omit<MapInViewArgs, "p_layers" | "p_from" | "p_to" | "p_files">;
 
 export type PlaceMode = "specific" | "generic" | "none";
 
@@ -144,6 +149,18 @@ export interface MapInViewPayload {
    * is due on the next nightly run.
    */
   mapping_reason?: MappingReason | null;
+  /**
+   * Migration 42: with p_files, the published static files of the tiles in view (their OSM rows
+   * are then left out of places, except corrected or changed ones). Decoded by place-files.ts.
+   */
+  place_files?: {
+    rules: string;
+    rules_version: number;
+    tiles: [tileId: number, path: string, count: number][];
+    hidden: string[];
+    sel: number;
+    all: boolean;
+  } | null;
 }
 
 /** Why an area is still being mapped (`place_tiles.queue_reason`, migration 41). */
@@ -227,6 +244,11 @@ export interface MapFeature {
   private: boolean;
   free: boolean;
   adultsOnly: boolean;
+  /**
+   * Places: the OpenStreetMap element (n123, w456) when known. Migration 42 sends it with
+   * p_files, and every place read from a static tile file has one; it is the merge key.
+   */
+  osmRef?: string | null;
 }
 
 export interface MapCell {
@@ -335,7 +357,7 @@ export function decodeFeature(
   hubs: readonly (MapHub | null)[] = [],
 ): MapFeature | null {
   if (!Array.isArray(tuple) || tuple.length < 6) return null;
-  const [id, lng, lat, type, hubIdx, flags, name, extra] = tuple as unknown[];
+  const [id, lng, lat, type, hubIdx, flags, name, extra, ref] = tuple as unknown[];
   if (typeof id !== "string" || id === "") return null;
   if (!validPoint(lng, lat)) return null;
   const t = typeof type === "string" && type ? type : kind;
@@ -372,6 +394,7 @@ export function decodeFeature(
     private: isPlace && bit(PLACE_FLAG.PRIVATE),
     free: !isPlace && bit(EVENT_FLAG.FREE),
     adultsOnly: !isPlace && bit(EVENT_FLAG.ADULTS_ONLY),
+    osmRef: isPlace && typeof ref === "string" && /^[nwr][0-9]{1,15}$/.test(ref) ? ref : null,
   };
 }
 
@@ -1236,13 +1259,58 @@ export function mapInViewArgs(p: MapQueryParams, now = new Date()): MapInViewArg
   };
 }
 
+/** Static place files are off for a while after one could not be read (then all from Postgres). */
+let filesOffUntil = 0;
+const FILES_RETRY_MS = 10 * 60_000;
+
+export interface LoadMapViewOptions {
+  /** The files' base URL; null reads every place from Postgres (the default without the env var). */
+  filesBase: string | null;
+  /** Overrides the fetch loader (tests). */
+  loader?: import("./place-files").PlaceFileLoader;
+  now?: Date;
+}
+
+/**
+ * One map view: `map_in_view`, then (D-042 slice 5) the static place files it names, merged with
+ * the database rows. If a file cannot be read, the view is asked again without files, so places
+ * never disappear.
+ */
+export async function loadMapView(
+  adapter: MapAdapter,
+  p: MapQueryParams,
+  opts: LoadMapViewOptions,
+): Promise<MapView> {
+  const args = mapInViewArgs(p, opts.now);
+  const useFiles = opts.filesBase !== null && Date.now() >= filesOffUntil;
+  const raw = await adapter.mapInView(useFiles ? { ...args, p_files: true } : args);
+  const view = decodeMapInView(raw);
+  if (!useFiles) return view;
+  const files = await import("./place-files");
+  const info = files.decodePlaceFiles((raw as MapInViewPayload | null)?.place_files);
+  if (!info) return view;
+  try {
+    const loader = opts.loader ?? files.sharedLoader(opts.filesBase as string);
+    return await files.withFilePlaces(view, info, p.bbox, loader);
+  } catch {
+    filesOffUntil = Date.now() + FILES_RETRY_MS;
+    return decodeMapInView(await adapter.mapInView(args));
+  }
+}
+
+/** Test hook: lets files be tried again at once. */
+export function resetPlaceFilesBackoff(): void {
+  filesOffUntil = 0;
+}
+
 /** One request per settled view: 2-minute cache, previous data kept while the next one loads. */
 export const mapInViewQuery = (p: MapQueryParams) =>
   queryOptions({
     queryKey: mapKeys.inView(p),
     queryFn: async (): Promise<MapView> => {
       const adapter = await getMapAdapter();
-      return decodeMapInView(await adapter.mapInView(mapInViewArgs(p)));
+      const { placesBaseUrl } = await import("./place-files");
+      return loadMapView(adapter, p, { filesBase: MAP_MOCK ? null : placesBaseUrl() });
     },
     staleTime: 2 * 60_000,
     placeholderData: keepPreviousData,
@@ -1254,7 +1322,12 @@ export const placeDetailQuery = (id: string) =>
     queryKey: mapKeys.place(id),
     queryFn: async (): Promise<PlaceDetail | null> => {
       const adapter = await getMapAdapter();
-      return decodePlaceDetail(await adapter.placeDetail(id));
+      const detail = decodePlaceDetail(await adapter.placeDetail(id));
+      if (detail || !id.startsWith("o:")) return detail;
+      // A place opened from a static file that has no database row (D-042 slice 5).
+      const files = await import("./place-files");
+      const ref = files.osmRefOfPlaceId(id);
+      return ref ? files.filePlaceDetail(ref) : null;
     },
     staleTime: 5 * 60_000,
     retry: (count, err) => !isMapUnavailable(err) && count < 2,

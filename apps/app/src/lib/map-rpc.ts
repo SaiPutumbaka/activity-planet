@@ -36,6 +36,16 @@ export const rpcMapAdapter: MapAdapter = {
     return unwrap(await supabase.rpc("places_in_view", { ...args, ...hubArg(p_hub_ids) }));
   },
   async placeDetail(id: string) {
+    // A place read from a static tile file (D-042 slice 5) is "o:<osm_ref>": its database row,
+    // while Postgres still holds it, gives the full card (plans here, start a plan).
+    const ref = /^o:([nwr][0-9]{1,15})$/.exec(id)?.[1];
+    if (ref) {
+      const found = await supabase.rpc("place_id_by_osm_ref", { p_osm_ref: ref });
+      if (isMissingRpc(found.error, found.status)) return null;
+      const placeId = unwrap(found);
+      if (typeof placeId !== "string" || !UUID.test(placeId)) return null;
+      id = placeId;
+    }
     // ?place= comes from the URL: anything but a uuid would be a 22P02 error, not "not found".
     if (!UUID.test(id)) return null;
     const r = await supabase.rpc("place_detail", { p_id: id });

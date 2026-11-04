@@ -1,0 +1,3082 @@
+{
+  "_about": "Staging, 2026-11-04 (read-only SELECT): every active public OSM row of tile 198375 within 0.001 degrees of bbox (Freiburg im Breisgau, Altstadt around the Münster), in place_tile_file_page order; the hub rules those rows touch (specific hubs and the generic test hub; rules cut to the ones present); and what map_in_view answered from Postgres for the same bbox (p_files false) signed out with every specific hub (all), with three specific hubs (sel) and with one generic hub and its general spots (gen). expect places are [osm_ref, hub slugs, flags] in the server's order. Data (c) OpenStreetMap contributors, ODbL 1.0.",
+  "gen": "ccf439fb-0d92-4505-9f51-1466d2ceba7c",
+  "sel": [
+    "8c332e1f-5e08-468d-ac89-603936e5be5a",
+    "8bc3a560-407e-4eb8-9d87-22958e3c28c3",
+    "cef5369c-0b5f-427b-ad92-71fba676484e"
+  ],
+  "bbox": [7.8515, 47.995, 7.8545, 47.997],
+  "hubs": [
+    ["e225f220-f34d-4aea-815d-91268aaba137", "accordion", "", "", "specific", [47, 526]],
+    ["efb51748-76f0-4b71-ba64-89ac0261d7e3", "action-figure-collecting", "", "", "specific", [502]],
+    ["fee10b99-fd6f-4851-b3c0-6d9e5441bf3d", "aerobics", "", "", "specific", [168]],
+    ["4d581f3f-6599-4830-93e4-053998803e3d", "antique-collecting", "", "", "specific", [46, 484]],
+    ["9ef34071-45b8-4d37-964e-60cbddca3a26", "audio-engineering", "", "", "specific", [526]],
+    ["cad104a9-a94d-420a-a284-56ca3adbdee8", "baking", "", "", "specific", [486]],
+    ["182df6c5-b7d7-4752-8746-890fa8d2d4a5", "bar-trivia", "", "", "specific", [15]],
+    ["f6bb9d9e-b9f6-483f-96e7-5c4ccf85f9ff", "barre", "", "", "specific", [157]],
+    ["49d69bb8-e05e-42d9-b74a-1898d45c6a03", "bass-guitar", "", "", "specific", [47, 526]],
+    ["c944fffc-edfb-4359-b264-e64567a8fad4", "beer-tasting", "", "", "specific", [15]],
+    ["d29c3150-d01a-42d6-a655-e6afa8b82d6d", "bingo", "", "", "specific", [28]],
+    ["38d17ffb-6446-462b-9d80-36871f056d50", "board-game-night", "", "", "specific", [45, 513]],
+    ["8b96e9d2-7370-4291-b4f6-5930ac96e0e5", "bodybuilding", "", "", "specific", [191]],
+    ["035a0242-2e86-4d41-974a-23d32d89be73", "book-club", "", "", "specific", [21, 45, 490]],
+    ["742f587c-8ea0-461d-ac7a-666818385d00", "book-collecting", "", "", "specific", [484]],
+    ["83b82ad0-0752-41c1-aa21-3f07bda34b3d", "bookbinding", "", "", "specific", [536]],
+    ["ffe2dec8-133c-4f3c-9d49-0c27974d0399", "boot-camp-training", "", "", "specific", [191]],
+    ["380c3094-d817-4f9f-8a4b-d23e632616cc", "bread-making", "", "", "specific", [486]],
+    ["37103c7e-963b-484e-b94b-0e2fce2597e6", "bridge", "", "", "specific", [28]],
+    ["b52fa3ca-176f-4444-860e-df3075b8afa0", "calligraphy", "", "", "specific", [485, 536]],
+    ["63781fd0-35c7-4e98-868e-fd0ee17ed1e9", "candy-making", "", "", "specific", [497]],
+    ["ceadbc5d-237d-448d-a6f6-12ca37df48cd", "card-making", "", "", "specific", [536]],
+    ["eefb63fb-9dfe-4b81-9f21-b6140e089013", "catan", "", "", "specific", [513]],
+    ["f103064e-852b-400a-bc7b-29f1d44706b6", "cello", "", "", "specific", [47, 526]],
+    ["fb0c0579-9fd3-4406-9717-a3f229ba8364", "charcuterie", "", "", "specific", [492, 496, 506]],
+    ["687d22c5-1264-4526-87c8-495a3b69705c", "cheese-making", "", "", "specific", [496]],
+    ["7dc00fcb-7c8a-432a-8734-92f01421a6fe", "cheese-tasting", "", "", "specific", [496]],
+    ["eaf908b3-5953-410b-8470-9a9de62163fb", "chess", "", "", "specific", [513]],
+    ["fca52fc9-b8b1-42a5-8f03-59bd192d3f0b", "chocolate-making", "", "", "specific", [497]],
+    ["40fca7d3-bd87-4cd0-aa08-2adc7689d3dd", "choir-singing", "", "", "specific", [28, 47, 58]],
+    ["c70415a6-cf26-41b7-afbd-8d9516887a70", "christian-fellowship", "", "", "specific", [52]],
+    ["70666a72-90bc-4cbf-923a-d73723066d8a", "clubs-and-dj-nights", "", "", "specific", [49]],
+    ["652026a4-5146-4b91-8820-e3a1dde968b4", "cocktail-nights", "", "", "specific", [15]],
+    ["55b2df20-0cfb-463c-ada1-bf1b2714b3b8", "coding-and-programming", "", "", "specific", [45]],
+    ["efcf1ce6-9b45-4988-9e59-1813e15eeaa8", "coffee-brewing", "", "", "specific", [21, 498]],
+    ["02a3f3df-a33f-4d23-b5a4-db2e6de9a562", "coffee-meetup", "", "", "specific", [21]],
+    ["6ceedbcd-c555-4d5c-8170-d6616cad4b3d", "coin-collecting", "", "", "specific", [484]],
+    ["6a815120-4628-4832-80fc-1c97b0484fa9", "collectible-card-games", "", "", "specific", [513]],
+    ["bed06b42-a373-45b3-bfa1-09abe239cfe4", "cooking", "", "", "specific", [46]],
+    ["f0219ecd-7495-4ce1-9588-bcccd075fe1d", "cosplay", "", "", "specific", [510]],
+    ["76a3ee8a-acc0-4490-81c9-ff0141e2c31d", "crocheting", "", "", "specific", [510]],
+    ["4e52d923-f880-4562-b684-fa35a080452d", "cross-stitch", "", "", "specific", [510]],
+    ["c23b6f9c-e341-4693-9432-ecbf53534e12", "cultural-celebrations", "", "", "specific", [28]],
+    ["33905cbe-c707-4903-8fc0-36adcbdb0a7a", "djing", "", "", "specific", [49, 526]],
+    ["1398360b-20d7-4839-94a3-5cb1a7021d39", "drawing", "", "", "specific", [485, 568]],
+    ["8a49e18f-e90d-48c2-9351-88ca82d681e4", "drums", "", "", "specific", [47, 526]],
+    ["5fcec9a1-d6e8-4c4b-b272-68068aeab518", "embroidery", "", "", "specific", [510]],
+    ["32bf4235-d611-4103-8323-abe2c11b8139", "flea-market", "", "", "specific", [46]],
+    ["d1e171ae-3af7-4994-9858-92c2fa783d01", "flower-arranging", "", "", "specific", [512]],
+    ["f3f6ba5a-291f-4105-b562-ed0be107c29f", "flute", "", "", "specific", [47, 526]],
+    ["fc79c78e-3167-4be4-88f1-cc251840790f", "functional-training", "", "", "specific", [191]],
+    ["bf9f4a40-6002-43cd-b02a-5fe63c74ff09", "genealogy-research", "", "", "specific", [7, 45]],
+    ["fc94dc16-0bec-40d9-9f15-0a0acf753628", "go", "", "", "specific", [513]],
+    ["cb7299ff-ba5d-4180-9e47-9fc61e9da66b", "guitar", "", "", "specific", [47, 526]],
+    ["5803b0cf-f156-400a-8487-5824590dc665", "ham-radio", "", "", "specific", [28]],
+    ["ea786c67-0dd3-448c-a657-4116844d873b", "harmonica", "", "", "specific", [526]],
+    ["25db0104-cb60-4c62-82a1-ffdd905c02c3", "hiit-training", "", "", "specific", [191]],
+    ["8c332e1f-5e08-468d-ac89-603936e5be5a", "history-discussion", "", "", "specific", [45, 130]],
+    ["8210ebd7-b62e-4198-9b57-3f567efa0bb5", "honey-tasting", "", "", "specific", [46, 518]],
+    ["fd0539ed-6113-4028-ad3b-e080e28290e4", "ice-cream-making", "", "", "specific", [41]],
+    ["94816464-55a6-4116-9e5d-b8549294facb", "indoor-cycling", "", "", "specific", [191]],
+    ["095330ff-8c81-4d8d-8ec5-8d89d4b752ef", "interfaith-dialogue", "", "", "specific", [28]],
+    ["d7a9e958-0f0a-4994-ad0e-260da02f4e50", "jewelry-making", "", "", "specific", [109]],
+    ["7c0ef5f2-4fb2-4f06-8650-c52ee9404a0b", "jewish-student-life", "", "", "specific", [54]],
+    ["30815702-e131-4950-86fa-dbaabe028d29", "kettlebell-training", "", "", "specific", [191]],
+    ["bb1681f4-8101-425b-8604-28271a53ba57", "knitting", "", "", "specific", [510]],
+    ["17e3a890-e034-41cf-b977-7263477397ec", "kombucha-brewing", "", "", "specific", [517]],
+    ["80bb67b2-bf3c-41f6-bd47-451853459443", "language-learning", "", "", "specific", [45]],
+    ["73401b93-7d44-4116-a2df-9bc175f20aca", "latte-art", "", "", "specific", [21]],
+    ["5d06b4cf-8c03-4a24-b110-ca8c7d62a760", "leatherworking", "", "", "specific", [521]],
+    ["315cb90d-8952-491c-8b60-5b5b4a127ac0", "lectures-and-talks", "", "", "specific", [25, 45]],
+    ["7b41ed5b-6723-41a3-b2b1-33e388421cda", "light-novel-reading", "", "", "specific", [45]],
+    ["ece69375-c13c-4bc7-9ff0-c8a3906a4c30", "live-music-venues", "", "", "specific", [49]],
+    ["d33b44f0-98d0-4616-86cf-15f006c59856", "mahjong", "", "", "specific", [28, 513]],
+    ["f91b420b-69e7-4de1-a9dd-ac4d3dc53e4a", "manga-reading", "", "", "specific", [45]],
+    ["967ed830-aae6-4427-ae68-2be27ef5c0fa", "marathon-running", "", "", "specific", [535]],
+    [
+      "47c134f0-5408-4127-9d3e-c2eeb086562f",
+      "memorabilia-collecting",
+      "",
+      "",
+      "specific",
+      [484, 502]
+    ],
+    ["0a9f0f12-d9e6-4e48-abaa-ecf96273073f", "miniature-wargaming", "", "", "specific", [513]],
+    ["ceba65f8-20bb-4e70-9ffd-1548c3f434ce", "mixology", "", "", "specific", [15, 481]],
+    ["139b71bc-dd1d-499b-9af2-837fc031459e", "mobility-and-stretching", "", "", "specific", [167]],
+    ["a5236f73-5567-402b-932f-a6e242bb314c", "model-building", "", "", "specific", [513]],
+    ["ccf439fb-0d92-4505-9f51-1466d2ceba7c", "murder-mystery-dinner", "", "", "generic", [75]],
+    ["cf6d8936-1c04-4d2c-8a12-a1540a230d83", "music-production", "", "", "specific", [526]],
+    ["87d5e0bc-2ff2-4af5-8eaa-f2ea43d058a3", "open-mic-night", "", "", "specific", [15, 21]],
+    ["4ad734c8-8ad0-428f-8c99-9bbea84827e0", "orchestra", "", "", "specific", [47]],
+    ["1f504d8e-d877-4794-9564-7e0d5d094a4a", "painting", "", "", "specific", [485, 568]],
+    ["d2404583-d965-4fc6-8f01-958b1987d5ac", "parents-and-caregivers", "", "", "specific", [45]],
+    ["20d10fe8-3e4a-4f6c-9515-ab5084222e75", "pc-building", "", "", "specific", [508]],
+    ["46551125-8e14-483a-abaa-a8179d39ed26", "personal-training", "", "", "specific", [191]],
+    ["399bc585-3a59-4b43-86fa-fb0f541eac95", "photography", "", "", "specific", [529, 568]],
+    ["e119b2df-12e8-40fd-9118-27d7de6b47b2", "piano", "", "", "specific", [47]],
+    ["85229dbf-8543-4fb6-b804-87d7fe8891c4", "pottery", "", "", "specific", [530]],
+    ["dc1ce06e-f64a-4769-ad96-10a024ccc93e", "powerlifting", "", "", "specific", [191]],
+    ["6c89e599-a915-4ebf-9621-3d8ce492d186", "printmaking", "", "", "specific", [485]],
+    ["4c0e1956-9165-4264-8594-23bf76b4b762", "prop-and-costume-making", "", "", "specific", [510]],
+    ["48596c33-b831-4d8a-8fd3-d9f0a8e38fd3", "pub-crawl", "", "", "specific", [15]],
+    ["c824bce2-ef54-4e55-89fb-5c35be4961ae", "quilting", "", "", "specific", [510]],
+    ["394946a5-2cda-499e-940b-945e4f711769", "reading", "", "", "specific", [45, 490]],
+    ["8bc3a560-407e-4eb8-9d87-22958e3c28c3", "restaurant-hopping", "", "", "specific", [46, 75]],
+    ["0529ac13-b0df-40e6-a111-9a1474ab5273", "salsa-dancing", "", "", "specific", [49]],
+    ["2e2b29d3-d74d-4719-b458-8d748fab6b1f", "saxophone", "", "", "specific", [47, 526]],
+    ["7f5f4558-714d-4d5a-86b2-957491d27d7f", "scrapbooking", "", "", "specific", [536]],
+    ["aac3cdb0-1f77-435b-ab1b-04f07fd52276", "sculpting", "", "", "specific", [485]],
+    ["4b9f9cb6-6ca4-44f6-a377-60e1d1c05982", "sewing", "", "", "specific", [510]],
+    ["28a4b8c2-7465-458c-8fab-8a8b86ac08f2", "shogi", "", "", "specific", [513]],
+    ["f394895f-f6ed-488f-a55e-ee7a623e2fe9", "singing", "", "", "specific", [47]],
+    ["1d9fea41-d814-40b2-a14f-f627ac264914", "sneaker-collecting", "", "", "specific", [534]],
+    ["af7733bb-bdfb-4dee-9365-77ceb900a130", "spin-class", "", "", "specific", [191]],
+    [
+      "2c03c15a-5538-4da0-bdc6-7dfeb995d0f8",
+      "sports-memorabilia-collecting",
+      "",
+      "",
+      "specific",
+      [484, 502]
+    ],
+    ["cb1c9099-3bc0-4330-8a6c-28be1e0529a9", "stamp-collecting", "", "", "specific", [501]],
+    ["59351192-d251-4599-84a5-0f6564233b89", "stand-up-comedy", "", "", "specific", [15]],
+    ["80e7ed6f-6710-485e-be32-b50c3f5d1ef8", "study-sessions", "", "", "specific", [21, 45]],
+    ["7b40ba8e-cdc7-4b64-8187-05f31abfd665", "sushi-making", "", "", "specific", [73]],
+    ["918ded03-a5ed-4f49-8ae7-c0104f6bec81", "tabletop-rpg", "", "", "specific", [513]],
+    ["76c3ac3a-f64f-4c05-9e11-02fdc496dc86", "tea-tasting", "", "", "specific", [19, 538]],
+    ["70edd8d4-c5c5-4b9f-8392-38e1b87d3bc3", "trading-card-collecting", "", "", "specific", [513]],
+    ["a80043db-8674-45b5-b7a8-1d770c7a3e31", "trading-card-games", "", "", "specific", [513]],
+    ["e3e81d36-bc5b-423f-92ca-21357990b8f9", "trivia", "", "", "specific", [15]],
+    ["1ed0c9b4-6921-4fb4-bd65-331a86154465", "trumpet", "", "", "specific", [47, 526]],
+    ["aab7c0ff-d4fa-48e8-9fc0-20e05f57ecc8", "trx-training", "", "", "specific", [191]],
+    ["64da6796-6c4f-47e4-bd8d-7b9a565ce94a", "ukulele", "", "", "specific", [47, 526]],
+    ["8c0085f8-1f82-4bbc-959d-4cf3f62f6439", "violin", "", "", "specific", [47, 526]],
+    ["981215e2-ede6-4c51-a943-4a35d31af06e", "volunteering", "", "", "specific", [28]],
+    ["18b3a425-d8a6-4eb1-aef5-649a7440a6a1", "watch-collecting", "", "", "specific", [520]],
+    ["f96eda55-1411-4aa9-943c-821d52eb3f91", "weightlifting", "", "", "specific", [191]],
+    ["9e3ae161-a50d-4791-9c36-223889e34e71", "whiskey-tasting", "", "", "specific", [15, 481]],
+    ["3912ea63-3f74-4480-85af-3d18c8624be8", "zumba", "", "", "specific", [191]]
+  ],
+  "resp": {
+    "all": {
+      "hubs": [],
+      "generic": false
+    },
+    "gen": {
+      "hubs": [
+        [
+          "ccf439fb-0d92-4505-9f51-1466d2ceba7c",
+          "murder-mystery-dinner",
+          "Murder Mystery Dinner",
+          "🕵️",
+          "generic"
+        ]
+      ],
+      "generic": true
+    },
+    "sel": {
+      "hubs": [
+        [
+          "8c332e1f-5e08-468d-ac89-603936e5be5a",
+          "history-discussion",
+          "History Discussion",
+          "🏛️",
+          "specific"
+        ],
+        [
+          "8bc3a560-407e-4eb8-9d87-22958e3c28c3",
+          "restaurant-hopping",
+          "Restaurant Hopping",
+          "🍽️",
+          "specific"
+        ],
+        ["cef5369c-0b5f-427b-ad92-71fba676484e", "running", "Running", "🏃", "specific"]
+      ],
+      "generic": false
+    }
+  },
+  "tiles": {
+    "198375": [
+      [
+        "n10067750352",
+        7.85368,
+        47.99462,
+        "shop",
+        "Wohnschmiede Fridrich",
+        [534],
+        null,
+        null,
+        "\"showroom\"",
+        null,
+        null
+      ],
+      [
+        "n10219845493",
+        7.85191,
+        47.99518,
+        "school",
+        "Domsingschule",
+        [47],
+        "10 Münsterplatz",
+        "Freiburg im Breisgau",
+        null,
+        "https://www.freiburger-dommusik.de",
+        null
+      ],
+      [
+        "n10291637795",
+        7.85141,
+        47.99411,
+        "cafe",
+        "Café Hinterzimmer",
+        [21],
+        "23 Grünwälderstraße",
+        "Freiburg im Breisgau",
+        "Mo-Sa 12:00-18:00",
+        "https://cafe-hinterzimmer.de",
+        {
+          "phone": "+49 151 41280893",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n10970457458",
+        7.85395,
+        47.99445,
+        "restaurant",
+        "Jacobi",
+        [75],
+        "43 Herrenstraße",
+        "Freiburg im Breisgau",
+        "We-Fr 18:30-23:00; Sa 12:30-15:00,18:30-23:00",
+        "https://jacobi-freiburg.de/",
+        {
+          "phone": "+49 761 38030"
+        }
+      ],
+      [
+        "n11230908828",
+        7.8518,
+        47.99657,
+        "historic",
+        "Stefan Meier",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/stefan-meier/",
+        {
+          "wikidata": "Q132183581"
+        }
+      ],
+      [
+        "n11230908829",
+        7.8518,
+        47.99657,
+        "historic",
+        "Margarete Seitz",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/margarete-seitz-2/",
+        {
+          "wikidata": "Q132183580"
+        }
+      ],
+      [
+        "n11230908830",
+        7.8518,
+        47.99657,
+        "historic",
+        "Adolf Keller",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/adolf-keller/",
+        {
+          "wikidata": "Q132183577"
+        }
+      ],
+      [
+        "n11230908831",
+        7.8518,
+        47.99657,
+        "historic",
+        "Käthe Vordtriede",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/kaethe-vordtriede-gestapo/",
+        {
+          "wikidata": "Q98640233"
+        }
+      ],
+      [
+        "n11230908832",
+        7.85181,
+        47.99657,
+        "historic",
+        "Urban Keller",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/urban-keller/",
+        {
+          "wikidata": "Q132183582"
+        }
+      ],
+      [
+        "n11230908833",
+        7.85181,
+        47.99657,
+        "historic",
+        "Gestapo-Zentrale",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/gestapo-basler-hof-1933-1941/",
+        {
+          "wikidata": "Q132183578"
+        }
+      ],
+      [
+        "n1177096965",
+        7.85162,
+        47.99536,
+        "cafe",
+        "Eis Cafe Lazzarin",
+        [21],
+        null,
+        null,
+        null,
+        null,
+        {
+          "phone": "+49 761 35319",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n1203325970",
+        7.85107,
+        47.99446,
+        "cafe",
+        "Cafe Salz",
+        [21],
+        "11 Salzstraße",
+        null,
+        "Tu-Sa 10:00-18:00; Su 12:00-18:00",
+        null,
+        null
+      ],
+      [
+        "n1279581004",
+        7.85258,
+        47.99613,
+        "nightlife",
+        "Schneerot",
+        [49],
+        null,
+        null,
+        "We,Th 23:00+; Fr,Sa 23:00-05:00",
+        "https://schneerot.de/",
+        {
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n12809906291",
+        7.85332,
+        47.99697,
+        "historic",
+        "Hanna Reichmann",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/hanna-reichmann/",
+        null
+      ],
+      [
+        "n12809906292",
+        7.85332,
+        47.99697,
+        "historic",
+        "Marie Reichmann",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/marie-reichmann/",
+        null
+      ],
+      [
+        "n12809906293",
+        7.85332,
+        47.99697,
+        "historic",
+        "Ignaz Reichmann",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/ignaz-reichmann/",
+        null
+      ],
+      [
+        "n12880922102",
+        7.854,
+        47.99698,
+        "restaurant",
+        "Sen - The Taste of Asia",
+        [73, 75],
+        "10 Auf der Zinnen",
+        "Freiburg im Breisgau",
+        "Tu-Su 11:30-15:00,17:00-22:30, Mo off; PH 17:00-22:30",
+        "https://sen-freiburg.de/",
+        {
+          "phone": "+49 761 47998138"
+        }
+      ],
+      [
+        "n1307438237",
+        7.8537,
+        47.99691,
+        "bar",
+        "Club Mamita",
+        [15],
+        "7-9 Nußmannstraße",
+        null,
+        "Tu-We,Fr-Sa 22:00-05:00",
+        "https://mamita.club/de/",
+        null
+      ],
+      [
+        "n13134363288",
+        7.85337,
+        47.99455,
+        "shop",
+        "Matthias Lewalter",
+        [520],
+        null,
+        null,
+        "Mo-Fr 10:00-18:00; Sa 10:00-17:00; PH off",
+        null,
+        {
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n13343018727",
+        7.85315,
+        47.99665,
+        "shop",
+        "Decathlon",
+        [535],
+        "165 Kaiser-Joseph-Straße",
+        "Freiburg im Breisgau",
+        "Mo-Sa 09:30-20:00; PH off",
+        "https://www.decathlon.de/store-view/filiale-freiburg-galeria-am-europaplatz-0070344203442",
+        {
+          "brand": "Decathlon",
+          "phone": "+49 761479998510"
+        }
+      ],
+      [
+        "n13378615607",
+        7.85111,
+        47.99435,
+        "historic",
+        "Selma Judas",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/selma-judas/",
+        null
+      ],
+      [
+        "n13378615608",
+        7.85111,
+        47.99435,
+        "historic",
+        "Isaak Judas",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/isaak-judas/",
+        null
+      ],
+      [
+        "n13378615609",
+        7.85077,
+        47.9945,
+        "historic",
+        "Hertha 'Berthel' Frank",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/hertha-berthel-frank/",
+        null
+      ],
+      [
+        "n13378615610",
+        7.85077,
+        47.9945,
+        "historic",
+        "Chaskel Frank",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/chaskel-frank-2/",
+        null
+      ],
+      [
+        "n13378615611",
+        7.85079,
+        47.99449,
+        "historic",
+        "Lore Bloch",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/lore-bloch/",
+        null
+      ],
+      [
+        "n13378615612",
+        7.85079,
+        47.99449,
+        "historic",
+        "Egon Bloch",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/egon-bloch/",
+        null
+      ],
+      [
+        "n13378615613",
+        7.85079,
+        47.99449,
+        "historic",
+        "Norbert Bloch",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/norbert-bloch/",
+        null
+      ],
+      [
+        "n13378615614",
+        7.85079,
+        47.99449,
+        "historic",
+        "Sofie Bloch",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/sofie-bloch/",
+        null
+      ],
+      [
+        "n13378615615",
+        7.85082,
+        47.99449,
+        "historic",
+        "Selma Zimmermann",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/selma-zimmermann/",
+        null
+      ],
+      [
+        "n13378615616",
+        7.85082,
+        47.99449,
+        "historic",
+        "Irma Liebers",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/irma-liebers/",
+        null
+      ],
+      [
+        "n13378615617",
+        7.85081,
+        47.99449,
+        "historic",
+        "Max Liebers",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/maximilian-liebers/",
+        null
+      ],
+      [
+        "n13378615618",
+        7.85236,
+        47.99424,
+        "historic",
+        "Else Weil",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/else-weil/",
+        null
+      ],
+      [
+        "n13378615619",
+        7.85236,
+        47.99424,
+        "historic",
+        "Berthold Weil",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/berthold-weil/",
+        null
+      ],
+      [
+        "n13379228847",
+        7.85158,
+        47.99638,
+        "historic",
+        "Kurt Adler",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/kurt-adler/",
+        null
+      ],
+      [
+        "n13379228848",
+        7.85158,
+        47.99639,
+        "historic",
+        "Werner Adler",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/werner-adler/",
+        null
+      ],
+      [
+        "n13379228849",
+        7.85158,
+        47.99638,
+        "historic",
+        "Lina Adler",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/lina-adler/",
+        null
+      ],
+      [
+        "n13379228850",
+        7.85158,
+        47.99639,
+        "historic",
+        "Alfons Adler",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/alfons-adler/",
+        null
+      ],
+      [
+        "n13380520171",
+        7.85269,
+        47.99744,
+        "historic",
+        "Julius Blum",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/julius-blum/",
+        null
+      ],
+      [
+        "n13380520172",
+        7.85256,
+        47.99731,
+        "historic",
+        "Ronja Reutlinger",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/ronja-reutlinger/",
+        null
+      ],
+      [
+        "n13380520173",
+        7.85256,
+        47.99731,
+        "historic",
+        "Alice Reutlinger",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/alice-reutlinger/",
+        null
+      ],
+      [
+        "n13380520174",
+        7.85256,
+        47.99731,
+        "historic",
+        "Adolf Reutlinger",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/adolf-reutlinger/",
+        null
+      ],
+      [
+        "n13566519213",
+        7.85302,
+        47.99477,
+        "historic",
+        "Peter Paepcke",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/peter-paepcke-2/",
+        null
+      ],
+      [
+        "n13566519214",
+        7.85302,
+        47.99477,
+        "historic",
+        "Dr. Ernst August Paepcke",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/dr-ernst-a-paepcke/",
+        null
+      ],
+      [
+        "n13566519215",
+        7.85302,
+        47.99477,
+        "historic",
+        "Lotte Paepcke",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/3180/",
+        null
+      ],
+      [
+        "n13566519216",
+        7.85302,
+        47.99477,
+        "historic",
+        "Hans Mayer",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/hans-mayer/",
+        null
+      ],
+      [
+        "n13566519217",
+        7.85257,
+        47.99465,
+        "historic",
+        "Melanie Weinberg",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/melanie-weinberg/",
+        null
+      ],
+      [
+        "n13592151841",
+        7.85173,
+        47.99484,
+        "historic",
+        "Robertine Kahn",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/robertine-kahn/",
+        null
+      ],
+      [
+        "n1360476643",
+        7.8525,
+        47.99422,
+        "bookstore",
+        "Buchhandlung zum Wetzstein",
+        [490],
+        "31 Salzstraße",
+        "Freiburg im Breisgau",
+        "Mo-Sa 10:00-18:00",
+        "https://zum-wetzstein.de/",
+        {
+          "phone": "+49 761 33999",
+          "wikidata": "Q136029646",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n1360476647",
+        7.85119,
+        47.99497,
+        "cafe",
+        "Eis-Café Milano",
+        [41],
+        "Schusterstraße",
+        null,
+        null,
+        null,
+        {
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n1360476652",
+        7.85134,
+        47.99535,
+        "cafe",
+        "Zeit für Brot",
+        [486],
+        "2 Eisenstraße",
+        "Freiburg im Breisgau",
+        "Mo-Fr 07:00-20:00; Sa 08:00-20:00; Su 08:00-19:00",
+        null,
+        {
+          "brand": "Zeit für Brot",
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n1363487617",
+        7.85144,
+        47.99525,
+        "shop",
+        "123 Gold",
+        [520],
+        null,
+        null,
+        "Tu-Fr 11:00-18:00; Sa 10:00-17:00; Mo off",
+        null,
+        null
+      ],
+      [
+        "n1363553653",
+        7.85228,
+        47.99509,
+        "restaurant",
+        "Ganter Brauereiausschank",
+        [75],
+        null,
+        null,
+        "10:00-24:00",
+        "https://www.ganter-brauereiausschank.de/",
+        {
+          "phone": "+49 761 34367",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n13661041309",
+        7.85121,
+        47.9972,
+        "gym",
+        "Fitness-Loft Schwarzwaldcity",
+        [157, 167, 168, 191],
+        "5 Schiffstraße",
+        "Freiburg im Breisgau",
+        "Mo-Fr 07:00-22:00; Sa,Su,PH 09:00-20:00",
+        "https://www.fitness-lofts.de/studios/schwarzwaldcity",
+        {
+          "sport": "fitness"
+        }
+      ],
+      [
+        "n13784278714",
+        7.85104,
+        47.99581,
+        "food_shop",
+        "Cheese & More by Henri Willig",
+        [496],
+        "179 Kaiser-Joseph-Straße",
+        "Freiburg im Breisgau",
+        "Mo-Sa 08:00-19:00",
+        "https://henriwillig.com/de/besuche-uns/kasegeschafte/deutschland/freiburg-im-breisgau/",
+        {
+          "phone": "+4915172483122"
+        }
+      ],
+      [
+        "n13923220101",
+        7.85373,
+        47.99431,
+        "craft_shop",
+        "Stoffglalerie",
+        [510],
+        "50;52 Herrenstraße",
+        null,
+        null,
+        "https://stoffgaleriefreiburg.de/",
+        {
+          "phone": "+497612085328"
+        }
+      ],
+      [
+        "n13986037545",
+        7.85392,
+        47.99434,
+        "bookstore",
+        "Alpha Buchhandlung",
+        [490],
+        "45 Herrenstraße",
+        "Freiburg im Breisgau",
+        "Mo-Fr 10:00-18:00; Sa 10:00-15:00",
+        "https://www.alpha-buch.de/freiburg",
+        {
+          "brand": "Alpha Buchhandlung",
+          "phone": "+49 761 32947",
+          "religion": "christian",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n14307988545",
+        7.85213,
+        47.99514,
+        "restaurant",
+        "Schwarzwald Herz",
+        [75],
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "n1567963474",
+        7.85272,
+        47.99739,
+        "cafe",
+        "Tchibo",
+        [498],
+        null,
+        null,
+        "Mo-Sa 09:00-19:00",
+        null,
+        {
+          "brand": "Tchibo",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n1595554075",
+        7.85481,
+        47.9943,
+        "cafe",
+        "Café Jolie",
+        [21],
+        "21 Konviktstraße",
+        "Freiburg im Breisgau",
+        "Mo-Fr 10:00-17:00; Su 09:00-16:00; Sa 09:00-18:00",
+        "https://jolie.cafe/",
+        {
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n1673077577",
+        7.85168,
+        47.99617,
+        "bar",
+        "Breuninger Rooftop Bar",
+        [15],
+        "169-177 Kaiser-Joseph-Straße",
+        "Freiburg im Breisgau",
+        "Mo-Sa 12:00-20:00",
+        null,
+        {
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n1688208662",
+        7.85129,
+        47.99463,
+        "bar",
+        "SonderBar",
+        [15],
+        "13 Salzstraße",
+        null,
+        "Mo-Th 18:00-02:00, Fr-Sa 18:00-05:00, Su 18:00-01:00",
+        "https://www.sonderbar-freiburg.de/",
+        {
+          "lgbtq": "welcome",
+          "phone": "+4976133930",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n1956141283",
+        7.85394,
+        47.99424,
+        "restaurant",
+        "Gasthaus Löwen",
+        [75],
+        "47 Herrenstraße",
+        "Freiburg im Breisgau",
+        "Mo-Su 12:00-22:30",
+        "https://www.hotelloewen.de/",
+        {
+          "phone": "+49 761 3688990",
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n2185068813",
+        7.85384,
+        47.9946,
+        "cafe",
+        "Strass Cafe",
+        [21],
+        "44 Herrenstraße",
+        null,
+        "Mo-Fr 09:00-18:00; Sa 09:00-16:00",
+        null,
+        {
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n2297164082",
+        7.85456,
+        47.99725,
+        "gym",
+        "Fitness First",
+        [191],
+        null,
+        null,
+        "Mo-Th 07:00-23:00; Fr 07:00-22:00; Sa,Su 10:00-20:00",
+        "https://www.fitnessfirst.de/clubs/freiburg",
+        {
+          "brand": "Fitness First",
+          "phone": "+49 761 380930",
+          "sport": "multi"
+        }
+      ],
+      [
+        "n2299003155",
+        7.85375,
+        47.9945,
+        "shop",
+        "Lüke",
+        [534],
+        null,
+        null,
+        "Mo-Fr 09:30-18:00; Sa 10:00-18:00; Su,PH off",
+        null,
+        {
+          "brand": "Clarks",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n2299003157",
+        7.85112,
+        47.99518,
+        "shop",
+        "Kocher",
+        [534],
+        "3 Schusterstraße",
+        "Freiburg im Breisgau",
+        "Mo-Sa 09:30-18:30",
+        "https://www.schuhhaus-kocher.de/",
+        {
+          "phone": "+49 761 2075911",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n2299003159",
+        7.85247,
+        47.99464,
+        "shop",
+        "Reflex",
+        [534],
+        "30-32 Schusterstraße",
+        null,
+        "Mo-Fr 10:00-19:00; Sa 10:00-18:00",
+        "https://www.reflex-shoes.de/",
+        {
+          "phone": "+49 761 30258",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n2299003160",
+        7.85259,
+        47.99456,
+        "cafe",
+        "Vitamin Lädele",
+        [21],
+        null,
+        null,
+        "Mo-Fr 09:00-18:00, Su 09:00-17:00",
+        "http://www.saftlädele.de",
+        {
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n2299006560",
+        7.85151,
+        47.99668,
+        "shop",
+        "Salamander",
+        [534],
+        null,
+        null,
+        "Mo-Sa 10:00-19:00; PH off",
+        null,
+        {
+          "brand": "Salamander",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n2445231250",
+        7.8509,
+        47.99737,
+        "craft_shop",
+        "Ringfoto Löffler",
+        [529],
+        null,
+        null,
+        "Mo-Fr 10:00-19:00; Sa 10:00-18:00",
+        "http://ringfoto-loeffler.de",
+        null
+      ],
+      [
+        "n248594117",
+        7.85096,
+        47.99414,
+        "restaurant",
+        "Tacheles",
+        [75],
+        "17 Grünwälderstraße",
+        "Freiburg im Breisgau",
+        "Mo 11:30-24:00; Tu-Fr 00:00-01:00,11:30-24:00; Sa,Su 00:00-05:00,11:30-24:00",
+        "http://www.tacheles-freiburg.de/",
+        {
+          "phone": "+49 761 3196669",
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n2512764075",
+        7.85063,
+        47.9958,
+        "shop",
+        "Outlet by zalando",
+        [534],
+        null,
+        null,
+        "Mo-Sa 10:00-20:00; Su,PH off",
+        null,
+        null
+      ],
+      [
+        "n2513749359",
+        7.85282,
+        47.9961,
+        "restaurant",
+        "Weinstube Rappen",
+        [75],
+        null,
+        null,
+        null,
+        null,
+        {
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n2570359014",
+        7.8511,
+        47.99734,
+        "food_shop",
+        "Reformhaus Bacher",
+        [517],
+        null,
+        null,
+        "Mo-Sa 09:00-20:00",
+        "https://www.reformhaus-bacher.de/",
+        {
+          "brand": "Reformhaus Bacher",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n2570803877",
+        7.85429,
+        47.99664,
+        "cafe",
+        "Cafe Instanbul Royal",
+        [21],
+        null,
+        null,
+        "Mo-Su,PH 08:00-02:00",
+        "http://www.cafeistanbulroyal.de",
+        null
+      ],
+      [
+        "n2581344956",
+        7.85268,
+        47.99461,
+        "cafe",
+        "Origin Coffee Stories",
+        [21],
+        "34 Schusterstraße",
+        "Freiburg",
+        "Mo-Sa 09:00-18:00",
+        "https://origin-coffeestories.com/",
+        {
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n2581344957",
+        7.85096,
+        47.99576,
+        "shop",
+        "Pandora",
+        [520],
+        "179 Kaiser-Joseph-Straße",
+        null,
+        null,
+        null,
+        {
+          "brand": "Pandora"
+        }
+      ],
+      ["n2581344959", 7.85256, 47.9945, "cafe", "Sarang", [21], null, null, null, null, null],
+      [
+        "n2581344960",
+        7.853,
+        47.99491,
+        "craft_shop",
+        "Ernst Rapp",
+        [510],
+        null,
+        null,
+        "Mo-Fr 09:30-13:00,14:00-18:00; Sa 09:30-15:00",
+        "https://www.ernstrapp.de/",
+        {
+          "phone": "+49 761 34659"
+        }
+      ],
+      [
+        "n2581344961",
+        7.85242,
+        47.99425,
+        "shop",
+        "Tamaris",
+        [534],
+        null,
+        null,
+        "Mo-Sa 10:00-18:00",
+        null,
+        {
+          "brand": "Tamaris",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n2581344969",
+        7.85254,
+        47.99446,
+        "craft_shop",
+        "Pultkult",
+        [536],
+        "2 Augustinergasse",
+        "Freiburg",
+        "Mo-Fr 10:00-18:30; Sa 10:00-18:00",
+        "https://www.pultkult.de/",
+        {
+          "phone": "+49 761 2853993",
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n2581344970",
+        7.85225,
+        47.9948,
+        "maker",
+        "Katja Löhr Goldschmiede",
+        [109, 520],
+        null,
+        null,
+        "Mo-Fr 10:30-18:00; Sa 10:00-16:00; PH off",
+        "https://www.goldschmiede-katja-loehr.de/",
+        {
+          "phone": "+49 761 2020200",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n2581344971",
+        7.8525,
+        47.9944,
+        "shop",
+        "Riecker Schuhgeschäft",
+        [534],
+        "Augustinergasse",
+        null,
+        null,
+        null,
+        {
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n2581344972",
+        7.85243,
+        47.99505,
+        "restaurant",
+        "Oberkirchs Weinstuben",
+        [75],
+        null,
+        null,
+        "Mo-Th 07:00-23:30; Fr,Sa 07:00-24:00",
+        "https://hotel-oberkirch.de/",
+        {
+          "phone": "+49 761 2026868",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n2581344979",
+        7.85295,
+        47.99458,
+        "shop",
+        "Kaltschmidt Goldschiede",
+        [520],
+        "38 Schusterstraße",
+        null,
+        "Mo,Su,PH off; Tu-Fr 10:00-18:30; Sa 10:00-18:00",
+        null,
+        {
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n2581344985",
+        7.8509,
+        47.9957,
+        "shop",
+        "Schuh Klaus",
+        [534],
+        null,
+        null,
+        "Mo-Sa 10:00-19:00; PH off",
+        null,
+        {
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n2581344994",
+        7.8526,
+        47.99462,
+        "cafe",
+        "Teehaus Martin",
+        [538],
+        null,
+        null,
+        "Mo-Sa 10:00-18:00; PH off",
+        "https://teehaus-martin.de/",
+        {
+          "phone": "+49 761 2853370",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n2581344996",
+        7.85233,
+        47.99432,
+        "shop",
+        "Tribüne",
+        [534],
+        null,
+        null,
+        "Mo-Fr 10:00-18:30; Sa 10:00-18:00",
+        null,
+        {
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n2581345003",
+        7.8524,
+        47.99447,
+        "shop",
+        "Ecco",
+        [534],
+        null,
+        null,
+        "Mo-Sa 10:00-18:30",
+        null,
+        {
+          "brand": "Ecco",
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n2581345007",
+        7.85206,
+        47.99517,
+        "restaurant",
+        "Engelstuben",
+        [75],
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "n2581345009",
+        7.85275,
+        47.9946,
+        "craft_shop",
+        "LiLi's Stoffstube",
+        [510],
+        null,
+        null,
+        "Tu-Fr 10:00-13:00, Mo-Fr 14:00-18:00, Sa 10:00-16:00; Mo,PH off",
+        null,
+        {
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n2581418239",
+        7.85296,
+        47.99469,
+        "craft_shop",
+        "Leder-Rees",
+        [521],
+        null,
+        null,
+        "Mo-Sa 10:00-18:00",
+        "https://leder-rees.de",
+        {
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n2720122422",
+        7.85132,
+        47.99434,
+        "historic",
+        "Jessy Mayer",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/jessy-mayer/",
+        {
+          "wikidata": "Q132183669"
+        }
+      ],
+      [
+        "n2720122426",
+        7.85302,
+        47.99477,
+        "historic",
+        "Max Mayer",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/max-mayer-3/",
+        {
+          "wikidata": "Q132183705"
+        }
+      ],
+      [
+        "n2720122427",
+        7.85302,
+        47.99477,
+        "historic",
+        "Olga Mayer",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/olga-mayer/",
+        {
+          "wikidata": "Q132183688"
+        }
+      ],
+      [
+        "n2915929485",
+        7.85085,
+        47.99599,
+        "restaurant",
+        "Skajo",
+        [75],
+        "192 Kaiser-Joseph-Straße",
+        "Freiburg im Breisgau",
+        "Mo-Th 11:00-22:00; Fr,Sa 11:00-24:00; Apr-Oct PH 13:00-21:00",
+        "https://www.skajo.de/",
+        {
+          "phone": "+49 761 20251240",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n304862351",
+        7.85168,
+        47.99572,
+        "shop",
+        "Drubba Moments",
+        [520],
+        "3 Münsterplatz",
+        "Freiburg im Breisgau",
+        "Mo-Sa 10:00-18:00; Su,PH off",
+        "https://www.drubbamoments.de/",
+        {
+          "phone": "+49 761 400077 77"
+        }
+      ],
+      [
+        "n3089854249",
+        7.85084,
+        47.99711,
+        "cafe",
+        "Eis-Cafe Venezia",
+        [21],
+        "7 Schiffstraße",
+        null,
+        "Mo-Fr 09:00-19:00; Sa 09:00-18:00",
+        "https://www.schwarzwald-city.de/geschaefte/eis-venezia",
+        {
+          "phone": "+49 761 33518",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n3089854257",
+        7.85123,
+        47.99729,
+        "maker",
+        "Solitaire",
+        [109, 520],
+        null,
+        null,
+        "Mo-Fr 10:00-19:00; Sa 10:00-18:00",
+        "https://www.solitaire-lechler.de/",
+        null
+      ],
+      [
+        "n31589633",
+        7.85394,
+        47.9973,
+        "spot",
+        "Karlsbau (P13)",
+        [50],
+        null,
+        null,
+        "24/7",
+        "https://www.karlsbau-freiburg.de/parken.php",
+        {
+          "fee": "yes",
+          "access": "yes"
+        }
+      ],
+      [
+        "n31594310",
+        7.85328,
+        47.99603,
+        "library",
+        "Stadtbibliothek Freiburg",
+        [45],
+        "17 Münsterplatz",
+        "Freiburg im Breisgau",
+        "Tu-Fr 10:00-19:00; Sa 10:00-15:00",
+        "https://www.stadtbibliothek.freiburg.de/",
+        {
+          "phone": "+49 761 2012207",
+          "wikidata": "Q28681992",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n31594312",
+        7.85295,
+        47.99609,
+        "restaurant",
+        "Heiliggeist Stüble",
+        [75],
+        "15 Münsterplatz",
+        null,
+        "Mo-Sa 11:30-14:00,17:00-22:00",
+        "https://www.heiliggeist-stueble-freiburg.de/",
+        {
+          "phone": "+49 761 2923579",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n31594319",
+        7.85105,
+        47.99583,
+        "craft_shop",
+        "Eden Galerie meets Blüten Café",
+        [21, 530],
+        "179 Kaiser-Joseph-Straße",
+        "Freiburg im Breisgau",
+        "Mo-Sa 10:00-19:00; Su 10:00-15:00",
+        "https://www.edengalerie.com/",
+        {
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n31594321",
+        7.85126,
+        47.99511,
+        "shop",
+        "Bernd Wolf Schmuck",
+        [520],
+        "5 Schusterstraße",
+        "Freiburg im Breisgau",
+        "Mo-Sa 10:00-18:00; PH off",
+        "https://berndwolf.de",
+        {
+          "phone": "+49 761 288050",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n31594326",
+        7.852,
+        47.99491,
+        "restaurant",
+        "Hotel Oberkirch",
+        [75],
+        "22 Münsterplatz",
+        null,
+        "Mo-Th 07:00-23:30; Fr,Sa 07:00-24:00",
+        "http://www.hotel-oberkirch.de/",
+        {
+          "phone": "+49 761 2026868",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n31594334",
+        7.85383,
+        47.99477,
+        "restaurant",
+        "Gasthaus zum Kranz",
+        [75],
+        "40 Herrenstraße",
+        null,
+        "Su-Fr 12:00-14:30,17:30-22:00; Sa 12:00-22:30",
+        null,
+        null
+      ],
+      [
+        "n31594355",
+        7.85302,
+        47.99458,
+        "restaurant",
+        "Zum Deutschen Haus",
+        [75],
+        null,
+        null,
+        "Mo-Sa 11:00-23:00",
+        "http://www.deutscheshaus-freiburg.de/",
+        {
+          "phone": "+49 761 24500",
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n3175607975",
+        7.85077,
+        47.99475,
+        "cafe",
+        "Nostimo Coffee",
+        [21],
+        "3 Salzstraße",
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "n3269734495",
+        7.85393,
+        47.99439,
+        "shop",
+        "Gianfranco Colli",
+        [534],
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "n3283156658",
+        7.85056,
+        47.99701,
+        "shop",
+        "Paul Green",
+        [534],
+        null,
+        null,
+        "off",
+        "https://www.paulgreen-shop.de/",
+        {
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n3525435108",
+        7.85351,
+        47.99465,
+        "shop",
+        "Atelier Kasimir",
+        [520],
+        null,
+        null,
+        "Tu-Sa 10:00-13:00,14:00-16:00",
+        null,
+        null
+      ],
+      ["n3525435109", 7.8537, 47.99408, "cafe", "Sonnensaft", [21], null, null, null, null, null],
+      [
+        "n3525435111",
+        7.85375,
+        47.99461,
+        "food_shop",
+        "Weinfachgeschäft Daiber",
+        [481],
+        null,
+        null,
+        "Tu-Fr 10:00-18:00; Sa 09:00-14:00; Su,PH off; Mo off",
+        "https://www.wein-daiber.de/",
+        {
+          "phone": "+49 761 34341",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n3574209593",
+        7.85372,
+        47.99442,
+        "shop",
+        "Pross Kinderschuhe",
+        [534],
+        null,
+        null,
+        "Mo-Sa 10:00-18:00",
+        "http://www.pross-am-martinstor.de",
+        {
+          "phone": "+49 761 33268",
+          "wheelchair": "?"
+        }
+      ],
+      [
+        "n367146815",
+        7.8519,
+        47.99752,
+        "shop",
+        "Omega Electronic",
+        [508],
+        "6 Raustraße",
+        "Freiburg im Breisgau",
+        "Mo-Sa 09:30-19:00; PH off",
+        "http://www.omega-electronic.de",
+        {
+          "phone": "+49 761 7677640",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n367147829",
+        7.85271,
+        47.99677,
+        "restaurant",
+        "Le Buffet",
+        [75],
+        "165 Kaiser-Joseph-Straße",
+        "Freiburg im Breisgau",
+        "Mo-Sa 09:30-19:00",
+        "https://www.galeria.de/filialen/l/freiburg-im-breisgau/kaiser-joseph-strasse-165/001062",
+        {
+          "phone": "+49 761 28240",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n3815373973",
+        7.8508,
+        47.9945,
+        "craft_shop",
+        "Gusti Leder",
+        [521],
+        null,
+        null,
+        "Fr,Sa 10:30-14:00,14:30-18:00",
+        null,
+        {
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n3815430158",
+        7.85209,
+        47.99677,
+        "shop",
+        "Blume 2000",
+        [512],
+        "165 Kaiser-Joseph-Straße",
+        "Freiburg im Breisgau",
+        null,
+        "https://www.blume2000.de",
+        {
+          "brand": "Blume 2000",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n3903774963",
+        7.85263,
+        47.99419,
+        "shop",
+        "Mephisto",
+        [534],
+        null,
+        null,
+        "Mo-Sa 10:00-18:00",
+        "http://de.mephisto.com",
+        {
+          "brand": "Mephisto",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n3913744214",
+        7.85097,
+        47.99404,
+        "cafe",
+        "Grünwalder Café",
+        [21],
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "n3923654642",
+        7.85072,
+        47.9971,
+        "maker",
+        "Lechlers Goldschmiede",
+        [109, 520],
+        null,
+        null,
+        "Mo-Fr 10:00-19:00; Sa 10:00-18:00",
+        "https://www.lechlers.de/",
+        null
+      ],
+      [
+        "n3923654645",
+        7.85063,
+        47.99764,
+        "spot",
+        "Schwarzwald-City (P9)",
+        [50],
+        null,
+        null,
+        "Mo-Sa 07:00-22:00",
+        null,
+        {
+          "fee": "yes",
+          "access": "yes"
+        }
+      ],
+      [
+        "n3924372721",
+        7.85475,
+        47.99425,
+        "food_shop",
+        "Culinara Zoller",
+        [506],
+        "21-23 Konviktstraße",
+        "Freiburg im Breisgau",
+        "Mo-We 10:00-18:30; Th,Fr 10:00-19:00; Sa 10:00-18:00",
+        "https://www.culinara-freiburg.de/",
+        {
+          "phone": "+49761 37536",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n3927785505",
+        7.85193,
+        47.99598,
+        "cafe",
+        "Breuninger Confiserie",
+        [21],
+        null,
+        null,
+        "Mo-Sa 10:00-20:00",
+        "https://www.e-breuninger.de/de/breuninger-confiserie/",
+        {
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n3927785511",
+        7.85273,
+        47.99416,
+        "shop",
+        "Kennel & Schmenger",
+        [534],
+        null,
+        null,
+        "Mo-Fr 10:00-18:30; Sa 10:00-18:00",
+        null,
+        {
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n3927785512",
+        7.85092,
+        47.99607,
+        "gym",
+        "Körperwerk",
+        [191],
+        null,
+        null,
+        "Mo-Th 07:30-20:00; Fr 07:30-19:00; Sa 09:00-14:00; Su 09:00-13:00",
+        "https://www.koerperwerk-suedbaden.de/freiburg-fitnessstudio",
+        {
+          "phone": "+49 761 4798980"
+        }
+      ],
+      [
+        "n3929398967",
+        7.85137,
+        47.99432,
+        "shop",
+        "Auftritt",
+        [534],
+        null,
+        null,
+        "Mo-Fr 10:00-18:30; Sa 10:00-17:00; Su,PH off",
+        null,
+        null
+      ],
+      [
+        "n3929398968",
+        7.85153,
+        47.99429,
+        "shop",
+        "Boardshop Freiburg",
+        [535],
+        null,
+        null,
+        "Mo-Fr 11:00-18:00; Sa 10:00-19:00; Su,PH off",
+        "https://www.boardshop.de/",
+        {
+          "phone": "+49 761 2927878",
+          "sport": "skateboard"
+        }
+      ],
+      [
+        "n3929398973",
+        7.85129,
+        47.99433,
+        "craft_shop",
+        "Stoffliebe",
+        [510],
+        null,
+        null,
+        "Mo-Fr 10:00-18:30, Sa 10:00-17:00; Su,PH off",
+        "http://www.stoffliebe-freiburg.de",
+        {
+          "phone": "+49 761 28 57524"
+        }
+      ],
+      [
+        "n3938212534",
+        7.85423,
+        47.9965,
+        "collectors_shop",
+        "Antiquitäten",
+        [484],
+        null,
+        null,
+        "Mo-Fr 10:00-17:30; Sa 10:00-14:30; PH off",
+        null,
+        null
+      ],
+      [
+        "n3938212545",
+        7.85338,
+        47.99404,
+        "craft_shop",
+        "Cartola Papeterie",
+        [536],
+        "47 Salzstraße",
+        "Freiburg im Breisgau",
+        "Mo-Fr 10:00-18:30; Sa 10:00-18:00",
+        "https://www.cartola-papeterie.de/",
+        {
+          "phone": "+49 761 39900",
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n3938212547",
+        7.85348,
+        47.99719,
+        "collectors_shop",
+        "Briefmarken Thomas Groß",
+        [501, 502],
+        "4 Auf der Zinnen",
+        "Freiburg im Breisgau",
+        "Mo-Fr 10:00-13:00,13:30-17:00",
+        "http://briefmarken-thomas-gross.de/",
+        null
+      ],
+      [
+        "n3938212549",
+        7.85452,
+        47.99405,
+        "restaurant",
+        "Haus zur Löwengrube",
+        [75],
+        "12 Konviktstraße",
+        "Freiburg im Breisgau",
+        "Mo-Sa 12:00-14:30,17:30-22:30",
+        "https://www.restaurant-loewengrube.de/",
+        {
+          "phone": "+49 761 76991188",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n3938212551",
+        7.85364,
+        47.99715,
+        "shop",
+        "Fußorthopädie Fehrenbach",
+        [534],
+        null,
+        null,
+        "Mo-Fr 09:00-13:00, 14:30-18:00",
+        "https://gut-laufen.de/",
+        {
+          "phone": "+49 761 266 35"
+        }
+      ],
+      [
+        "n3938212552",
+        7.85371,
+        47.9942,
+        "cafe",
+        "Café Tilia",
+        [21],
+        null,
+        null,
+        "Mo-Su 11:00-17:00",
+        null,
+        {
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n3938214360",
+        7.85467,
+        47.99403,
+        "restaurant",
+        "Kreuzblume",
+        [75],
+        null,
+        null,
+        "We-Su 18:00-22:00",
+        "https://www.hotel-kreuzblume.de/",
+        {
+          "phone": "+4976131194"
+        }
+      ],
+      [
+        "n3938214368",
+        7.85407,
+        47.99614,
+        "craft_shop",
+        "Noah Stickdesign",
+        [510],
+        null,
+        null,
+        "Mo-Fr 10:00-17:00; Sa 11:00-15:00; PH off",
+        null,
+        null
+      ],
+      [
+        "n3938214369",
+        7.85406,
+        47.99625,
+        "craft_shop",
+        "Ornament",
+        [485],
+        null,
+        null,
+        "Mo-Fr 11:00-13:00,14:00-18:00; Sa 11:00-16:00; PH off",
+        null,
+        null
+      ],
+      [
+        "n3938214376",
+        7.8532,
+        47.99407,
+        "cafe",
+        "Café Linden",
+        [21],
+        "45 Salzstraße",
+        "Freiburg im Breisgau",
+        "Mo-Sa 09:00-18:00; Su off",
+        null,
+        {
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n3938214378",
+        7.85387,
+        47.99485,
+        "arts_venue",
+        "Galerie Meier",
+        [568],
+        null,
+        null,
+        "Tu-Fr 12:00-18:00; Sa 11:30-16:00",
+        null,
+        {
+          "fee": "no"
+        }
+      ],
+      [
+        "n3938214382",
+        7.85436,
+        47.99432,
+        "craft_shop",
+        "Stoffgalerie",
+        [510],
+        "10a Konviktstraße",
+        "Freiburg im Breisgau",
+        "Mo-Fr 11:00-18:00; Sa 10:00-16:00",
+        "https://www.stoffgaleriefreiburg.de",
+        {
+          "phone": "+49 761 2085328"
+        }
+      ],
+      [
+        "n3938214392",
+        7.85424,
+        47.99656,
+        "craft_shop",
+        "Lilli-Max",
+        [510],
+        "1 Herrenstraße",
+        "Freiburg im Breisgau",
+        "Mo-Fr 10:00-18:00; Sa 10:00-14:00",
+        "http://www.lilli-max.de",
+        {
+          "phone": "+49 761 408188"
+        }
+      ],
+      [
+        "n3952858193",
+        7.85155,
+        47.99792,
+        "cafe",
+        "Café Phin",
+        [21],
+        null,
+        null,
+        "Mo-Th 08:30-18:00; Fr,Sa 09:30-19:00",
+        null,
+        null
+      ],
+      [
+        "n3958879177",
+        7.85094,
+        47.99705,
+        "food_shop",
+        "Linder's Metzgerei",
+        [492],
+        null,
+        null,
+        "Mo-Fr 07:30-19:00; Sa 07:30-18:00",
+        "https://www.metzgerei-linder.de/",
+        {
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n3979040080",
+        7.85526,
+        47.99471,
+        "collectors_shop",
+        "Altstadt Antiquariat",
+        [484],
+        "1 Konviktstraße",
+        "Freiburg im Breisgau",
+        "Tu-Fr 11:00-14:00,15:00-18:30; Sa 11:00-15:00",
+        "https://altstadt-antiquariat.de/",
+        {
+          "phone": "+49 761 280393",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n3979040103",
+        7.85514,
+        47.99461,
+        "shop",
+        "Goldschmiede Christoph Ruf",
+        [520],
+        "7 Konviktstraße",
+        "Freiburg im Breisgau",
+        "Tu-Fr 10:30-15:00; Sa 10:00-14:00",
+        null,
+        {
+          "phone": "+49 761 25840"
+        }
+      ],
+      [
+        "n3979040107",
+        7.8515,
+        47.99794,
+        "cafe",
+        "Boaboa",
+        [19, 21],
+        "14 Friedrichring",
+        "Freiburg im Breisgau",
+        null,
+        null,
+        {
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n3979040112",
+        7.85499,
+        47.99448,
+        "shop",
+        "Indianerschmuck",
+        [520],
+        null,
+        null,
+        "Mo-Fr 10:00-19:00; Sa 10:00-18:00",
+        null,
+        null
+      ],
+      [
+        "n3979040150",
+        7.85446,
+        47.99448,
+        "food_shop",
+        "Rücker",
+        [496],
+        "1 Münzgasse",
+        "Freiburg im Breisgau",
+        "Mo-Fr 10:00-13:00,14:00-18:00; Sa 09:00-15:00",
+        null,
+        {
+          "phone": "+49 761 382460",
+          "wheelchair": "yes"
+        }
+      ],
+      ["n3979040663", 7.85288, 47.99735, "cafe", "Saray Café", [21], null, null, null, null, null],
+      [
+        "n3979040670",
+        7.85517,
+        47.99464,
+        "craft_shop",
+        "Showroom Sebastian Wehrle",
+        [485],
+        "5 Konviktstraße",
+        "Freiburg im Breisgau",
+        "Fr,Sa 10:00-17:00",
+        "https://sebastian-wehrle.de/showroom/",
+        {
+          "phone": "+49 761 79026441"
+        }
+      ],
+      [
+        "n3979040671",
+        7.85503,
+        47.99451,
+        "collectors_shop",
+        "Veith Elsenhans",
+        [484],
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "n5107698242",
+        7.85297,
+        47.99498,
+        "food_shop",
+        "Honiggalerie Heldt",
+        [518],
+        "28 Münsterplatz",
+        "Freiburg im Breisgau",
+        "Mo-Sa 09:30-18:00; Su,PH off",
+        "http://www.honiggalerie.de/",
+        {
+          "phone": "+49 761 2024447",
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n5111071590",
+        7.85197,
+        47.99561,
+        "historic",
+        "St. Lambert",
+        [130],
+        null,
+        null,
+        null,
+        null,
+        {
+          "religion": "christian",
+          "wheelchair": "yes",
+          "denomination": "catholic"
+        }
+      ],
+      [
+        "n5111071591",
+        7.85197,
+        47.99555,
+        "historic",
+        "Maria",
+        [130],
+        null,
+        null,
+        null,
+        "https://de.wikipedia.org/wiki/Freiburger_Münster",
+        {
+          "religion": "christian",
+          "wheelchair": "yes",
+          "denomination": "catholic"
+        }
+      ],
+      [
+        "n5111071592",
+        7.85197,
+        47.99548,
+        "historic",
+        "St. Alexander",
+        [130],
+        null,
+        null,
+        null,
+        null,
+        {
+          "religion": "christian",
+          "wheelchair": "yes",
+          "denomination": "catholic"
+        }
+      ],
+      [
+        "n5227123841",
+        7.85256,
+        47.99618,
+        "community",
+        "Centre Culturel Français Freiburg",
+        [28],
+        "11 Münsterplatz",
+        "Freiburg im Breisgau",
+        "Mo-Th 09:00-17:30; Fr 09:00-14:00; PH off",
+        "https://ccf-fr.de/",
+        {
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n5227903222",
+        7.85304,
+        47.9979,
+        "historic",
+        "Siegesdenkmal",
+        [130],
+        null,
+        null,
+        null,
+        null,
+        {
+          "wikidata": "Q2283133"
+        }
+      ],
+      [
+        "n5739789634",
+        7.85342,
+        47.99529,
+        "bar",
+        "Haus der badischen Weine",
+        [15],
+        null,
+        null,
+        "Mo-Sa 10:00-22:00",
+        "https://www.alte-wache.com",
+        {
+          "phone": "+49 761 202870"
+        }
+      ],
+      [
+        "n5739789635",
+        7.85342,
+        47.99528,
+        "food_shop",
+        "Haus der badischen Weine",
+        [481],
+        null,
+        null,
+        "Mo-Sa 10:00-22:00",
+        "https://www.badischer-weinshop.com/",
+        {
+          "phone": "+49 761 202870"
+        }
+      ],
+      [
+        "n5811977636",
+        7.85456,
+        47.99521,
+        "historic",
+        "Alban Stolz",
+        [130],
+        null,
+        null,
+        null,
+        null,
+        {
+          "wikidata": "Q116726155"
+        }
+      ],
+      [
+        "n5869432233",
+        7.85304,
+        47.9941,
+        "music_shop",
+        "Musicus",
+        [526],
+        null,
+        null,
+        "Mo-Fr 10:00-18:30; Sa 10:00-16:00; Su,PH off",
+        "http://www.musicus-freiburg.de",
+        {
+          "phone": "+49 761 20 7770",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n5892612221",
+        7.85136,
+        47.99729,
+        "restaurant",
+        "PittiWood",
+        [75],
+        "7 Schiffstraße",
+        "Freiburg",
+        "Mo-Sa 08:00-19:00",
+        null,
+        {
+          "phone": "+49 761 1379483"
+        }
+      ],
+      [
+        "n59609546",
+        7.85483,
+        47.99451,
+        "restaurant",
+        "zur Wolfshöhle",
+        [75],
+        "8 Konviktstraße",
+        "Freiburg im Breisgau",
+        "Tu-Sa 18:00-23:00, Fr,Sa 12:00-14:30; Su,Mo,PH off",
+        "https://www.wolfshoehle-freiburg.de/",
+        {
+          "phone": "+49 761 30303"
+        }
+      ],
+      [
+        "n6299318621",
+        7.85463,
+        47.99433,
+        "craft_shop",
+        "Koriko Holzkunst",
+        [485],
+        "10 Konviktstraße",
+        "Freiburg im Breisgau",
+        "Mo,Fr,Sa 11:00-16:00; Th 14:00-18:00; \"nach telefonischer Vereinbarung\"",
+        "http://koriko-holzkunst.de/",
+        {
+          "phone": "+49 176 45663352",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n6337374472",
+        7.85228,
+        47.99784,
+        "restaurant",
+        "Hans im Glück",
+        [75],
+        "2 Europaplatz",
+        "Freiburg im Breisgau",
+        "Su-Th 11:30-22:00; Fr,Sa 11:30-23:00",
+        "https://hansimglueck-burgergrill.de/standort/freiburg-europaplatz/",
+        {
+          "brand": "Hans im Glück",
+          "phone": "+49 761 76993590",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n6832247946",
+        7.85134,
+        47.99569,
+        "cafe",
+        "Lindt",
+        [497],
+        null,
+        null,
+        "Mo-Sa 09:00-19:00; Su,PH off",
+        null,
+        {
+          "brand": "Lindt",
+          "phone": "+49 761 29098965",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n685214540",
+        7.8514,
+        47.99656,
+        "bookstore",
+        "Herder & Thalia",
+        [490],
+        "180 Kaiser-Joseph-Straße",
+        "Freiburg im Breisgau",
+        "Mo-Sa 10:00-19:00",
+        "https://www.thalia.de/buchhandlung/5125",
+        {
+          "brand": "Thalia",
+          "phone": "+49 761 282820",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n7295084275",
+        7.85416,
+        47.99562,
+        "historic",
+        "Dr. Joseph Wirth",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/dr-joseph-wirth/",
+        {
+          "wikidata": "Q132183570"
+        }
+      ],
+      [
+        "n7295084276",
+        7.85149,
+        47.99498,
+        "historic",
+        "Adele Rüdenberg",
+        [130],
+        null,
+        null,
+        null,
+        "https://www.stolpersteine-in-freiburg.de/stolpersteine/adele-ruedenberg/",
+        {
+          "wikidata": "Q132183690"
+        }
+      ],
+      [
+        "n809686332",
+        7.85099,
+        47.99729,
+        "shop",
+        "MediaMarkt",
+        [508],
+        "5-9 Schiffstraße",
+        "Freiburg im Breisgau",
+        "Mo-Sa 10:00-19:00; PH off",
+        "https://www.mediamarkt.de/de/store/freiburg-city-47",
+        {
+          "brand": "MediaMarkt",
+          "phone": "+49 221 22 243333",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n925950613",
+        7.854,
+        47.99688,
+        "restaurant",
+        "El Gallo",
+        [75],
+        null,
+        null,
+        "Mo-Su 00:00-02:00,12:00-24:00",
+        "https://www.elgallo-freiburg.com",
+        {
+          "phone": "+49 761 2022221",
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n925950615",
+        7.8548,
+        47.99719,
+        "restaurant",
+        "Enchilada",
+        [75],
+        null,
+        null,
+        "Fr 16:00-01:00, Sa 12:00-01:00, Su 12:00-23:00, Mo 16:00-24:00, Tu-Th 16:00-23:00",
+        "https://freiburg.enchilada.de/",
+        {
+          "brand": "Enchilada",
+          "phone": "+49 761 2088420",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "n9316454317",
+        7.85273,
+        47.99453,
+        "game_store",
+        "Kainskind",
+        [513],
+        null,
+        null,
+        null,
+        "https://kainskind.de",
+        null
+      ],
+      [
+        "n9386734688",
+        7.85418,
+        47.99534,
+        "cafe",
+        "Café Inklusiv",
+        [21],
+        null,
+        null,
+        "We-Sa 11:00-18:00",
+        "https://www.caritas-freiburg.de/arbeit-und-berufliche-kompetenzen/cafe-inklusiv-im-muensterforum/",
+        {
+          "phone": "+49 761 79034630",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n9535348555",
+        7.85171,
+        47.99734,
+        "shop",
+        "Der Goldmann Freiburg",
+        [520],
+        null,
+        null,
+        null,
+        "http://dergoldmann.com/",
+        null
+      ],
+      [
+        "n994811380",
+        7.85151,
+        47.995,
+        "restaurant",
+        "Ristorante e Pizzeria Milano",
+        [75],
+        "7 Schusterstraße",
+        "Freiburg im Breisgau",
+        "Mo-Su 11:00-24:00",
+        "https://www.ristaurante-milano.de/",
+        {
+          "phone": "+49 761 33735",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "n9989140100",
+        7.85356,
+        47.99454,
+        "shop",
+        "Material Prima",
+        [520],
+        "50 Schusterstraße",
+        "Freiburg im Breisgau",
+        "Tu-Fr 11:00-18:00; Sa 11:00-16:00",
+        null,
+        {
+          "wheelchair": "no"
+        }
+      ],
+      [
+        "n999388015",
+        7.85258,
+        47.9961,
+        "cafe",
+        "Sams Café",
+        [21],
+        "11 Münsterplatz",
+        null,
+        "Mo-Sa 08:00-19:00; Su 08:00-18:00",
+        "https://www.sams-freiburg.de/",
+        {
+          "phone": "+49 761 21720630",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "r3734424",
+        7.85534,
+        47.99414,
+        "spot",
+        "Schlossberg (P15)",
+        [50],
+        "14 Schlossbergring",
+        "Freiburg im Breisgau",
+        "24/7",
+        null,
+        {
+          "fee": "yes",
+          "access": "yes",
+          "surface": "asphalt",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "w100669477",
+        7.85455,
+        47.99515,
+        "worship",
+        "Konviktskirche",
+        [52, 58],
+        "35a Konviktstraße",
+        "Freiburg im Breisgau",
+        null,
+        null,
+        {
+          "religion": "christian",
+          "wikidata": "Q107509263",
+          "wheelchair": "limited",
+          "denomination": "roman_catholic"
+        }
+      ],
+      [
+        "w110404213",
+        7.85292,
+        47.99555,
+        "worship",
+        "Münster Unserer Lieben Frau",
+        [52, 58, 565],
+        "1 Münsterplatz",
+        "Freiburg im Breisgau",
+        "Mo-Sa 10:00-17:00; PH,Su 13:00-19:30",
+        "https://www.freiburgermuenster.info/",
+        {
+          "religion": "christian",
+          "wikidata": "Q250212",
+          "wheelchair": "yes",
+          "denomination": "roman_catholic"
+        }
+      ],
+      [
+        "w111732642",
+        7.8528,
+        47.99583,
+        "market",
+        "Münstermarkt",
+        [46],
+        null,
+        null,
+        "Mo-Fr 07:30-13:30, Sa 07:30-14:00; PH off",
+        "https://muenstermarkt.freiburg.de/",
+        {
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "w377835709",
+        7.85228,
+        47.99597,
+        "attraction",
+        "Fischbrunnen",
+        [565],
+        null,
+        null,
+        null,
+        null,
+        {
+          "wikidata": "Q1419859",
+          "wheelchair": "limited"
+        }
+      ],
+      [
+        "w377835711",
+        7.85179,
+        47.99542,
+        "attraction",
+        "Georgsbrunnen",
+        [565],
+        null,
+        null,
+        null,
+        null,
+        {
+          "wikidata": "Q52092027",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "w61381662",
+        7.851,
+        47.99681,
+        "attraction",
+        "Rau-Brunnen",
+        [565],
+        null,
+        null,
+        null,
+        "http://www.alt-freiburg.de/raubrunnen01.htm",
+        {
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "w62329664",
+        7.85532,
+        47.99522,
+        "school",
+        "Collegium Borromaeum",
+        [25],
+        null,
+        null,
+        null,
+        null,
+        {
+          "wikidata": "Q1109185"
+        }
+      ],
+      [
+        "w767726339",
+        7.85267,
+        47.99497,
+        "historic",
+        "Historisches Kaufhaus",
+        [130, 565],
+        "24 Münsterplatz",
+        "Freiburg im Breisgau",
+        null,
+        "https://historischeskaufhaus.freiburg.de/",
+        {
+          "phone": "+49 761 3881880",
+          "wikidata": "Q1520195",
+          "wheelchair": "yes"
+        }
+      ],
+      [
+        "w91936681",
+        7.85359,
+        47.9965,
+        "worship",
+        "Neue Synagoge",
+        [54, 58],
+        "1 Engelstraße",
+        "Freiburg im Breisgau",
+        null,
+        "https://www.jg-fr.de/",
+        {
+          "religion": "jewish"
+        }
+      ],
+      [
+        "w99418295",
+        7.85074,
+        47.99413,
+        "library",
+        "Stadtarchiv",
+        [7],
+        "15 Grünwälderstraße",
+        "Freiburg im Breisgau",
+        "Mo-Th 10:00-16:00",
+        "https://www.freiburg.de/pb/235788.html",
+        {
+          "wikidata": "Q2326557"
+        }
+      ]
+    ]
+  },
+  "expect": {
+    "all": {
+      "places": [
+        ["n31594312", [], 0],
+        ["n2513749359", [], 0],
+        ["w111732642", [], 0],
+        ["n31594310", [], 0],
+        ["n999388015", [], 0],
+        ["n1279581004", [], 0],
+        ["w110404213", [], 0],
+        ["n5227123841", [], 0],
+        ["n13343018727", [], 0],
+        ["w91936681", [], 0],
+        ["n5739789634", [], 0],
+        ["n367147829", [], 0],
+        ["n5739789635", [], 0],
+        ["n12809906291", [], 0],
+        ["n12809906292", [], 0],
+        ["n12809906293", [], 0],
+        ["n3927785505", [], 0],
+        ["n3938214368", [], 0],
+        ["n3938214369", [], 0],
+        ["n5111071590", [], 0],
+        ["n2581344972", [], 0],
+        ["n5111071591", [], 0],
+        ["n1307438237", [], 0],
+        ["n5111071592", [], 0],
+        ["n1363553653", [], 0],
+        ["n3815430158", [], 0],
+        ["n7295084275", [], 0],
+        ["n14307988545", [], 0],
+        ["n2581345007", [], 0],
+        ["n11230908833", [], 0],
+        ["n11230908832", [], 0],
+        ["n11230908831", [], 0],
+        ["n11230908829", [], 0],
+        ["n11230908830", [], 0],
+        ["n3938212534", [], 0],
+        ["n11230908828", [], 0],
+        ["n1673077577", [], 0],
+        ["n925950613", [], 0],
+        ["n304862351", [], 0],
+        ["n9386734688", [], 0],
+        ["n3938214392", [], 0],
+        ["n10219845493", [], 0],
+        ["n12880922102", [], 0],
+        ["n2570803877", [], 0],
+        ["n13379228850", [], 0],
+        ["n13379228849", [], 0],
+        ["n13379228848", [], 0],
+        ["n13379228847", [], 0],
+        ["n1177096965", [], 0],
+        ["n2299006560", [], 0],
+        ["n994811380", [], 0]
+      ],
+      "truncated": false
+    },
+    "gen": {
+      "places": [
+        ["n31594312", ["murder-mystery-dinner"], 1],
+        ["n2513749359", ["murder-mystery-dinner"], 1],
+        ["n367147829", ["murder-mystery-dinner"], 1],
+        ["n2581344972", ["murder-mystery-dinner"], 1],
+        ["n1363553653", ["murder-mystery-dinner"], 1],
+        ["n14307988545", ["murder-mystery-dinner"], 1],
+        ["n2581345007", ["murder-mystery-dinner"], 1],
+        ["n925950613", ["murder-mystery-dinner"], 1],
+        ["n12880922102", ["murder-mystery-dinner"], 1],
+        ["n994811380", ["murder-mystery-dinner"], 1]
+      ],
+      "truncated": false
+    },
+    "sel": {
+      "places": [
+        ["n31594312", ["restaurant-hopping"], 0],
+        ["n2513749359", ["restaurant-hopping"], 0],
+        ["w111732642", ["restaurant-hopping"], 0],
+        ["n31594310", ["history-discussion"], 0],
+        ["n367147829", ["restaurant-hopping"], 0],
+        ["n12809906291", ["history-discussion"], 0],
+        ["n12809906292", ["history-discussion"], 0],
+        ["n12809906293", ["history-discussion"], 0],
+        ["n5111071590", ["history-discussion"], 0],
+        ["n2581344972", ["restaurant-hopping"], 0],
+        ["n5111071591", ["history-discussion"], 0],
+        ["n5111071592", ["history-discussion"], 0],
+        ["n1363553653", ["restaurant-hopping"], 0],
+        ["n7295084275", ["history-discussion"], 0],
+        ["n14307988545", ["restaurant-hopping"], 0],
+        ["n2581345007", ["restaurant-hopping"], 0],
+        ["n11230908833", ["history-discussion"], 0],
+        ["n11230908832", ["history-discussion"], 0],
+        ["n11230908831", ["history-discussion"], 0],
+        ["n11230908829", ["history-discussion"], 0],
+        ["n11230908830", ["history-discussion"], 0],
+        ["n11230908828", ["history-discussion"], 0],
+        ["n925950613", ["restaurant-hopping"], 0],
+        ["n12880922102", ["restaurant-hopping"], 0],
+        ["n13379228850", ["history-discussion"], 0],
+        ["n13379228849", ["history-discussion"], 0],
+        ["n13379228848", ["history-discussion"], 0],
+        ["n13379228847", ["history-discussion"], 0],
+        ["n994811380", ["restaurant-hopping"], 0]
+      ],
+      "truncated": false
+    }
+  }
+}
