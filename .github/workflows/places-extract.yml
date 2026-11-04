@@ -213,9 +213,11 @@ jobs:
           key=$(python3 -I -c 'import json;print("-".join(sorted(json.load(open("work/plan.json"))["extracts"])).replace("/", "_"))')
           echo "key=$key" >> "$GITHUB_OUTPUT"
 
-      - name: Cache the extracts for the week
+      # Restore and save separately, so a download is kept for the week even if a later step fails.
+      - name: Restore the extracts for the week
+        id: pbfcache
         if: steps.tiles.outputs.tiles != ''
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: geofabrik/pbf
           key: geofabrik-${{ steps.plan.outputs.key }}-${{ steps.mode.outputs.week }}
@@ -244,6 +246,13 @@ jobs:
             echo "$id: downloaded, $(stat -c %s "$f") bytes"
           done < work/extracts.txt
 
+      - name: Save the extracts for the week
+        if: steps.tiles.outputs.tiles != '' && steps.pbfcache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: geofabrik/pbf
+          key: geofabrik-${{ steps.plan.outputs.key }}-${{ steps.mode.outputs.week }}
+
       - name: Filter, cut and export with osmium
         if: steps.tiles.outputs.tiles != ''
         run: |
@@ -264,7 +273,7 @@ jobs:
             fi
             osmium extract -b "$bbox" -s smart "work/f_$name.all.pbf" -o "work/t_$name.pbf" --overwrite
             osmium extract -b "$bbox" -s smart "work/r_$name.all.pbf" -o "work/tr_$name.pbf" --overwrite
-            osmium export "work/t_$name.pbf" -f geojsonseq --geometry-types=point,linestring,polygon -i type_id -o "work/features_$name.geojsonseq" --overwrite
+            osmium export "work/t_$name.pbf" -f geojsonseq --geometry-types=point,linestring,polygon --add-unique-id=type_id -o "work/features_$name.geojsonseq" --overwrite
             osmium export "work/tr_$name.pbf" -f geojsonseq --geometry-types=polygon -o "work/res_$name.geojsonseq" --overwrite
             echo "$name: filtered $(stat -c %s "work/f_$name.all.pbf") bytes, cut $(stat -c %s "work/t_$name.pbf") bytes, $(wc -l < "work/features_$name.geojsonseq") features, $(wc -l < "work/res_$name.geojsonseq") residential polygons"
           done < work/groups.txt
