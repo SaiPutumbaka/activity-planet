@@ -14,6 +14,9 @@
 //       sites. Exit 1 when it does not. With --record the result goes to
 //       POST /collector/discovery/gate under this code's hash, which opens the probe queue.
 //
+//   pnpm --filter collector discover status --from <base>
+//       Exit 0 when this probe code passed the gate on that project within 30 days, else 3.
+//
 //   pnpm --filter collector discover candidates --from <base> [--limit 10]
 //       Builds candidates for the collector regions due (GET /collector/discovery/regions: never
 //       built or built 30 days ago, 10 a night), skipping regions in the EU gate's countries and
@@ -96,6 +99,14 @@ async function main(argv: string[]): Promise<number> {
   const denylist = Denylist.load();
   const hash = probeHash();
   const now = new Date();
+
+  if (command === "status") {
+    const gate = await call(svc, `/discovery/gate?hash=${hash}`);
+    if (gate.status !== 200) throw new Error(`GET /discovery/gate failed: ${gate.status}`);
+    const open = (gate.body as { open?: unknown })?.open === true;
+    console.log(`[gate] probe_hash=${hash} open=${open}`);
+    return open ? 0 : 3;
+  }
 
   if (command === "gate") {
     const city = loadCities().find((c) => c.region.id === cfg.gate.city);

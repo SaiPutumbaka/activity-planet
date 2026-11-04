@@ -1,0 +1,185 @@
+name: Source discovery
+
+# Automatic event source discovery (D-042 slice 8, docs/design/auto-coverage/
+# AUTO_COVERAGE_DESIGN.md 6 and 7; packages/collector/src/discover-cli.ts).
+#
+# Modes:
+#   * gate: the quality gate (design 6.4), and this repository's CI check for the probe code. An
+#     Atlanta run from scratch (candidates only from the OSM website tags of staging's Atlanta
+#     place tiles and from Wikidata; no seed URL, no stored candidate, no HTTP cache) must find a
+#     calendar on at least 6 of the 9 Atlanta sources that work today
+#     (packages/collector/data/discovery.json). The job fails when it does not. The result is
+#     recorded on staging under the probe code's hash (POST /collector/discovery/gate).
+#   * nightly: on the target project, (1) the gate for the current probe code unless a passing run
+#     of the same code is on record there from the last 30 days, then (2) candidates for the
+#     collector regions due (10 a night, never in the EU gate's countries), then (3) probes of
+#     the queue the database offers (150 hosts a region a day, 8 requests a host), each result
+#     posted to the lifecycle (probation after one good day; the nightly collector run enables a
+#     source after a second). The database refuses the probe queue while the gate is closed for
+#     this code (discovery_gate_closed), so a failing gate stops discovery everywhere.
+#
+# Where it runs:
+#   * STAGING for a push to a branch other than main that changes the collector's code or data
+#     (gate), a push of packages/collector/discovery_request.json (its mode), a pull request that
+#     changes them (gate), a workflow_dispatch, and the nightly schedule.
+#   * PRODUCTION only from main (schedule or dispatch) when the repository variable
+#     DISCOVERY_PRODUCTION is "true" (default off).
+#
+# Secrets: none of its own; like collector-ingest.yml it reads the collector secret from the
+# target project's vault and masks it. Logs are public: counts, and for the gate only the hosts
+# of Atlanta's public organisation sites. No region point, no member data.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "gate (Atlanta quality gate on staging) or nightly (gate if needed, candidates, probes)"
+        type: string
+        default: nightly
+      max_hosts:
+        description: "gate: candidate hosts probed (default the per-region daily cap, 150)"
+        type: string
+        default: ""
+  push:
+    branches-ignore: [main]
+    paths:
+      - "packages/collector/src/**"
+      - "packages/collector/data/**"
+      - "packages/collector/discovery_request.json"
+      - ".github/workflows/discovery.yml"
+  pull_request:
+    paths:
+      - "packages/collector/src/**"
+      - "packages/collector/data/**"
+      - ".github/workflows/discovery.yml"
+  # Nightly, before the collector run (05:41 UTC) and outside the busy US morning hours.
+  schedule:
+    - cron: "19 2 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discovery-${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
+  cancel-in-progress: false
+
+env:
+  STAGING_PROJECT_REF: gzrscndzzggxmcwnvvcq
+  PROD_PROJECT_REF: gtesfiqxqontescqpllo
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide mode and target
+        id: mode
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          IN_MODE: ${{ inputs.mode }}
+          IN_HOSTS: ${{ inputs.max_hosts }}
+          PROD_VAR: ${{ vars.DISCOVERY_PRODUCTION }}
+        run: |
+          mode="${IN_MODE:-nightly}"
+          hosts="${IN_HOSTS:-}"
+          if [ "$EVENT" = "pull_request" ]; then mode=gate; fi
+          if [ "$EVENT" = "schedule" ]; then mode=nightly; fi
+          if [ "$EVENT" = "push" ]; then
+            if [ "$REF" = "refs/heads/main" ]; then echo "never on main pushes"; exit 1; fi
+            mode=gate
+            # A branch can ask for its mode (gate or nightly, staging only) in this file.
+            req=packages/collector/discovery_request.json
+            if [ -f "$req" ]; then
+              mode=$(python3 -I -c 'import json,sys;print(json.load(open(sys.argv[1]))["mode"])' "$req")
+              hosts=$(python3 -I -c 'import json,sys;print(json.load(open(sys.argv[1])).get("max_hosts", ""))' "$req")
+            fi
+          fi
+          case "$mode" in gate|nightly) ;; *) echo "Refusing mode: $mode"; exit 1 ;; esac
+          case "$hosts" in ""|[0-9]|[0-9][0-9]|[0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]) ;; *) echo "Refusing max_hosts: $hosts"; exit 1 ;; esac
+          production=false
+          if [ "$mode" = "nightly" ] && [ "$EVENT" != "push" ] && [ "$EVENT" != "pull_request" ] && [ "$REF" = "refs/heads/main" ] && [ "$PROD_VAR" = "true" ]; then production=true; fi
+          echo "event=$EVENT mode=$mode production=$production max_hosts=${hosts:-default}"
+          {
+            echo "mode=$mode"
+            echo "hosts=$hosts"
+            echo "production=$production"
+            echo "run_id=gh-${{ github.run_id }}-${{ github.run_attempt }}"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.0
+
+      # The secret is captured, never echoed; ::add-mask:: hides it if anything ever prints it.
+      - name: Read the collector secret
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PRODUCTION: ${{ steps.mode.outputs.production }}
+          STAGING_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+          PROD_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
+        run: |
+          if [ "$PRODUCTION" = "true" ]; then ref="$PROD_PROJECT_REF"; pw="$PROD_DB_PASSWORD"; else ref="$STAGING_PROJECT_REF"; pw="$STAGING_DB_PASSWORD"; fi
+          SUPABASE_DB_PASSWORD="$pw" supabase link --project-ref "$ref" > /dev/null
+          out=$(supabase db query --linked "select 'CSECRET:' || ds.decrypted_secret as v from vault.decrypted_secrets ds where ds.name = 'collector_secret'" 2>/dev/null || true)
+          secret=$(printf '%s' "$out" | grep -o 'CSECRET:[0-9a-f]\{64\}' | head -1 | cut -d: -f2)
+          unset out
+          if [ -z "$secret" ]; then echo "collector_secret not found in the vault"; exit 1; fi
+          echo "::add-mask::$secret"
+          echo "COLLECTOR_SECRET=$secret" >> "$GITHUB_ENV"
+          echo "COLLECTOR_BASE=https://$ref.supabase.co/functions/v1/collector" >> "$GITHUB_ENV"
+          echo "Collector secret read (masked)."
+
+      - name: Gate (Atlanta from scratch)
+        if: steps.mode.outputs.mode == 'gate'
+        env:
+          RUN_ID: ${{ steps.mode.outputs.run_id }}
+          HOSTS: ${{ steps.mode.outputs.hosts }}
+        run: |
+          set -- --from "$COLLECTOR_BASE" --record --run-id "$RUN_ID-gate" --out "$RUNNER_TEMP/gate.json"
+          if [ -n "$HOSTS" ]; then set -- "$@" --max-hosts "$HOSTS"; fi
+          pnpm --silent --filter collector discover gate "$@"
+
+      - name: Nightly, gate unless this code passed in the last 30 days
+        if: steps.mode.outputs.mode == 'nightly'
+        env:
+          RUN_ID: ${{ steps.mode.outputs.run_id }}
+        run: |
+          if pnpm --silent --filter collector discover status --from "$COLLECTOR_BASE"; then
+            echo "Gate already passed for this probe code."
+          else
+            pnpm --silent --filter collector discover gate --from "$COLLECTOR_BASE" --record --run-id "$RUN_ID-gate"
+          fi
+
+      - name: Nightly, candidates for due regions
+        if: steps.mode.outputs.mode == 'nightly'
+        run: pnpm --silent --filter collector discover candidates --from "$COLLECTOR_BASE"
+
+      - name: Nightly, probe
+        if: steps.mode.outputs.mode == 'nightly'
+        env:
+          RUN_ID: ${{ steps.mode.outputs.run_id }}
+        run: pnpm --silent --filter collector discover probe --from "$COLLECTOR_BASE" --run-id "$RUN_ID"
+
+      - name: Summary
+        if: always() && steps.mode.outputs.mode == 'gate'
+        run: |
+          [ -f "$RUNNER_TEMP/gate.json" ] || exit 0
+          {
+            echo "### Discovery gate"
+            echo ""
+            echo '```json'
+            python3 -I -c 'import json,sys
+          d = json.load(open(sys.argv[1]))
+          print(json.dumps({"probe_hash": d["probe_hash"], "report": d["report"], "counts": d["counts"]}, indent=1))' "$RUNNER_TEMP/gate.json"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
