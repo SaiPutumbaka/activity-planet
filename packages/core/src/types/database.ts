@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 37 (schema_version 2.33). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 39 (schema_version 2.35). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -971,6 +971,7 @@ export type Database = {
           attribution: string;
           campus_id: string | null;
           collector: boolean;
+          collector_last_run_id: string | null;
           collector_seen_at: string | null;
           created_at: string;
           cron_minute: number;
@@ -981,6 +982,7 @@ export type Database = {
           homepage_url: string | null;
           hub_tags: string[];
           id: string;
+          images_licensed: boolean;
           item_count: number | null;
           item_label: string | null;
           kind: string;
@@ -1006,6 +1008,7 @@ export type Database = {
           attribution?: string;
           campus_id?: string | null;
           collector?: boolean;
+          collector_last_run_id?: string | null;
           collector_seen_at?: string | null;
           created_at?: string;
           cron_minute?: number;
@@ -1016,6 +1019,7 @@ export type Database = {
           homepage_url?: string | null;
           hub_tags?: string[];
           id?: string;
+          images_licensed?: boolean;
           item_count?: number | null;
           item_label?: string | null;
           kind: string;
@@ -1041,6 +1045,7 @@ export type Database = {
           attribution?: string;
           campus_id?: string | null;
           collector?: boolean;
+          collector_last_run_id?: string | null;
           collector_seen_at?: string | null;
           created_at?: string;
           cron_minute?: number;
@@ -1051,6 +1056,7 @@ export type Database = {
           homepage_url?: string | null;
           hub_tags?: string[];
           id?: string;
+          images_licensed?: boolean;
           item_count?: number | null;
           item_label?: string | null;
           kind?: string;
@@ -3148,6 +3154,8 @@ export type Database = {
           p_complete?: boolean;
           p_enable?: boolean;
           p_items: Json;
+          p_run_id?: string;
+          p_seen?: Json;
           p_source: Json;
         };
         Returns: Json;
@@ -3542,6 +3550,7 @@ export type Database = {
       import_clip: { Args: { p_max: number; p_text: string }; Returns: string };
       import_dispatch: { Args: { p_slug: string }; Returns: number };
       import_dispatch_all: { Args: never; Returns: Json };
+      import_is_21_plus: { Args: { p_text: string }; Returns: boolean };
       import_pick_hub: {
         Args: {
           p_categories: string;
@@ -3557,6 +3566,7 @@ export type Database = {
       };
       import_schedule: { Args: never; Returns: number };
       import_set_function_url: { Args: { p_url: string }; Returns: undefined };
+      import_title_key: { Args: { p_title: string }; Returns: string };
       import_upsert_batch: {
         Args: { p_items: Json; p_source_slug: string };
         Returns: Json;
