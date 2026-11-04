@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 39 (schema_version 2.35). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 40 (schema_version 2.36). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -2490,6 +2490,7 @@ export type Database = {
           home_point: unknown;
           home_region_noted_at: string | null;
           home_set_at: string | null;
+          home_tile_noted_at: string | null;
           last_seen_at: string | null;
           location: unknown;
           location_text: string;
@@ -2509,6 +2510,7 @@ export type Database = {
           home_point?: unknown;
           home_region_noted_at?: string | null;
           home_set_at?: string | null;
+          home_tile_noted_at?: string | null;
           last_seen_at?: string | null;
           location?: unknown;
           location_text?: string;
@@ -2528,6 +2530,7 @@ export type Database = {
           home_point?: unknown;
           home_region_noted_at?: string | null;
           home_set_at?: string | null;
+          home_tile_noted_at?: string | null;
           last_seen_at?: string | null;
           location?: unknown;
           location_text?: string;
@@ -3793,10 +3796,15 @@ export type Database = {
       place_tile_bbox: { Args: { p_id: number }; Returns: unknown };
       place_tile_id: { Args: { p_lat: number; p_lng: number }; Returns: number };
       place_tile_id_of: { Args: { p_point: unknown }; Returns: number };
+      place_tile_note_home: {
+        Args: { p_old_point?: unknown; p_point: unknown };
+        Returns: number;
+      };
       place_tiles_mapping_in_view: {
         Args: { p_env1: unknown; p_env2: unknown };
         Returns: boolean;
       };
+      place_tiles_note_member_homes: { Args: never; Returns: Json };
       place_tiles_queue: {
         Args: { p_kinds?: string[]; p_limit?: number };
         Returns: Json;
