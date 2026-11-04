@@ -157,7 +157,10 @@ begin
               where (t ->> 'id')::integer = ta) then
     raise exception 'FAIL a claimed tile was offered twice';
   end if;
-  if not public.places_fill_release(ta) or (select geoapify_claimed_at from public.place_tiles where id = ta) is not null then
+  if not public.places_fill_release(ta) then
+    raise exception 'FAIL release returned false';
+  end if;
+  if (select geoapify_claimed_at from public.place_tiles where id = ta) is not null then
     raise exception 'FAIL release did not drop the claim';
   end if;
 end $$;
