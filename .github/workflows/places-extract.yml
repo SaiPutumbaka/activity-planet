@@ -207,7 +207,7 @@ jobs:
         run: |
           mkdir -p geofabrik
           if [ ! -s geofabrik/index-v1.json ]; then
-            curl -fsS -A "$USER_AGENT" -o geofabrik/index-v1.json https://download.geofabrik.de/index-v1.json
+            curl -fsSL -A "$USER_AGENT" -o geofabrik/index-v1.json https://download.geofabrik.de/index-v1.json
           fi
           python3 -I scripts/places/extract_places.py plan --index geofabrik/index-v1.json --tiles "$TILES" --out work/plan.json
           key=$(python3 -I -c 'import json;print("-".join(sorted(json.load(open("work/plan.json"))["extracts"])).replace("/", "_"))')
@@ -230,10 +230,17 @@ jobs:
           while read -r id url; do
             f="geofabrik/pbf/$id.osm.pbf"
             if [ -s "$f" ]; then echo "$id: cached, $(stat -c %s "$f") bytes"; continue; fi
-            curl -fsS -A "$USER_AGENT" -o "$f" "$url"
-            curl -fsS -A "$USER_AGENT" -o "$f.md5" "$url.md5"
-            want=$(cut -d' ' -f1 "$f.md5"); got=$(md5sum "$f" | cut -d' ' -f1)
-            [ "$want" = "$got" ] || { echo "$id: md5 mismatch"; rm -f "$f"; exit 1; }
+            # The md5 first: if "latest" moves on during the download, the retry gets a matching pair.
+            ok=""
+            for attempt in 1 2 3; do
+              curl -fsSL -A "$USER_AGENT" -o "$f.md5" "$url.md5"
+              curl -fsSL -A "$USER_AGENT" -o "$f" "$url"
+              want=$(grep -o '^[0-9a-f]\{32\}' "$f.md5" | head -1); got=$(md5sum "$f" | cut -d' ' -f1)
+              if [ -n "$want" ] && [ "$want" = "$got" ]; then ok=1; break; fi
+              echo "$id: md5 mismatch on attempt $attempt (want ${want:-none}, got $got, $(stat -c %s "$f") bytes, md5 file $(stat -c %s "$f.md5") bytes)"
+              sleep 20
+            done
+            [ -n "$ok" ] || { rm -f "$f"; exit 1; }
             echo "$id: downloaded, $(stat -c %s "$f") bytes"
           done < work/extracts.txt
 
