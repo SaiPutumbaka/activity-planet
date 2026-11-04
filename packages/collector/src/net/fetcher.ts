@@ -109,6 +109,8 @@ export class PoliteFetcher {
   private readonly nextAt = new Map<string, number>();
   private readonly chains = new Map<string, Promise<void>>();
   private readonly robots = new Map<string, Promise<Robots>>();
+  /** robots.txt rules once read, by origin, for robotsVerdict(). */
+  private readonly robotsRead = new Map<string, Robots>();
   /** Requests actually sent, by host (tests and the run summary read it). */
   readonly requests = new Map<string, number>();
 
@@ -224,8 +226,28 @@ export class PoliteFetcher {
         return ALLOW_ALL;
       })();
       this.robots.set(key, p);
+      void p.then((r) => this.robotsRead.set(key, r));
     }
     return p;
+  }
+
+  /**
+   * What robots.txt said for a URL, from rules already read this run (never fetches):
+   * "allow", "allow,crawl-delay=N", "disallow", "unavailable" (5xx or unreadable) or
+   * "unchecked" when the host's robots.txt was not read (precheck refused, API lane).
+   */
+  robotsVerdict(url: string): string {
+    let u: URL;
+    try {
+      u = new URL(url);
+    } catch {
+      return "unchecked";
+    }
+    const r = this.robotsRead.get(`${u.protocol}//${u.host}`);
+    if (!r) return "unchecked";
+    if (r.isAllowed(url))
+      return r.crawlDelaySec !== null ? `allow,crawl-delay=${r.crawlDelaySec}` : "allow";
+    return r.unavailable ? "unavailable" : "disallow";
   }
 
   private async slot(host: string, intervalMs: number): Promise<void> {

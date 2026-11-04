@@ -14,6 +14,9 @@
 //   --no-cache            do not read or write the cache
 //   --list                print the seeds that would run and exit, with no network
 //   --json                print the run summary as JSON at the end
+//   --diagnose            one stderr line per request: source id, redacted URL, HTTP status,
+//                         final host after redirects, media type, byte size, robots.txt
+//                         verdict and parser verdict (counts only; no item or page text)
 //
 // Keys: TICKETMASTER_API_KEY and SEATGEEK_CLIENT_ID turn on the API lane; without them it is
 // skipped. No other secrets are read.
@@ -21,8 +24,9 @@
 import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
 import { API_ADAPTERS, enabledAdapters } from "./adapters/api.ts";
-import { collect } from "./collect.ts";
+import { collect, errorKey } from "./collect.ts";
 import { citiesFor, loadCities, loadRegions } from "./config.ts";
+import { formatDiagnostic } from "./diagnose.ts";
 import { FileHttpCache, MemoryHttpCache } from "./net/cache.ts";
 import { PoliteFetcher } from "./net/fetcher.ts";
 import { DryRunIngest } from "./ingest.ts";
@@ -45,13 +49,14 @@ async function main(argv: string[]): Promise<number> {
       "no-cache": { type: "boolean", default: false },
       list: { type: "boolean", default: false },
       json: { type: "boolean", default: false },
+      diagnose: { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
     },
     allowPositionals: false,
   });
   if (values.help) {
     console.log(
-      "usage: collect [--region atl]... [--regions-file regions.json] --dry-run [--window-days 60] [--list]",
+      "usage: collect [--region atl]... [--regions-file regions.json] --dry-run [--window-days 60] [--diagnose] [--list]",
     );
     return 0;
   }
@@ -125,11 +130,15 @@ async function main(argv: string[]): Promise<number> {
     windowDays,
     maxPagesPerSeed: maxPages,
     log: (l) => console.error(l),
+    diagnose: values.diagnose ? (e) => console.error(formatDiagnostic(e)) : undefined,
   });
   cache.save();
   for (const b of result.batches) await ingest.send(b);
   const errorsByReason: Record<string, number> = {};
-  for (const e of result.errors) errorsByReason[e.reason] = (errorsByReason[e.reason] ?? 0) + 1;
+  for (const e of result.errors) {
+    const k = errorKey(e);
+    errorsByReason[k] = (errorsByReason[k] ?? 0) + 1;
+  }
   const summary = {
     regions: regions.map((r) => r.id),
     sources: result.stats.sources,

@@ -151,4 +151,9 @@ export interface SourceBatch {
   items: ImportItem[];
   /** Why items were dropped before ingest, by reason. */
   skipped: Record<string, number>;
+  /**
+   * Requests for this source that gave nothing, by reason ("http_error", "not_a_feed:html",
+   * ...). Run bookkeeping for the summary; never sent to the RPC.
+   */
+  errors?: Record<string, number>;
 }

@@ -26,11 +26,12 @@ export class DryRunIngest implements Ingest {
   async send(batch: SourceBatch): Promise<IngestResult> {
     const withPoint = batch.items.filter((i) => i.lat !== null).length;
     const cancelled = batch.items.filter((i) => i.cancelled).length;
-    const skipped = Object.entries(batch.skipped)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([k, v]) => `${k}=${v}`)
-      .join(",");
-    const line = `[dry-run] source=${batch.sourceKey} region=${batch.regionId} items=${batch.items.length} with_point=${withPoint} cancelled=${cancelled} skipped={${skipped}}`;
+    const counts = (r: Record<string, number>) =>
+      Object.entries(r)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => `${k}=${v}`)
+        .join(",");
+    const line = `[dry-run] source=${batch.sourceKey} region=${batch.regionId} items=${batch.items.length} with_point=${withPoint} cancelled=${cancelled} skipped={${counts(batch.skipped)}} errors={${counts(batch.errors ?? {})}}`;
     this.lines.push(line);
     this.out(line);
     return { sourceKey: batch.sourceKey, sent: 0 };
