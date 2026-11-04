@@ -58,6 +58,13 @@ describe("decodeMapView", () => {
     });
     expect(v.truncated).toBe(true);
     expect(v.mapping).toBe(true);
+    expect(v.mappingReason).toBeNull();
+    expect(
+      decodeMapView({ hubs: [], mapping: true, mapping_reason: "size_cap" }).mappingReason,
+    ).toBe("size_cap");
+    expect(
+      decodeMapView({ hubs: [], mapping: false, mapping_reason: "budget" }).mappingReason,
+    ).toBeNull();
   });
 
   it("reads a migration 29 cell without titles or starts", () => {

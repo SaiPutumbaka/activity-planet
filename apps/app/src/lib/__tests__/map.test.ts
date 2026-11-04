@@ -39,6 +39,7 @@ import {
   toggleHubChip,
   toggleLayer,
   type ChipHub,
+  mappingNotice,
 } from "../map";
 
 const hub = (id: string, extra: Partial<ChipHub> = {}): ChipHub => ({
@@ -190,8 +191,32 @@ describe("decodeMapInView", () => {
     expect(v.truncated).toBe(true);
     expect(v.zoomIn).toBe(false);
     expect(v.mapping).toBe(true);
+    expect(v.mappingReason).toBeNull();
     expect(v.generic).toBe(true);
     expect(v.eventsOnlyHubIds).toEqual(["h9"]);
+  });
+
+  it("reads mapping_reason only while mapping (migration 41)", () => {
+    expect(decodeMapInView({ mapping: true, mapping_reason: "budget" }).mappingReason).toBe(
+      "budget",
+    );
+    expect(
+      decodeMapInView({ mapping: true, mapping_reason: "extract_too_big" }).mappingReason,
+    ).toBe("extract_too_big");
+    expect(decodeMapInView({ mapping: true, mapping_reason: "bogus" }).mappingReason).toBeNull();
+    expect(
+      decodeMapInView({ mapping: false, mapping_reason: "size_cap" }).mappingReason,
+    ).toBeNull();
+  });
+
+  it("words the mapping notice for each reason", () => {
+    expect(mappingNotice(null)).toMatch(/usually appear within a day/);
+    expect(mappingNotice("budget")).toMatch(/few nights/);
+    expect(mappingNotice("size_cap")).toMatch(/paused/);
+    expect(mappingNotice("extract_too_big")).toMatch(/can't be mapped here automatically/);
+    for (const r of [null, "budget", "size_cap", "extract_too_big"] as const) {
+      expect(mappingNotice(r)).not.toMatch(/student|Atlanta|GSU/i);
+    }
   });
 
   it("reads a migration 29 cell (no titles or starts) and a zoom_in reply", () => {

@@ -95,6 +95,11 @@ export interface MapView {
   generic: boolean;
   /** Migration 32: a place tile in view is still being mapped. */
   mapping: boolean;
+  /**
+   * Migration 41 (D-042 slice 2): why it is not built yet (budget, size_cap, extract_too_big);
+   * null while it is due on the next nightly run.
+   */
+  mappingReason: "budget" | "size_cap" | "extract_too_big" | null;
 }
 
 type Raw = Record<string, unknown>;
@@ -190,6 +195,13 @@ export function decodeMapView(data: unknown): MapView {
     noHubs: d.no_hubs === true,
     generic: d.generic === true,
     mapping: d.mapping === true,
+    mappingReason:
+      d.mapping === true &&
+      (d.mapping_reason === "budget" ||
+        d.mapping_reason === "size_cap" ||
+        d.mapping_reason === "extract_too_big")
+        ? d.mapping_reason
+        : null,
   };
 }
 

@@ -486,6 +486,7 @@ export function mockMapInView(args: MapInViewArgs): MapInViewPayload {
     generic: pl?.generic === true,
     // An area with no fixtures stands in for a tile that is still being mapped (§9 empty state).
     mapping: pl !== null && !zoomIn && !touched,
+    mapping_reason: null,
   };
 }
 

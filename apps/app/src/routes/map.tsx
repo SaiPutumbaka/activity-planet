@@ -32,6 +32,7 @@ import {
   isMapUnavailable,
   layersParam,
   mapInViewQuery,
+  mappingNotice,
   parseHubsParam,
   parseLayersParam,
   planHubRequest,
@@ -550,12 +551,7 @@ function MapScreen({ userId }: { userId: string | null }) {
     );
   }
   if (query.data?.mapping && !placesHidden) {
-    notices.push(
-      <Notice key="mapping">
-        We're mapping this area. Courts and stores usually appear within a day. Public plans still
-        show.
-      </Notice>,
-    );
+    notices.push(<Notice key="mapping">{mappingNotice(query.data.mappingReason)}</Notice>);
   }
   if (query.data?.truncated && !placesHidden) {
     notices.push(

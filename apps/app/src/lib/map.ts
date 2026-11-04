@@ -139,6 +139,34 @@ export interface MapInViewPayload {
   generic?: boolean;
   /** Migration 32: a place tile in view is still wanted or filling (§3.5), so places may be missing. */
   mapping?: boolean;
+  /**
+   * Migration 41 (D-042 slice 2): why the tiles in view are not built yet. Null while one of them
+   * is due on the next nightly run.
+   */
+  mapping_reason?: MappingReason | null;
+}
+
+/** Why an area is still being mapped (`place_tiles.queue_reason`, migration 41). */
+export type MappingReason = "budget" | "size_cap" | "extract_too_big";
+
+const MAPPING_REASONS: readonly MappingReason[] = ["budget", "size_cap", "extract_too_big"];
+
+export function decodeMappingReason(v: unknown): MappingReason | null {
+  return MAPPING_REASONS.includes(v as MappingReason) ? (v as MappingReason) : null;
+}
+
+/** The "We're mapping this area" notice, honest about why it may take longer (design §2). */
+export function mappingNotice(reason: MappingReason | null): string {
+  switch (reason) {
+    case "budget":
+      return "We're mapping this area. Many new areas are in line, so courts and stores may take a few nights. Public plans still show.";
+    case "size_cap":
+      return "We're mapping this area, but adding new places is paused while we make room. Public plans still show.";
+    case "extract_too_big":
+      return "Courts and stores can't be mapped here automatically yet. Public plans and spots people add still show.";
+    default:
+      return "We're mapping this area. Courts and stores usually appear within a day. Public plans still show.";
+  }
 }
 
 /** Place flag bits (§5 as built). */
@@ -220,6 +248,8 @@ export interface MapView {
   truncated: boolean;
   zoomIn: boolean;
   mapping: boolean;
+  /** Migration 41: why the area is still being mapped; null when it is due tonight. */
+  mappingReason: MappingReason | null;
   noHubs: boolean;
   generic: boolean;
   /** Hubs in the response with `place_mode = 'none'` ("Events only" chips). */
@@ -235,6 +265,7 @@ export const EMPTY_VIEW: MapView = {
   truncated: false,
   zoomIn: false,
   mapping: false,
+  mappingReason: null,
   noHubs: false,
   generic: false,
   eventsOnlyHubIds: [],
@@ -426,6 +457,7 @@ export function decodeMapInView(raw: unknown): MapView {
     truncated: p.truncated === true,
     zoomIn: p.zoom_in === true,
     mapping: p.mapping === true,
+    mappingReason: p.mapping === true ? decodeMappingReason(p.mapping_reason) : null,
     noHubs: p.no_hubs === true,
     generic: p.generic === true,
     eventsOnlyHubIds: hubs.filter((h) => h.placeMode === "none").map((h) => h.id),
