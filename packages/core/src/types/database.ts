@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 35 (schema_version 2.31). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 36 (schema_version 2.32). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -2102,6 +2102,35 @@ export type Database = {
         };
         Relationships: [];
       };
+      place_rate_log: {
+        Row: {
+          created_at: string;
+          id: number;
+          kind: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: never;
+          kind: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: never;
+          kind?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "place_rate_log_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       place_reports: {
         Row: {
           created_at: string;
@@ -4121,6 +4150,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      venue_preview_for_place: { Args: { p_place_id: string }; Returns: Json };
       viewer_age: { Args: never; Returns: number };
       viewer_can_manage: {
         Args: { p_chapter: string; p_host: string; p_min_age: number };
