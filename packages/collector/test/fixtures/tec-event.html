@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <title>__TITLE__ &#8211; Example Arts</title>
+    <!--META-->
+    <link
+      rel="alternate"
+      type="text/calendar"
+      title="Example Arts &raquo; iCal Feed"
+      href="https://arts.example.org/events/?ical=1"
+    />
+    <script type="application/ld+json">
+      [
+        {
+          "@context": "http://schema.org",
+          "@type": "Event",
+          "name": "__TITLE__",
+          "description": "&lt;p&gt;All ages and all levels. Bring water and comfortable shoes.&lt;/p&gt;\n",
+          "url": "https://arts.example.org/event/__SLUG__/",
+          "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+          "eventStatus": "https://schema.org/EventScheduled",
+          "startDate": "__START__",
+          "endDate": "__END__",
+          "location": {
+            "@type": "Place",
+            "name": "Example Arts Studio",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "100 Peachtree St NW",
+              "addressLocality": "Atlanta",
+              "addressRegion": "GA",
+              "postalCode": "30303"
+            },
+            "geo": { "@type": "GeoCoordinates", "latitude": 33.7573, "longitude": -84.3879 }
+          },
+          "performer": "Organization"
+        }
+      ]
+    </script>
+  </head>
+  <body
+    class="tribe_events-template-default single single-tribe_events postid-123 tribe-events-page-template"
+  >
+    <div class="tribe-events-single">
+      <h1 class="tribe-events-single-event-title">__TITLE__</h1>
+      <a href="https://arts.example.org/events/" class="tribe-events-back">All Events</a>
+      <a
+        href="https://arts.example.org/event/__SLUG__/?ical=1"
+        class="tribe-events-c-subscribe-dropdown__export-link"
+        >Export .ics file</a
+      >
+      <a
+        href="https://www.google.com/calendar/event?action=TEMPLATE&amp;text=__TITLE__"
+        class="tribe-events-c-subscribe-dropdown__list-item-link"
+        >Google Calendar</a
+      >
+    </div>
+  </body>
+</html>

@@ -10,7 +10,7 @@ import { isValidZone } from "./util/time.ts";
 
 export const CITIES_DIR = fileURLToPath(new URL("../data/cities/", import.meta.url));
 
-const KINDS: SeedKind[] = ["page", "ics", "rss", "socrata", "arcgis"];
+const KINDS: SeedKind[] = ["page", "ics", "rss", "localist", "socrata", "arcgis"];
 
 export function validateRegion(r: unknown, where: string): Region {
   const o = (r ?? {}) as Record<string, unknown>;
@@ -49,6 +49,10 @@ export function validateSeed(s: unknown, where: string): Seed {
   ) {
     fail("attribution must be 10-300 characters");
   }
+  if (o.verified !== undefined && typeof o.verified !== "boolean")
+    fail("verified must be true or false");
+  if (o.crawlPages !== undefined && typeof o.crawlPages !== "boolean")
+    fail("crawlPages must be true or false");
   if (
     (o.kind === "socrata" || o.kind === "arcgis") &&
     (!o.fields || typeof o.fields !== "object")

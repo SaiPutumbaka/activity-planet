@@ -7,7 +7,8 @@
 //     never follow a redirect to another host,
 //   - API responses are never cached (their URLs carry keys),
 //   - robots.txt is read once per host per run (conditional GET across runs) and obeyed,
-//   - at most one request per 2 seconds per host (longer when robots.txt sets Crawl-delay),
+//   - at most one request per 2 seconds per host (longer when robots.txt sets Crawl-delay; a
+//     long Crawl-delay is waited out, with the host's requests capped by a per-run time budget),
 //   - an identifying User-Agent with a link to the bot page and no email,
 //   - conditional GET (If-None-Match / If-Modified-Since) from the cache,
 //   - a timeout per request and a cap on body size; anything bigger is abandoned.
@@ -25,8 +26,18 @@ export const MIN_INTERVAL_MS = 2000;
 export const TIMEOUT_MS = 20_000;
 export const MAX_BYTES = 3_000_000;
 export const MAX_REDIRECTS = 5;
-/** Crawl-delay above this is treated as "do not crawl this run" rather than waited out. */
+/**
+ * Crawl-delay up to this is plain spacing. A longer one is still honoured: the host gets
+ * requests at that spacing until its share of the run (slowHostBudgetMs) is spent.
+ */
 export const MAX_CRAWL_DELAY_SEC = 60;
+/** Wall-clock time one slow host (Crawl-delay over MAX_CRAWL_DELAY_SEC) may take per run. */
+export const SLOW_HOST_BUDGET_MS = 10 * 60_000;
+/**
+ * Requests one host may get in one run, robots.txt and redirect hops included. Later requests
+ * to that host are not sent (host_budget_spent).
+ */
+export const MAX_REQUESTS_PER_HOST = 60;
 
 export type Transport = (url: string, init: RequestInit) => Promise<Response>;
 
@@ -38,6 +49,9 @@ export type FetchFailReason =
   | "robots_disallowed"
   | "robots_unavailable"
   | "crawl_delay_too_long"
+  | "crawl_budget_spent"
+  | "host_budget_spent"
+  | "run_deadline"
   | "http_error"
   | "auth_required"
   | "too_large"
@@ -76,6 +90,18 @@ export interface FetcherOptions {
   minIntervalMs?: number;
   timeoutMs?: number;
   maxBytes?: number;
+  /**
+   * Time a host with a Crawl-delay over MAX_CRAWL_DELAY_SEC may take in one run: it gets
+   * floor(budget / delay) + 1 requests. A delay longer than the budget skips the host.
+   */
+  slowHostBudgetMs?: number;
+  /** Requests per host per run, robots.txt and redirects included (default 60). */
+  maxRequestsPerHost?: number;
+  /**
+   * Clock time (ms, from `now`) after which no request is started (run_deadline), so a run
+   * of slow or hanging hosts still ends on time. Unset: no deadline.
+   */
+  deadlineAt?: number;
 }
 
 const BINARY_TYPE =
@@ -91,9 +117,16 @@ export class PoliteFetcher {
   private readonly minIntervalMs: number;
   private readonly timeoutMs: number;
   private readonly maxBytes: number;
+  private readonly slowHostBudgetMs: number;
+  readonly maxRequestsPerHost: number;
+  private readonly deadlineAt: number | null;
+  /** Requests granted so far to hosts with a long Crawl-delay. */
+  private readonly slowGranted = new Map<string, number>();
   private readonly nextAt = new Map<string, number>();
   private readonly chains = new Map<string, Promise<void>>();
   private readonly robots = new Map<string, Promise<Robots>>();
+  /** robots.txt rules once read, by origin, for robotsVerdict(). */
+  private readonly robotsRead = new Map<string, Robots>();
   /** Requests actually sent, by host (tests and the run summary read it). */
   readonly requests = new Map<string, number>();
 
@@ -107,6 +140,26 @@ export class PoliteFetcher {
     this.minIntervalMs = opts.minIntervalMs ?? MIN_INTERVAL_MS;
     this.timeoutMs = opts.timeoutMs ?? TIMEOUT_MS;
     this.maxBytes = opts.maxBytes ?? MAX_BYTES;
+    this.slowHostBudgetMs = opts.slowHostBudgetMs ?? SLOW_HOST_BUDGET_MS;
+    this.maxRequestsPerHost = opts.maxRequestsPerHost ?? MAX_REQUESTS_PER_HOST;
+    this.deadlineAt = opts.deadlineAt ?? null;
+  }
+
+  /** Why no further request may go to this host now (budget or deadline), or null. */
+  private budgetProblem(host: string): "host_budget_spent" | "run_deadline" | null {
+    if (this.deadlineAt !== null && this.now() >= this.deadlineAt) return "run_deadline";
+    if ((this.requests.get(host) ?? 0) >= this.maxRequestsPerHost) return "host_budget_spent";
+    return null;
+  }
+
+  /**
+   * Requests a host whose Crawl-delay exceeds MAX_CRAWL_DELAY_SEC may get this run (0 when
+   * the delay is longer than the whole budget).
+   */
+  slowHostAllowance(crawlDelaySec: number): number {
+    const delayMs = crawlDelaySec * 1000;
+    if (delayMs > this.slowHostBudgetMs) return 0;
+    return Math.floor(this.slowHostBudgetMs / delayMs) + 1;
   }
 
   /** Checks a URL against https, the denylist and login patterns without fetching it. */
@@ -142,17 +195,26 @@ export class PoliteFetcher {
       }
       // Custom headers (API keys and the like) are for the host they were meant for.
       const hopOpts = host === originalHost ? opts : { ...opts, headers: undefined };
+      const spent = this.budgetProblem(host);
+      if (spent) return { ok: false, url: current, reason: spent };
 
       let interval = this.minIntervalMs;
       if (!opts.api) {
         const robots = await this.robotsFor(current);
+        const late = this.budgetProblem(host);
+        if (late) return { ok: false, url: current, reason: late };
         if (!robots.isAllowed(current)) {
           const reason = robots.unavailable ? "robots_unavailable" : "robots_disallowed";
           return { ok: false, url: current, reason };
         }
         if (robots.crawlDelaySec !== null) {
           if (robots.crawlDelaySec > MAX_CRAWL_DELAY_SEC) {
-            return { ok: false, url: current, reason: "crawl_delay_too_long" };
+            const allowance = this.slowHostAllowance(robots.crawlDelaySec);
+            if (allowance === 0) return { ok: false, url: current, reason: "crawl_delay_too_long" };
+            const granted = this.slowGranted.get(host) ?? 0;
+            if (granted >= allowance)
+              return { ok: false, url: current, reason: "crawl_budget_spent" };
+            this.slowGranted.set(host, granted + 1);
           }
           interval = Math.max(interval, robots.crawlDelaySec * 1000);
         }
@@ -193,22 +255,52 @@ export class PoliteFetcher {
         return ALLOW_ALL;
       })();
       this.robots.set(key, p);
+      void p.then((r) => this.robotsRead.set(key, r));
     }
     return p;
   }
 
-  private async slot(host: string, intervalMs: number): Promise<void> {
+  /**
+   * What robots.txt said for a URL, from rules already read this run (never fetches):
+   * "allow", "allow,crawl-delay=N", "disallow", "unavailable" (5xx or unreadable) or
+   * "unchecked" when the host's robots.txt was not read (precheck refused, API lane).
+   */
+  robotsVerdict(url: string): string {
+    let u: URL;
+    try {
+      u = new URL(url);
+    } catch {
+      return "unchecked";
+    }
+    const r = this.robotsRead.get(`${u.protocol}//${u.host}`);
+    if (!r) return "unchecked";
+    if (r.isAllowed(url))
+      return r.crawlDelaySec !== null ? `allow,crawl-delay=${r.crawlDelaySec}` : "allow";
+    return r.unavailable ? "unavailable" : "disallow";
+  }
+
+  /**
+   * Waits for the host's next request slot. False (without waiting) when that slot falls
+   * after the run deadline, so a long Crawl-delay never carries the run past it.
+   */
+  private async slot(host: string, intervalMs: number): Promise<boolean> {
     const prev = this.chains.get(host) ?? Promise.resolve();
     const mine = prev.then(async () => {
       const wait = (this.nextAt.get(host) ?? 0) - this.now();
+      if (this.deadlineAt !== null && this.now() + Math.max(0, wait) >= this.deadlineAt)
+        return false;
       if (wait > 0) await this.sleep(wait);
       this.nextAt.set(host, this.now() + intervalMs);
+      return true;
     });
     this.chains.set(
       host,
-      mine.catch(() => undefined),
+      mine.then(
+        () => undefined,
+        () => undefined,
+      ),
     );
-    await mine;
+    return mine;
   }
 
   private async request(
@@ -221,7 +313,11 @@ export class PoliteFetcher {
     | { ok: true; redirect: null; result: Extract<FetchResult, { ok: true }> }
     | Extract<FetchResult, { ok: false }>
   > {
-    await this.slot(host, intervalMs);
+    if (!(await this.slot(host, intervalMs))) return { ok: false, url, reason: "run_deadline" };
+    // Checked again after the wait: a long spacing may have used up the run, and requests
+    // queued for one host count against its budget in the order they are sent.
+    const spent = this.budgetProblem(host);
+    if (spent) return { ok: false, url, reason: spent };
     // API URLs carry keys (apikey=, client_id=): they never reach the persisted cache.
     const cached = opts.api ? undefined : this.cache.get(url);
     const headers: Record<string, string> = {

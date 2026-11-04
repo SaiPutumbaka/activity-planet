@@ -165,6 +165,11 @@ describe("discovery on CivicPlus and RSS index pages", () => {
       '<a rel="nofollow" href="/events/a">A</a><a rel="nofollow" href="/x.ics">B</a>',
       PAGE,
     );
-    expect(discoverLinks(scan, () => true)).toEqual({ feeds: [], pages: [] });
+    expect(discoverLinks(scan, () => true)).toEqual({
+      feeds: [],
+      pages: [],
+      listings: [],
+      skipped: {},
+    });
   });
 });

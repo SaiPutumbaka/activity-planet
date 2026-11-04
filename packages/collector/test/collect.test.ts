@@ -54,6 +54,8 @@ const CITY: CityFile = {
       url: "https://parks.example.gov/events/",
       name: "Parks",
       attribution: "Listed from the parks calendar (parks.example.gov).",
+      // Crawl the event pages too, so this fixture exercises noindex and login pages.
+      crawlPages: true,
     },
     {
       id: "test-library",
@@ -270,6 +272,21 @@ describe("city seed files", () => {
     }
     const deny = Denylist.load();
     for (const s of atl!.seeds) expect(deny.check(s.url).denied, s.id).toBe(false);
+    // Every seed says honestly whether its endpoint was checked, and why it is off.
+    for (const s of atl!.seeds) {
+      expect(typeof s.verified, s.id).toBe("boolean");
+      if (s.enabled === false) expect(s.note?.length ?? 0, s.id).toBeGreaterThan(20);
+    }
+    // The documented Localist API is used for Kennesaw State rather than crawling its pages.
+    expect(atl!.seeds.find((s) => s.id === "atl-kennesaw-state")?.kind).toBe("localist");
+    // Hubs beyond campus: outdoors, arts, volunteering (Atlanta Tech Village is off: no event
+    // markup or feed, diagnose run 41856949627).
+    const live = atl!.seeds.filter((s) => s.enabled !== false);
+    for (const hub of ["Outdoors", "Arts", "Volunteer"])
+      expect(
+        live.some((s) => s.categories?.includes(hub)),
+        hub,
+      ).toBe(true);
   });
 
   it("matches cities to user regions by overlap", () => {

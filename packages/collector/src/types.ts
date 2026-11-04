@@ -22,6 +22,8 @@ export type SeedKind =
   | "ics"
   /** An RSS 2.0 or Atom feed whose items carry event dates. */
   | "rss"
+  /** A Localist calendar: its documented read-only JSON API, /api/2/events (no key). */
+  | "localist"
   /** A Socrata SODA dataset (resource/<id>.json) with a field map. */
   | "socrata"
   /** An ArcGIS FeatureServer/MapServer layer with a field map. */
@@ -50,6 +52,11 @@ export interface Seed {
   attribution: string;
   /** Short note on what the seed is and whether its URL has been checked by a person. */
   note?: string;
+  /**
+   * True once a live run has read the endpoint (or a person confirmed it); false while the URL
+   * is inferred from the site's platform. Informational: the collector runs both.
+   */
+  verified?: boolean;
   enabled?: boolean;
   /** True only when the source licenses its images for reuse; otherwise cover_url is never set. */
   imagesLicensed?: boolean;
@@ -57,6 +64,11 @@ export interface Seed {
   discover?: boolean;
   /** Pages only: at most this many discovered pages and feeds (default from the run options). */
   maxPages?: number;
+  /**
+   * Pages only: also crawl discovered event pages when a calendar-wide feed on the page
+   * already yielded events (default false: the source's own feed is preferred).
+   */
+  crawlPages?: boolean;
   /** Open data only. */
   fields?: FieldMap;
   /** Socrata only: column holding a point for within_circle() filtering. */
@@ -139,4 +151,9 @@ export interface SourceBatch {
   items: ImportItem[];
   /** Why items were dropped before ingest, by reason. */
   skipped: Record<string, number>;
+  /**
+   * Requests for this source that gave nothing, by reason ("http_error", "not_a_feed:html",
+   * ...). Run bookkeeping for the summary; never sent to the RPC.
+   */
+  errors?: Record<string, number>;
 }
