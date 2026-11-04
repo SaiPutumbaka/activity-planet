@@ -279,9 +279,10 @@ describe("city seed files", () => {
     }
     // The documented Localist API is used for Kennesaw State rather than crawling its pages.
     expect(atl!.seeds.find((s) => s.id === "atl-kennesaw-state")?.kind).toBe("localist");
-    // Hubs beyond campus: outdoors, arts, tech, volunteering.
+    // Hubs beyond campus: outdoors, arts, volunteering (Atlanta Tech Village is off: no event
+    // markup or feed, diagnose run 41856949627).
     const live = atl!.seeds.filter((s) => s.enabled !== false);
-    for (const hub of ["Outdoors", "Arts", "Tech", "Volunteer"])
+    for (const hub of ["Outdoors", "Arts", "Volunteer"])
       expect(
         live.some((s) => s.categories?.includes(hub)),
         hub,

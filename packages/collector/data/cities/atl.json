@@ -1,5 +1,5 @@
 {
-  "$comment": "Atlanta seeds (D-040). Public calendars only; each is read through robots.txt, the denylist and the noindex/login checks, so a wrong or blocked URL costs one request and shows up as a skip in the dry run. 'verified': true means a live run read the endpoint (dry run 41849155715) or the URL was confirmed in D-039; false means the endpoint was inferred from the site's platform and public search results and has not been opened from the authoring environment (no outbound access). Seeds a site answered with 403, or with no machine-readable feed at all, are enabled: false with the reason in note. Georgia State is left out because the D-037 importer already reads its Localist calendar and PIN.",
+  "$comment": "Atlanta seeds (D-040). Public calendars only; each is read through robots.txt, the denylist and the noindex/login checks, so a wrong or blocked URL costs one request and shows up as a skip in the dry run. 'verified': true means a live run read the endpoint (dry runs 41849155715 and 41856949627) or the URL was confirmed in D-039; false means the endpoint was inferred from the site's platform and public search results and has not been opened from the authoring environment (no outbound access). Seeds a site answered with 403, or with no machine-readable feed at all, are enabled: false with the reason in note. Georgia State is left out because the D-037 importer already reads its Localist calendar and PIN.",
   "region": {
     "id": "atl",
     "label": "Atlanta metro",
@@ -24,34 +24,37 @@
     {
       "id": "atl-dekalb-library",
       "kind": "page",
+      "enabled": false,
       "url": "https://events.dekalblibrary.org/events",
       "name": "DeKalb County Public Library events",
       "attribution": "Listed from the DeKalb County Public Library public calendar (dekalblibrary.org).",
       "host_org": "DeKalb County Public Library",
       "maxPages": 5,
       "verified": false,
-      "note": "Events run on Communico at events.dekalblibrary.org (event pages are /event/<id>). dry run 41849155715: 0 items from the old dekalblibrary.org/events URL. Communico offers an RSS export only when the library has turned it on; discovery picks up its RSS link if present. Unverified: endpoint not opened from the authoring environment."
+      "note": "Off. Events run on Communico at events.dekalblibrary.org. diagnose dry run 41856949627: the listing page has no schema.org Event JSON-LD or microdata and links no feed (ICS/RSS). Off until the owner publishes a feed or event markup. Communico's RSS export exists only if the library turns it on; ask DeKalb County Public Library."
     },
     {
       "id": "atl-gwinnett-library",
       "kind": "page",
+      "enabled": false,
       "url": "https://gwinnettpl.libnet.info/events",
       "name": "Gwinnett County Public Library events",
       "attribution": "Listed from the Gwinnett County Public Library public calendar (gwinnettpl.org).",
       "host_org": "Gwinnett County Public Library",
       "maxPages": 5,
       "verified": false,
-      "note": "Events run on Communico at gwinnettpl.libnet.info (event pages /event/<id>). dry run 41849155715: 0 items from gwinnettpl.org/events. As for DeKalb, Communico's RSS export exists only if the library enabled it. Unverified."
+      "note": "Off. Events run on Communico at gwinnettpl.libnet.info. diagnose dry run 41856949627: the listing page has no schema.org Event JSON-LD or microdata and links no feed (ICS/RSS). Off until the owner publishes a feed or event markup. Communico's RSS export exists only if the library turns it on; ask Gwinnett County Public Library."
     },
     {
       "id": "atl-cobb-library",
       "kind": "page",
+      "enabled": false,
       "url": "https://www.cobbcat.org/events",
       "name": "Cobb County Public Library events",
       "attribution": "Listed from the Cobb County Public Library public calendar (cobbcounty.org).",
       "host_org": "Cobb County Public Library",
       "verified": false,
-      "note": "Cobb County Public Library's own site (cobbcat.org; press pages point to cobbcat.org/events and /calendar). dry run 41849155715: 0 items from cobbcounty.org/library/events. Platform and feed not confirmed. Unverified."
+      "note": "Off. Cobb County Public Library's own site (cobbcat.org/events). diagnose dry run 41856949627: the listing page has no schema.org Event JSON-LD or microdata and links no feed (ICS/RSS). Off until the owner publishes a feed or event markup."
     },
     {
       "id": "atl-city-parks",
@@ -67,24 +70,26 @@
     {
       "id": "atl-dekalb-parks",
       "kind": "page",
+      "enabled": false,
       "url": "https://www.dekalbcountyga.gov/events",
       "name": "DeKalb County Recreation, Parks and Cultural Affairs",
       "attribution": "Listed from DeKalb County Recreation, Parks and Cultural Affairs (dekalbcountyga.gov).",
       "host_org": "DeKalb County Parks",
       "maxPages": 10,
       "verified": false,
-      "note": "DeKalb County's Drupal events calendar (public meetings and Recreation, Parks and Cultural Affairs programs). dry run 41849155715: 0 items from /parks. No iCal export confirmed; reads schema.org markup and any feed links. Unverified."
+      "note": "Off. diagnose dry run 41856949627: dekalbcountyga.gov/events serves a bot challenge page instead of the calendar, and the events it lists are board and public meetings, not activities. A challenge means the site does not want automated access; re-enable only with a feed or an allow rule from DeKalb County."
     },
     {
       "id": "atl-beltline",
-      "kind": "ics",
-      "url": "https://beltline.org/events/?ical=1",
+      "kind": "page",
+      "url": "https://beltline.org/events/list/",
       "name": "Atlanta BeltLine events",
       "attribution": "Listed from the Atlanta BeltLine public events calendar (beltline.org).",
       "host_org": "Atlanta BeltLine",
       "categories": ["Outdoors", "Community"],
+      "maxPages": 15,
       "verified": false,
-      "note": "BeltLine's calendar is The Events Calendar for WordPress (its /events/list/, /events/month/ and /events/category/ URLs), whose documented list export is ?ical=1. dry run 41849155715: 0 items from the HTML page, so this reads the export directly. Endpoint unverified."
+      "note": "BeltLine's calendar URLs (/events/list/, /events/month/, /events/category/) are The Events Calendar's, but diagnose dry run 41856949627: beltline.org/events/?ical=1 answered with an HTML page (not_a_feed:html), so the export is off. Reads the list view as a page (schema.org JSON-LD and the /event/ pages it links to, at most maxPages). The list view is unverified."
     },
     {
       "id": "atl-high-museum",
@@ -104,8 +109,9 @@
       "name": "Atlanta History Center events",
       "attribution": "Listed from the Atlanta History Center public events calendar (atlantahistorycenter.com).",
       "host_org": "Atlanta History Center",
+      "maxPages": 15,
       "verified": true,
-      "note": "The Events Calendar (ECP 6.x) site. dry run 41849155715: 18 items from schema.org markup. /events/feed/ gave 500 and /feed/ is disallowed in robots.txt; discovery now prefers the page's ?ical=1 export when it is linked and skips per-event exports."
+      "note": "The Events Calendar (ECP 6.x) site. dry run 41849155715: 18 items from schema.org markup. diagnose dry run 41856949627: the ?ical=1 export answers text/calendar with X-Robots-Tag: noindex and is skipped; the single /event/... pages are indexable and carry one schema.org Event JSON-LD each, so the page lane falls back to the list view and event pages (at most maxPages, per-host cap). /events/feed/ gave 500 and /feed/ is disallowed in robots.txt."
     },
     {
       "id": "atl-fernbank",
@@ -162,7 +168,7 @@
       "host_org": "Kennesaw State University",
       "categories": ["Campus"],
       "verified": true,
-      "note": "Localist (confirmed by dry run 41849155715: 351 items from pages, plus /event/*/confirm and calendar.google.com links that are now skipped). Reads Localist's documented read-only API (/api/2/events, no key; developer.localist.com/doc/api) instead of crawling. Academic-calendar deadlines are dropped. Terms: the developer docs say reading needs no key, but Concept3D help says API use needs a license; Kennesaw State is the licensee and the data is public, but ask Kennesaw State for permission as D-037 does for Georgia State, and switch back to kind page if they say no."
+      "note": "Localist (confirmed by dry run 41849155715: 351 items from pages, plus /event/*/confirm and calendar.google.com links that are now skipped). Reads Localist's documented read-only API (/api/2/events, no key; developer.localist.com/doc/api) instead of crawling. Academic-calendar deadlines are dropped. Terms: the developer docs say reading needs no key, but Concept3D help says API use needs a license; Kennesaw State is the licensee and the data is public, but ask Kennesaw State for permission as D-037 does for Georgia State, and switch back to kind page if they say no. diagnose dry run 41856949627: the API read works."
     },
     {
       "id": "atl-marietta-civicplus",
@@ -172,7 +178,7 @@
       "attribution": "Listed from the City of Marietta public calendar (mariettaga.gov).",
       "host_org": "City of Marietta",
       "verified": true,
-      "note": "CivicPlus iCalendar page (URL confirmed in D-039; dry run 41849155715: 32 items). It lists one /common/modules/iCalendar/iCalendar.aspx?catID=... feed per calendar, which discovery follows."
+      "note": "CivicPlus iCalendar page (URL confirmed in D-039; dry run 41849155715: 32 items). It lists one /common/modules/iCalendar/iCalendar.aspx?catID=... feed per calendar, which discovery follows. diagnose dry run 41856949627: the catID feeds read fine, several of them empty; the seed lists no catIDs itself (discovery follows the ones the page links), so there is nothing to drop."
     },
     {
       "id": "atl-decatur-civicplus",
@@ -187,57 +193,62 @@
     },
     {
       "id": "atl-piedmont-park",
-      "kind": "ics",
-      "url": "https://piedmontpark.org/calendar/?ical=1",
+      "kind": "page",
+      "url": "https://piedmontpark.org/calendar/",
       "name": "Piedmont Park Conservancy calendar",
       "attribution": "Listed from the Piedmont Park Conservancy public calendar (piedmontpark.org).",
       "host_org": "Piedmont Park Conservancy",
       "categories": ["Outdoors", "Community"],
+      "maxPages": 15,
       "verified": false,
-      "note": "The Events Calendar export: piedmontpark.org publishes ?ical=1 on its calendar views (seen in search results for /calendar/week/... and /calendar/month/...). The calendar-root export is unverified from this environment."
+      "note": "Piedmont Park Conservancy (The Events Calendar). Its ?ical=1 export answered text/calendar with X-Robots-Tag: noindex in diagnose dry run 41856949627, so the export is never read. Read as a page instead: the calendar's indexable HTML views (the page itself, its /list/ and /month/ views, or ?eventDisplay=list) and single /event/ pages, schema.org Event JSON-LD only, each page under its own noindex/nosnippet, at most maxPages event pages and the per-host request cap. The HTML pages have not been read by a live run yet."
     },
     {
       "id": "atl-park-pride",
-      "kind": "ics",
-      "url": "https://parkpride.org/events/?ical=1",
+      "kind": "page",
+      "url": "https://parkpride.org/events/",
       "name": "Park Pride events",
       "attribution": "Listed from the Park Pride public events calendar (parkpride.org).",
       "host_org": "Park Pride",
       "categories": ["Outdoors", "Volunteer", "Community"],
+      "maxPages": 15,
       "verified": false,
-      "note": "Park Pride (Atlanta and DeKalb parks nonprofit: volunteer workdays, park events). The Events Calendar; ?ical=1 exports seen on /events/month/... Root export unverified."
+      "note": "Park Pride (Atlanta and DeKalb parks nonprofit: volunteer workdays, park events; The Events Calendar). Its ?ical=1 export answered text/calendar with X-Robots-Tag: noindex in diagnose dry run 41856949627, so the export is never read. Read as a page instead: the calendar's indexable HTML views (the page itself, its /list/ and /month/ views, or ?eventDisplay=list) and single /event/ pages, schema.org Event JSON-LD only, each page under its own noindex/nosnippet, at most maxPages event pages and the per-host request cap. The HTML pages have not been read by a live run yet."
     },
     {
       "id": "atl-contra-dance",
-      "kind": "ics",
-      "url": "https://www.contradance.org/events/?ical=1",
+      "kind": "page",
+      "url": "https://www.contradance.org/events/",
       "name": "Atlanta Contra Dance Society events",
       "attribution": "Listed from the Atlanta Contra Dance Society public calendar (contradance.org).",
       "host_org": "Atlanta Contra Dance Society",
       "categories": ["Dance", "Community"],
+      "maxPages": 15,
       "verified": false,
-      "note": "Weekly contra dances (Volga Dance Academy, Decatur Recreation Center). The Events Calendar; ?ical=1 exports seen on /events/category/dance/... Root export unverified."
+      "note": "Weekly contra dances (Volga Dance Academy, Decatur Recreation Center; The Events Calendar). Its ?ical=1 export answered text/calendar with X-Robots-Tag: noindex in diagnose dry run 41856949627, so the export is never read. Read as a page instead: the calendar's indexable HTML views (the page itself, its /list/ and /month/ views, or ?eventDisplay=list) and single /event/ pages, schema.org Event JSON-LD only, each page under its own noindex/nosnippet, at most maxPages event pages and the per-host request cap. The HTML pages have not been read by a live run yet."
     },
     {
       "id": "atl-alliance-offstage",
-      "kind": "ics",
-      "url": "https://www.alliancetheatre.org/offstage/?ical=1",
+      "kind": "page",
+      "url": "https://www.alliancetheatre.org/offstage/",
       "name": "Alliance Theatre Offstage events",
       "attribution": "Listed from the Alliance Theatre Offstage public calendar (alliancetheatre.org).",
       "host_org": "Alliance Theatre",
       "categories": ["Arts", "Theatre"],
+      "maxPages": 15,
       "verified": false,
-      "note": "Workshops, classes and community programs. The Events Calendar; ?ical=1 exports seen on /offstage/month/... Root export unverified."
+      "note": "Workshops, classes and community programs (The Events Calendar). Its ?ical=1 export answered text/calendar with X-Robots-Tag: noindex in diagnose dry run 41856949627, so the export is never read. Read as a page instead: the calendar's indexable HTML views (the page itself, its /list/ and /month/ views, or ?eventDisplay=list) and single /event/ pages, schema.org Event JSON-LD only, each page under its own noindex/nosnippet, at most maxPages event pages and the per-host request cap. The HTML pages have not been read by a live run yet."
     },
     {
       "id": "atl-artsatl-calendar",
-      "kind": "ics",
-      "url": "https://www.artsatl.org/calendar/?ical=1",
+      "kind": "page",
+      "url": "https://www.artsatl.org/calendar/",
       "name": "ArtsATL arts calendar",
       "attribution": "Listed from the ArtsATL public arts calendar (artsatl.org).",
       "categories": ["Arts"],
+      "maxPages": 15,
       "verified": false,
-      "note": "Nonprofit arts publication's public calendar of Atlanta arts events. The Events Calendar; ?ical=1 exports seen on /calendar/<date>/. Root export unverified."
+      "note": "Nonprofit arts publication's public calendar of Atlanta arts events (The Events Calendar). Its ?ical=1 export answered text/calendar with X-Robots-Tag: noindex in diagnose dry run 41856949627, so the export is never read. Read as a page instead: the calendar's indexable HTML views (the page itself, its /list/ and /month/ views, or ?eventDisplay=list) and single /event/ pages, schema.org Event JSON-LD only, each page under its own noindex/nosnippet, at most maxPages event pages and the per-host request cap. The HTML pages have not been read by a live run yet."
     },
     {
       "id": "atl-botanical-garden",
@@ -248,12 +259,13 @@
       "host_org": "Atlanta Botanical Garden",
       "categories": ["Outdoors", "Arts"],
       "maxPages": 10,
-      "verified": false,
-      "note": "Calendar URLs (/calendar/category/atlanta-event/day/...) look like The Events Calendar; discovery prefers its ?ical=1 export if linked. Unverified."
+      "verified": true,
+      "note": "Calendar URLs (/calendar/category/atlanta-event/day/...) look like The Events Calendar. diagnose dry run 41856949627: its listing pages carry 22-71 schema.org Event JSON-LD items each, so the page lane reads them; event pages already covered by a listing's markup are not fetched."
     },
     {
       "id": "atl-trees-atlanta",
       "kind": "page",
+      "enabled": false,
       "url": "https://www.treesatlanta.org/get-involved/events/",
       "name": "Trees Atlanta events and volunteer days",
       "attribution": "Listed from the Trees Atlanta public events calendar (treesatlanta.org).",
@@ -261,11 +273,12 @@
       "categories": ["Outdoors", "Volunteer"],
       "maxPages": 10,
       "verified": false,
-      "note": "Volunteer planting and forest-restoration days most Saturdays, tree tours. Calendar URL from the volunteer page; platform not confirmed. Unverified."
+      "note": "Off. Volunteer planting and forest-restoration days, tree tours. diagnose dry run 41856949627: the listing page has no schema.org Event JSON-LD or microdata and links no feed (ICS/RSS). Off until the owner publishes a feed or event markup."
     },
     {
       "id": "atl-tech-village",
       "kind": "page",
+      "enabled": false,
       "url": "https://atlantatechvillage.com/events",
       "name": "Atlanta Tech Village events",
       "attribution": "Listed from the Atlanta Tech Village public events calendar (atlantatechvillage.com).",
@@ -273,11 +286,12 @@
       "categories": ["Tech"],
       "maxPages": 10,
       "verified": false,
-      "note": "Startup and tech community events (event pages are /events/<slug>). Many link out to Eventbrite or Luma; Eventbrite links are denylisted and never fetched. Unverified."
+      "note": "Off. Startup and tech community events; many link out to Eventbrite or Luma (Eventbrite is denylisted). diagnose dry run 41856949627: the listing page has no schema.org Event JSON-LD or microdata and links no feed (ICS/RSS). Off until the owner publishes a feed or event markup."
     },
     {
       "id": "atl-gwinnett-parks",
       "kind": "page",
+      "enabled": false,
       "url": "https://www.gwinnettcounty.com/calendar/parks-recreation",
       "name": "Gwinnett County Parks and Recreation calendar",
       "attribution": "Listed from the Gwinnett County Parks and Recreation public calendar (gwinnettcounty.com).",
@@ -285,7 +299,7 @@
       "categories": ["Outdoors", "Sports"],
       "maxPages": 10,
       "verified": false,
-      "note": "County parks calendar (concerts, clubs, art shows, special events). No feed confirmed. Unverified."
+      "note": "Off. County parks calendar (concerts, clubs, art shows, special events). diagnose dry run 41856949627: the listing page has no schema.org Event JSON-LD or microdata and links no feed (ICS/RSS). Off until the owner publishes a feed or event markup."
     },
     {
       "id": "atl-open-data-arcgis",

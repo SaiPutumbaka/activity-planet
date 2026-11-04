@@ -25,7 +25,7 @@ import { type Candidate, dedupe, inAnyRegion, windowReason } from "./filter.ts";
 import type { FetchResult, PoliteFetcher } from "./net/fetcher.ts";
 import { EXCERPT_MAX, normalize } from "./normalize.ts";
 import { parseFeed } from "./parse/feed.ts";
-import { discoverLinks, scanHtml } from "./parse/html.ts";
+import { discoverLinks, scanHtml, tecListViewsFor } from "./parse/html.ts";
 import { parseIcs } from "./parse/ics.ts";
 import { isPerEventExport } from "./parse/links.ts";
 import { jsonLdEvents, schemaEvents } from "./parse/schema.ts";
@@ -70,6 +70,33 @@ export function errorKey(e: SourceError): string {
 }
 
 const count = (text: string, re: RegExp): number => text.match(re)?.length ?? 0;
+
+/** Listing views (The Events Calendar's /list/, /month/, ?eventDisplay=list) read per seed. */
+export const MAX_LISTING_VIEWS = 3;
+
+/** Fetch failures that mean the host's or the run's budget is spent: the seed stops there. */
+const BUDGET_STOP = new Set<string>(["host_budget_spent", "crawl_budget_spent", "run_deadline"]);
+
+/** A URL as a coverage key: no fragment, no trailing slash. */
+const urlKey = (u: string): string => u.replace(/#.*$/, "").replace(/\/+$/, "");
+
+/** A single event's page (/event/<slug>/), as The Events Calendar and Localist lay them out. */
+const isSingleEventPath = (u: string): boolean => {
+  try {
+    return /^\/event\/[^/]+\/?$/i.test(new URL(u).pathname);
+  } catch {
+    return false;
+  }
+};
+
+interface PageRead {
+  feeds: string[];
+  pages: string[];
+  listings: string[];
+  /** Event URLs the page's own markup gave (their pages need not be fetched). */
+  eventUrls: string[];
+  verdict: string;
+}
 
 export interface CollectResult {
   batches: SourceBatch[];
@@ -197,11 +224,11 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
     run: SourceRun,
     res: Extract<FetchResult, { ok: true }>,
     idPrefix: string,
-  ): { events: number; verdict: string } => {
+  ): { events: number; verdict: string; noindex: boolean } => {
     const directives = parseXRobotsTag(res.xRobotsTag);
     if (directives.noindex) {
       errors.push({ sourceKey: run.key, url: redactUrl(res.url), reason: "noindex" });
-      return { events: 0, verdict: "noindex (x-robots-tag)" };
+      return { events: 0, verdict: "noindex (x-robots-tag)", noindex: true };
     }
     // Sniffed from the body: a feed URL that answers with an HTML page (a ?ical=1 export
     // turned off, a bot challenge, an error page sent as 200) is not a feed, whatever its
@@ -229,12 +256,12 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
         detected: type,
       });
       const challenge = type === "html" && looksLikeChallenge(res.body) ? " bot-challenge" : "";
-      return { events: 0, verdict: `not_a_feed detected=${type}${challenge}` };
+      return { events: 0, verdict: `not_a_feed detected=${type}${challenge}`, noindex: false };
     }
     const fallback = run.seed?.kind === "page" ? run.seed.url : null;
     const snippetMax = snippetLimit(directives, EXCERPT_MAX);
     for (const raw of events) run.raws.push({ raw, idPrefix, fallbackUrl: fallback, snippetMax });
-    return { events: events.length, verdict };
+    return { events: events.length, verdict, noindex: false };
   };
 
   const readPage = (
@@ -242,7 +269,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
     res: Extract<FetchResult, { ok: true }>,
     discover: boolean,
     requested: string = res.url,
-  ): { feeds: string[]; pages: string[]; verdict: string } => {
+  ): PageRead => {
     const type = detectBodyType(res.body, res.contentType);
     if (isFeedType(type)) {
       const { verdict } = readFeed(
@@ -250,7 +277,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
         res,
         run.seed && res.url === run.seed.url ? "" : `f${shortHash(res.url, 8)}:`,
       );
-      return { feeds: [], pages: [], verdict };
+      return { feeds: [], pages: [], listings: [], eventUrls: [], verdict };
     }
     const parts: string[] = [];
     // A feed export URL (?ical=1, .ics, iCalendar.aspx?catID=) that answered with a page.
@@ -265,7 +292,14 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
     }
     parts.push(type);
     if (type === "html" && looksLikeChallenge(res.body)) parts.push("bot-challenge");
-    const done = () => ({ feeds: [], pages: [], verdict: parts.join(" ") });
+    const eventUrls: string[] = [];
+    const done = (): PageRead => ({
+      feeds: [],
+      pages: [],
+      listings: [],
+      eventUrls,
+      verdict: parts.join(" "),
+    });
     const scan = scanHtml(res.body, res.url);
     if (scan.loginForm) {
       errors.push({ sourceKey: run.key, url: redactUrl(res.url), reason: "login_page" });
@@ -281,8 +315,10 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
     } else {
       const ld = jsonLdEvents(scan.jsonLd, { pageUrl: res.url });
       const micro = schemaEvents(scan.microdata, { pageUrl: res.url });
-      for (const raw of [...ld, ...micro])
+      for (const raw of [...ld, ...micro]) {
         run.raws.push({ raw, idPrefix: "p:", fallbackUrl: res.url, snippetMax });
+        if (raw.url) eventUrls.push(raw.url);
+      }
       if (ld.length + micro.length === 0) {
         parts.push("no-event-markup", `jsonld blocks=${scan.jsonLd.length}`);
         const types = jsonLdTypes(scan.jsonLd);
@@ -302,7 +338,14 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
     for (const [reason, n] of Object.entries(found.skipped))
       linksSkipped[reason] = (linksSkipped[reason] ?? 0) + (n ?? 0);
     parts.push(`feed links found=${found.feeds.length}`, `page links found=${found.pages.length}`);
-    return { feeds: found.feeds, pages: found.pages, verdict: parts.join(" ") };
+    if (found.listings.length > 0) parts.push(`listing links found=${found.listings.length}`);
+    return {
+      feeds: found.feeds,
+      pages: found.pages,
+      listings: found.listings,
+      eventUrls,
+      verdict: parts.join(" "),
+    };
   };
 
   const runSeed = async (run: SourceRun) => {
@@ -379,17 +422,23 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
     if (!res.ok) return fail(run.key, res, pageUrl);
     fetched++;
     if (seed.kind === "ics" || seed.kind === "rss") {
-      diag(run.key, pageUrl, res, readFeed(run, res, "").verdict);
+      const read = readFeed(run, res, "");
+      diag(run.key, pageUrl, res, read.verdict);
+      // A calendar-wide The Events Calendar export that says noindex is not read. The
+      // calendar's own HTML list view may still be indexable: read it (lane 3) instead, with
+      // the same per-page noindex, nosnippet and nofollow checks.
+      const views = read.noindex ? tecListViewsFor(pageUrl) : null;
+      if (views) await crawlListings(run, seed, [views], [], new Set());
       return;
     }
 
     const found = readPage(run, res, seed.discover !== false, pageUrl);
     diag(run.key, pageUrl, res, found.verdict);
     const feeds = found.feeds.filter((u) => !visited.has(u)).slice(0, maxFeeds);
-    let pages = found.pages.filter((u) => !visited.has(u)).slice(0, seed.maxPages ?? maxPages);
     // The source's own calendar-wide feed first; single-event exports and event pages are a
     // fallback for when it gives nothing.
     let feedEvents = 0;
+    const noindexExports: string[] = [];
     for (const url of feeds) {
       if (feedEvents > 0 && isPerEventExport(url)) continue;
       visited.add(url);
@@ -401,15 +450,81 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
       const fr = await fetcher.get(url);
       if (!fr.ok) {
         fail(run.key, fr, url);
+        if (BUDGET_STOP.has(fr.reason)) return;
         continue;
       }
       fetched++;
-      const { events: n, verdict } = readFeed(run, fr, `f${shortHash(url, 8)}:`);
-      diag(run.key, url, fr, verdict);
-      if (!isPerEventExport(url)) feedEvents += n;
+      const read = readFeed(run, fr, `f${shortHash(url, 8)}:`);
+      diag(run.key, url, fr, read.verdict);
+      if (read.noindex) noindexExports.push(url);
+      if (!isPerEventExport(url)) feedEvents += read.events;
     }
-    if (feedEvents > 0 && seed.crawlPages !== true) pages = [];
-    for (const url of pages) {
+    if (feedEvents > 0 && seed.crawlPages !== true) return;
+    // No events from a feed (none offered, or noindex): the listing views the page links to,
+    // or, for a The Events Calendar export skipped for noindex, its list view.
+    const groups: string[][] = found.listings.map((u) => [u]);
+    if (groups.length === 0) {
+      for (const u of noindexExports) {
+        const views = tecListViewsFor(u);
+        if (views) {
+          groups.push(views);
+          break;
+        }
+      }
+    }
+    await crawlListings(run, seed, groups, found.pages, new Set(found.eventUrls.map(urlKey)));
+  };
+
+  /**
+   * Lane 3 behind a listing: reads up to MAX_LISTING_VIEWS listing views (each group is one
+   * view and its alternative addresses, tried in order while the previous one is missing),
+   * then the event pages found on the seed page and those views, within the seed's page
+   * budget. Event pages whose events the listings' own markup already gave are not fetched
+   * (unless the seed sets crawlPages). A host or run budget that runs out ends the seed.
+   */
+  const crawlListings = async (
+    run: SourceRun,
+    seed: Seed,
+    groups: string[][],
+    seedPages: string[],
+    covered: Set<string>,
+  ) => {
+    const pages: string[] = [...seedPages];
+    let views = 0;
+    groupLoop: for (const group of groups) {
+      if (views >= MAX_LISTING_VIEWS) break;
+      for (const url of group) {
+        if (visited.has(url)) break;
+        visited.add(url);
+        const pre = fetcher.precheck(url);
+        if (pre) {
+          refused(run.key, url, pre);
+          break;
+        }
+        const lr = await fetcher.get(url);
+        if (!lr.ok) {
+          fail(run.key, lr, url);
+          if (BUDGET_STOP.has(lr.reason)) return;
+          // A missing view: try the group's next address.
+          if (lr.reason === "http_error" && lr.status === 404) continue;
+          break;
+        }
+        fetched++;
+        views++;
+        const read = readPage(run, lr, seed.discover !== false, url);
+        diag(run.key, url, lr, read.verdict);
+        pages.push(...read.pages);
+        for (const u of read.eventUrls) covered.add(urlKey(u));
+        continue groupLoop;
+      }
+    }
+    const crawlAll = seed.crawlPages === true;
+    const todo = [...new Set(pages)]
+      .filter((u) => !visited.has(u) && (crawlAll || !covered.has(urlKey(u))))
+      // Single-event pages (/event/<slug>/) before category and other listing pages.
+      .sort((a, b) => Number(isSingleEventPath(b)) - Number(isSingleEventPath(a)))
+      .slice(0, seed.maxPages ?? maxPages);
+    for (const url of todo) {
       visited.add(url);
       const pre = fetcher.precheck(url);
       if (pre) {
@@ -419,6 +534,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
       const pr = await fetcher.get(url);
       if (!pr.ok) {
         fail(run.key, pr, url);
+        if (BUDGET_STOP.has(pr.reason)) return;
         continue;
       }
       fetched++;

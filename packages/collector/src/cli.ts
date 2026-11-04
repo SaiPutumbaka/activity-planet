@@ -10,6 +10,10 @@
 //   --slow-host-minutes <n>  time a host whose robots.txt Crawl-delay is over 60 s may take
 //                         per run (default 10); its requests are capped to fit, and a delay
 //                         longer than this skips the host
+//   --max-requests-per-host <n>  requests one host may get per run, robots.txt and
+//                         redirects included (default 60); later ones are not sent
+//   --max-run-minutes <n> no request starts after this many minutes (default 9), so the
+//                         run ends in time however slow its hosts are
 //   --cache <path>        conditional-GET cache file (default .cache/http.json)
 //   --no-cache            do not read or write the cache
 //   --list                print the seeds that would run and exit, with no network
@@ -28,10 +32,13 @@ import { collect, errorKey } from "./collect.ts";
 import { citiesFor, loadCities, loadRegions } from "./config.ts";
 import { formatDiagnostic } from "./diagnose.ts";
 import { FileHttpCache, MemoryHttpCache } from "./net/cache.ts";
-import { PoliteFetcher } from "./net/fetcher.ts";
+import { MAX_REQUESTS_PER_HOST, PoliteFetcher } from "./net/fetcher.ts";
 import { DryRunIngest } from "./ingest.ts";
 import { Denylist } from "./policy/denylist.ts";
 import type { Region } from "./types.ts";
+
+/** Default --max-run-minutes: the Atlanta run must finish within 10 minutes. */
+const DEFAULT_RUN_MINUTES = 9;
 
 const DEFAULT_CACHE = fileURLToPath(new URL("../.cache/http.json", import.meta.url));
 
@@ -45,6 +52,8 @@ async function main(argv: string[]): Promise<number> {
       "window-days": { type: "string" },
       "max-pages": { type: "string" },
       "slow-host-minutes": { type: "string" },
+      "max-requests-per-host": { type: "string" },
+      "max-run-minutes": { type: "string" },
       cache: { type: "string" },
       "no-cache": { type: "boolean", default: false },
       list: { type: "boolean", default: false },
@@ -111,17 +120,29 @@ async function main(argv: string[]): Promise<number> {
   const slowMinutes = values["slow-host-minutes"] ? Number(values["slow-host-minutes"]) : 10;
   if (!Number.isFinite(slowMinutes) || slowMinutes < 0 || slowMinutes > 60)
     throw new Error("--slow-host-minutes must be 0..60");
+  const perHost = values["max-requests-per-host"]
+    ? Number(values["max-requests-per-host"])
+    : MAX_REQUESTS_PER_HOST;
+  if (!Number.isInteger(perHost) || perHost < 1 || perHost > 1000)
+    throw new Error("--max-requests-per-host must be 1..1000");
+  const runMinutes = values["max-run-minutes"]
+    ? Number(values["max-run-minutes"])
+    : DEFAULT_RUN_MINUTES;
+  if (!Number.isFinite(runMinutes) || runMinutes <= 0 || runMinutes > 120)
+    throw new Error("--max-run-minutes must be more than 0 and at most 120");
 
   const cache = values["no-cache"]
     ? new MemoryHttpCache()
     : new FileHttpCache(values.cache ?? DEFAULT_CACHE);
+  const started = Date.now();
   const fetcher = new PoliteFetcher({
     denylist: Denylist.load(),
     cache,
     slowHostBudgetMs: slowMinutes * 60_000,
+    maxRequestsPerHost: perHost,
+    deadlineAt: started + runMinutes * 60_000,
   });
   const ingest = new DryRunIngest();
-  const started = Date.now();
   const result = await collect({
     regions,
     cities,
