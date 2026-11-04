@@ -8,8 +8,10 @@ import { Field, inputClassName } from "@/components/ui/field";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
+import { sessionQuery } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { eventErrorMessage } from "@/lib/events";
+import { feedPrefsQuery } from "@/lib/location";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import {
   formatVenueAddress,
@@ -104,7 +106,7 @@ export function VenuePicker({
           onChange={(e) =>
             onChange({ ...value, locationMode: "text", locationText: e.target.value })
           }
-          placeholder="Hurt Park, by the fountain"
+          placeholder="City park, by the fountain"
           hint="A spot people can find without an address."
           maxLength={200}
           autoComplete="off"
@@ -242,8 +244,8 @@ function AddPlaceForm({
 }) {
   const [name, setName] = useState("");
   const [address1, setAddress1] = useState("");
-  const [city, setCity] = useState("Atlanta");
-  const [state, setState] = useState("GA");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
   const [postal, setPostal] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [picked, setPicked] = useState<GeoSuggestion | null>(null);
@@ -251,7 +253,13 @@ function AddPlaceForm({
   const [saving, setSaving] = useState(false);
 
   const debounced = useDebouncedValue(address1, 400);
-  const suggestions = useQuery(geoapifyQuery(picked ? "" : debounced));
+  // Suggestions anywhere in the world, ranked near the host's saved home when there is one.
+  const session = useQuery(sessionQuery);
+  const userId = session.data?.user.id ?? "";
+  const prefs = useQuery({ ...feedPrefsQuery(userId), enabled: userId !== "" });
+  const suggestions = useQuery(
+    geoapifyQuery(picked ? "" : debounced, prefs.data?.homePoint ?? null),
+  );
 
   function applySuggestion(s: GeoSuggestion) {
     setPicked(s);
@@ -280,7 +288,7 @@ function AddPlaceForm({
         city: city.trim(),
         state: state.trim(),
         postal_code: postal.trim(),
-        country: picked?.country ?? "US",
+        ...(picked?.country ? { country: picked.country } : {}),
         ...(picked ? { lat: picked.lat, lng: picked.lng, place_id: picked.place_id } : {}),
         is_public: isPublic,
       });
@@ -304,7 +312,7 @@ function AddPlaceForm({
           setName(e.target.value);
           setNameError(null);
         }}
-        placeholder="Piedmont Park, Classroom South 200"
+        placeholder="Riverside Park, community room 2"
         maxLength={120}
         autoComplete="off"
         disabled={busy}
@@ -318,7 +326,7 @@ function AddPlaceForm({
             setAddress1(e.target.value);
             setPicked(null);
           }}
-          placeholder="25 Park Pl NE"
+          placeholder="25 Main Street"
           maxLength={200}
           autoComplete="street-address"
           disabled={busy}
@@ -342,7 +350,7 @@ function AddPlaceForm({
           </ul>
         ) : null}
       </div>
-      <div className="grid grid-cols-[1fr_72px] gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <Field
           label="City"
           value={city}
@@ -352,11 +360,10 @@ function AddPlaceForm({
           disabled={busy}
         />
         <Field
-          label="State"
+          label="State or region"
           value={state}
-          onChange={(e) => setState(e.target.value.toUpperCase())}
-          maxLength={2}
-          autoCapitalize="characters"
+          onChange={(e) => setState(e.target.value)}
+          maxLength={40}
           autoComplete="address-level1"
           disabled={busy}
         />
@@ -365,7 +372,6 @@ function AddPlaceForm({
         label="Postal code"
         value={postal}
         onChange={(e) => setPostal(e.target.value)}
-        inputMode="numeric"
         maxLength={20}
         autoComplete="postal-code"
         disabled={busy}
