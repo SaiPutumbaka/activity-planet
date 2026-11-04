@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 36 (schema_version 2.32). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 37 (schema_version 2.33). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -970,6 +970,8 @@ export type Database = {
         Row: {
           attribution: string;
           campus_id: string | null;
+          collector: boolean;
+          collector_seen_at: string | null;
           created_at: string;
           cron_minute: number;
           default_hub_id: string | null;
@@ -977,10 +979,12 @@ export type Database = {
           discovered_from: string | null;
           enabled: boolean;
           homepage_url: string | null;
+          hub_tags: string[];
           id: string;
           item_count: number | null;
           item_label: string | null;
           kind: string;
+          lane: string | null;
           last_error: string | null;
           last_ok_at: string | null;
           last_run_at: string | null;
@@ -992,6 +996,7 @@ export type Database = {
           region_label: string | null;
           region_point: unknown;
           region_radius_km: number | null;
+          region_timezone: string | null;
           robots_ok_at: string | null;
           slug: string;
           updated_at: string;
@@ -1000,6 +1005,8 @@ export type Database = {
         Insert: {
           attribution?: string;
           campus_id?: string | null;
+          collector?: boolean;
+          collector_seen_at?: string | null;
           created_at?: string;
           cron_minute?: number;
           default_hub_id?: string | null;
@@ -1007,10 +1014,12 @@ export type Database = {
           discovered_from?: string | null;
           enabled?: boolean;
           homepage_url?: string | null;
+          hub_tags?: string[];
           id?: string;
           item_count?: number | null;
           item_label?: string | null;
           kind: string;
+          lane?: string | null;
           last_error?: string | null;
           last_ok_at?: string | null;
           last_run_at?: string | null;
@@ -1022,6 +1031,7 @@ export type Database = {
           region_label?: string | null;
           region_point?: unknown;
           region_radius_km?: number | null;
+          region_timezone?: string | null;
           robots_ok_at?: string | null;
           slug: string;
           updated_at?: string;
@@ -1030,6 +1040,8 @@ export type Database = {
         Update: {
           attribution?: string;
           campus_id?: string | null;
+          collector?: boolean;
+          collector_seen_at?: string | null;
           created_at?: string;
           cron_minute?: number;
           default_hub_id?: string | null;
@@ -1037,10 +1049,12 @@ export type Database = {
           discovered_from?: string | null;
           enabled?: boolean;
           homepage_url?: string | null;
+          hub_tags?: string[];
           id?: string;
           item_count?: number | null;
           item_label?: string | null;
           kind?: string;
+          lane?: string | null;
           last_error?: string | null;
           last_ok_at?: string | null;
           last_run_at?: string | null;
@@ -1052,6 +1066,7 @@ export type Database = {
           region_label?: string | null;
           region_point?: unknown;
           region_radius_km?: number | null;
+          region_timezone?: string | null;
           robots_ok_at?: string | null;
           slug?: string;
           updated_at?: string;
@@ -3128,6 +3143,15 @@ export type Database = {
         };
       };
       clear_foreign_image_urls: { Args: never; Returns: Json };
+      collector_ingest_events: {
+        Args: {
+          p_complete?: boolean;
+          p_enable?: boolean;
+          p_items: Json;
+          p_source: Json;
+        };
+        Returns: Json;
+      };
       collector_note_home_point: {
         Args: { p_label: string; p_old_point?: unknown; p_point: unknown };
         Returns: boolean;
