@@ -658,7 +658,7 @@ def cmd_evaluate(a):
             "kinds": dict(kinds.most_common()),
             "sha256": hashlib.sha256("".join(r["source_id"] for r in trs).encode()).hexdigest()[:16],
         }
-    with open(os.path.join(a.out_dir, f"stats_{group['name']}.json"), "w", encoding="utf-8") as fh:
+    with open(os.path.join(a.out_dir, f"stats_{group['name'].replace('/', '_')}.json"), "w", encoding="utf-8") as fh:
         json.dump(stats, fh, indent=1)
     log(json.dumps({k: v for k, v in stats.items() if k != "tiles"}, indent=1))
     for t, s in stats["tiles"].items():
