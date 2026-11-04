@@ -46,6 +46,8 @@ export interface CollectOptions {
   maxPagesPerSeed?: number;
   /** Discovered feeds per page seed (default 10). */
   maxFeedsPerSeed?: number;
+  /** Listing views read per seed (default MAX_LISTING_VIEWS, 3; the discovery probe reads 1). */
+  maxListingViews?: number;
   /** Seeds processed at once; per-host spacing still applies (default 4). */
   concurrency?: number;
   adapters?: ApiAdapter[];
@@ -164,6 +166,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
   const fetcher = opts.fetcher;
   const maxPages = opts.maxPagesPerSeed ?? 25;
   const maxFeeds = opts.maxFeedsPerSeed ?? 10;
+  const maxViews = opts.maxListingViews ?? MAX_LISTING_VIEWS;
   const errors: SourceError[] = [];
   const visited = new Set<string>();
   const linksSkipped: Record<string, number> = {};
@@ -519,7 +522,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
     const pages: string[] = [...seedPages];
     let views = 0;
     groupLoop: for (const group of groups) {
-      if (views >= MAX_LISTING_VIEWS) break;
+      if (views >= maxViews) break;
       for (const url of group) {
         if (visited.has(url)) break;
         visited.add(url);

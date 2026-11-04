@@ -8,6 +8,7 @@ import type { Denylist } from "../policy/denylist.ts";
 import type { Region } from "../types.ts";
 import { haversineKm } from "../util/geo.ts";
 import { fetchableUrl, siteOf } from "../util/url.ts";
+import { keywordsFor, keywordStrength } from "./keywords.ts";
 
 /** Kind priors (design 6.3, "kind prior x 20") for the place kinds of extract_rules.json. */
 export const KIND_PRIOR: Record<string, number> = {
@@ -197,13 +198,20 @@ export function osmCandidates(
 
 /**
  * The score from signals known before any request (design 6.3): kind prior x 20, Wikidata +10,
- * and up to +10 for a host many places name (a city or park system's site).
+ * up to +10 for a host many places name (a city or park system's site), and +10 when a place
+ * links an events page of it.
  */
-export function cheapScore(c: Pick<Candidate, "place_kind" | "wikidata_id" | "places">): number {
+export function cheapScore(
+  c: Pick<Candidate, "place_kind" | "wikidata_id" | "places" | "extra_urls">,
+): number {
   const prior = (KIND_PRIOR[c.place_kind ?? ""] ?? 0.3) * 20;
   const wd = c.wikidata_id ? 10 : 0;
   const many = Math.min(10, 2 * Math.max(0, c.places - 1));
-  return Math.round(prior + wd + many);
+  // A place whose own website link is an events page ("/content/shows-events") says it lists events.
+  const events = (c.extra_urls ?? []).some((u) => keywordStrength(u, "", keywordsFor(null)) >= 3)
+    ? 10
+    : 0;
+  return Math.round(prior + wd + many + events);
 }
 
 /** SPARQL: official websites (P856) of the given items. */

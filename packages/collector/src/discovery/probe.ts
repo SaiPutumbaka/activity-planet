@@ -239,6 +239,7 @@ export function probeScore(
     place_kind: c.place_kind ?? undefined,
     wikidata_id: c.wikidata_id ?? undefined,
     places: c.places ?? 1,
+    extra_urls: c.extra_urls,
   });
   if (s.feedEvents) score += 50;
   if (s.platform) score += 30;
@@ -283,7 +284,7 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
       in_region: inRegion,
       requests: pf.sent,
       errors: pf.gaps,
-      complete: pf.gaps === 0 && !pf.deadline,
+      complete: !pf.deadline,
       deadline: pf.deadline,
       notes,
       ...extra,
@@ -367,6 +368,17 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
   let pages = [...ranked.entries()]
     .sort((a, b) => b[1] - a[1] || depth(a[0]) - depth(b[0]) || a[0].localeCompare(b[0]))
     .map(([u]) => u);
+  // A calendar platform's own root (The Events Calendar, CivicPlus) is the calendar: read it and
+  // at most the place's own events link, and keep the rest of the 8 requests for its events.
+  const roots = [...ranked.entries()].filter(([, v]) => v >= 5).map(([u]) => u);
+  if (roots.length > 0)
+    pages = [
+      ...roots.slice(0, 1),
+      ...[...ranked.entries()]
+        .filter(([, v]) => v === 4)
+        .map(([u]) => u)
+        .slice(0, 1),
+    ];
   const guessed = pages.length === 0;
   if (guessed) pages = guessedPaths(c.country).map((p) => new URL(p, home.url).toString());
   pages = pages.slice(0, Math.max(0, Math.min(3, ctx.eventPages ?? 3)));
@@ -440,12 +452,27 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
       windowDays: ctx.windowDays ?? 60,
       maxPagesPerSeed: 2,
       maxFeedsPerSeed: 3,
+      maxListingViews: 1,
       concurrency: 1,
       env: {},
       adapters: [],
     });
     const batch = run.batches.find((b) => b.sourceKey === seed.id);
     if (!batch) continue;
+    let path: string;
+    try {
+      const su = new URL(seed.url);
+      path =
+        `${su.host === new URL(home.url).host ? "" : su.host}${su.pathname}${su.search ? "?…" : ""}`.slice(
+          0,
+          80,
+        );
+    } catch {
+      path = "?";
+    }
+    notes.push(
+      `seed ${seed.kind}:${path} items=${batch.items.length} errs=${Object.keys(batch.errors ?? {}).join(",") || "-"}`,
+    );
     if (Object.keys(batch.errors ?? {}).some((k) => k === "noindex")) anyNoindex = true;
     let inRegion = 0;
     for (const it of batch.items) {
@@ -491,8 +518,9 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
       platform,
       items: best.items,
       in_region: best.inRegion,
-      // The probe reads a sample within its request cap: the cap is not a gap.
-      complete: pf.gaps === 0 && !pf.deadline,
+      // The probe reads a sample within its request cap; failed requests are reported as
+      // errors, and the database applies the under-20% rule to them (design 6.3).
+      complete: !pf.deadline,
     },
     { feedEvents, jsonLdEvents: jsonLd },
   );
