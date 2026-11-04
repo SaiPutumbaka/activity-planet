@@ -517,6 +517,7 @@ const MESSAGES: Record<string, string> = {
   country_invalid: "Use a two-letter country code.",
   invalid_coordinates: "That location couldn't be placed on the map.",
   too_many_venues: "You've added a lot of places today. Try again tomorrow.",
+  place_unavailable: "That place isn't available any more. Pick where to meet.",
   // table constraints that can slip past the explicit checks
   events_cover_url_format: "Cover images need an https link.",
   events_cover_url_storage: "Cover images need to be uploaded to Activity Planet.",

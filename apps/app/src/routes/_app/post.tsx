@@ -23,7 +23,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { chapterKeys, myManagedChaptersQuery } from "@/lib/chapters";
 import { DEFAULT_TIMEZONE } from "@/lib/datetime";
 import { createEvent, createEventSeries, myPostableHubsQuery } from "@/lib/events";
-import { venueForPlaceQuery } from "@/lib/venues";
+import {
+  placeFromVenueToken,
+  placeVenuePreviewQuery,
+  placeVenueToken,
+  venueForPlace,
+} from "@/lib/venues";
 
 const appRoute = getRouteApi("/_app");
 const searchSchema = z.object({
@@ -37,8 +42,10 @@ const searchSchema = z.object({
  * Post a plan: one form, create_event or (weekly) create_event_series, then the event page.
  * `?hub=<slug>` preselects the hub (a hub page's "start a plan here"); `?chapterId=<id>` posts
  * as that chapter when the viewer captains or organizes it; `?place=<id>` (the map's "Start a
- * plan here") prefills the venue with that place's public venue (venue_for_place, migration 33),
- * so the plan makes the place a meeting spot for its hub.
+ * plan here") prefills the venue with that place's public venue, so the plan makes the place a
+ * meeting spot for its hub. Loading the page only reads (venue_preview_for_place, migration 36);
+ * a place with no venue yet gets one from venue_for_place when the plan is posted, so a link or
+ * a prefetch never creates a venue in the viewer's name.
  */
 export const Route = createFileRoute("/_app/post")({
   validateSearch: searchSchema,
@@ -56,9 +63,20 @@ function PostPage() {
   const queryClient = useQueryClient();
   const hubs = useQuery(myPostableHubsQuery(session.user.id));
   const managed = useQuery(myManagedChaptersQuery(session.user.id));
-  const placeVenue = useQuery({ ...venueForPlaceQuery(place ?? ""), enabled: Boolean(place) });
+  const placeVenue = useQuery({ ...placeVenuePreviewQuery(place ?? ""), enabled: Boolean(place) });
   // A place that can't be used (gone, or not public) just leaves the venue empty.
-  const venue = place ? (placeVenue.data ?? null) : null;
+  const preview = place ? (placeVenue.data ?? null) : null;
+  const venue = useMemo(
+    () =>
+      preview
+        ? {
+            id: preview.venueId ?? placeVenueToken(preview.placeId),
+            name: preview.name,
+            is_public: true,
+          }
+        : null,
+    [preview],
+  );
   // "Post as" is an extra; a failed load just means posting as yourself.
   const chapters = managed.data ?? [];
   const loading = hubs.isPending || managed.isPending || (Boolean(place) && placeVenue.isPending);
@@ -78,13 +96,24 @@ function PostPage() {
     return venue ? withVenue(values, venue) : values;
   }, [hubs.data, managed.data, hubSlug, chapterId, venue]);
 
+  /** A map place with no venue yet gets its public venue now, on posting (venue_for_place). */
+  async function withResolvedVenue(values: EventFormValues): Promise<EventFormValues> {
+    const placeId = values.locationMode === "venue" ? placeFromVenueToken(values.venueId) : null;
+    if (!placeId) return values;
+    const made = await venueForPlace(placeId);
+    if (!made) throw new Error("place_unavailable");
+    void queryClient.invalidateQueries({ queryKey: ["venues", "place-preview", placeId] });
+    return { ...values, venueId: made.id, venueName: made.name, venueIsPublic: made.is_public };
+  }
+
   function invalidateLists() {
     void queryClient.invalidateQueries({ queryKey: ["feed"] });
     void queryClient.invalidateQueries({ queryKey: ["hubs", "events"] });
     void queryClient.invalidateQueries({ queryKey: chapterKeys.all });
   }
 
-  async function onSubmit(values: EventFormValues, ctx: EventArgsContext) {
+  async function onSubmit(formValues: EventFormValues, ctx: EventArgsContext) {
+    const values = await withResolvedVenue(formValues);
     if (values.repeatWeekly) {
       const { firstEventId } = await createEventSeries(toCreateEventSeriesArgs(values, ctx));
       invalidateLists();

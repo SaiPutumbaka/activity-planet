@@ -53,13 +53,48 @@ export async function venueForPlace(placeId: string): Promise<Venue | null> {
   return data;
 }
 
-export const venueForPlaceQuery = (placeId: string) =>
+/** What "Start a plan here" shows before posting: the place's public venue, if it has one yet. */
+export interface PlaceVenuePreview {
+  placeId: string;
+  /** The existing public venue, or null when venue_for_place will make one on posting. */
+  venueId: string | null;
+  name: string;
+}
+
+/**
+ * The read-only lookup for `/post?place=<id>` (venue_preview_for_place, migration 36): creates
+ * nothing, so opening or prefetching the link never makes a venue in the viewer's name. Null on
+ * the same cases as venueForPlace.
+ */
+export async function placeVenuePreview(placeId: string): Promise<PlaceVenuePreview | null> {
+  if (!UUID.test(placeId)) return null;
+  const { data, error } = await supabase.rpc("venue_preview_for_place", { p_place_id: placeId });
+  if (error?.code === "P0002") return null;
+  if (error) throw error;
+  const row = (data ?? {}) as { place_id?: string; venue_id?: string | null; name?: string };
+  if (!row.place_id) return null;
+  return { placeId: row.place_id, venueId: row.venue_id ?? null, name: row.name ?? "" };
+}
+
+export const placeVenuePreviewQuery = (placeId: string) =>
   queryOptions({
-    queryKey: ["venues", "for-place", placeId] as const,
-    queryFn: () => venueForPlace(placeId),
-    staleTime: Infinity,
+    queryKey: ["venues", "place-preview", placeId] as const,
+    queryFn: () => placeVenuePreview(placeId),
+    staleTime: 60_000,
     retry: 1,
   });
+
+/** The form's venue id for a map place that has no venue yet; resolved on posting. */
+const PLACE_VENUE_PREFIX = "place:";
+
+export function placeVenueToken(placeId: string): string {
+  return `${PLACE_VENUE_PREFIX}${placeId}`;
+}
+
+/** The place id of a placeVenueToken, else null (a real venue id). */
+export function placeFromVenueToken(venueId: string | null | undefined): string | null {
+  return venueId?.startsWith(PLACE_VENUE_PREFIX) ? venueId.slice(PLACE_VENUE_PREFIX.length) : null;
+}
 
 const VENUE_SEARCH_SELECT =
   "id,name,address_line1,address_line2,city,state,postal_code,is_public,place_id" as const;
