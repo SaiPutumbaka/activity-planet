@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 44 (schema_version 2.40). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 45 (schema_version 2.41). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -337,10 +337,14 @@ export type Database = {
           home_count: number;
           id: string;
           label: string | null;
+          last_collect_items: number | null;
+          last_collect_sources: number | null;
+          last_collected_at: string | null;
           last_discovery_at: string | null;
           point: unknown;
           priority: number;
           radius_km: number;
+          timezone: string | null;
           updated_at: string;
         };
         Insert: {
@@ -349,10 +353,14 @@ export type Database = {
           home_count?: number;
           id?: string;
           label?: string | null;
+          last_collect_items?: number | null;
+          last_collect_sources?: number | null;
+          last_collected_at?: string | null;
           last_discovery_at?: string | null;
           point: unknown;
           priority?: number;
           radius_km?: number;
+          timezone?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -361,10 +369,14 @@ export type Database = {
           home_count?: number;
           id?: string;
           label?: string | null;
+          last_collect_items?: number | null;
+          last_collect_sources?: number | null;
+          last_collected_at?: string | null;
           last_discovery_at?: string | null;
           point?: unknown;
           priority?: number;
           radius_km?: number;
+          timezone?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -3197,6 +3209,11 @@ export type Database = {
         Args: { p_label: string; p_old_point?: unknown; p_point: unknown };
         Returns: boolean;
       };
+      collector_regions_due: {
+        Args: { p_all?: boolean; p_limit?: number };
+        Returns: Json;
+      };
+      collector_regions_record: { Args: { p_regions: Json }; Returns: Json };
       collector_verify_secret: { Args: { p_secret: string }; Returns: boolean };
       complete_onboarding: {
         Args: {
