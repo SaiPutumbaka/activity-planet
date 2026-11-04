@@ -9,6 +9,7 @@ import {
   Mountain,
   Music,
   Palette,
+  Rss,
   Store,
   Ticket,
   Trees,
@@ -39,4 +40,6 @@ export const PLACE_ICONS: Record<MapIconKey, LucideIcon> = {
 };
 
 export const PLAN_ICON: LucideIcon = CalendarDays;
+/** A plan listed from a feed (D-037): its own icon, not just another colour. */
+export const PLAN_IMPORTED_ICON: LucideIcon = Rss;
 export const SHOW_ICON: LucideIcon = Ticket;

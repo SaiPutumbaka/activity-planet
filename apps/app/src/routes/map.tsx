@@ -9,7 +9,7 @@ import { ExploreSheet } from "@/components/map/explore-sheet";
 import { HubChips } from "@/components/map/hub-chips";
 import { LayerChips } from "@/components/map/layer-chips";
 import { ListPanel, type PanelHeight } from "@/components/map/list-panel";
-import { CellSheet, PlaceSheet } from "@/components/map/place-sheet";
+import { CellSheet, EventSheet, PlaceSheet } from "@/components/map/place-sheet";
 import { ComingSoon } from "@/components/shell/coming-soon";
 import { TabBar } from "@/components/shell/tab-bar";
 import { TopBar } from "@/components/shell/top-bar";
@@ -19,7 +19,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import { getSession } from "@/lib/auth";
 import { cn } from "@/lib/cn";
-import { useDevicePoint } from "@/lib/location";
+import { clearFeedLocation, useDevicePoint } from "@/lib/location";
 import {
   EMPTY_VIEW,
   LOCATED_ZOOM,
@@ -47,6 +47,7 @@ import {
   type MapWhen,
 } from "@/lib/map";
 import { getProfile, hubCatalogQuery, myHubsQuery, type CatalogHub } from "@/lib/profile";
+import { supabase } from "@/lib/supabase";
 import { useResolvedTheme } from "@/lib/theme";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { prefersSaveData, supportsWebGL, useReducedMotion } from "@/lib/use-media";
@@ -55,7 +56,8 @@ import { prefersSaveData, supportsWebGL, useReducedMotion } from "@/lib/use-medi
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
 /**
- * `?hubs=<slug,slug>` selected hub chips (absent: All my hubs), `?layers=places,plans,shows`,
+ * `?hubs=<slug,slug>` selected non-sensitive hub chips (absent: All my hubs; a selected sensitive
+ * hub stays in component state and never reaches the URL, §7.6), `?layers=places,plans,shows`,
  * `?when=today|week|month`, `?lat&lng&z` a shared view, `?place=<id>` the open place card,
  * `?view=list|map`. The map never writes the viewer's position into the URL: a reload would put
  * it in the host's request logs, so the last view is kept on the device instead (lib/map.ts).
@@ -76,17 +78,29 @@ const searchSchema = z.object({
  * you, anywhere in the world. It takes the Chats slot in the tab bar until messaging ships.
  * Outside `/_app` on purpose: signed-out visitors see public places and public plans too (founder
  * answer), so the route only redirects someone who is signed in but has not finished onboarding.
+ * The profile check otherwise matches `/_app`: only "no row" (PGRST116) means no profile, any other
+ * error is rethrown, and a deleted account is signed out on this device and sees the public map.
  */
 export const Route = createFileRoute("/map")({
   validateSearch: searchSchema,
   beforeLoad: async ({ context: { queryClient } }) => {
     const session = await getSession(queryClient);
     if (!session) return { session: null, profile: null };
-    const profile = await getProfile(queryClient, session.user.id).catch(() => null);
-    if (profile && !profile.deleted_at && !profile.onboarding_completed_at) {
+    const profile = await getProfile(queryClient, session.user.id).catch((err: unknown) => {
+      if (typeof err === "object" && err && "code" in err && err.code === "PGRST116") return null;
+      throw err;
+    });
+    if (!profile || profile.deleted_at || profile.status === "deleted") {
+      // Same as /_app: the account is gone but this device still holds a token. Drop it; the
+      // public map still works signed out.
+      await supabase.auth.signOut({ scope: "local" });
+      clearFeedLocation();
+      return { session: null, profile: null };
+    }
+    if (!profile.onboarding_completed_at) {
       throw redirect({ to: "/onboarding", replace: true });
     }
-    return { session, profile: profile && !profile.deleted_at ? profile : null };
+    return { session, profile };
   },
   loader: ({ context: { queryClient, session } }) => {
     void queryClient.prefetchQuery(hubCatalogQuery);
@@ -165,15 +179,22 @@ function MapScreen({ userId }: { userId: string | null }) {
     const id = requestAnimationFrame(() => requestAnimationFrame(() => setPainted(true)));
     return () => cancelAnimationFrame(id);
   }, []);
-  // Mounted the first time the map is shown after first paint, then kept for the visit.
   const [mapMounted, setMapMounted] = useState(false);
-  if (painted && canMap && !listView && !mapMounted) setMapMounted(true);
   const [panel, setPanel] = useState<PanelHeight>("peek");
 
-  // Hubs: joined (signed in) plus any picked through Explore, which live in ?hubs.
+  // Hubs: joined (signed in) plus any picked through Explore. Selected non-sensitive hubs live in
+  // ?hubs; selected sensitive ones live only in this component's state (§7.6), so their slug is
+  // never in a shared link, the history or the host's request logs.
   const myHubs = useQuery({ ...myHubsQuery(userId ?? ""), enabled: signedIn });
   const catalog = useQuery(hubCatalogQuery);
-  const selectedSlugs = parseHubsParam(search.hubs);
+  const [privateSlugs, setPrivateSlugs] = useState<string[]>([]);
+  const urlSlugs = parseHubsParam(search.hubs);
+  const selectedSlugs = useMemo(() => {
+    const all = [...new Set([...(urlSlugs ?? []), ...privateSlugs])];
+    return all.length ? all : null;
+    // urlSlugs is derived from search.hubs each render; key on the string.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.hubs, privateSlugs]);
   const catalogBySlug = useMemo(
     () => new Map((catalog.data?.hubs ?? []).map((h) => [h.slug, h] as const)),
     [catalog.data],
@@ -182,6 +203,31 @@ function MapScreen({ userId }: { userId: string | null }) {
     () => new Map((catalog.data?.categories ?? []).map((c) => [c.slug, c] as const)),
     [catalog.data],
   );
+  const isSensitiveHub = (h: { category_slug: string }) =>
+    categoryBySlug.get(h.category_slug)?.is_sensitive ?? false;
+  // Every sensitive hub in the catalog: the cover an explored sensitive hub is sent inside.
+  const sensitiveCover = useMemo(
+    () =>
+      (catalog.data?.hubs ?? [])
+        .filter((h) => categoryBySlug.get(h.category_slug)?.is_sensitive)
+        .map((h) => h.id),
+    [catalog.data, categoryBySlug],
+  );
+  // A link that arrives with a sensitive slug in ?hubs: move it into state (during render, so the
+  // chip stays selected) and then out of the URL.
+  const urlSensitive = (urlSlugs ?? []).filter((slug) => {
+    const h = catalogBySlug.get(slug);
+    return h ? isSensitiveHub(h) : false;
+  });
+  if (urlSensitive.some((slug) => !privateSlugs.includes(slug))) {
+    setPrivateSlugs((prev) => [...new Set([...prev, ...urlSensitive])]);
+  }
+  useEffect(() => {
+    if (!urlSlugs || !urlSensitive.length) return;
+    const rest = urlSlugs.filter((slug) => !urlSensitive.includes(slug));
+    setSearch({ hubs: rest.length ? rest.join(",") : undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.hubs, catalog.data]);
   const chipHubs = useMemo((): ChipHub[] => {
     const toChip = (
       h: { id: string; slug: string; name: string; emoji: string; category_slug: string },
@@ -206,9 +252,7 @@ function MapScreen({ userId }: { userId: string | null }) {
       return h ? [toChip(h, false)] : [];
     });
     return [...joined, ...explored];
-    // selectedSlugs is derived from search.hubs each render; key on the string.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myHubs.data, catalogBySlug, categoryBySlug, search.hubs]);
+  }, [myHubs.data, catalogBySlug, categoryBySlug, selectedSlugs]);
   const selection: HubSelection = useMemo(() => {
     if (!selectedSlugs) return null;
     const ids = selectedSlugs.flatMap((s) => {
@@ -216,9 +260,11 @@ function MapScreen({ userId }: { userId: string | null }) {
       return h ? [h.id] : [];
     });
     return ids.length ? ids : null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search.hubs, chipHubs]);
-  const plan = useMemo(() => planHubRequest(selection, chipHubs), [selection, chipHubs]);
+  }, [selectedSlugs, chipHubs]);
+  const plan = useMemo(
+    () => planHubRequest(selection, chipHubs, sensitiveCover),
+    [selection, chipHubs, sensitiveCover],
+  );
 
   const layers = parseLayersParam(search.layers);
   const when: MapWhen = search.when ?? "week";
@@ -229,6 +275,13 @@ function MapScreen({ userId }: { userId: string | null }) {
     enabled: hubsReady,
   });
   const unavailable = query.isError && isMapUnavailable(query.error);
+
+  // Mounted the first time the map is shown after first paint, then kept for the visit. It waits
+  // for the first answer, so a build without the map RPCs never downloads MapLibre or fetches
+  // tiles before switching to "coming soon".
+  if (painted && canMap && !listView && !mapMounted && !query.isPending && !unavailable) {
+    setMapMounted(true);
+  }
 
   const placesHidden = camera.zoom < PLACES_MIN_ZOOM || bboxTooLargeForPlaces(snapped);
   const view = useMemo(() => {
@@ -276,11 +329,13 @@ function MapScreen({ userId }: { userId: string | null }) {
     void navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true });
   }
   function onHubSelection(next: HubSelection) {
-    const slugs = next?.flatMap((id) => {
+    const chips = (next ?? []).flatMap((id) => {
       const h = chipHubs.find((c) => c.id === id);
-      return h ? [h.slug] : [];
+      return h ? [h] : [];
     });
-    setSearch({ hubs: slugs?.length ? slugs.join(",") : undefined });
+    const open = chips.filter((h) => !h.sensitive).map((h) => h.slug);
+    setPrivateSlugs(chips.filter((h) => h.sensitive).map((h) => h.slug));
+    setSearch({ hubs: open.length ? open.join(",") : undefined });
   }
   function onLayers(next: MapLayer[]) {
     setSearch({ layers: layersParam(next) });
@@ -288,10 +343,26 @@ function MapScreen({ userId }: { userId: string | null }) {
   const [exploreOpen, setExploreOpen] = useState(false);
   function onExplorePick(h: CatalogHub) {
     setExploreOpen(false);
-    setSearch({ hubs: h.slug });
+    if (isSensitiveHub(h)) {
+      setPrivateSlugs([h.slug]);
+      setSearch({ hubs: undefined });
+    } else {
+      setPrivateSlugs([]);
+      setSearch({ hubs: h.slug });
+    }
   }
   const [cellKey, setCellKey] = useState<string | null>(null);
   const openCell = view.cells.find((c) => c.key === cellKey) ?? null;
+  // Signed out, a plan or show opens a read-only sheet (the event page needs a session).
+  const [eventId, setEventId] = useState<string | null>(null);
+  const openEvent = eventId
+    ? ([...view.plans, ...view.shows].find((f) => f.id === eventId) ?? null)
+    : null;
+  function selectEvent(id: string) {
+    if (signedIn) void navigate({ to: "/events/$id", params: { id } });
+    else setEventId(id);
+  }
+  const geoapify = view.places.some((f) => f.geoapify);
 
   const toggleView = canMap ? (
     <Button
@@ -490,7 +561,7 @@ function MapScreen({ userId }: { userId: string | null }) {
                 visible={!listView}
                 onMove={onMove}
                 onSelectPlace={(id) => setSearch({ place: id })}
-                onSelectEvent={(id) => void navigate({ to: "/events/$id", params: { id } })}
+                onSelectEvent={selectEvent}
                 onSelectCell={setCellKey}
                 onFailed={() => setMapFailed(true)}
               />
@@ -499,7 +570,7 @@ function MapScreen({ userId }: { userId: string | null }) {
               <>
                 <div className="pointer-events-none absolute top-2 left-2 z-[5] max-w-[70%] rounded-[8px] bg-surface/85 px-2 py-1 backdrop-blur">
                   <div className="pointer-events-auto">
-                    <MapAttribution />
+                    <MapAttribution geoapify={geoapify} />
                   </div>
                 </div>
                 <button
@@ -539,6 +610,7 @@ function MapScreen({ userId }: { userId: string | null }) {
           timeZone={timeZone}
           onSelectPlace={(id) => setSearch({ place: id })}
           onSelectCell={setCellKey}
+          onSelectEvent={signedIn ? undefined : setEventId}
         />
       </div>
 
@@ -549,7 +621,15 @@ function MapScreen({ userId }: { userId: string | null }) {
         timeZone={timeZone}
         onClose={() => setSearch({ place: undefined })}
       />
-      <CellSheet cell={openCell} timeZone={timeZone} onClose={() => setCellKey(null)} />
+      <CellSheet
+        cell={openCell}
+        signedIn={signedIn}
+        timeZone={timeZone}
+        onClose={() => setCellKey(null)}
+      />
+      {signedIn ? null : (
+        <EventSheet event={openEvent} timeZone={timeZone} onClose={() => setEventId(null)} />
+      )}
       <ExploreSheet
         open={exploreOpen}
         onClose={() => setExploreOpen(false)}

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Clock, ExternalLink, Globe, MapPin, Navigation, Pencil } from "lucide-react";
@@ -20,9 +21,36 @@ import {
   sourceLine,
   type ChipHub,
   type MapCell,
+  type MapFeature,
 } from "@/lib/map";
 
-import { PlaceGlyph } from "./glyphs";
+import { PlaceGlyph, PlanGlyph, ShowGlyph } from "./glyphs";
+
+/**
+ * A link to an event page. The page lives under /_app and needs a session, so a signed-out
+ * visitor goes to sign-in first and comes back to the event afterwards.
+ */
+function EventLink({
+  id,
+  signedIn,
+  className,
+  children,
+}: {
+  id: string;
+  signedIn: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return signedIn ? (
+    <Link to="/events/$id" params={{ id }} className={className}>
+      {children}
+    </Link>
+  ) : (
+    <Link to="/auth/sign-in" search={{ next: `/events/${id}` }} className={className}>
+      {children}
+    </Link>
+  );
+}
 
 function platform() {
   if (typeof navigator === "undefined") return "other" as const;
@@ -152,9 +180,9 @@ export function PlaceSheet({
               <ul>
                 {d.plansHere.map((p) => (
                   <li key={p.id}>
-                    <Link
-                      to="/events/$id"
-                      params={{ id: p.id }}
+                    <EventLink
+                      id={p.id}
+                      signedIn={signedIn}
                       className="flex min-h-11 items-center justify-between gap-3 rounded-tile px-1 hover:bg-surface-2"
                     >
                       <span className="truncate font-semibold">{p.title}</span>
@@ -164,10 +192,13 @@ export function PlaceSheet({
                           {formatTime(p.startsAt, timeZone)}
                         </span>
                       ) : null}
-                    </Link>
+                    </EventLink>
                   </li>
                 ))}
               </ul>
+              {signedIn ? null : (
+                <p className="pt-1 text-[13px] text-text-3">Sign in to see these plans.</p>
+              )}
             </section>
           ) : null}
 
@@ -218,10 +249,12 @@ function Detail({
  */
 export function CellSheet({
   cell,
+  signedIn,
   timeZone,
   onClose,
 }: {
   cell: MapCell | null;
+  signedIn: boolean;
   timeZone: string;
   onClose: () => void;
 }) {
@@ -235,9 +268,9 @@ export function CellSheet({
           <ul>
             {cell.events.map((e) => (
               <li key={e.id}>
-                <Link
-                  to="/events/$id"
-                  params={{ id: e.id }}
+                <EventLink
+                  id={e.id}
+                  signedIn={signedIn}
                   className={cn(
                     "flex min-h-12 items-center justify-between gap-3 rounded-tile px-1 hover:bg-surface-2",
                   )}
@@ -248,10 +281,13 @@ export function CellSheet({
                       {formatRelativeDay(e.startsAt, timeZone)} · {formatTime(e.startsAt, timeZone)}
                     </span>
                   ) : null}
-                </Link>
+                </EventLink>
               </li>
             ))}
           </ul>
+          {signedIn || cell.events.length === 0 ? null : (
+            <p className="text-[13px] text-text-3">Sign in to see these plans and ask to join.</p>
+          )}
           {cell.events.length < cell.count ? (
             <p className="text-[13px] text-text-3">
               {cell.count - cell.events.length} more you can't see from here.
@@ -260,6 +296,73 @@ export function CellSheet({
           <Button variant="secondary" onClick={onClose}>
             Close
           </Button>
+        </div>
+      ) : null}
+    </Sheet>
+  );
+}
+
+/**
+ * A plan or show for a signed-out visitor (founder answer: they see public plans): what the map
+ * already knows about it, from the map data only, and a clear way to sign in for the rest. The
+ * event page itself needs a session, so tapping a pin no longer bounces silently to sign-in.
+ */
+export function EventSheet({
+  event,
+  timeZone,
+  onClose,
+}: {
+  event: MapFeature | null;
+  timeZone: string;
+  onClose: () => void;
+}) {
+  const kindLine = !event
+    ? ""
+    : event.kind === "show"
+      ? "Show or game"
+      : event.imported
+        ? "Plan · listed from a feed"
+        : "Plan";
+  return (
+    <Sheet open={Boolean(event)} onClose={onClose} title={event?.name ?? "Plan"}>
+      {event ? (
+        <div className="flex flex-col gap-4 pt-1">
+          <div className="flex items-center gap-3">
+            {event.kind === "show" ? <ShowGlyph /> : <PlanGlyph imported={event.imported} />}
+            <div className="min-w-0">
+              <p className="text-[15px] font-semibold">{kindLine}</p>
+              {event.startsAt ? (
+                <p className="text-[13px] text-text-2">
+                  {formatRelativeDay(event.startsAt, timeZone)} ·{" "}
+                  {formatTime(event.startsAt, timeZone)}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          <p className="text-[15px] text-text-2">
+            Sign in to see this plan: who is going, the details and how to join.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/auth/sign-in"
+              search={{ next: `/events/${event.id}` }}
+              className={buttonVariants({ variant: "primary", size: "md" })}
+            >
+              Sign in to see this plan
+            </Link>
+            <a
+              href={directionsUrl({ lng: event.lng, lat: event.lat, name: event.name }, platform())}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonVariants({ variant: "secondary", size: "md" })}
+            >
+              <Navigation className="size-[18px]" aria-hidden="true" />
+              Directions
+            </a>
+          </div>
+          <p className="text-[12px] text-text-3">
+            Directions open in your phone's maps app. Your location isn't sent to us.
+          </p>
         </div>
       ) : null}
     </Sheet>

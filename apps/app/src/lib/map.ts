@@ -15,7 +15,10 @@ import { keepPreviousData, queryOptions } from "@tanstack/react-query";
  *
  * Privacy (§7): nothing here logs a bbox or a user id. Approved-only events only ever arrive as
  * cells and are drawn as shaded squares, never as points. Sensitive-hub chips filter on the client
- * from the "All my hubs" response, so the server never learns which sensitive chip was tapped.
+ * from the response for every chip hub. A sensitive hub the viewer has not joined (picked through
+ * "+ Explore") is sent inside the full set of sensitive catalog hubs, so the server can tell that
+ * one of them is wanted but not which (planHubRequest). Its slug never goes into the URL either
+ * (routes/map.tsx keeps it in component state).
  */
 
 /* ------------------------------------------------------------------ */
@@ -130,6 +133,8 @@ export const FLAG = {
   ADULTS_ONLY: 16,
   /** A plan that is free to join. */
   FREE: 32,
+  /** A place whose data came through Geoapify (§8): "Powered by Geoapify" while one is in view. */
+  GEOAPIFY: 64,
 } as const;
 
 export type FeatureKind = "place" | "plan" | "show";
@@ -148,6 +153,7 @@ export interface MapFeature {
   generic: boolean;
   imported: boolean;
   pending: boolean;
+  geoapify: boolean;
 }
 
 export interface MapCell {
@@ -156,6 +162,11 @@ export interface MapCell {
   center: LngLat;
   count: number;
   events: { id: string; name: string; startsAt: Date | null; hubId: string | null }[];
+  /**
+   * The payload carried a hub per listed event (the proposed `hubs` array). The plain §5 shape
+   * `{cell, n, ids}` does not, and such a cell cannot be matched to a hub chip.
+   */
+  hubsKnown: boolean;
 }
 
 export interface MapView {
@@ -230,6 +241,7 @@ export function decodeFeature(tuple: unknown, kind: FeatureKind): MapFeature | n
     generic: (f & FLAG.GENERIC) !== 0,
     imported: (f & FLAG.IMPORTED) !== 0,
     pending: (f & FLAG.PENDING) !== 0,
+    geoapify: (f & FLAG.GEOAPIFY) !== 0,
   };
 }
 
@@ -243,10 +255,13 @@ export function decodeCell(raw: unknown): MapCell | null {
   const ids = Array.isArray(c.ids) ? c.ids.filter((x): x is string => typeof x === "string") : [];
   const count = isFiniteNumber(c.n) && c.n > 0 ? Math.floor(c.n) : ids.length;
   if (count === 0) return null;
+  const hubsKnown =
+    ids.length > 0 && Array.isArray(c.hubs) && c.hubs.length === (c.ids as unknown[]).length;
   return {
     key: cellKey(center),
     center,
     count: Math.max(count, ids.length),
+    hubsKnown,
     events: ids.map((id, i) => ({
       id,
       name: typeof c.names?.[i] === "string" && c.names[i] ? c.names[i] : "Plan",
@@ -285,6 +300,7 @@ export function decodeMapInView(raw: unknown): MapView {
     if (prev) {
       prev.count += cell.count;
       prev.events.push(...cell.events);
+      prev.hubsKnown &&= cell.hubsKnown;
     } else cells.set(cell.key, cell);
   }
   return {
@@ -629,6 +645,11 @@ export function cellLabel(count: number): string {
 
 export const CELL_NOTE = "Exact spot shared after host approval";
 
+/** The label drawn on the map over a cell (§9): the count and the note together. */
+export function cellMapLabel(count: number): string {
+  return `${cellLabel(count)} · ${CELL_NOTE.toLowerCase()}`;
+}
+
 /* ------------------------------------------------------------------ */
 /* Hub chips                                                            */
 /* ------------------------------------------------------------------ */
@@ -678,20 +699,43 @@ export interface HubRequestPlan {
   localFilter: string[] | null;
 }
 
+/** The server's hub cap per request (§5). */
+export const MAX_REQUEST_HUBS = 50;
+
 /**
  * Turns the chip selection into one request plus a local filter. One non-sensitive chip asks the
  * server for that hub with its generic spots. Anything else asks for every chip hub together
  * ("All my hubs" plus explored ones) and filters on the client, so tapping between chips does not
- * refetch (§9) and a sensitive chip never reaches the server on its own (§7.6).
+ * refetch (§9) and tapping a sensitive chip is never visible to the server (§7.6).
+ *
+ * A joined sensitive hub is already known to the server through the membership, so it rides with
+ * the other joined hubs. A sensitive hub the viewer only explored (a signed-out visitor, or a
+ * member with no other hubs) would otherwise be the whole request, so it goes out with
+ * `sensitiveCover`, the ids of every sensitive hub in the catalog: the server learns that one of
+ * them is wanted, not which. The extra hubs' features are dropped by the local filter.
  */
-export function planHubRequest(selection: HubSelection, hubs: readonly ChipHub[]): HubRequestPlan {
+export function planHubRequest(
+  selection: HubSelection,
+  hubs: readonly ChipHub[],
+  sensitiveCover: readonly string[] = [],
+): HubRequestPlan {
   const all = [...new Set(hubs.map((h) => h.id))].sort();
   const known = selection?.filter((id) => all.includes(id)) ?? null;
   const sel = known && known.length ? known : null;
   if (genericSpotsOn(sel, hubs)) {
     return { hubIds: [sel![0]!], generic: true, localFilter: null };
   }
-  return { hubIds: all, generic: false, localFilter: sel ? [...sel].sort() : null };
+  const localFilter = sel ? [...sel].sort() : null;
+  if (!hubs.some((h) => h.sensitive && !h.joined)) {
+    return { hubIds: all, generic: false, localFilter };
+  }
+  const chips = new Set(all);
+  const room = Math.max(0, MAX_REQUEST_HUBS - all.length);
+  const cover = [...new Set(sensitiveCover)]
+    .filter((id) => !chips.has(id))
+    .sort()
+    .slice(0, room);
+  return { hubIds: [...all, ...cover].sort(), generic: false, localFilter: localFilter ?? all };
 }
 
 /** Keeps the features (and cell events) of the given hubs. A null filter keeps everything. */
@@ -703,7 +747,9 @@ export function applyHubFilter(view: MapView, filter: readonly string[] | null):
   // same way the feed shows public plans around you.
   const happening = (f: MapFeature) => f.hubId === null || keep.has(f.hubId);
   const cells = view.cells.flatMap((c) => {
-    if (c.events.length === 0) return [c];
+    // Without a hub per event there is no telling whether the cell belongs to the chip: hide it
+    // rather than show every hub's approved-only events under any chip with the full count.
+    if (!c.hubsKnown) return [];
     const events = c.events.filter((e) => e.hubId === null || keep.has(e.hubId));
     return events.length ? [{ ...c, events, count: events.length }] : [];
   });

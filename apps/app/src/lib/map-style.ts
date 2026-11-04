@@ -1,5 +1,5 @@
 import type { ResolvedTheme } from "./theme";
-import { cellLabel, cellRing, placeKindInfo, type MapIconKey, type MapView } from "./map";
+import { cellMapLabel, cellRing, placeKindInfo, type MapIconKey, type MapView } from "./map";
 
 /**
  * Map styling (D-038, §9): the basemap style per theme, the pin artwork and the overlay GeoJSON.
@@ -33,10 +33,8 @@ export const LAYER = {
   cellsLine: "ap-cells-line",
   cellsLabel: "ap-cells-label",
   placesCluster: "ap-places-cluster",
-  placesCount: "ap-places-count",
   placesPin: "ap-places-pin",
   happenCluster: "ap-happen-cluster",
-  happenCount: "ap-happen-count",
   happenPin: "ap-happen-pin",
 } as const;
 
@@ -97,29 +95,55 @@ export const PIN_PALETTES: Record<ResolvedTheme, PinPalette> = {
 /** Canvas pixels per CSS pixel for the pin images (pixel ratio is capped at 2, §9). */
 export const PIN_RATIO = 2;
 
-export type PinShape = "place" | "place-generic" | "plan" | "plan-imported" | "show";
+/**
+ * Place pins come in three variants, told apart by outline and marks, not colour: a solid ink
+ * outline (a place), a solid muted outline with a filled corner dot (a general spot matched by a
+ * generic rule), and a dashed ink outline (the viewer's own place waiting for review, §7.3).
+ * An imported plan has its own icon (a feed) and a double outline; a plan has a calendar.
+ */
+export type PinShape =
+  "place" | "place-generic" | "place-pending" | "plan" | "plan-imported" | "show";
 
-export function placeImageId(icon: MapIconKey, generic: boolean): string {
-  return `ap-place-${icon}${generic ? "-g" : ""}`;
+export type PlaceVariant = "place" | "generic" | "pending";
+
+export function placeVariant(f: { generic: boolean; pending: boolean }): PlaceVariant {
+  return f.pending ? "pending" : f.generic ? "generic" : "place";
 }
+
+export function placeImageId(icon: MapIconKey, variant: PlaceVariant): string {
+  return `ap-place-${icon}${variant === "generic" ? "-g" : variant === "pending" ? "-p" : ""}`;
+}
+export const PLACE_SHAPE: Record<PlaceVariant, PinShape> = {
+  place: "place",
+  generic: "place-generic",
+  pending: "place-pending",
+};
 export const PLAN_IMAGE = "ap-plan";
 export const PLAN_IMPORTED_IMAGE = "ap-plan-imported";
 export const SHOW_IMAGE = "ap-show";
 export const HATCH_IMAGE = "ap-hatch";
+/** Cluster badges: a rounded square for places, a teardrop for plans and shows. */
+export const CLUSTER_PLACES_IMAGE = "ap-cluster-places";
+export const CLUSTER_HAPPEN_IMAGE = "ap-cluster-happen";
 
 /** Size in CSS pixels of each shape's image. */
 export const PIN_SIZE: Record<PinShape, { w: number; h: number }> = {
   place: { w: 30, h: 30 },
-  "place-generic": { w: 28, h: 28 },
+  "place-generic": { w: 30, h: 30 },
+  "place-pending": { w: 30, h: 30 },
   plan: { w: 30, h: 38 },
   "plan-imported": { w: 30, h: 38 },
   show: { w: 38, h: 28 },
 };
 
+function isPlaceShape(shape: PinShape): boolean {
+  return shape === "place" || shape === "place-generic" || shape === "place-pending";
+}
+
 function shapePath(ctx: CanvasRenderingContext2D, shape: PinShape) {
   const { w, h } = PIN_SIZE[shape];
   ctx.beginPath();
-  if (shape === "place" || shape === "place-generic") {
+  if (isPlaceShape(shape)) {
     // Rounded square.
     ctx.roundRect(2, 2, w - 4, h - 4, 8);
   } else if (shape === "plan" || shape === "plan-imported") {
@@ -159,7 +183,9 @@ function shapeColors(shape: PinShape, p: PinPalette) {
     case "place":
       return { fill: p.surface, stroke: p.ink, icon: p.ink, dashed: false };
     case "place-generic":
-      return { fill: p.surface, stroke: p.muted, icon: p.muted, dashed: true };
+      return { fill: p.surface, stroke: p.muted, icon: p.muted, dashed: false };
+    case "place-pending":
+      return { fill: p.surface, stroke: p.ink, icon: p.ink, dashed: true };
     case "plan":
       return { fill: p.plan, stroke: p.halo, icon: p.planInk, dashed: false };
     case "plan-imported":
@@ -172,7 +198,8 @@ function shapeColors(shape: PinShape, p: PinPalette) {
 /** Where the icon sits inside each shape, in CSS pixels. */
 function iconBox(shape: PinShape): { x: number; y: number; size: number } {
   const { w, h } = PIN_SIZE[shape];
-  if (shape === "plan" || shape === "plan-imported") return { x: w / 2 - 8, y: 7, size: 16 };
+  if (shape === "plan") return { x: w / 2 - 8, y: 7, size: 16 };
+  if (shape === "plan-imported") return { x: w / 2 - 6.5, y: 8.5, size: 13 };
   if (shape === "show") return { x: w / 2 - 7.5, y: h / 2 - 7.5, size: 15 };
   const size = shape === "place-generic" ? 14 : 16;
   return { x: w / 2 - size / 2, y: h / 2 - size / 2, size };
@@ -186,7 +213,8 @@ async function svgImage(svg: string, color: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Draws one pin: the shape (fill, outline; dashed for a generic spot) and a lucide icon in it.
+ * Draws one pin: the shape (fill, outline; dashed for a pending place), a lucide icon in it, a
+ * corner dot for a general spot and an inner second outline for an imported plan.
  * `iconSvg` is the icon's serialized <svg> with `currentColor` strokes.
  */
 export async function drawPin(
@@ -211,11 +239,71 @@ export async function drawPin(
   ctx.shadowColor = "transparent";
   ctx.lineWidth = 2;
   ctx.strokeStyle = c.stroke;
-  ctx.setLineDash(c.dashed ? [3, 2.5] : []);
+  ctx.setLineDash(c.dashed ? [3.5, 2.5] : []);
   ctx.stroke();
+  ctx.setLineDash([]);
+  if (shape === "plan-imported") {
+    // Double outline: a second, inner ring in the icon colour.
+    ctx.beginPath();
+    ctx.arc(w / 2, 15, 9.5, 0, Math.PI * 2);
+    ctx.lineWidth = 1.25;
+    ctx.strokeStyle = c.icon;
+    ctx.stroke();
+  }
+  if (shape === "place-generic") {
+    // Corner dot, top right, ringed so it reads on any basemap.
+    ctx.beginPath();
+    ctx.arc(w - 5.5, 5.5, 4, 0, Math.PI * 2);
+    ctx.fillStyle = c.stroke;
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = palette.surface;
+    ctx.stroke();
+  }
   const box = iconBox(shape);
   const icon = await svgImage(iconSvg, c.icon);
   ctx.drawImage(icon, box.x, box.y, box.size, box.size);
+  return ctx.getImageData(0, 0, canvas.width, canvas.height);
+}
+
+/** Cluster badge sizes in CSS pixels; the count sits at the image centre. */
+export const CLUSTER_SIZE = {
+  places: { w: 34, h: 34 },
+  // The teardrop's circle is centred in the image: the empty band on top matches the tail below.
+  happen: { w: 36, h: 52 },
+} as const;
+
+/**
+ * A cluster badge without its count (the symbol layer draws the count over it): a rounded square
+ * for places and a teardrop for plans and shows, the same shapes as their pins.
+ */
+export function drawClusterBadge(kind: "places" | "happen", palette: PinPalette): ImageData {
+  const { w, h } = CLUSTER_SIZE[kind];
+  const canvas = document.createElement("canvas");
+  canvas.width = w * PIN_RATIO;
+  canvas.height = h * PIN_RATIO;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("2D canvas unavailable");
+  ctx.scale(PIN_RATIO, PIN_RATIO);
+  ctx.shadowColor = "rgba(14,15,17,0.25)";
+  ctx.shadowBlur = 3;
+  ctx.shadowOffsetY = 1;
+  ctx.beginPath();
+  if (kind === "places") {
+    ctx.roundRect(2, 2, w - 4, h - 4, 9);
+  } else {
+    const r = 15;
+    const cy = h / 2;
+    ctx.arc(w / 2, cy, r, Math.PI * 0.75, Math.PI * 0.25, false);
+    ctx.lineTo(w / 2, h - 2);
+    ctx.closePath();
+  }
+  ctx.fillStyle = kind === "places" ? palette.clusterPlaces : palette.plan;
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = palette.halo;
+  ctx.stroke();
   return ctx.getImageData(0, 0, canvas.width, canvas.height);
 }
 
@@ -288,7 +376,7 @@ export function placesGeoJSON(view: Pick<MapView, "places">): FeatureCollection<
       properties: {
         id: f.id,
         kind: "place",
-        icon: placeImageId(placeKindInfo(f.type).icon, f.generic),
+        icon: placeImageId(placeKindInfo(f.type).icon, placeVariant(f)),
         name: f.name,
         pending: f.pending,
       },
@@ -322,7 +410,7 @@ export function cellsGeoJSON(view: Pick<MapView, "cells">): FeatureCollection<Po
     features: view.cells.map((c): Feature<Polygon, CellProps> => ({
       type: "Feature",
       geometry: { type: "Polygon", coordinates: [cellRing(c.center)] },
-      properties: { key: c.key, label: cellLabel(c.count) },
+      properties: { key: c.key, label: cellMapLabel(c.count) },
     })),
   };
 }

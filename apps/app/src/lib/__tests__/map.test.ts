@@ -12,6 +12,7 @@ import {
   cellCenter,
   cellKey,
   cellLabel,
+  cellMapLabel,
   cellRing,
   countLine,
   decodeFeature,
@@ -21,6 +22,7 @@ import {
   directionsUrl,
   genericSpotsOn,
   isMissingRpc,
+  MAX_REQUEST_HUBS,
   layersParam,
   mapInViewArgs,
   normalizeBBox,
@@ -126,6 +128,7 @@ describe("decodeMapInView", () => {
           { id: "a", name: "A", startsAt: new Date(10_000), hubId: "h1" },
           { id: "b", name: "Plan", startsAt: null, hubId: null },
         ],
+        hubsKnown: true,
       },
     ]);
     expect(v.truncated).toBe(true);
@@ -253,6 +256,7 @@ describe("cell geometry (approved-only events)", () => {
   it("labels cells", () => {
     expect(cellLabel(1)).toBe("1 event in this area");
     expect(cellLabel(4)).toBe("4 events in this area");
+    expect(cellMapLabel(2)).toBe("2 events in this area · exact spot shared after host approval");
   });
 });
 
@@ -349,6 +353,50 @@ describe("hub chips", () => {
       generic: false,
       localFilter: ["a", "b"],
     });
+  });
+
+  it("sends an explored sensitive hub only inside the full sensitive cover (§7.6)", () => {
+    const explored = [hub("lgbtq", { sensitive: true, joined: false })];
+    const cover = ["lgbtq", "faith-1", "faith-2", "wellness"];
+    // Alone (signed out, or a member with no other hubs), with the chip selected or not.
+    for (const sel of [["lgbtq"], null]) {
+      const p = planHubRequest(sel, explored, cover);
+      expect(p.hubIds).toEqual([...cover].sort());
+      expect(p.generic).toBe(false);
+      expect(p.localFilter).toEqual(["lgbtq"]);
+    }
+    // With joined hubs: the cover is added and the local filter keeps the chip hubs only.
+    const mixed = [hub("a"), ...explored];
+    const p = planHubRequest(null, mixed, cover);
+    expect(p.hubIds).toEqual(["a", ...cover].sort());
+    expect(p.localFilter).toEqual(["a", "lgbtq"]);
+    // A joined sensitive hub needs no cover: the server knows the membership.
+    expect(planHubRequest(null, hubs, cover).hubIds).toEqual(["a", "b", "faith", "x"]);
+    // The cover never pushes the request past the hub cap.
+    const many = Array.from({ length: 80 }, (_, i) => `s${String(i).padStart(2, "0")}`);
+    expect(planHubRequest(["lgbtq"], explored, many).hubIds).toHaveLength(MAX_REQUEST_HUBS);
+    expect(planHubRequest(["lgbtq"], explored, many).hubIds).toContain("lgbtq");
+  });
+
+  it("hides cells without per-event hubs under a hub filter", () => {
+    const view = decodeMapInView({
+      cells: [
+        { cell: [0, 0], n: 3, ids: ["c1", "c2", "c3"] },
+        { cell: [1, 1], n: 1, ids: ["d1"], hubs: ["a"] },
+      ],
+    });
+    expect(view.cells.map((c) => c.hubsKnown)).toEqual([false, true]);
+    expect(applyHubFilter(view, null).cells).toHaveLength(2);
+    expect(applyHubFilter(view, ["a"]).cells.map((c) => c.key)).toEqual(["1.0,1.0"]);
+    expect(applyHubFilter(view, ["b"]).cells).toEqual([]);
+    // Merging a cell without hubs into one with hubs makes the merged cell unknown.
+    const merged = decodeMapInView({
+      cells: [
+        { cell: [0, 0], n: 1, ids: ["x"], hubs: ["a"] },
+        { cell: [0, 0], n: 1, ids: ["y"] },
+      ],
+    });
+    expect(merged.cells[0]?.hubsKnown).toBe(false);
   });
 
   it("never sends a sensitive chip on its own (§7.6)", () => {
@@ -479,5 +527,37 @@ describe("misc", () => {
 
   it("runs on the mock adapter under Vitest", () => {
     expect(MAP_MOCK).toBe(true);
+  });
+});
+
+describe("map overlay data", () => {
+  it("labels cells with the approval note and gives each place variant its own image", async () => {
+    const { cellsGeoJSON, placeImageId, placesGeoJSON, happeningsGeoJSON, PLAN_IMPORTED_IMAGE } =
+      await import("../map-style");
+    const view = decodeMapInView({
+      places: [
+        ["p1", 0, 0, "park", "a", 0],
+        ["p2", 0, 0, "park", "a", FLAG.GENERIC],
+        ["p3", 0, 0, "park", "a", FLAG.PENDING],
+      ],
+      plans: [
+        ["e1", 0, 0, "member", "a", 0],
+        ["e2", 0, 0, "imported", "a", FLAG.IMPORTED],
+      ],
+      cells: [{ cell: [0, 0], n: 2, ids: ["c1", "c2"] }],
+    });
+    expect(cellsGeoJSON(view).features[0]?.properties.label).toBe(
+      "2 events in this area · exact spot shared after host approval",
+    );
+    const icons = placesGeoJSON(view).features.map((f) => f.properties.icon);
+    expect(new Set(icons).size).toBe(3);
+    expect(icons).toEqual([
+      placeImageId("park", "place"),
+      placeImageId("park", "generic"),
+      placeImageId("park", "pending"),
+    ]);
+    const plans = happeningsGeoJSON({ ...view, shows: [] }).features.map((f) => f.properties.icon);
+    expect(plans[1]).toBe(PLAN_IMPORTED_IMAGE);
+    expect(plans[0]).not.toBe(plans[1]);
   });
 });

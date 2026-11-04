@@ -3,25 +3,42 @@ import { useId } from "react";
 import { cn } from "@/lib/cn";
 import { placeKindInfo, type MapLayer } from "@/lib/map";
 
-import { PLACE_ICONS, PLAN_ICON, SHOW_ICON } from "./icons";
+import { PLACE_ICONS, PLAN_ICON, PLAN_IMPORTED_ICON, SHOW_ICON } from "./icons";
 
 /**
  * The map's pin shapes, small, for the list rows and the layer chips, so a row and its pin look
- * alike: rounded square (place), teardrop (plan), ticket (show and game), hatched dashed square
- * (approximate area). Shape plus icon, never colour alone.
+ * alike: rounded square (place; a corner dot for a general spot, dashed for one waiting for
+ * review), teardrop (plan; a feed icon and a double ring when imported), ticket (show and game),
+ * hatched dashed square (approximate area). Shape plus icon, never colour alone.
  */
 
-export function PlaceGlyph({ kind, generic = false }: { kind: string; generic?: boolean }) {
+export function PlaceGlyph({
+  kind,
+  generic = false,
+  pending = false,
+}: {
+  kind: string;
+  generic?: boolean;
+  pending?: boolean;
+}) {
   const Icon = PLACE_ICONS[placeKindInfo(kind).icon];
+  const isGeneric = generic && !pending;
   return (
     <span
       aria-hidden="true"
       className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-[10px] border-2 bg-surface",
-        generic ? "border-dashed border-text-3 text-text-2" : "border-text text-text",
+        "relative flex size-9 shrink-0 items-center justify-center rounded-[10px] border-2 bg-surface",
+        pending
+          ? "border-dashed border-text text-text"
+          : isGeneric
+            ? "border-text-3 text-text-2"
+            : "border-text text-text",
       )}
     >
       <Icon className="size-[18px]" strokeWidth={2.2} />
+      {isGeneric ? (
+        <span className="absolute -top-1 -right-1 size-2.5 rounded-full border-2 border-surface bg-text-3" />
+      ) : null}
     </span>
   );
 }
@@ -47,12 +64,17 @@ export function PlanGlyph({
           stroke="var(--color-surface)"
           strokeWidth="2"
         />
+        {imported && !small ? (
+          <circle cx="15" cy="15" r="9.5" fill="none" stroke="white" strokeWidth="1.25" />
+        ) : null}
       </svg>
-      {small ? null : (
-        <PLAN_ICON
-          className={cn("absolute top-[7px] size-4", imported ? "text-white" : "text-on-primary")}
-          strokeWidth={2.4}
+      {small ? null : imported ? (
+        <PLAN_IMPORTED_ICON
+          className="absolute top-[8.5px] size-[13px] text-white"
+          strokeWidth={2.6}
         />
+      ) : (
+        <PLAN_ICON className="absolute top-[7px] size-4 text-on-primary" strokeWidth={2.4} />
       )}
     </span>
   );

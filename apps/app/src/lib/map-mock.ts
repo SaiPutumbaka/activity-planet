@@ -147,6 +147,22 @@ interface MockPlace {
   city: MockCity;
 }
 
+/**
+ * Where a mock place's data came from, from its id: most are OpenStreetMap, some member-added and
+ * some through Geoapify (so the "Powered by Geoapify" credit shows). Every fourth member-added
+ * place stands in for the viewer's own place still waiting for review (§7.3).
+ */
+function mockSource(id: string): { source: "osm" | "user" | "geoapify"; pending: boolean } {
+  const seed = hashString(id);
+  if (seed % 5 === 0) return { source: "user", pending: seed % 4 === 0 };
+  return { source: seed % 7 === 0 ? "geoapify" : "osm", pending: false };
+}
+
+function sourceFlags(id: string): number {
+  const m = mockSource(id);
+  return (m.source === "geoapify" ? FLAG.GEOAPIFY : 0) | (m.pending ? FLAG.PENDING : 0);
+}
+
 function hubPlaces(city: MockCity, hubId: string): MockPlace[] {
   const rand = seeded(hashString(`${city.slug}|${hubId}`));
   const h = hashString(hubId);
@@ -158,17 +174,10 @@ function hubPlaces(city: MockCity, hubId: string): MockPlace[] {
     const kind = kinds[i % kinds.length]!;
     const [lng, lat] = near(city, rand);
     const hood = NEIGHBOURHOODS[Math.floor(rand() * NEIGHBOURHOODS.length)]!;
+    const id = `mock:place:${city.slug}:${hubId}:${i}`;
     return {
       city,
-      tuple: [
-        `mock:place:${city.slug}:${hubId}:${i}`,
-        lng,
-        lat,
-        kind,
-        hubId,
-        0,
-        `${hood} ${KIND_LABEL[kind] ?? "Spot"}`,
-      ],
+      tuple: [id, lng, lat, kind, hubId, sourceFlags(id), `${hood} ${KIND_LABEL[kind] ?? "Spot"}`],
     };
   });
 }
@@ -355,7 +364,9 @@ export function mockPlaceDetail(id: string): Record<string, unknown> | null {
   if (!place) return null;
   const [pid, lng, lat, kind, hub, flags, name] = place.tuple;
   const seed = hashString(pid);
-  const fromOsm = seed % 5 !== 0;
+  const isGeneric = (flags & FLAG.GENERIC) !== 0;
+  const origin = isGeneric ? { source: "osm" as const, pending: false } : mockSource(pid);
+  const fromOsm = origin.source !== "user";
   return {
     id: pid,
     name,
@@ -366,11 +377,11 @@ export function mockPlaceDetail(id: string): Record<string, unknown> | null {
     address: `${NEIGHBOURHOODS[seed % NEIGHBOURHOODS.length]} Road ${1 + (seed % 90)}, ${city.name}`,
     hours: seed % 3 === 0 ? null : seed % 3 === 1 ? "Mo-Fr 07:00-22:00; Sa-Su 09:00-20:00" : "24/7",
     website: seed % 2 === 0 ? `https://example.org/${city.slug}/${Number(idx) + 1}` : null,
-    source: fromOsm ? "osm" : "user",
+    source: origin.source,
     osm_ref: fromOsm ? `node/${1_000_000 + (seed % 9_000_000)}` : null,
     checked_at: new Date(Date.UTC(2026, 9, 1 + (seed % 28))).toISOString(),
-    reviewed: !fromOsm,
-    generic: (flags & FLAG.GENERIC) !== 0,
+    reviewed: origin.source === "user" && !origin.pending,
+    generic: isGeneric,
     adults_only: false,
     plans_here:
       seed % 2 === 0

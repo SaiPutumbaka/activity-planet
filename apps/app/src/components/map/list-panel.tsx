@@ -41,6 +41,7 @@ export function ListPanel({
   timeZone,
   onSelectPlace,
   onSelectCell,
+  onSelectEvent,
 }: {
   view: MapView;
   origin: LngLat;
@@ -55,6 +56,11 @@ export function ListPanel({
   timeZone: string;
   onSelectPlace: (id: string) => void;
   onSelectCell: (key: string) => void;
+  /**
+   * Signed-out visitors: a plan or show row opens the map's read-only sheet instead of the event
+   * page, which needs a session. Signed in, rows link straight to the event page.
+   */
+  onSelectEvent?: (id: string) => void;
 }) {
   const places = useMemo(() => sortByDistance(view.places, origin), [view.places, origin]);
   const plans = useMemo(() => sortByDistance(view.plans, origin), [view.plans, origin]);
@@ -116,7 +122,13 @@ export function ListPanel({
         </Section>
         <Section title="Plans" count={plans.length + cells.length}>
           {plans.map((f) => (
-            <EventRow key={f.id} f={f} origin={origin} timeZone={timeZone} />
+            <EventRow
+              key={f.id}
+              f={f}
+              origin={origin}
+              timeZone={timeZone}
+              onSelect={onSelectEvent}
+            />
           ))}
           {cells.map((c) => (
             <CellRow key={c.key} cell={c} origin={origin} onSelect={onSelectCell} />
@@ -124,10 +136,16 @@ export function ListPanel({
         </Section>
         <Section title="Shows and games" count={shows.length}>
           {shows.map((f) => (
-            <EventRow key={f.id} f={f} origin={origin} timeZone={timeZone} />
+            <EventRow
+              key={f.id}
+              f={f}
+              origin={origin}
+              timeZone={timeZone}
+              onSelect={onSelectEvent}
+            />
           ))}
         </Section>
-        <MapAttribution className="pt-4" />
+        <MapAttribution className="pt-4" geoapify={view.places.some((f) => f.geoapify)} />
       </div>
     </section>
   );
@@ -177,7 +195,7 @@ function PlaceRow({
   return (
     <li>
       <button type="button" className={rowClass} onClick={() => onSelect(f.id)}>
-        <PlaceGlyph kind={f.type} generic={f.generic} />
+        <PlaceGlyph kind={f.type} generic={f.generic} pending={f.pending} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[15px] font-semibold">{f.name}</span>
           <span className="block truncate text-[13px] text-text-2">
@@ -197,23 +215,44 @@ function when(d: Date | null, timeZone: string): string {
   return `${formatRelativeDay(d, timeZone)} · ${formatTime(d, timeZone)}`;
 }
 
-function EventRow({ f, origin, timeZone }: { f: MapFeature; origin: LngLat; timeZone: string }) {
+function EventRow({
+  f,
+  origin,
+  timeZone,
+  onSelect,
+}: {
+  f: MapFeature;
+  origin: LngLat;
+  timeZone: string;
+  onSelect?: (id: string) => void;
+}) {
   const meta = [
     when(f.startsAt, timeZone),
     f.kind === "plan" && f.imported ? "Listed from a feed" : "",
   ]
     .filter(Boolean)
     .join(" · ");
+  const body = (
+    <>
+      {f.kind === "show" ? <ShowGlyph /> : <PlanGlyph imported={f.imported} />}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[15px] font-semibold">{f.name}</span>
+        {meta ? <span className="block truncate text-[13px] text-text-2">{meta}</span> : null}
+      </span>
+      <Distance from={origin} to={f} />
+    </>
+  );
   return (
     <li>
-      <Link to="/events/$id" params={{ id: f.id }} className={rowClass}>
-        {f.kind === "show" ? <ShowGlyph /> : <PlanGlyph imported={f.imported} />}
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15px] font-semibold">{f.name}</span>
-          {meta ? <span className="block truncate text-[13px] text-text-2">{meta}</span> : null}
-        </span>
-        <Distance from={origin} to={f} />
-      </Link>
+      {onSelect ? (
+        <button type="button" className={rowClass} onClick={() => onSelect(f.id)}>
+          {body}
+        </button>
+      ) : (
+        <Link to="/events/$id" params={{ id: f.id }} className={rowClass}>
+          {body}
+        </Link>
+      )}
     </li>
   );
 }

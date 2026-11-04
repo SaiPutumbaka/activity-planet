@@ -4,22 +4,28 @@ import {
   NavigationControl,
   type GeoJSONSource,
   type MapLayerMouseEvent,
+  type SymbolLayerSpecification,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import "./map-canvas.css";
 
 import { MAP_ICON_KEYS, PLACES_MIN_ZOOM, type BBox, type Camera, type MapView } from "@/lib/map";
 import {
+  CLUSTER_HAPPEN_IMAGE,
+  CLUSTER_PLACES_IMAGE,
   HATCH_IMAGE,
   LAYER,
   MAP_FONT,
   MAP_STYLE_URLS,
   PIN_PALETTES,
   PIN_RATIO,
+  PLACE_SHAPE,
   PLAN_IMAGE,
   PLAN_IMPORTED_IMAGE,
   SHOW_IMAGE,
   SOURCE,
   cellsGeoJSON,
+  drawClusterBadge,
   drawHatch,
   drawPin,
   happeningsGeoJSON,
@@ -28,7 +34,7 @@ import {
 } from "@/lib/map-style";
 import type { ResolvedTheme } from "@/lib/theme";
 
-import { PLACE_ICONS, PLAN_ICON, SHOW_ICON } from "./icons";
+import { PLACE_ICONS, PLAN_ICON, PLAN_IMPORTED_ICON, SHOW_ICON } from "./icons";
 
 /**
  * The MapLibre canvas (D-038, §9 slice 8). Loaded with React.lazy from the map route only, so
@@ -36,8 +42,10 @@ import { PLACE_ICONS, PLAN_ICON, SHOW_ICON } from "./icons";
  * mount; a theme change swaps the style and re-adds the overlay on `style.load`.
  *
  * Overlay: two clustered GeoJSON sources (places, radius 48 to zoom 15; plans and shows), and the
- * approved-only cells as hatched, dashed squares labelled "N events in this area". Each type has
- * its own shape plus an icon (rounded square, teardrop, ticket), so nothing depends on colour.
+ * approved-only cells as hatched, dashed squares labelled "N events in this area · exact spot
+ * shared after host approval". Each type has its own shape plus an icon (rounded square,
+ * teardrop, ticket), and clusters reuse the shapes (rounded square, teardrop), so nothing depends
+ * on colour. The zoom buttons take the app's surface and text colours (map-canvas.css).
  * Attribution is drawn by the route (always visible, no tap), so the built-in control is off.
  */
 export interface MapCanvasProps {
@@ -228,6 +236,7 @@ export default function MapCanvas(props: MapCanvasProps) {
           return <Icon key={key} data-icon={key} width={24} height={24} strokeWidth={2.2} />;
         })}
         <PLAN_ICON data-icon="plan" width={24} height={24} strokeWidth={2.2} />
+        <PLAN_IMPORTED_ICON data-icon="plan-imported" width={24} height={24} strokeWidth={2.4} />
         <SHOW_ICON data-icon="show" width={24} height={24} strokeWidth={2.2} />
       </div>
     </>
@@ -252,15 +261,29 @@ async function addImages(map: MapLibreMap, theme: ResolvedTheme, icons: HTMLElem
   };
   for (const key of MAP_ICON_KEYS) {
     const svg = svgFor(icons, key);
-    add(placeImageId(key, false), () => drawPin("place", svg, palette));
-    add(placeImageId(key, true), () => drawPin("place-generic", svg, palette));
+    for (const variant of ["place", "generic", "pending"] as const) {
+      add(placeImageId(key, variant), () => drawPin(PLACE_SHAPE[variant], svg, palette));
+    }
   }
   add(PLAN_IMAGE, () => drawPin("plan", svgFor(icons, "plan"), palette));
-  add(PLAN_IMPORTED_IMAGE, () => drawPin("plan-imported", svgFor(icons, "plan"), palette));
+  add(PLAN_IMPORTED_IMAGE, () => drawPin("plan-imported", svgFor(icons, "plan-imported"), palette));
   add(SHOW_IMAGE, () => drawPin("show", svgFor(icons, "show"), palette));
   add(HATCH_IMAGE, () => drawHatch(palette));
+  add(CLUSTER_PLACES_IMAGE, () => drawClusterBadge("places", palette));
+  add(CLUSTER_HAPPEN_IMAGE, () => drawClusterBadge("happen", palette));
   await Promise.allSettled(jobs);
 }
+
+const CLUSTER_LAYOUT: SymbolLayerSpecification["layout"] = {
+  "icon-size": ["step", ["get", "point_count"], 1, 20, 1.15, 100, 1.3],
+  "icon-allow-overlap": true,
+  "icon-ignore-placement": true,
+  "text-field": ["get", "point_count_abbreviated"],
+  "text-font": MAP_FONT,
+  "text-size": 13,
+  "text-allow-overlap": true,
+  "text-ignore-placement": true,
+};
 
 function addOverlay(map: MapLibreMap, theme: ResolvedTheme) {
   const p = PIN_PALETTES[theme];
@@ -313,40 +336,25 @@ function addOverlay(map: MapLibreMap, theme: ResolvedTheme) {
         "text-field": ["get", "label"],
         "text-font": MAP_FONT,
         "text-size": 12,
-        "text-max-width": 8,
+        "text-max-width": 11,
       },
       paint: { "text-color": p.ink, "text-halo-color": p.halo, "text-halo-width": 1.5 },
     });
   }
 
   // Places: hidden below PLACES_MIN_ZOOM (the route shows "Zoom in to see places" there).
+  // Clusters: the count over a badge in the kind's own shape (rounded square for places,
+  // teardrop for plans and shows), a little larger as the count grows.
   if (!has(LAYER.placesCluster)) {
     map.addLayer({
       id: LAYER.placesCluster,
-      type: "circle",
-      source: SOURCE.places,
-      minzoom: PLACES_MIN_ZOOM,
-      filter: ["has", "point_count"],
-      paint: {
-        "circle-color": p.clusterPlaces,
-        "circle-radius": ["step", ["get", "point_count"], 15, 20, 19, 100, 24],
-        "circle-stroke-color": p.halo,
-        "circle-stroke-width": 2,
-      },
-    });
-  }
-  if (!has(LAYER.placesCount)) {
-    map.addLayer({
-      id: LAYER.placesCount,
       type: "symbol",
       source: SOURCE.places,
       minzoom: PLACES_MIN_ZOOM,
       filter: ["has", "point_count"],
       layout: {
-        "text-field": ["get", "point_count_abbreviated"],
-        "text-font": MAP_FONT,
-        "text-size": 13,
-        "text-allow-overlap": true,
+        ...CLUSTER_LAYOUT,
+        "icon-image": CLUSTER_PLACES_IMAGE,
       },
       paint: { "text-color": p.clusterPlacesInk },
     });
@@ -363,7 +371,6 @@ function addOverlay(map: MapLibreMap, theme: ResolvedTheme) {
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
       },
-      paint: { "icon-opacity": ["case", ["get", "pending"], 0.55, 1] },
     });
   }
 
@@ -371,28 +378,12 @@ function addOverlay(map: MapLibreMap, theme: ResolvedTheme) {
   if (!has(LAYER.happenCluster)) {
     map.addLayer({
       id: LAYER.happenCluster,
-      type: "circle",
-      source: SOURCE.happenings,
-      filter: ["has", "point_count"],
-      paint: {
-        "circle-color": p.plan,
-        "circle-radius": ["step", ["get", "point_count"], 15, 20, 19, 100, 24],
-        "circle-stroke-color": p.halo,
-        "circle-stroke-width": 2,
-      },
-    });
-  }
-  if (!has(LAYER.happenCount)) {
-    map.addLayer({
-      id: LAYER.happenCount,
       type: "symbol",
       source: SOURCE.happenings,
       filter: ["has", "point_count"],
       layout: {
-        "text-field": ["get", "point_count_abbreviated"],
-        "text-font": MAP_FONT,
-        "text-size": 13,
-        "text-allow-overlap": true,
+        ...CLUSTER_LAYOUT,
+        "icon-image": CLUSTER_HAPPEN_IMAGE,
       },
       paint: { "text-color": p.planInk },
     });

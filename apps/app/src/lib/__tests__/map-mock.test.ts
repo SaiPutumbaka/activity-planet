@@ -168,6 +168,27 @@ describe("mock map adapter", () => {
     expect(mockPlaceDetail("mock:place:berlin:hub-a:99")).toBeNull();
   });
 
+  it("flags Geoapify and pending places consistently with their detail", () => {
+    const places = MOCK_CITIES.flatMap(
+      (city) =>
+        decodeMapInView(mockMapInView(argsAround(city, { p_hub_ids: ["hub-a", "hub-b", "hub-c"] })))
+          .places,
+    );
+    const geo = places.filter((p) => p.geoapify);
+    const pending = places.filter((p) => p.pending);
+    expect(geo.length).toBeGreaterThan(0);
+    expect(pending.length).toBeGreaterThan(0);
+    for (const p of geo) expect(decodePlaceDetail(mockPlaceDetail(p.id))?.source).toBe("geoapify");
+    for (const p of pending) {
+      const d = decodePlaceDetail(mockPlaceDetail(p.id));
+      expect(d?.source).toBe("user");
+      expect(d?.reviewed).toBe(false);
+    }
+    for (const p of places.filter((x) => !x.geoapify)) {
+      expect(decodePlaceDetail(mockPlaceDetail(p.id))?.source).not.toBe("geoapify");
+    }
+  });
+
   it("works through the adapter", async () => {
     const adapter = await getMapAdapter();
     const v = decodeMapInView(await adapter.mapInView(argsAround(BERLIN)));
