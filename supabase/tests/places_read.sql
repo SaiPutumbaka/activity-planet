@@ -1,11 +1,13 @@
 -- ============================================================================
--- Staging check for migration 20261124000100_places_read.sql (D-041, hub map
+-- Staging check for migrations 20261124000100_places_read.sql and
+-- 20261124000200_places_read_fixes.sql (D-041, hub map
 -- slice 6: map_in_view, places_in_view, place_detail). One transaction with
 -- fixture places and events in the Southern Ocean (no real places there) and
 -- across the antimeridian, asserts with DO blocks that raise on failure, then
 -- rolls everything back. Prints pass/fail only, never rows.
 -- Run as the staging_file of a staging_only migrate.yml run.
---   1 Static: schema_version 2.25; the three RPCs and map_view_hubs run as
+--   1 Static: schema_version 2.26 (migration 30, 20261124000200, rebuilt
+--     places_in_view); the three RPCs and map_view_hubs run as
 --     the caller, the two "mine" helpers as definer; all of them STABLE or
 --     IMMUTABLE (so none can write: no viewing logs); anon and
 --     authenticated execute them.
@@ -247,8 +249,8 @@ do $$
 declare
   r record;
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.25' then
-    raise exception 'FAIL schema_version is not 2.25';
+  if (select value from public.meta where key = 'schema_version') <> '2.26' then
+    raise exception 'FAIL schema_version is not 2.26';
   end if;
   for r in
     select p.oid::regprocedure as sig, p.proname, p.prosecdef, p.provolatile
