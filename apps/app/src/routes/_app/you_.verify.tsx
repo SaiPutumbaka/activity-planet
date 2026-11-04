@@ -15,6 +15,7 @@ import {
   sendVerificationCode,
   verificationErrorMessage,
 } from "@/lib/verification";
+import { GSU_DISCLAIMER, isGsuBranded } from "@/lib/chapters";
 
 const appRoute = getRouteApi("/_app");
 
@@ -107,7 +108,9 @@ function VerifyPage() {
   });
 
   const existing = membership.data;
-  const orgName = existing?.organizations?.name ?? "Georgia State University";
+  // Partner schools are optional (D-040): no school is named until the person has verified one.
+  const orgName = existing?.organizations?.name ?? verified?.orgName ?? null;
+  const gsu = isGsuBranded(orgName, existing?.org_campuses?.name, verified?.campusName);
 
   let body: ReactNode;
   if (verified) {
@@ -128,7 +131,7 @@ function VerifyPage() {
   } else if (existing) {
     body = (
       <VerifiedCard
-        orgName={orgName}
+        orgName={orgName ?? "your school"}
         campusName={existing.org_campuses?.name ?? null}
         justNow={false}
       />
@@ -182,17 +185,16 @@ function VerifyPage() {
               Verify your school email
             </h2>
             <p className="text-text-2">
-              The campus space is where {orgName} students, staff and alums find chapters, campus
-              events and the week's free food, and only verified members see it. It's optional:
-              everything else in Activity Planet is open to everyone. Verify with the email your
-              school gave you and the space opens up; it takes about a minute.
+              A campus space is where a partner school's students, staff and alums find chapters,
+              campus events and the week's free food, and only verified members see it. It's
+              optional: everything else in Activity Planet is open to everyone. Verify with the
+              email your school gave you and, if your school has a space, it opens up; it takes
+              about a minute.
             </p>
           </section>
         ) : null}
         {body}
-        <p className="pt-2 text-center text-[12px] text-text-3">
-          Not affiliated with or endorsed by Georgia State University.
-        </p>
+        {gsu ? <p className="pt-2 text-center text-[12px] text-text-3">{GSU_DISCLAIMER}</p> : null}
       </main>
     </>
   );

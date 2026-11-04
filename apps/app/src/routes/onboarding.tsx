@@ -7,22 +7,22 @@ import { ageOn } from "@ap/core/validation";
 import {
   AboutStep,
   AffiliationStep,
-  AreaStep,
   BirthdayStep,
   HubsStep,
+  LocationStep,
   UnderageScreen,
 } from "@/components/onboarding/steps";
 import { authErrorMessage, getSession, rpcErrorMessage, signOut } from "@/lib/auth";
 import { cn } from "@/lib/cn";
-import { areasQuery, clearFeedLocation } from "@/lib/location";
+import { areaErrorMessage, areasQuery, clearFeedLocation, type HomeChoice } from "@/lib/location";
 import { campusesQuery, getProfile, hubCatalogQuery, profileQuery } from "@/lib/profile";
 import { supabase } from "@/lib/supabase";
 
 /**
- * First run: birthday (18+ gate), name and handle, hubs, home area, optional affiliation. Everything
- * is held in local state and written in one transaction by complete_onboarding at the end, so an
- * abandoned flow leaves nothing behind (the one exception is the city waitlist, which is saved
- * when someone outside Atlanta asks for it). No step asks for device location (D-036).
+ * First run: birthday (18+ gate), name and handle, hubs, where you are (anywhere in the world,
+ * D-040), optional affiliation. Everything is held in local state and written in one transaction by
+ * complete_onboarding at the end, so an abandoned flow leaves nothing behind. Device location is
+ * asked for only when "Use my location" is tapped (D-036).
  */
 export const Route = createFileRoute("/onboarding")({
   beforeLoad: async ({ context: { queryClient } }) => {
@@ -47,8 +47,15 @@ export const Route = createFileRoute("/onboarding")({
   component: OnboardingPage,
 });
 
-type Step = "birthday" | "about" | "hubs" | "area" | "affiliation";
-const STEPS: Step[] = ["birthday", "about", "hubs", "area", "affiliation"];
+type Step = "birthday" | "about" | "hubs" | "location" | "affiliation";
+const STEPS: Step[] = ["birthday", "about", "hubs", "location", "affiliation"];
+
+const LOCATION_ERRORS = [
+  "area_not_found",
+  "invalid_coordinates",
+  "label_too_long",
+  "location_conflict",
+];
 
 function OnboardingPage() {
   const { session, profile } = Route.useRouteContext();
@@ -61,8 +68,9 @@ function OnboardingPage() {
   const [firstName, setFirstName] = useState(profile.first_name);
   const [handle, setHandle] = useState("");
   const [hubIds, setHubIds] = useState<string[]>([]);
-  // The home area is owner-only (profile_private) and is first saved by complete_onboarding.
-  const [areaId, setAreaId] = useState<string | null>(null);
+  // The home is owner-only (profile_private) and is first saved by complete_onboarding.
+  const [home, setHome] = useState<HomeChoice | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [campusId, setCampusId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<"skip" | "finish" | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -89,8 +97,12 @@ function OnboardingPage() {
       p_birth_date: birthDate,
       p_hub_ids: hubIds,
       ...(chosenCampus ? { p_campus_id: chosenCampus } : {}),
-      // Null lets the server keep a saved area or fall back to Atlanta.
-      ...(areaId ? { p_area_id: areaId } : {}),
+      // A point anywhere in the world (with its label) or a named area; never both.
+      ...(home?.kind === "point"
+        ? { p_lat: home.lat, p_lng: home.lng, ...(home.label ? { p_label: home.label } : {}) }
+        : home?.kind === "area"
+          ? { p_area_id: home.areaId }
+          : {}),
     });
     setSubmitting(null);
     if (error) {
@@ -99,10 +111,11 @@ function OnboardingPage() {
         setUnderage(true);
         return;
       }
-      if (message.includes("area_not_found")) {
-        setSubmitError("Pick your area again.");
-        setAreaId(null);
-        setStep("area");
+      const locationCode = LOCATION_ERRORS.find((code) => message.includes(code));
+      if (locationCode) {
+        setLocationError(areaErrorMessage({ message: locationCode }));
+        setHome(null);
+        setStep("location");
         return;
       }
       if (message.includes("handle")) {
@@ -194,14 +207,16 @@ function OnboardingPage() {
             initialSelected={hubIds}
             onContinue={(ids) => {
               setHubIds(ids);
-              setStep("area");
+              setStep("location");
             }}
           />
-        ) : step === "area" ? (
-          <AreaStep
-            initialAreaId={areaId}
-            onContinue={(id) => {
-              setAreaId(id);
+        ) : step === "location" ? (
+          <LocationStep
+            initial={home}
+            error={locationError}
+            onContinue={(choice) => {
+              setHome(choice);
+              setLocationError(null);
               setSubmitError(null);
               setStep("affiliation");
             }}

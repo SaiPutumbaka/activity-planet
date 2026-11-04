@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 23 (schema_version 2.19). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 25 (schema_version 2.21). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -308,6 +308,45 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      collector_regions: {
+        Row: {
+          created_at: string;
+          first_user_at: string | null;
+          home_count: number;
+          id: string;
+          label: string | null;
+          last_discovery_at: string | null;
+          point: unknown;
+          priority: number;
+          radius_km: number;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          first_user_at?: string | null;
+          home_count?: number;
+          id?: string;
+          label?: string | null;
+          last_discovery_at?: string | null;
+          point: unknown;
+          priority?: number;
+          radius_km?: number;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          first_user_at?: string | null;
+          home_count?: number;
+          id?: string;
+          label?: string | null;
+          last_discovery_at?: string | null;
+          point?: unknown;
+          priority?: number;
+          radius_km?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       email_verification_codes: {
         Row: {
@@ -910,6 +949,8 @@ export type Database = {
           created_at: string;
           cron_minute: number;
           default_hub_id: string | null;
+          denylisted: boolean;
+          discovered_from: string | null;
           enabled: boolean;
           homepage_url: string | null;
           id: string;
@@ -922,6 +963,11 @@ export type Database = {
           last_sample: Json | null;
           last_stats: Json | null;
           name: string;
+          partner: boolean;
+          region_label: string | null;
+          region_point: unknown;
+          region_radius_km: number | null;
+          robots_ok_at: string | null;
           slug: string;
           updated_at: string;
           url: string;
@@ -932,6 +978,8 @@ export type Database = {
           created_at?: string;
           cron_minute?: number;
           default_hub_id?: string | null;
+          denylisted?: boolean;
+          discovered_from?: string | null;
           enabled?: boolean;
           homepage_url?: string | null;
           id?: string;
@@ -944,6 +992,11 @@ export type Database = {
           last_sample?: Json | null;
           last_stats?: Json | null;
           name: string;
+          partner?: boolean;
+          region_label?: string | null;
+          region_point?: unknown;
+          region_radius_km?: number | null;
+          robots_ok_at?: string | null;
           slug: string;
           updated_at?: string;
           url: string;
@@ -954,6 +1007,8 @@ export type Database = {
           created_at?: string;
           cron_minute?: number;
           default_hub_id?: string | null;
+          denylisted?: boolean;
+          discovered_from?: string | null;
           enabled?: boolean;
           homepage_url?: string | null;
           id?: string;
@@ -966,6 +1021,11 @@ export type Database = {
           last_sample?: Json | null;
           last_stats?: Json | null;
           name?: string;
+          partner?: boolean;
+          region_label?: string | null;
+          region_point?: unknown;
+          region_radius_km?: number | null;
+          robots_ok_at?: string | null;
           slug?: string;
           updated_at?: string;
           url?: string;
@@ -1775,6 +1835,11 @@ export type Database = {
           email: string;
           feed_radius_km: number;
           home_area_id: string | null;
+          home_count_noted_at: string | null;
+          home_label: string | null;
+          home_point: unknown;
+          home_region_noted_at: string | null;
+          home_set_at: string | null;
           last_seen_at: string | null;
           location: unknown;
           location_text: string;
@@ -1788,6 +1853,11 @@ export type Database = {
           email: string;
           feed_radius_km?: number;
           home_area_id?: string | null;
+          home_count_noted_at?: string | null;
+          home_label?: string | null;
+          home_point?: unknown;
+          home_region_noted_at?: string | null;
+          home_set_at?: string | null;
           last_seen_at?: string | null;
           location?: unknown;
           location_text?: string;
@@ -1801,6 +1871,11 @@ export type Database = {
           email?: string;
           feed_radius_km?: number;
           home_area_id?: string | null;
+          home_count_noted_at?: string | null;
+          home_label?: string | null;
+          home_point?: unknown;
+          home_region_noted_at?: string | null;
+          home_set_at?: string | null;
           last_seen_at?: string | null;
           location?: unknown;
           location_text?: string;
@@ -2356,6 +2431,10 @@ export type Database = {
         };
       };
       clear_foreign_image_urls: { Args: never; Returns: Json };
+      collector_note_home_point: {
+        Args: { p_label: string; p_old_point?: unknown; p_point: unknown };
+        Returns: boolean;
+      };
       complete_onboarding: {
         Args: {
           p_area_id?: string;
@@ -2364,6 +2443,9 @@ export type Database = {
           p_first_name: string;
           p_handle: string;
           p_hub_ids: string[];
+          p_label?: string;
+          p_lat?: number;
+          p_lng?: number;
           p_org_id?: string;
         };
         Returns: {
@@ -2973,6 +3055,15 @@ export type Database = {
       };
       set_home_area: {
         Args: { p_area_id: string; p_radius_km?: number };
+        Returns: Json;
+      };
+      set_home_location: {
+        Args: {
+          p_label?: string;
+          p_lat: number;
+          p_lng: number;
+          p_radius_km?: number;
+        };
         Returns: Json;
       };
       set_project_url: { Args: { p_url: string }; Returns: Json };

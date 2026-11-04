@@ -12,7 +12,8 @@
     "./calendar": "./src/calendar/ics.ts",
     "./site": "./src/config/site.ts",
     "./feed": "./src/feed/index.ts",
-    "./imports": "./src/imports/index.ts"
+    "./imports": "./src/imports/index.ts",
+    "./places": "./src/places/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

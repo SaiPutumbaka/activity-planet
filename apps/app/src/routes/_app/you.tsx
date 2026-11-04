@@ -138,13 +138,19 @@ function YouPage() {
 
         <section className="flex flex-col gap-2">
           <h3 className="text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">
-            Your area
+            Your location
           </h3>
           <div className="divide-y divide-border overflow-hidden rounded-card border border-border">
             <ButtonRow
-              label="Home area"
+              label="Home location"
               hint="Home shows plans around here first. Not shown on your profile."
-              value={origin.homeArea?.name ?? "Atlanta"}
+              value={
+                radius.isPending ? (
+                  <Skeleton className="h-4 w-20" />
+                ) : (
+                  (origin.homeLabel ?? (origin.homePoint ? "Your location" : "Not set"))
+                )
+              }
               onClick={() => setAreaSheetOpen(true)}
             />
             <ButtonRow
@@ -179,7 +185,7 @@ function YouPage() {
                   ? "Try again in a moment"
                   : verifiedSpace
                     ? "Verified with your school email"
-                    : "Student, staff or alum? Verify a school email for your campus space"
+                    : "Student, staff or alum? If your school has a campus space, verify your school email"
               }
             />
           </div>
