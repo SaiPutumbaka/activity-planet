@@ -1,0 +1,27 @@
+{
+  "name": "@ap/collector",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Nearby-event collector (D-040): free official APIs, public ICS/RSS feeds and schema.org Event data, normalized for import_upsert_batch.",
+  "scripts": {
+    "collect": "node src/cli.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "domhandler": "^6.0.1",
+    "htmlparser2": "^12.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.5",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.5"
+  }
+}

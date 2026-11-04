@@ -1,0 +1,60 @@
+{
+  "_embedded": {
+    "events": [
+      {
+        "name": "Hawks vs. Celtics",
+        "type": "event",
+        "id": "vvG1abc123",
+        "url": "https://www.ticketmaster.com/event/0E00ABC",
+        "images": [{ "url": "https://s1.ticketm.net/dam/a/x.jpg" }],
+        "dates": {
+          "start": {
+            "localDate": "2026-11-20",
+            "localTime": "19:30:00",
+            "dateTime": "2026-11-21T00:30:00Z"
+          },
+          "timezone": "America/New_York",
+          "status": { "code": "onsale" }
+        },
+        "classifications": [{ "segment": { "name": "Sports" }, "genre": { "name": "Basketball" } }],
+        "priceRanges": [{ "type": "standard", "currency": "USD", "min": 24.5, "max": 300 }],
+        "_embedded": {
+          "venues": [
+            {
+              "name": "State Farm Arena",
+              "address": { "line1": "1 State Farm Drive" },
+              "city": { "name": "Atlanta" },
+              "location": { "longitude": "-84.396389", "latitude": "33.757222" },
+              "timezone": "America/New_York"
+            }
+          ]
+        }
+      },
+      {
+        "name": "Concert Cancelled",
+        "id": "vvG1def456",
+        "url": "https://www.ticketmaster.com/event/0E00DEF",
+        "dates": {
+          "start": { "localDate": "2026-11-22", "localTime": "20:00:00" },
+          "timezone": "America/New_York",
+          "status": { "code": "cancelled" }
+        },
+        "_embedded": {
+          "venues": [
+            {
+              "name": "The Tabernacle",
+              "location": { "longitude": "-84.3915", "latitude": "33.7587" }
+            }
+          ]
+        }
+      },
+      {
+        "name": "Date TBD Show",
+        "id": "vvG1tbd",
+        "url": "https://www.ticketmaster.com/event/0E00TBD",
+        "dates": { "start": { "dateTBD": true }, "status": { "code": "onsale" } }
+      }
+    ]
+  },
+  "page": { "size": 200, "totalElements": 450, "totalPages": 3, "number": 0 }
+}

@@ -1,0 +1,15 @@
+{
+  "features": [
+    {
+      "attributes": {
+        "OBJECTID": 7,
+        "NAME": "Neighborhood Cleanup",
+        "START_DATE": 1794751200000,
+        "END_DATE": 1794762000000,
+        "LOCATION": "Adair Park",
+        "URL": "https://city.example.gov/cleanup"
+      },
+      "geometry": { "x": -84.4086, "y": 33.7287 }
+    }
+  ]
+}

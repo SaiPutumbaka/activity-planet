@@ -3,3 +3,6 @@ pnpm-lock.yaml
 **/dist
 **/.next
 docs/design/boards
+# Collector fixtures are real-world-shaped pages and feeds; keep them as authored.
+packages/collector/test/fixtures
+packages/collector/.cache

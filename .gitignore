@@ -20,3 +20,6 @@ legacy/v1/node_modules/
 # Agent worktrees created by Claude Code workflows
 .claude/worktrees/
 deno.lock
+
+# Collector conditional-GET cache (kept between CI runs by actions/cache, never committed)
+packages/collector/.cache/

@@ -1,0 +1,194 @@
+{
+  "$comment": "Atlanta seeds (D-040). Public calendars only; each is read through robots.txt, the denylist and the noindex/login checks, so a wrong or blocked URL costs one request and shows up as a skip in the dry run. URLs were written from public knowledge and have not been opened from this environment (no outbound access): every seed says so in its note until a person checks it. Georgia State is left out here because the D-037 importer already reads its Localist calendar and PIN.",
+  "region": {
+    "id": "atl",
+    "label": "Atlanta metro",
+    "lat": 33.749,
+    "lng": -84.388,
+    "radiusKm": 60,
+    "timezone": "America/New_York"
+  },
+  "seeds": [
+    {
+      "id": "atl-fulton-library",
+      "kind": "page",
+      "url": "https://www.fulcolibrary.org/events/",
+      "name": "Fulton County Library System events",
+      "attribution": "Listed from the Fulton County Library System public calendar (fulcolibrary.org).",
+      "host_org": "Fulton County Library System",
+      "note": "Library system. Unverified URL; discovery looks for schema.org events and iCal links."
+    },
+    {
+      "id": "atl-dekalb-library",
+      "kind": "page",
+      "url": "https://dekalblibrary.org/events/",
+      "name": "DeKalb County Public Library events",
+      "attribution": "Listed from the DeKalb County Public Library public calendar (dekalblibrary.org).",
+      "host_org": "DeKalb County Public Library",
+      "note": "Library system. Unverified URL."
+    },
+    {
+      "id": "atl-gwinnett-library",
+      "kind": "page",
+      "url": "https://www.gwinnettpl.org/events/",
+      "name": "Gwinnett County Public Library events",
+      "attribution": "Listed from the Gwinnett County Public Library public calendar (gwinnettpl.org).",
+      "host_org": "Gwinnett County Public Library",
+      "note": "Library system. Unverified URL."
+    },
+    {
+      "id": "atl-cobb-library",
+      "kind": "page",
+      "url": "https://www.cobbcounty.org/library/events",
+      "name": "Cobb County Public Library events",
+      "attribution": "Listed from the Cobb County Public Library public calendar (cobbcounty.org).",
+      "host_org": "Cobb County Public Library",
+      "note": "Library system. Unverified URL."
+    },
+    {
+      "id": "atl-city-parks",
+      "kind": "page",
+      "url": "https://www.atlantaga.gov/government/departments/parks-recreation",
+      "name": "City of Atlanta Parks and Recreation",
+      "attribution": "Listed from the City of Atlanta Department of Parks and Recreation (atlantaga.gov).",
+      "host_org": "City of Atlanta Parks and Recreation",
+      "note": "Parks department. Unverified URL; the department page links its calendar."
+    },
+    {
+      "id": "atl-dekalb-parks",
+      "kind": "page",
+      "url": "https://www.dekalbcountyga.gov/parks",
+      "name": "DeKalb County Recreation, Parks and Cultural Affairs",
+      "attribution": "Listed from DeKalb County Recreation, Parks and Cultural Affairs (dekalbcountyga.gov).",
+      "host_org": "DeKalb County Parks",
+      "note": "Parks department. Unverified URL."
+    },
+    {
+      "id": "atl-beltline",
+      "kind": "page",
+      "url": "https://beltline.org/events/",
+      "name": "Atlanta BeltLine events",
+      "attribution": "Listed from the Atlanta BeltLine public events calendar (beltline.org).",
+      "host_org": "Atlanta BeltLine",
+      "note": "Unverified URL. WordPress calendars usually expose an ?ical=1 export, which discovery picks up."
+    },
+    {
+      "id": "atl-high-museum",
+      "kind": "page",
+      "url": "https://high.org/events/",
+      "name": "High Museum of Art events",
+      "attribution": "Listed from the High Museum of Art public events calendar (high.org).",
+      "host_org": "High Museum of Art",
+      "note": "Museum. Unverified URL."
+    },
+    {
+      "id": "atl-history-center",
+      "kind": "page",
+      "url": "https://www.atlantahistorycenter.com/events/",
+      "name": "Atlanta History Center events",
+      "attribution": "Listed from the Atlanta History Center public events calendar (atlantahistorycenter.com).",
+      "host_org": "Atlanta History Center",
+      "note": "Museum. Unverified URL."
+    },
+    {
+      "id": "atl-fernbank",
+      "kind": "page",
+      "url": "https://www.fernbankmuseum.org/events/",
+      "name": "Fernbank Museum events",
+      "attribution": "Listed from the Fernbank Museum public events calendar (fernbankmuseum.org).",
+      "host_org": "Fernbank Museum",
+      "note": "Museum. Unverified URL."
+    },
+    {
+      "id": "atl-civil-rights-center",
+      "kind": "page",
+      "url": "https://www.civilandhumanrights.org/events/",
+      "name": "National Center for Civil and Human Rights events",
+      "attribution": "Listed from the National Center for Civil and Human Rights public calendar (civilandhumanrights.org).",
+      "host_org": "National Center for Civil and Human Rights",
+      "note": "Museum. Unverified URL."
+    },
+    {
+      "id": "atl-georgia-tech",
+      "kind": "page",
+      "url": "https://www.calendar.gatech.edu/rss-feeds",
+      "name": "Georgia Tech public calendar",
+      "attribution": "Listed from the Georgia Tech public events calendar (calendar.gatech.edu).",
+      "host_org": "Georgia Tech",
+      "categories": ["Campus"],
+      "note": "Georgia Tech category RSS index (URL from D-039); discovery follows the feed links. Only feeds whose items carry event times yield items."
+    },
+    {
+      "id": "atl-emory",
+      "kind": "page",
+      "url": "https://events.emory.edu/",
+      "name": "Emory University public calendar",
+      "attribution": "Listed from the Emory University public events calendar (events.emory.edu).",
+      "host_org": "Emory University",
+      "categories": ["Campus"],
+      "note": "University public calendar. Unverified URL; D-039 expects a Trumba feed URL from Emory Communications, which should replace this page seed (kind ics or rss) once given."
+    },
+    {
+      "id": "atl-kennesaw-state",
+      "kind": "page",
+      "url": "https://calendar.kennesaw.edu/",
+      "name": "Kennesaw State University public calendar",
+      "attribution": "Listed from the Kennesaw State University public events calendar (calendar.kennesaw.edu).",
+      "host_org": "Kennesaw State University",
+      "categories": ["Campus"],
+      "note": "University public calendar (Localist per D-039; Localist pages carry schema.org events and an iCal export). Unverified URL."
+    },
+    {
+      "id": "atl-marietta-civicplus",
+      "kind": "page",
+      "url": "https://mariettaga.gov/iCalendar.aspx",
+      "name": "City of Marietta calendar",
+      "attribution": "Listed from the City of Marietta public calendar (mariettaga.gov).",
+      "host_org": "City of Marietta",
+      "note": "CivicPlus iCalendar page (URL confirmed in D-039): lists one /common/modules/iCalendar/iCalendar.aspx?catID=... feed per calendar, which discovery follows."
+    },
+    {
+      "id": "atl-decatur-civicplus",
+      "kind": "page",
+      "url": "https://www.decaturga.com/iCalendar.aspx",
+      "name": "City of Decatur calendar",
+      "attribution": "Listed from the City of Decatur public calendar (decaturga.com).",
+      "host_org": "City of Decatur",
+      "note": "CivicPlus iCalendar page, as for Marietta. Unverified URL."
+    },
+    {
+      "id": "atl-open-data-arcgis",
+      "kind": "arcgis",
+      "enabled": false,
+      "url": "https://dpcd-coaplangis.opendata.arcgis.com/",
+      "name": "City of Atlanta open data (ArcGIS Hub)",
+      "attribution": "Listed from City of Atlanta open data (dpcd-coaplangis.opendata.arcgis.com).",
+      "fields": {
+        "title": "NAME",
+        "start": "START_DATE",
+        "end": "END_DATE",
+        "location": "LOCATION",
+        "url": "URL"
+      },
+      "note": "Off until a person finds an event layer: replace url with its FeatureServer/<n> endpoint and fields with its column names."
+    },
+    {
+      "id": "atl-open-data-socrata",
+      "kind": "socrata",
+      "enabled": false,
+      "url": "https://data.example-atlanta-portal.invalid/resource/xxxx-xxxx.json",
+      "name": "Atlanta-area Socrata event dataset",
+      "attribution": "Listed from a public open-data portal (placeholder).",
+      "fields": {
+        "id": "id",
+        "title": "event_name",
+        "start": "start_date",
+        "end": "end_date",
+        "location": "location_name",
+        "url": "event_url"
+      },
+      "geoColumn": "location",
+      "note": "Template only, off: no Atlanta-area Socrata event dataset is known yet. Copy this shape for any city on Socrata."
+    }
+  ]
+}

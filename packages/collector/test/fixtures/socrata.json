@@ -1,0 +1,17 @@
+[
+  {
+    "event_id": "PR-2026-001",
+    "event_name": "Tree Planting Day",
+    "start_date": "2026-11-14T09:00:00.000",
+    "end_date": "2026-11-14T12:00:00.000",
+    "location_name": "Lake Claire Park",
+    "event_url": { "url": "https://parks.example.gov/tree-day" },
+    "location": { "type": "Point", "coordinates": [-84.3279, 33.7652] },
+    "category": "Volunteer"
+  },
+  {
+    "event_id": "PR-2026-002",
+    "event_name": "Ok",
+    "start_date": "2026-11-15T09:00:00.000"
+  }
+]

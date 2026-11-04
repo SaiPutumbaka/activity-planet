@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:ev="http://purl.org/rss/1.0/modules/event/" xmlns:geo="http://www.w3.org/2003/01/geo/wgs84_pos#">
+  <channel>
+    <title>Decatur Library Events</title>
+    <link>https://library.example.org/events</link>
+    <item>
+      <title>Teen Anime Club</title>
+      <link>https://library.example.org/events/teen-anime-club</link>
+      <guid isPermaLink="false">evt-101</guid>
+      <description><![CDATA[<p>Watch and talk anime &amp; manga.</p>]]></description>
+      <ev:startdate>2026-11-12T16:00:00-05:00</ev:startdate>
+      <ev:enddate>2026-11-12T17:30:00-05:00</ev:enddate>
+      <ev:location>Decatur Library, Auditorium</ev:location>
+      <ev:organizer>DeKalb County Public Library</ev:organizer>
+      <geo:lat>33.7735</geo:lat>
+      <geo:long>-84.2963</geo:long>
+      <category>Teens</category>
+    </item>
+    <item>
+      <title>Board Game Night</title>
+      <link>https://library.example.org/events/board-games</link>
+      <guid>https://library.example.org/events/board-games</guid>
+      <description>&lt;div class="h-event"&gt;&lt;time class="dt-start" datetime="2026-11-14T18:00:00-05:00"&gt;Nov 14&lt;/time&gt;&lt;span class="p-location"&gt;Main Branch&lt;/span&gt;&lt;p class="p-description"&gt;Bring a friend.&lt;/p&gt;&lt;/div&gt;</description>
+      <status>cancelled</status>
+    </item>
+    <item>
+      <title>Library news: new hours</title>
+      <link>https://library.example.org/news/hours</link>
+      <pubDate>Mon, 02 Nov 2026 12:00:00 GMT</pubDate>
+      <description>We are open later on Thursdays.</description>
+    </item>
+  </channel>
+</rss>

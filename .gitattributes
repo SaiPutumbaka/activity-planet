@@ -4,3 +4,5 @@
 *.ico binary
 *.woff binary
 *.woff2 binary
+# iCalendar fixtures keep their CRLF line endings (RFC 5545), so the parser is tested on them.
+packages/collector/test/fixtures/**/*.ics -text
