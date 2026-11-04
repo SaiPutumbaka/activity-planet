@@ -1,0 +1,176 @@
+name: Collector ingest
+
+# The D-040 event collector, for real (docs/design/collector.md). It collects once (robots.txt,
+# feeds, schema.org Event pages, Localist; the same politeness as the dry run), then posts each
+# source's complete item set to the collector Edge Function (POST /collector/ingest/events), which
+# creates or updates the source's feed_sources row from the seed file and runs
+# import_upsert_batch on the items (collector_ingest_events, migration 37).
+#
+# Where it posts:
+#   * STAGING on every run, from any ref (workflow_dispatch) and on the schedule. Staging sources
+#     are switched on (--enable).
+#   * PRODUCTION only from main, and only when the repository variable COLLECTOR_PRODUCTION is
+#     "true" (default off). Production rows are created switched off and stay as the database has
+#     them: a source is switched on there by a deliberate data change, never by this job.
+#
+# Secrets: none of its own. Like places-extract.yml it links the target project with
+# SUPABASE_ACCESS_TOKEN and that project's database password, reads the collector secret that
+# migration 28 generated in the project's vault, masks it, and uses it only as the
+# x-collector-secret header. The service-role key never reaches the job.
+#
+# Logs are public: counts, flags and error names per source only, never item titles, page text,
+# secrets or member data. The collected batches stay on the runner (work/, never uploaded).
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: "City seed file under packages/collector/data/cities (for example atl)"
+        type: string
+        default: atl
+  schedule:
+    - cron: "41 */6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: collector-ingest
+  cancel-in-progress: false
+
+env:
+  STAGING_PROJECT_REF: gzrscndzzggxmcwnvvcq
+  PROD_PROJECT_REF: gtesfiqxqontescqpllo
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide targets
+        id: mode
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          IN_REGION: ${{ inputs.region }}
+          PROD_VAR: ${{ vars.COLLECTOR_PRODUCTION }}
+        run: |
+          region="${IN_REGION:-atl}"
+          case "$region" in
+            *[!a-z0-9-]*|"") echo "Refusing region: $region"; exit 1 ;;
+          esac
+          test -f "packages/collector/data/cities/$region.json" || { echo "No such city file: $region"; exit 1; }
+          production=false
+          if [ "$REF" = "refs/heads/main" ] && [ "$PROD_VAR" = "true" ]; then production=true; fi
+          echo "event=$EVENT region=$region staging=true production=$production"
+          {
+            echo "region=$region"
+            echo "production=$production"
+            echo "run_id=gh-${{ github.run_id }}-${{ github.run_attempt }}"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Conditional GET across runs (ETag and Last-Modified per URL).
+      - uses: actions/cache@v4
+        with:
+          path: packages/collector/.cache
+          key: collector-http-${{ github.run_id }}
+          restore-keys: collector-http-
+
+      - name: Collect once
+        env:
+          REGION: ${{ steps.mode.outputs.region }}
+        run: |
+          mkdir -p work
+          # --diagnose: one stderr line per request (status, host, media type, size, robots.txt
+          # and parser verdicts, page-type hints); metadata and counts only.
+          pnpm --filter collector collect --region "$REGION" --dry-run --diagnose \
+            --save "$GITHUB_WORKSPACE/work/batches.json" --summary "$GITHUB_WORKSPACE/work/collected.json"
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.0
+
+      # The secret is captured, never echoed; ::add-mask:: hides it if anything ever prints it.
+      - name: Staging, read the collector secret
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+        run: |
+          supabase link --project-ref "$STAGING_PROJECT_REF" > /dev/null
+          out=$(supabase db query --linked "select 'CSECRET:' || ds.decrypted_secret as v from vault.decrypted_secrets ds where ds.name = 'collector_secret'" 2>/dev/null || true)
+          secret=$(printf '%s' "$out" | grep -o 'CSECRET:[0-9a-f]\{64\}' | head -1 | cut -d: -f2)
+          unset out
+          if [ -z "$secret" ]; then echo "collector_secret not found in the staging vault"; exit 1; fi
+          echo "::add-mask::$secret"
+          echo "STAGING_COLLECTOR_SECRET=$secret" >> "$GITHUB_ENV"
+          echo "Staging collector secret read (masked)."
+
+      - name: Staging, post
+        env:
+          REGION: ${{ steps.mode.outputs.region }}
+          RUN_ID: ${{ steps.mode.outputs.run_id }}
+        run: |
+          COLLECTOR_SECRET="$STAGING_COLLECTOR_SECRET" pnpm --filter collector collect --region "$REGION" \
+            --ingest "https://$STAGING_PROJECT_REF.supabase.co/functions/v1/collector" --enable \
+            --from "$GITHUB_WORKSPACE/work/batches.json" --run-id "$RUN_ID-staging" \
+            --summary "$GITHUB_WORKSPACE/work/staging.json"
+
+      - name: Staging, counts by source and hub
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase db query --linked --file supabase/tests/collector_ingest_counts.sql
+
+      - name: Production, read the collector secret
+        if: steps.mode.outputs.production == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
+        run: |
+          supabase link --project-ref "$PROD_PROJECT_REF" > /dev/null
+          out=$(supabase db query --linked "select 'CSECRET:' || ds.decrypted_secret as v from vault.decrypted_secrets ds where ds.name = 'collector_secret'" 2>/dev/null || true)
+          secret=$(printf '%s' "$out" | grep -o 'CSECRET:[0-9a-f]\{64\}' | head -1 | cut -d: -f2)
+          unset out
+          if [ -z "$secret" ]; then echo "collector_secret not found in the production vault"; exit 1; fi
+          echo "::add-mask::$secret"
+          echo "PROD_COLLECTOR_SECRET=$secret" >> "$GITHUB_ENV"
+          echo "Production collector secret read (masked)."
+
+      # No --enable: production sources stay as the database has them (new rows start off).
+      - name: Production, post
+        if: steps.mode.outputs.production == 'true'
+        env:
+          REGION: ${{ steps.mode.outputs.region }}
+          RUN_ID: ${{ steps.mode.outputs.run_id }}
+        run: |
+          COLLECTOR_SECRET="$PROD_COLLECTOR_SECRET" pnpm --filter collector collect --region "$REGION" \
+            --ingest "https://$PROD_PROJECT_REF.supabase.co/functions/v1/collector" \
+            --from "$GITHUB_WORKSPACE/work/batches.json" --run-id "$RUN_ID-production" \
+            --summary "$GITHUB_WORKSPACE/work/production.json"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Collector ingest (production ${{ steps.mode.outputs.production }})"
+            echo ""
+            echo '```json'
+            for f in collected staging production; do
+              [ -f "work/$f.json" ] && python3 -I -c 'import json,sys
+          d = json.load(open(sys.argv[1]))
+          print(json.dumps({"file": sys.argv[2], "items": d.get("items"), "failed": d.get("failed"),
+                            "per_source": [{k: s.get(k) for k in ("source", "items", "complete", "error")} |
+                                           {"result": {k: v for k, v in (s.get("result") or {}).items() if k != "first_error"}}
+                                           for s in d.get("perSource", [])]}, indent=1))' "work/$f.json" "$f"
+            done
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
