@@ -207,8 +207,9 @@ export class ProbeFetcher implements Fetcher {
     const start = this.start.get(host) ?? 0;
     // This probe's requests to the host so far, robots.txt and redirect hops included.
     if (used - start >= this.cap) return { ok: false, url, reason: "host_budget_spent" };
-    const res = await this.inner.get(url, opts);
     this.touched.add(host);
+    const sentBefore = this.sent;
+    const res = await this.inner.get(url, opts);
     this.touched.add(hostOf(res.url));
     if (this.trace.length < 40) {
       let path = res.url;
@@ -219,7 +220,7 @@ export class ProbeFetcher implements Fetcher {
         // keep the raw string
       }
       this.trace.push(
-        `${path} ${res.ok ? res.status : `${res.reason}${res.status ? `:${res.status}` : ""}`}`,
+        `${path} ${res.ok ? res.status : `${res.reason}${res.status ? `:${res.status}` : ""}`} requests=${this.sent - sentBefore}`,
       );
     }
     if (!res.ok) {
@@ -467,7 +468,8 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
       maxPages: 2,
     });
   };
-  // Calendar exports first (one), then pages whose own markup has events, then the event pages
+  // A sample of The Events Calendar's event pages (below), one calendar export, then pages whose
+  // own markup has events, then the event pages
   // (collect() follows their feeds, listing views and event links), then RSS feeds last: a
   // site's blog feed (/feed/) or a single event's feed rarely carries event times.
   const calendarFeeds: string[] = [];
@@ -482,11 +484,11 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
       else if (!/\/comments\/feed\/?$/i.test(new URL(f).pathname)) rssFeeds.push(f);
     }
   }
-  for (const f of calendarFeeds.slice(0, 1)) add("ics", f);
   // The Events Calendar: its exports often say noindex, and its list views can too, while each
   // single event page is indexable and carries one schema.org Event. Two of the calendar's own
-  // event pages are a cheap sample; the source recorded is the calendar page that links them,
-  // which the nightly run reads with its full budget.
+  // event pages are the cheapest proof, so they go first; the source recorded is the calendar
+  // page that links them, which the nightly run reads with its full budget (its export first,
+  // as for any page seed).
   const reportAs = new Map<string, string>();
   if (platforms.has("tec")) {
     for (const s of seen.slice(1)) {
@@ -501,6 +503,7 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
       if (reportAs.size > 0) break;
     }
   }
+  for (const f of calendarFeeds.slice(0, 1)) add("ics", f);
   for (const s of seen) if (s.events > 0) add("page", s.url);
   for (const s of seen.slice(1)) add("page", s.url);
   for (const f of calendarFeeds.slice(1)) add("ics", f);
