@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 45 (schema_version 2.41). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 46 (schema_version 2.42). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -327,6 +327,27 @@ export type Database = {
           source?: string;
           updated_at?: string;
           used?: number;
+        };
+        Relationships: [];
+      };
+      collector_denylist: {
+        Row: {
+          created_at: string;
+          match: string;
+          name: string;
+          reason: string;
+        };
+        Insert: {
+          created_at?: string;
+          match?: string;
+          name: string;
+          reason: string;
+        };
+        Update: {
+          created_at?: string;
+          match?: string;
+          name?: string;
+          reason?: string;
         };
         Relationships: [];
       };
@@ -982,6 +1003,7 @@ export type Database = {
         Row: {
           attribution: string;
           campus_id: string | null;
+          candidate_id: string | null;
           collector: boolean;
           collector_last_run_id: string | null;
           collector_seen_at: string | null;
@@ -990,6 +1012,7 @@ export type Database = {
           default_hub_id: string | null;
           denylisted: boolean;
           discovered_from: string | null;
+          discovery_status: string | null;
           enabled: boolean;
           homepage_url: string | null;
           hub_tags: string[];
@@ -1019,6 +1042,7 @@ export type Database = {
         Insert: {
           attribution?: string;
           campus_id?: string | null;
+          candidate_id?: string | null;
           collector?: boolean;
           collector_last_run_id?: string | null;
           collector_seen_at?: string | null;
@@ -1027,6 +1051,7 @@ export type Database = {
           default_hub_id?: string | null;
           denylisted?: boolean;
           discovered_from?: string | null;
+          discovery_status?: string | null;
           enabled?: boolean;
           homepage_url?: string | null;
           hub_tags?: string[];
@@ -1056,6 +1081,7 @@ export type Database = {
         Update: {
           attribution?: string;
           campus_id?: string | null;
+          candidate_id?: string | null;
           collector?: boolean;
           collector_last_run_id?: string | null;
           collector_seen_at?: string | null;
@@ -1064,6 +1090,7 @@ export type Database = {
           default_hub_id?: string | null;
           denylisted?: boolean;
           discovered_from?: string | null;
+          discovery_status?: string | null;
           enabled?: boolean;
           homepage_url?: string | null;
           hub_tags?: string[];
@@ -1096,6 +1123,13 @@ export type Database = {
             columns: ["campus_id"];
             isOneToOne: false;
             referencedRelation: "org_campuses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "feed_sources_candidate_fk";
+            columns: ["candidate_id"];
+            isOneToOne: false;
+            referencedRelation: "source_candidates";
             referencedColumns: ["id"];
           },
           {
@@ -2809,6 +2843,172 @@ export type Database = {
           },
         ];
       };
+      source_candidates: {
+        Row: {
+          country: string | null;
+          created_at: string;
+          empty_runs: number;
+          empty_since: string | null;
+          error_runs: number;
+          feed_kind: string | null;
+          feed_url: string | null;
+          host: string;
+          id: string;
+          last_ok_on: string | null;
+          last_probe_at: string | null;
+          locked: boolean;
+          name: string | null;
+          ok_days: number;
+          ok_runs: number;
+          origin: string;
+          place_kind: string | null;
+          platform: string | null;
+          reason: string | null;
+          region_id: string | null;
+          retry_after: string | null;
+          review_status: string;
+          reviewed_at: string | null;
+          score: number;
+          status: string;
+          status_at: string;
+          suggest_count: number;
+          updated_at: string;
+          url: string;
+          wikidata_id: string | null;
+        };
+        Insert: {
+          country?: string | null;
+          created_at?: string;
+          empty_runs?: number;
+          empty_since?: string | null;
+          error_runs?: number;
+          feed_kind?: string | null;
+          feed_url?: string | null;
+          host: string;
+          id?: string;
+          last_ok_on?: string | null;
+          last_probe_at?: string | null;
+          locked?: boolean;
+          name?: string | null;
+          ok_days?: number;
+          ok_runs?: number;
+          origin: string;
+          place_kind?: string | null;
+          platform?: string | null;
+          reason?: string | null;
+          region_id?: string | null;
+          retry_after?: string | null;
+          review_status?: string;
+          reviewed_at?: string | null;
+          score?: number;
+          status?: string;
+          status_at?: string;
+          suggest_count?: number;
+          updated_at?: string;
+          url: string;
+          wikidata_id?: string | null;
+        };
+        Update: {
+          country?: string | null;
+          created_at?: string;
+          empty_runs?: number;
+          empty_since?: string | null;
+          error_runs?: number;
+          feed_kind?: string | null;
+          feed_url?: string | null;
+          host?: string;
+          id?: string;
+          last_ok_on?: string | null;
+          last_probe_at?: string | null;
+          locked?: boolean;
+          name?: string | null;
+          ok_days?: number;
+          ok_runs?: number;
+          origin?: string;
+          place_kind?: string | null;
+          platform?: string | null;
+          reason?: string | null;
+          region_id?: string | null;
+          retry_after?: string | null;
+          review_status?: string;
+          reviewed_at?: string | null;
+          score?: number;
+          status?: string;
+          status_at?: string;
+          suggest_count?: number;
+          updated_at?: string;
+          url?: string;
+          wikidata_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "source_candidates_region_id_fkey";
+            columns: ["region_id"];
+            isOneToOne: false;
+            referencedRelation: "collector_regions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      source_probe_results: {
+        Row: {
+          candidate_id: string;
+          complete: boolean | null;
+          created_at: string;
+          errors: number | null;
+          feed_kind: string | null;
+          good: boolean;
+          id: number;
+          in_region: number | null;
+          items: number | null;
+          outcome: string;
+          platform: string | null;
+          requests: number | null;
+          run_id: string;
+          run_on: string;
+        };
+        Insert: {
+          candidate_id: string;
+          complete?: boolean | null;
+          created_at?: string;
+          errors?: number | null;
+          feed_kind?: string | null;
+          good?: boolean;
+          id?: never;
+          in_region?: number | null;
+          items?: number | null;
+          outcome: string;
+          platform?: string | null;
+          requests?: number | null;
+          run_id: string;
+          run_on?: string;
+        };
+        Update: {
+          candidate_id?: string;
+          complete?: boolean | null;
+          created_at?: string;
+          errors?: number | null;
+          feed_kind?: string | null;
+          good?: boolean;
+          id?: never;
+          in_region?: number | null;
+          items?: number | null;
+          outcome?: string;
+          platform?: string | null;
+          requests?: number | null;
+          run_id?: string;
+          run_on?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "source_probe_results_candidate_id_fkey";
+            columns: ["candidate_id"];
+            isOneToOne: false;
+            referencedRelation: "source_candidates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_roles: {
         Row: {
           created_at: string;
@@ -3194,6 +3394,7 @@ export type Database = {
         };
       };
       clear_foreign_image_urls: { Args: never; Returns: Json };
+      collector_host_denied: { Args: { p_host: string }; Returns: string };
       collector_ingest_events: {
         Args: {
           p_complete?: boolean;
@@ -3214,6 +3415,10 @@ export type Database = {
         Returns: Json;
       };
       collector_regions_record: { Args: { p_regions: Json }; Returns: Json };
+      collector_sources_for_regions: {
+        Args: { p_regions: string[] };
+        Returns: Json;
+      };
       collector_verify_secret: { Args: { p_secret: string }; Returns: boolean };
       complete_onboarding: {
         Args: {
@@ -3724,6 +3929,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      mod_review_source_candidate: {
+        Args: { p_approve: boolean; p_id: string; p_reason?: string };
+        Returns: Json;
+      };
       my_chapter_claims: {
         Args: never;
         Returns: {
@@ -4074,6 +4283,19 @@ export type Database = {
         };
       };
       shows_available: { Args: never; Returns: boolean };
+      source_candidate_slug: { Args: { p_id: string }; Returns: string };
+      source_candidates_add: { Args: { p_candidates: Json }; Returns: Json };
+      source_candidates_due: {
+        Args: { p_limit?: number; p_regions?: string[] };
+        Returns: Json;
+      };
+      source_candidates_record: { Args: { p_results: Json }; Returns: Json };
+      source_discovery_allowed: {
+        Args: { p_country: string; p_origin: string };
+        Returns: boolean;
+      };
+      source_url_check: { Args: { p_url: string }; Returns: Json };
+      source_url_host: { Args: { p_url: string }; Returns: string };
       submit_attendance: {
         Args: { p_attended: boolean; p_event_id: string; p_met?: string[] };
         Returns: Json;
@@ -4111,6 +4333,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      suggest_calendar: { Args: { p_url: string }; Returns: Json };
       suggest_place_edit: {
         Args: { p_changes: Json; p_note?: string; p_place: string };
         Returns: Json;
