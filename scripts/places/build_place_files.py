@@ -92,7 +92,8 @@ def check_row(row, tile, n):
         raise FilesError(f"tile {tile} row {n}: bad website")
     if tags is not None and (not isinstance(tags, dict) or not set(tags) <= TAG_KEYS):
         raise FilesError(f"tile {tile} row {n}: tags outside the allowlist")
-    if UUID_ANY.search(json.dumps(row, ensure_ascii=False)):
+    # No id of ours: a uuid outside the website (a public OSM URL may hold one) means a leak.
+    if UUID_ANY.search(json.dumps([v for i, v in enumerate(row) if i != COLS.index("website")], ensure_ascii=False)):
         raise FilesError(f"tile {tile} row {n}: holds an id")
 
 

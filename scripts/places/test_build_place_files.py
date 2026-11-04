@@ -54,11 +54,14 @@ class CheckRow(unittest.TestCase):
     def test_good(self):
         bf.check_row(row(), 1, 0)
         bf.check_row(row(address=None, locality=None, hours=None, website=None, tags=None), 1, 1)
+        # A public website may carry a uuid of its own (two such rows on staging, Nov 4).
+        bf.check_row(row(website="https://example.org/store/0f8fad5b-d9cb-469f-a165-70867728950e"), 1, 2)
 
     def test_bad(self):
         for bad in (row(osm_ref="x1"), row(lng=200), row(lat="1"), row(kind=""), row(name=""),
                     row(rule_ids=[]), row(rule_ids=[True]), row(website="javascript:x"),
-                    row(tags={"owner": "x"}), row(name="0f8fad5b-d9cb-469f-a165-70867728950e"), row()[:10]):
+                    row(tags={"owner": "x"}), row(name="0f8fad5b-d9cb-469f-a165-70867728950e"),
+                    row(tags={"brand": "0f8fad5b-d9cb-469f-a165-70867728950e"}), row()[:10]):
             with self.assertRaises(bf.FilesError):
                 bf.check_row(bad, 1, 0)
 
@@ -149,3 +152,28 @@ class Publish(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "apps", "app", "src", "lib",
+                        "__tests__", "fixtures", "place-files")
+
+
+class StagingFixtures(unittest.TestCase):
+    """The app's client tests read real staging rows (fixtures/place-files); the builder must accept
+    every one of them and write the same columns the app decodes."""
+
+    def test_builds_the_app_fixtures(self):
+        for name in ("atlanta-downtown", "freiburg-altstadt"):
+            fx = json.loads(rd(os.path.join(FIXTURES, f"{name}.json"), "r"))
+            tiles = {int(t): rows for t, rows in fx["tiles"].items()}
+            q = {"rules_version": 1, "hubs": fx["hubs"], "drop": [],
+                 "build": [{"id": t, "status": "active", "row_count": len(r), "file_path": None}
+                           for t, r in tiles.items()]}
+            with tempfile.TemporaryDirectory() as out:
+                result, stats = bf.build(q, pages(tiles, page=50)[0], out, log=lambda *_: None)
+                for t in result["tiles"]:
+                    self.assertEqual(t["count"], len(tiles[t["id"]]))
+                    doc = json.loads(gzip.decompress(rd(os.path.join(out, t["path"]))))
+                    self.assertEqual(doc["rows"], tiles[t["id"]])
+                    self.assertEqual(doc["cols"], ["osm_ref", "lng", "lat", "kind", "name", "rule_ids", "address",
+                                                   "locality", "hours", "website", "tags"])
