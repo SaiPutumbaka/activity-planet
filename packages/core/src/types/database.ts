@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 41 (schema_version 2.37). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 42 (schema_version 2.38). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -2307,6 +2307,14 @@ export type Database = {
           bbox: unknown;
           created_at: string;
           demand: number;
+          file_built_at: string | null;
+          file_built_from: string | null;
+          file_bytes: number | null;
+          file_count: number | null;
+          file_path: string | null;
+          file_published_at: string | null;
+          file_rules_version: number | null;
+          file_sha256: string | null;
           geoapify_run_at: string | null;
           id: number;
           idle_since: string | null;
@@ -2322,6 +2330,14 @@ export type Database = {
           bbox?: unknown;
           created_at?: string;
           demand?: number;
+          file_built_at?: string | null;
+          file_built_from?: string | null;
+          file_bytes?: number | null;
+          file_count?: number | null;
+          file_path?: string | null;
+          file_published_at?: string | null;
+          file_rules_version?: number | null;
+          file_sha256?: string | null;
           geoapify_run_at?: string | null;
           id: number;
           idle_since?: string | null;
@@ -2337,6 +2353,14 @@ export type Database = {
           bbox?: unknown;
           created_at?: string;
           demand?: number;
+          file_built_at?: string | null;
+          file_built_from?: string | null;
+          file_bytes?: number | null;
+          file_count?: number | null;
+          file_path?: string | null;
+          file_published_at?: string | null;
+          file_rules_version?: number | null;
+          file_sha256?: string | null;
           geoapify_run_at?: string | null;
           id?: number;
           idle_since?: string | null;
@@ -3631,6 +3655,7 @@ export type Database = {
       map_in_view: {
         Args: {
           p_east: number;
+          p_files?: boolean;
           p_from?: string;
           p_generic?: boolean;
           p_hub_ids?: string[];
@@ -3789,6 +3814,16 @@ export type Database = {
         };
         Returns: Json;
       };
+      place_files_in_view: {
+        Args: { p_env1: unknown; p_env2: unknown };
+        Returns: Json;
+      };
+      place_files_queue: {
+        Args: { p_all?: boolean; p_limit?: number; p_tiles?: number[] };
+        Returns: Json;
+      };
+      place_files_record: { Args: { p: Json }; Returns: Json };
+      place_id_by_osm_ref: { Args: { p_osm_ref: string }; Returns: string };
       place_is_mine: { Args: { p_id: string }; Returns: boolean };
       place_near_private: {
         Args: { p_point: unknown; p_uid: string };
@@ -3797,6 +3832,10 @@ export type Database = {
       place_raise_near: { Args: { p_why: string }; Returns: undefined };
       place_size_status: { Args: never; Returns: Json };
       place_tile_bbox: { Args: { p_id: number }; Returns: unknown };
+      place_tile_file_page: {
+        Args: { p_after?: string; p_limit?: number; p_tile_id: number };
+        Returns: Json;
+      };
       place_tile_id: { Args: { p_lat: number; p_lng: number }; Returns: number };
       place_tile_id_of: { Args: { p_point: unknown }; Returns: number };
       place_tile_note_home: {
@@ -3829,6 +3868,8 @@ export type Database = {
           p_limit?: number;
           p_north: number;
           p_query?: string;
+          p_skip_since?: string;
+          p_skip_tiles?: number[];
           p_south: number;
           p_west: number;
         };
