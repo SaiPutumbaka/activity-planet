@@ -82,6 +82,7 @@
     {
       "id": "atl-beltline",
       "kind": "page",
+      "enabled": false,
       "url": "https://beltline.org/events/list/",
       "name": "Atlanta BeltLine events",
       "attribution": "Listed from the Atlanta BeltLine public events calendar (beltline.org).",
@@ -89,7 +90,7 @@
       "categories": ["Outdoors", "Community"],
       "maxPages": 15,
       "verified": false,
-      "note": "BeltLine's calendar URLs (/events/list/, /events/month/, /events/category/) are The Events Calendar's, but diagnose dry run 41856949627: beltline.org/events/?ical=1 answered with an HTML page (not_a_feed:html), so the export is off. Reads the list view as a page (schema.org JSON-LD and the /event/ pages it links to, at most maxPages). The list view is unverified."
+      "note": "Off. diagnose dry run 41871484438 (page hints): beltline.org is now a Next.js app, not WordPress with The Events Calendar; /events/list/ answers 200 with no schema.org Event JSON-LD or microdata, no feed links and no /event/ links (the event list is rendered by script), and ?ical=1 answered with HTML (run 41856949627). The collector reads only schema.org markup, feeds and APIs, so there is nothing to read. Re-enable when the Atlanta BeltLine publishes a feed (ICS/RSS) or Event markup on its pages; ask them."
     },
     {
       "id": "atl-high-museum",
@@ -109,6 +110,7 @@
       "name": "Atlanta History Center events",
       "attribution": "Listed from the Atlanta History Center public events calendar (atlantahistorycenter.com).",
       "host_org": "Atlanta History Center",
+      "hubs": ["history-discussion"],
       "maxPages": 15,
       "verified": true,
       "note": "The Events Calendar (ECP 6.x) site. dry run 41849155715: 18 items from schema.org markup. diagnose dry run 41856949627: the ?ical=1 export answers text/calendar with X-Robots-Tag: noindex and is skipped; the single /event/... pages are indexable and carry one schema.org Event JSON-LD each, so the page lane falls back to the list view and event pages (at most maxPages, per-host cap). /events/feed/ gave 500 and /feed/ is disallowed in robots.txt."
@@ -210,6 +212,7 @@
       "name": "Park Pride events",
       "attribution": "Listed from the Park Pride public events calendar (parkpride.org).",
       "host_org": "Park Pride",
+      "hubs": ["volunteering"],
       "categories": ["Outdoors", "Volunteer", "Community"],
       "maxPages": 15,
       "verified": false,
@@ -234,6 +237,7 @@
       "name": "Alliance Theatre Offstage events",
       "attribution": "Listed from the Alliance Theatre Offstage public calendar (alliancetheatre.org).",
       "host_org": "Alliance Theatre",
+      "hubs": ["musical-theater"],
       "categories": ["Arts", "Theatre"],
       "maxPages": 15,
       "verified": false,
@@ -257,6 +261,7 @@
       "name": "Atlanta Botanical Garden events and classes",
       "attribution": "Listed from the Atlanta Botanical Garden public events calendar (atlantabg.org).",
       "host_org": "Atlanta Botanical Garden",
+      "hubs": ["gardening"],
       "categories": ["Outdoors", "Arts"],
       "maxPages": 10,
       "verified": true,
@@ -270,6 +275,7 @@
       "name": "Trees Atlanta events and volunteer days",
       "attribution": "Listed from the Trees Atlanta public events calendar (treesatlanta.org).",
       "host_org": "Trees Atlanta",
+      "hubs": ["volunteering", "gardening"],
       "categories": ["Outdoors", "Volunteer"],
       "maxPages": 10,
       "verified": false,

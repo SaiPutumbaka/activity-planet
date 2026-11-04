@@ -2,6 +2,8 @@
 //   seeds -> fetch (politeness, robots, denylist) -> parse (lane) -> RawEvent
 //   -> normalize (events constraints) -> ImportItem -> radius + window + dedupe -> ingest.
 
+import type { SourceInfo } from "./sources.ts";
+
 /** Where coverage is wanted: one entry per area people use the app in. */
 export interface Region {
   id: string;
@@ -75,6 +77,12 @@ export interface Seed {
   geoColumn?: string;
   host_org?: string;
   categories?: string[];
+  /**
+   * Hub slugs for the source's events (at most 5). The first that is an active 18+ hub is the
+   * source's default hub: keyword rules (import_hub_rules) still win, and an item no rule
+   * matches and whose seed has no usable hub goes to Happening nearby.
+   */
+  hubs?: string[];
 }
 
 export interface CityFile {
@@ -156,4 +164,11 @@ export interface SourceBatch {
    * ...). Run bookkeeping for the summary; never sent to the RPC.
    */
   errors?: Record<string, number>;
+  /**
+   * False when part of the source could not be read this run (timeouts, budgets, robots.txt
+   * unavailable): the ingest then counts no missed runs, so nothing is cancelled for a gap.
+   */
+  complete: boolean;
+  /** The feed_sources row this batch is for. */
+  source: SourceInfo;
 }

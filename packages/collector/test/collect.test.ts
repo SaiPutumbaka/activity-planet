@@ -1,7 +1,9 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { collect } from "../src/collect.ts";
 import { citiesFor, loadCities, parseCityFile } from "../src/config.ts";
-import { DryRunIngest } from "../src/ingest.ts";
+import { DryRunIngest, HttpIngest } from "../src/ingest.ts";
 import { PoliteFetcher } from "../src/net/fetcher.ts";
 import { Denylist } from "../src/policy/denylist.ts";
 import type { CityFile } from "../src/types.ts";
@@ -241,13 +243,116 @@ describe("collect (fixtures, no network)", () => {
     for (const b of result.batches) await ingest.send(b);
     expect(lines).toHaveLength(result.batches.length);
     expect(lines[0]).toMatch(
-      /^\[dry-run\] source=test-parks region=atl items=\d+ with_point=\d+ cancelled=\d+ skipped=\{/,
+      /^\[dry-run\] source=test-parks region=atl items=\d+ with_point=\d+ cancelled=\d+ complete=(true|false) skipped=\{/,
     );
     expect(lines.join("\n")).not.toContain("Yoga");
+  });
+
+  it("gives every batch its feed_sources row and a complete flag", async () => {
+    const { result } = await run();
+    const parks = result.batches.find((b) => b.sourceKey === "test-parks")!;
+    expect(parks.source.slug).toBe("test-parks");
+    expect(parks.source.enabled).toBe(true);
+    expect(["jsonld", "ics", "rss", "localist"]).toContain(parks.source.kind);
+    expect(parks.source.region.timezone).toBe("America/New_York");
+    expect(typeof parks.complete).toBe("boolean");
+  });
+
+  it("posts each source to /ingest/events with the secret and prints counts only", async () => {
+    const { result } = await run();
+    const calls: { url: string; headers: Record<string, string>; body: Record<string, unknown> }[] =
+      [];
+    const lines: string[] = [];
+    const fakeFetch = (async (url: string, init: RequestInit) => {
+      calls.push({
+        url,
+        headers: init.headers as Record<string, string>,
+        body: JSON.parse(String(init.body)) as Record<string, unknown>,
+      });
+      return new Response(
+        JSON.stringify({
+          source: "x",
+          total: 3,
+          inserted: 2,
+          linked_duplicates: 1,
+          enabled: true,
+          first_error: "Yoga",
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+    const http = new HttpIngest({
+      baseUrl: "https://abc.supabase.co/functions/v1/collector",
+      secret: "s".repeat(64),
+      runId: "gh-1-1",
+      enable: true,
+      fetch: fakeFetch,
+      out: (l) => lines.push(l),
+    });
+    for (const b of result.batches) await http.send(b);
+    expect(calls).toHaveLength(result.batches.length);
+    expect(calls[0]!.url).toBe("https://abc.supabase.co/functions/v1/collector/ingest/events");
+    expect(calls[0]!.headers["x-collector-secret"]).toBe("s".repeat(64));
+    expect(calls[0]!.body).toMatchObject({ run_id: "gh-1-1", enable: true });
+    expect(Array.isArray(calls[0]!.body.items)).toBe(true);
+    expect(lines[0]).toMatch(
+      /^\[ingest\] source=\S+ sent=\d+ enabled=true total=3 inserted=2 linked_duplicates=1/,
+    );
+    expect(lines.join("\n")).not.toContain("Yoga");
+    expect(lines.join("\n")).not.toContain("s".repeat(64));
+  });
+
+  it("marks a batch incomplete when robots.txt is unavailable, complete otherwise", async () => {
+    const { result } = await run(
+      {},
+      {
+        ...SITE,
+        "https://library.example.org/robots.txt": { status: 503 },
+      },
+    );
+    const byKey = Object.fromEntries(result.batches.map((b) => [b.sourceKey, b]));
+    expect(byKey["test-library"]!.complete).toBe(false);
+    expect(byKey["test-parks"]!.complete).toBe(true);
+    // A denylisted seed is an answer, not a gap.
+    expect(byKey["test-meetup"]!.complete).toBe(true);
+  });
+
+  it("refuses a base URL that is not a collector function, and a short secret", () => {
+    expect(
+      () =>
+        new HttpIngest({
+          baseUrl: "https://evil.example/x",
+          secret: "s".repeat(64),
+          runId: "r",
+          enable: false,
+        }),
+    ).toThrow();
+    expect(
+      () =>
+        new HttpIngest({
+          baseUrl: "https://abc.supabase.co/functions/v1/collector",
+          secret: "short",
+          runId: "r",
+          enable: false,
+        }),
+    ).toThrow();
   });
 });
 
 describe("city seed files", () => {
+  it("names only hubs that exist in the hub seed as general 18+ hubs", () => {
+    const hubsSql = readFileSync(
+      fileURLToPath(new URL("../../../supabase/seed/hubs.sql", import.meta.url)),
+      "utf8",
+    );
+    for (const city of loadCities())
+      for (const seed of city.seeds)
+        for (const hub of seed.hubs ?? [])
+          expect(hubsSql, `${seed.id} hub ${hub}`).toMatch(
+            new RegExp(`\\('${hub}', '[^']*', '[a-z0-9-]+', '[^']*', [^\\n]*'general', 18\\)`),
+          );
+  });
+
   it("loads and validates every city file; Atlanta covers the required kinds of source", () => {
     const cities = loadCities();
     const atl = cities.find((c) => c.region.id === "atl");

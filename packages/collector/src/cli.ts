@@ -4,7 +4,20 @@
 //   --region <id>         a city region from data/cities (repeatable; default: every city)
 //   --regions-file <path> JSON array of {id, label, lat, lng, radiusKm, timezone?}: the areas
 //                         people use the app in (coverage follows users)
-//   --dry-run             print counts only; required until the real ingest is wired
+//   --dry-run             print counts only
+//   --ingest <base-url>   post each source's items to the collector Edge Function
+//                         (https://<ref>.supabase.co/functions/v1/collector, POST /ingest/events)
+//                         with the header x-collector-secret from COLLECTOR_SECRET; seeds that
+//                         are off are synced too (their rows switch off). Exactly one of
+//                         --dry-run and --ingest.
+//   --enable              with --ingest: switch the sources on (staging). Without it the
+//                         database's enabled flag stands (production sources start off).
+//   --run-id <id>         with --ingest: a label for the run (default local-<time>)
+//   --summary <path>      write the run's per-source counts as JSON (no item data)
+//   --save <path>         write the run's batches (items included) to a local file, so one
+//                         collection can be posted to several projects; never print it
+//   --from <path>         with --ingest: post the batches a --save run wrote instead of
+//                         collecting again (no site is fetched)
 //   --window-days <n>     how far ahead to collect (default 60)
 //   --max-pages <n>       discovered event pages per page seed (default 25)
 //   --slow-host-minutes <n>  time a host whose robots.txt Crawl-delay is over 60 s may take
@@ -23,17 +36,19 @@
 //                         verdict and parser verdict (counts only; no item or page text)
 //
 // Keys: TICKETMASTER_API_KEY and SEATGEEK_CLIENT_ID turn on the API lane; without them it is
-// skipped. No other secrets are read.
+// skipped. COLLECTOR_SECRET is read only with --ingest. No other secrets are read.
 
 import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
 import { API_ADAPTERS, enabledAdapters } from "./adapters/api.ts";
-import { collect, errorKey } from "./collect.ts";
+import { collect, type CollectResult, errorKey } from "./collect.ts";
 import { citiesFor, loadCities, loadRegions } from "./config.ts";
 import { formatDiagnostic } from "./diagnose.ts";
 import { FileHttpCache, MemoryHttpCache } from "./net/cache.ts";
 import { MAX_REQUESTS_PER_HOST, PoliteFetcher } from "./net/fetcher.ts";
-import { DryRunIngest } from "./ingest.ts";
+import { readFileSync, writeFileSync } from "node:fs";
+import { DryRunIngest, HttpIngest, type Ingest } from "./ingest.ts";
+import { sourceForSeed } from "./sources.ts";
 import { Denylist } from "./policy/denylist.ts";
 import type { Region } from "./types.ts";
 
@@ -49,6 +64,12 @@ async function main(argv: string[]): Promise<number> {
       region: { type: "string", multiple: true },
       "regions-file": { type: "string" },
       "dry-run": { type: "boolean", default: false },
+      ingest: { type: "string" },
+      enable: { type: "boolean", default: false },
+      "run-id": { type: "string" },
+      summary: { type: "string" },
+      save: { type: "string" },
+      from: { type: "string" },
       "window-days": { type: "string" },
       "max-pages": { type: "string" },
       "slow-host-minutes": { type: "string" },
@@ -106,12 +127,14 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
 
-  if (!values["dry-run"]) {
-    console.error(
-      "The real ingest is not wired yet (it lands with the collector schema). Run with --dry-run.",
-    );
+  if (values["dry-run"] === Boolean(values.ingest)) {
+    console.error("Pass exactly one of --dry-run and --ingest <base-url>.");
     return 2;
   }
+  if (values.enable && !values.ingest) throw new Error("--enable needs --ingest");
+  if (values.from && !values.ingest) throw new Error("--from needs --ingest");
+  const runId = values["run-id"] ?? `local-${Date.now()}`;
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/.test(runId)) throw new Error("bad --run-id");
 
   const windowDays = values["window-days"] ? Number(values["window-days"]) : 60;
   if (!Number.isFinite(windowDays) || windowDays < 1 || windowDays > 180)
@@ -142,19 +165,52 @@ async function main(argv: string[]): Promise<number> {
     maxRequestsPerHost: perHost,
     deadlineAt: started + runMinutes * 60_000,
   });
-  const ingest = new DryRunIngest();
-  const result = await collect({
-    regions,
-    cities,
-    fetcher,
-    env,
-    windowDays,
-    maxPagesPerSeed: maxPages,
-    log: (l) => console.error(l),
-    diagnose: values.diagnose ? (e) => console.error(formatDiagnostic(e)) : undefined,
-  });
-  cache.save();
-  for (const b of result.batches) await ingest.send(b);
+  const http = values.ingest
+    ? new HttpIngest({
+        baseUrl: values.ingest.replace(/\/+$/, ""),
+        secret: env.COLLECTOR_SECRET ?? "",
+        runId,
+        enable: values.enable,
+      })
+    : null;
+  const ingest: Ingest = http ?? new DryRunIngest();
+  let result: CollectResult;
+  if (values.from) {
+    const saved = JSON.parse(readFileSync(values.from, "utf8")) as {
+      regions: string[];
+      result: CollectResult;
+    };
+    if (saved.regions.join(",") !== regions.map((r) => r.id).join(","))
+      throw new Error("--from file was collected for other regions");
+    result = saved.result;
+  } else {
+    result = await collect({
+      regions,
+      cities,
+      fetcher,
+      env,
+      windowDays,
+      maxPagesPerSeed: maxPages,
+      log: (l) => console.error(l),
+      diagnose: values.diagnose ? (e) => console.error(formatDiagnostic(e)) : undefined,
+    });
+    cache.save();
+  }
+  if (values.save)
+    writeFileSync(values.save, JSON.stringify({ regions: regions.map((r) => r.id), result }));
+  const sent: Record<string, Awaited<ReturnType<Ingest["send"]>>> = {};
+  for (const b of result.batches) sent[b.sourceKey] = await ingest.send(b);
+  if (http) {
+    // Seeds that are off still get their row (and switch it off).
+    const synced = new Set(result.batches.map((b) => b.sourceKey));
+    for (const r of regions)
+      for (const c of citiesFor(r, cities))
+        for (const seed of c.seeds) {
+          if (seed.enabled !== false || synced.has(seed.id)) continue;
+          synced.add(seed.id);
+          sent[seed.id] = await http.sync(sourceForSeed(seed, c.region));
+        }
+  }
   const errorsByReason: Record<string, number> = {};
   for (const e of result.errors) {
     const k = errorKey(e);
@@ -173,11 +229,34 @@ async function main(argv: string[]): Promise<number> {
     hosts: Object.keys(result.stats.requestsByHost).length,
     seconds: Math.round((Date.now() - started) / 1000),
   };
+  if (values.summary) {
+    const perSource = result.batches.map((b) => ({
+      source: b.sourceKey,
+      lane: b.source.lane,
+      items: b.items.length,
+      complete: b.complete,
+      result: sent[b.sourceKey]?.result ?? null,
+      error: sent[b.sourceKey]?.error ?? null,
+    }));
+    const failed = Object.values(sent).filter((r) => r.error).length;
+    writeFileSync(
+      values.summary,
+      JSON.stringify(
+        { mode: http ? "ingest" : "dry-run", runId, ...summary, failed, perSource },
+        null,
+        1,
+      ),
+    );
+  }
   if (values.json) console.log(JSON.stringify(summary));
   else
     console.log(
-      `[dry-run] total sources=${summary.sources} fetched=${summary.fetched} raw=${summary.raw} items=${summary.items} requests=${summary.requests} hosts=${summary.hosts} seconds=${summary.seconds} errors=${JSON.stringify(errorsByReason)}`,
+      `[${http ? "ingest" : "dry-run"}] total sources=${summary.sources} fetched=${summary.fetched} raw=${summary.raw} items=${summary.items} requests=${summary.requests} hosts=${summary.hosts} seconds=${summary.seconds} errors=${JSON.stringify(errorsByReason)}`,
     );
+  if (http && http.results.some((r) => r.error)) {
+    console.error(`${http.results.filter((r) => r.error).length} source(s) failed to post`);
+    return 3;
+  }
   return 0;
 }
 

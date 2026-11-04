@@ -31,6 +31,7 @@ import { parseIcs } from "./parse/ics.ts";
 import { isPerEventExport } from "./parse/links.ts";
 import { jsonLdEvents, schemaEvents } from "./parse/schema.ts";
 import { mergeDirectives, metaDirectives, parseXRobotsTag, snippetLimit } from "./policy/meta.ts";
+import { INCOMPLETE_REASONS, type SourceInfo, sourceForApi, sourceForSeed } from "./sources.ts";
 import type { CityFile, RawEvent, Region, Seed, SourceBatch } from "./types.ts";
 import { hostOf, shortHash, siteOf } from "./util/url.ts";
 
@@ -123,6 +124,8 @@ interface SourceRun {
   region: Region;
   order: number;
   seed?: Seed;
+  /** The feed_sources row the run's batch is for. */
+  source: SourceInfo;
   /** Raw events with their normalize context bits. */
   raws: { raw: RawEvent; idPrefix: string; fallbackUrl: string | null; snippetMax?: number }[];
 }
@@ -212,6 +215,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
           region: city.region,
           order: order++,
           seed,
+          source: sourceForSeed(seed, city.region),
           raws: [],
         });
       }
@@ -559,6 +563,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
           regionId: region.id,
           region,
           order: order++,
+          source: sourceForApi(adapter, region),
           raws: [],
         },
       });
@@ -660,6 +665,8 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
     items: kept.filter((c) => c.sourceKey === run.key).map((c) => c.item),
     skipped: skipped.get(run.key) ?? {},
     errors: errorsBySource.get(run.key) ?? {},
+    complete: !errors.some((e) => e.sourceKey === run.key && INCOMPLETE_REASONS.has(e.reason)),
+    source: run.source,
   }));
 
   const totalSkipped: Record<string, number> = {};

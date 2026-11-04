@@ -54,6 +54,16 @@ export function validateSeed(s: unknown, where: string): Seed {
   if (o.crawlPages !== undefined && typeof o.crawlPages !== "boolean")
     fail("crawlPages must be true or false");
   if (
+    o.hubs !== undefined &&
+    (!Array.isArray(o.hubs) ||
+      o.hubs.length > 5 ||
+      o.hubs.some(
+        (h) => typeof h !== "string" || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(h) || h.length > 80,
+      ))
+  ) {
+    fail("hubs must be at most 5 hub slugs");
+  }
+  if (
     (o.kind === "socrata" || o.kind === "arcgis") &&
     (!o.fields || typeof o.fields !== "object")
   ) {
