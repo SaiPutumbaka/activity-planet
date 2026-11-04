@@ -153,14 +153,16 @@ jobs:
             supabase db query --linked "select public.set_project_url('https://$STAGING_PROJECT_REF.supabase.co')"
           fi
 
-      # Runs on dry runs too: the seed is idempotent, staging is the test project, and this is
-      # the only step that exercises a 66 KB body on the Management API query endpoint.
-      - name: Staging, seed hubs
+      # Runs on dry runs too: the seeds are idempotent, staging is the test project, and this is
+      # the only step that exercises large bodies (hubs 66 KB, place rules) on the Management API
+      # query endpoint. place_rules.sql (D-041, generated) needs the hubs, so it runs second.
+      - name: Staging, seed hubs and place rules
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
           supabase db query --linked --file supabase/seed/hubs.sql
+          supabase db query --linked --file supabase/seed/place_rules.sql
 
       # Staging only: deploy the named functions from this ref. import-feed also gets this
       # project's function URL written into its vault entry (public.import_set_function_url);
@@ -248,13 +250,14 @@ jobs:
             supabase db query --linked "select public.set_project_url('https://$PROD_PROJECT_REF.supabase.co')"
           fi
 
-      - name: Production, seed hubs
+      - name: Production, seed hubs and place rules
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
         run: |
           supabase db query --linked --file supabase/seed/hubs.sql
+          supabase db query --linked --file supabase/seed/place_rules.sql
 
       # delete-account calls request_account_deletion(), which the migrations create, so it is
       # deployed after the push. send-verification-code is deployed only together with its

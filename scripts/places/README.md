@@ -27,4 +27,4 @@ Commit every changed file. CI (`place-rules` in `.github/workflows/ci.yml`) runs
 
 To refresh the taginfo counts, run the **Places taginfo check** workflow by hand, download `taginfo_counts.json` from its artifact (or copy the counts from its log), put it in this folder and re-run the generator. A tag with fewer than 50 uses worldwide drops its rule (or, as an extra condition, its value); a rule whose tags all reach 50 is marked verified.
 
-The seed needs the slice 3 schema (`place_kinds`, `place_rules`, `hub_place_rules`, `hubs.place_mode`, `hubs.geoapify_categories`), so it is not in `supabase/config.toml` or `migrate.yml` yet; slice 3 wires it in after `hubs.sql`.
+The seed needs the slice 3 schema (migration `20261122000100_places_schema.sql`: `place_kinds`, `place_rules`, `hub_place_rules`, `hubs.place_mode`, `hubs.geoapify_categories`). It runs after `hubs.sql` in `supabase/config.toml` (`db reset`) and in the seed steps of `migrate.yml` (staging and production).

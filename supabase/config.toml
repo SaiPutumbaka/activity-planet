@@ -20,7 +20,7 @@ schema_paths = []
 
 [db.seed]
 enabled = true
-sql_paths = ["./seed/hubs.sql"]
+sql_paths = ["./seed/hubs.sql", "./seed/place_rules.sql"]
 
 [auth]
 enabled = true
