@@ -226,6 +226,29 @@ What this means:
 - **Window:** capped at 31 days.
 - **Response:** each feature is `[id, lng, lat, kind_or_type, hub_id_primary, flags]`, an array and not an object, so 1,000 features fit in about 60 KB gzip or less.
 
+**Slice 6 notes (2026-11-04, as built).** Migrations 29 (`20261124000100_places_read.sql`) and 30 (`20261124000200_places_read_fixes.sql`); tests `supabase/tests/places_read.sql`; timings `supabase/tests/places_read_perf.sql`; decoder `@ap/core/map`. Changes from the table above:
+- **Encoding.** A place is `[id, lng, lat, kind, hub_idx, flags, name, hub_idxs]` and a plan or show is `[id, lng, lat, kind, hub_idx, flags, title, starts_at]` (unix seconds). The name and title are there so the list panel needs no second request. `hub_idx` points into the response's `hubs` list (`[id, slug, name, emoji, place_mode]`: the selected hubs first, then the other hubs the events are in), and `hub_idxs` lists every selected hub a place matches, so chip filtering stays on the client (§7 rule 6). Place flags: 1 general spot, 2 pending, 4 private, 8 member-added, 16 meeting spot, 32 Geoapify, 64 mine. Event flags: 1 imported, 2 in a selected hub, 4 free, 8 21+. Cells are `[lng, lat, n, ids, hub_idxs]`. Coordinates are rounded to 5 decimals (about 1 m).
+- **Flags.** `truncated` is a boolean, and `more` says which part was cut: places, hubs, plans, shows or cells. `no_hubs` means a signed-in person with no joined hubs; `generic` means one generic hub's general spots are shown.
+- **Signed out.** No hubs passed means every specific hub (D-041). Generic spots still need one hub plus `generic`.
+- **Order.** Own pins come first, then the places nearest the bbox centre in planar degrees, read in that order from the GiST index (KNN). Across the antimeridian, each half is measured from its own copy of the centre.
+- **place_detail** returns hubs as objects (`general`, `joined`; up to 12, joined first) and `plans_here` (up to 20, public addresses at a public venue only). It never returns who added a place.
+- **Measured on staging** (run 41842887246, the 16,694 Atlanta places and 207 events in the next 7 days; database time, 30 warm runs; PostgREST and the network add to this):
+
+| Scenario | p95 | Returned |
+|---|---|---|
+| Signed out, downtown 0.2 x 0.15 degrees | 46.7 ms | 800 places (cut), 173 plans |
+| Signed out, 1.0 x 1.5 degrees | 35.3 ms | 800 places, 215 plans |
+| Signed out, 1.0 x 1.5 degrees, cap 1,500 | 57.2 ms | 1,500 places |
+| 5 joined hubs, downtown / 1.0 x 1.5 | 45.0 / 71.7 ms | 800 places |
+| 50 hubs passed, 1.0 x 1.5 | 77.3 ms | 800 places, 73 hubs |
+| One generic hub with generic set, downtown | 40.2 ms | 800 places |
+| Name search "park", 1.0 x 1.5 | 43.0 ms | 800 places |
+| 3 x 3 degrees (zoom_in, events only) | 8.8 ms | 215 plans |
+| place_detail | 3.0 ms | 1 card |
+
+  Payload: about 115 to 120 KB raw for 800 places plus about 200 plans, and 68 to 72 KB per 1,000 features compressed with lz4 inside the database. gzip on the same encoding (measured locally on synthetic Atlanta-like rows) is about 0.62 of the lz4 size, so about 42 to 45 KB per 1,000 features, under the 60 KB budget.
+- **Fixed on the way:** migration 29 probed `place_hubs` once per (picked place, hub) pair. For a signed-out view (437 specific hubs) that cost about 150 microseconds per place, giving p95 135 ms downtown and 246 ms at 1,500 (run 41841317042). Migration 30 looks the links up by place id only.
+
 ---
 
 ## 6. RLS (from the draft, unchanged in substance)
