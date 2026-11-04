@@ -77,3 +77,23 @@ describe("removalMailto", () => {
     expect(body).not.toContain("Original:");
   });
 });
+
+describe("ticketSeller (D-042 slice 10)", () => {
+  it("names the seller, its link-out and its credit for ticketing sources", async () => {
+    const { ticketSeller } = await import("../index");
+    expect(ticketSeller("seatgeek")).toEqual({
+      name: "SeatGeek",
+      homeUrl: "https://seatgeek.com/",
+      linkLabel: "Tickets on SeatGeek",
+      credit: "Powered by SeatGeek",
+    });
+    expect(ticketSeller("ticketmaster")?.linkLabel).toBe("Tickets on Ticketmaster");
+    expect(ticketSeller("ticketmaster")?.homeUrl).toBe("https://www.ticketmaster.com/");
+  });
+  it("is null for every other source", async () => {
+    const { ticketSeller } = await import("../index");
+    expect(ticketSeller("ics")).toBeNull();
+    expect(ticketSeller(null)).toBeNull();
+    expect(ticketSeller("toString")).toBeNull();
+  });
+});

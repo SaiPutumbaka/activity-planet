@@ -72,3 +72,40 @@ export function removalMailto(e: {
   const subject = `Removal request: ${e.title}`;
   return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines.join("\n"))}`;
 }
+
+/** What a ticketing source's listings show (D-042 slice 10): the seller's link and credit. */
+export interface TicketSeller {
+  name: string;
+  /** The seller's homepage, where the credit links. */
+  homeUrl: string;
+  /** The link-out button: tickets and details are on the seller's own event page. */
+  linkLabel: string;
+  /** The credit shown wherever the seller's data appears. */
+  credit: string;
+}
+
+const SELLERS: Record<string, TicketSeller> = {
+  // Ticketmaster's Discovery API terms: link to the Ticketmaster event page to buy.
+  ticketmaster: {
+    name: "Ticketmaster",
+    homeUrl: "https://www.ticketmaster.com/",
+    linkLabel: "Tickets on Ticketmaster",
+    credit: "Event data from Ticketmaster",
+  },
+  // SeatGeek's Platform terms: SeatGeek's mark wherever its data appears, linking to its
+  // homepage; a "powered by" form is allowed.
+  seatgeek: {
+    name: "SeatGeek",
+    homeUrl: "https://seatgeek.com/",
+    linkLabel: "Tickets on SeatGeek",
+    credit: "Powered by SeatGeek",
+  },
+};
+
+/**
+ * The ticket seller behind an imported listing, from its source kind (imported_event_labels
+ * source_kind), or null for every other source.
+ */
+export function ticketSeller(sourceKind: string | null | undefined): TicketSeller | null {
+  return sourceKind && Object.hasOwn(SELLERS, sourceKind) ? SELLERS[sourceKind]! : null;
+}

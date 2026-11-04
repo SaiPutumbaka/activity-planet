@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { EventCard } from "@/components/events/event-card";
+import { ShowsCredit } from "@/components/events/imported-source";
 import { Button } from "@/components/ui/button";
 import { showsFeedQuery, type FeedParams } from "@/lib/events";
 import { importLabelsQuery } from "@/lib/imports";
@@ -13,7 +14,8 @@ const STEP = 5;
  * "Shows and games" (D-041 slice 10): ticketed shows and games from the ticketing sources, in a
  * row of their own between the plans and "Also happening". Nothing is fetched or shown until
  * shows_available() says a show exists anywhere, and the row is hidden while it has none here.
- * Cards link out to the ticket seller like imported listings; there is no RSVP.
+ * Cards link out to the ticket seller like imported listings; there is no RSVP. The sellers'
+ * credits (D-042 slice 10) sit under the row.
  */
 export function ShowsRow(
   props: Pick<FeedParams, "userId" | "point" | "areaId" | "homeKey" | "timeZone">,
@@ -47,6 +49,9 @@ export function ShowsRow(
           importLabel={labels.data?.get(e.id) ?? null}
         />
       ))}
+      {labels.data ? (
+        <ShowsCredit sourceKinds={visible.map((e) => labels.data.get(e.id)?.source_kind)} />
+      ) : null}
       {events.length > shown ? (
         <Button
           variant="secondary"

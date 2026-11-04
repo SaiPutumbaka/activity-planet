@@ -1,5 +1,11 @@
 import { ExternalLink } from "lucide-react";
-import { importChips, listedByLine, notAffiliatedLine, removalMailto } from "@ap/core/imports";
+import {
+  importChips,
+  listedByLine,
+  notAffiliatedLine,
+  removalMailto,
+  ticketSeller,
+} from "@ap/core/imports";
 
 import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/cn";
@@ -9,7 +15,9 @@ import { appEventUrl, type ImportLabel } from "@/lib/imports";
  * What an imported listing carries instead of an RSVP (D-004, D-014, D-022, D-037): where it came
  * from, a "Register at source" link out, a "Request removal" email for organizers, the source's
  * chip and "Open to the public" where the source says so, and the not-affiliated line only on
- * items from a source that belongs to an organization (the Georgia State sources).
+ * items from a source that belongs to an organization (the Georgia State sources). Shows from a
+ * ticketing API (D-042 slice 10) link out as "Tickets on <seller>" to the seller's own event page
+ * and carry the seller's credit, linking to its homepage, wherever their data appears.
  */
 
 /** Neutral fact pills, the same look as the hub badges: they describe, they are not states. */
@@ -39,12 +47,15 @@ export function ImportedChips({
 export function RegisterAtSource({
   url,
   sourceName,
+  label = "Register at source",
   size,
   primary = false,
   className,
 }: {
   url: string;
   sourceName: string;
+  /** The button text ("Tickets on SeatGeek" for a ticketing source). */
+  label?: string;
   size?: "lg";
   /** On the event page it is the one action, so it takes the accent; on cards it stays quiet. */
   primary?: boolean;
@@ -57,7 +68,7 @@ export function RegisterAtSource({
       rel="noopener noreferrer"
       className={buttonVariants({ variant: primary ? "primary" : "outline", size, className })}
     >
-      Register at source
+      {label}
       <ExternalLink className="size-4" aria-hidden="true" />
       <span className="sr-only"> on {sourceName} (opens in a new tab)</span>
     </a>
@@ -89,6 +100,32 @@ export function RequestRemovalLink({
   );
 }
 
+/** The ticket seller's credit, linking to its homepage (SeatGeek's and Ticketmaster's terms). */
+export function SellerCredit({
+  sourceKind,
+  className,
+}: {
+  sourceKind: string | null | undefined;
+  className?: string;
+}) {
+  const seller = ticketSeller(sourceKind);
+  if (!seller) return null;
+  return (
+    <a
+      href={seller.homeUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "inline-flex min-h-11 items-center text-[12px] font-semibold text-text-2 underline underline-offset-2 hover:text-text",
+        className,
+      )}
+    >
+      {seller.credit}
+      <span className="sr-only"> (opens {seller.name} in a new tab)</span>
+    </a>
+  );
+}
+
 /** The footer of an imported card on Home and in hubs. */
 export function ImportedCardFooter({
   event,
@@ -99,6 +136,7 @@ export function ImportedCardFooter({
 }) {
   const source = label?.source_name ?? event.source_name ?? "the organizer";
   const line = notAffiliatedLine(label);
+  const seller = ticketSeller(label?.source_kind);
   return (
     <div className="mt-1 flex flex-col gap-1">
       <p className="text-[13px] text-text-2">{listedByLine(source, label?.host_org)}</p>
@@ -108,10 +146,12 @@ export function ImportedCardFooter({
           <RegisterAtSource
             url={event.external_url}
             sourceName={source}
+            label={seller?.linkLabel}
             className="relative z-[2]"
           />
         ) : null}
       </div>
+      <SellerCredit sourceKind={label?.source_kind} className="relative z-[2] self-start" />
       {line ? <p className="text-[12px] text-text-3">{line}</p> : null}
     </div>
   );
@@ -127,14 +167,17 @@ export function ImportedSourceSection({
 }) {
   const source = label?.source_name ?? event.source_name ?? "the organizer";
   const line = notAffiliatedLine(label);
+  const seller = ticketSeller(label?.source_kind);
   return (
     <section className="flex flex-col gap-2 rounded-card border border-border p-4">
       <h3 className="text-[17px] font-bold tracking-[-0.01em]">
         {listedByLine(source, label?.host_org)}
       </h3>
       <p className="text-[14px] text-text-2">
-        {label?.attribution || `Listed from ${source}.`} Activity Planet isn't the organizer:
-        details can change, so check and sign up on the source's page.
+        {label?.attribution || `Listed from ${source}.`}{" "}
+        {seller
+          ? `Activity Planet doesn't sell tickets: details can change, so check them and buy on ${seller.name}.`
+          : "Activity Planet isn't the organizer: details can change, so check and sign up on the source's page."}
       </p>
       {label?.approximate_location ? (
         <p className="text-[13px] text-text-2">
@@ -145,15 +188,39 @@ export function ImportedSourceSection({
         <RegisterAtSource
           url={event.external_url}
           sourceName={source}
+          label={seller?.linkLabel}
           size="lg"
           primary
           className="mt-1"
         />
       ) : null}
+      <SellerCredit sourceKind={label?.source_kind} className="self-start" />
       <p className="text-[13px] text-text-2">
         Organize this and want it taken down? <RequestRemovalLink event={event} />
       </p>
       {line ? <p className="text-[12px] text-text-3">{line}</p> : null}
     </section>
+  );
+}
+
+/**
+ * The ticket sellers' credits under a list of shows (the "Shows and games" row, the map list):
+ * the sellers of the shows listed, or both ticketing sources when the list does not know them.
+ */
+export function ShowsCredit({
+  sourceKinds = ["ticketmaster", "seatgeek"],
+  className,
+}: {
+  sourceKinds?: readonly (string | null | undefined)[];
+  className?: string;
+}) {
+  const kinds = [...new Set(sourceKinds)].filter((k) => ticketSeller(k) !== null);
+  if (kinds.length === 0) return null;
+  return (
+    <p className={cn("flex flex-wrap items-center gap-x-3", className)}>
+      {kinds.map((k) => (
+        <SellerCredit key={k} sourceKind={k} />
+      ))}
+    </p>
   );
 }

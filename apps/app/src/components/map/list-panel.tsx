@@ -17,6 +17,7 @@ import {
   type MapFeature,
   type MapView,
 } from "@/lib/map";
+import { ShowsCredit } from "@/components/events/imported-source";
 
 import { MapAttribution } from "./attribution";
 import { CellGlyph, PlaceGlyph, PlanGlyph, ShowGlyph } from "./glyphs";
@@ -144,6 +145,7 @@ export function ListPanel({
               onSelect={onSelectEvent}
             />
           ))}
+          {shows.length > 0 ? <ShowsCredit className="px-1" /> : null}
         </Section>
         <MapAttribution className="pt-4" geoapify={view.places.some((f) => f.geoapify)} />
       </div>
