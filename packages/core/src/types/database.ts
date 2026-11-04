@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 28 (schema_version 2.24). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 29 (schema_version 2.25). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -3269,6 +3269,31 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      map_in_view: {
+        Args: {
+          p_east: number;
+          p_from?: string;
+          p_generic?: boolean;
+          p_hub_ids?: string[];
+          p_layers?: string[];
+          p_limit?: number;
+          p_north: number;
+          p_south: number;
+          p_to?: string;
+          p_west: number;
+        };
+        Returns: Json;
+      };
+      map_view_box: {
+        Args: {
+          p_east: number;
+          p_north: number;
+          p_south: number;
+          p_west: number;
+        };
+        Returns: Record<string, unknown>;
+      };
+      map_view_hubs: { Args: { p_hub_ids: string[] }; Returns: string[] };
       mark_notifications_read: { Args: { p_ids?: string[] }; Returns: number };
       materialize_all_event_series: {
         Args: { p_weeks?: number };
@@ -3363,12 +3388,32 @@ export type Database = {
           title: string;
         }[];
       };
+      place_detail: { Args: { p_id: string }; Returns: Json };
+      place_is_mine: { Args: { p_id: string }; Returns: boolean };
       place_tile_bbox: { Args: { p_id: number }; Returns: unknown };
       place_tile_id: { Args: { p_lat: number; p_lng: number }; Returns: number };
       place_tile_id_of: { Args: { p_point: unknown }; Returns: number };
       place_tiles_queue: {
         Args: { p_kinds?: string[]; p_limit?: number };
         Returns: Json;
+      };
+      places_in_view: {
+        Args: {
+          p_east: number;
+          p_generic?: boolean;
+          p_hub_ids?: string[];
+          p_kinds?: string[];
+          p_limit?: number;
+          p_north: number;
+          p_query?: string;
+          p_south: number;
+          p_west: number;
+        };
+        Returns: Json;
+      };
+      places_own_in_view: {
+        Args: { p_env1: unknown; p_env2: unknown };
+        Returns: string[];
       };
       project_url: { Args: never; Returns: string };
       purge_account_deletions: { Args: never; Returns: number };
