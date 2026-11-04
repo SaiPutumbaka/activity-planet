@@ -48,9 +48,10 @@ begin
           where n.nspname = 'public' and p.proname = 'map_in_view') <> 's' then
     raise exception 'FAIL security or volatility of the read functions';
   end if;
-  if has_table_privilege('anon', 'public.place_tiles', 'select')
-     or has_table_privilege('authenticated', 'public.place_tiles', 'select') then
-    raise exception 'FAIL place_tiles is readable by clients';
+  if not (select c.relrowsecurity from pg_class c where c.oid = 'public.place_tiles'::regclass)
+     or has_table_privilege('anon', 'public.place_tiles', 'select')
+     or has_column_privilege('authenticated', 'public.place_tiles', 'queue_reason', 'update') then
+    raise exception 'FAIL place_tiles access (RLS, anon read, member update)';
   end if;
 end $$;
 
