@@ -67,3 +67,10 @@ verify_jwt = true
 # does not match the vault secret import_feed_secret (checked through import_verify_secret,
 # service_role only). The secret is generated inside the database and is in no file.
 verify_jwt = false
+
+[functions.collector]
+# The callers are the hub map collector jobs (GitHub Actions, D-040, D-041), not users, so the
+# gateway JWT check is off; the function refuses any request whose x-collector-secret header does
+# not match the vault secret collector_secret (checked through collector_verify_secret,
+# service_role only). The secret is generated inside the database and is in no file.
+verify_jwt = false

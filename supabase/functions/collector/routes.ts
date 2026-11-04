@@ -1,0 +1,145 @@
+// Request parsing for the collector Edge Function (D-040, D-041 slice 4). Pure functions, no I/O,
+// so they run under `deno test` without network or secrets.
+
+export const MAX_BATCH_ROWS = 2000;
+export const MAX_BODY_BYTES = 6 * 1024 * 1024;
+
+const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/;
+const SOURCES = ["osm", "geoapify"] as const;
+export type PlaceSource = (typeof SOURCES)[number];
+
+export type Route =
+  | { kind: "tiles"; statuses: string[]; limit: number }
+  | { kind: "ingest" }
+  | { kind: "done"; tileId: number }
+  | { kind: "not_found" };
+
+/** Matches `/collector/...` (or the path without the function name, as on a local server). */
+export function matchRoute(method: string, url: string): Route {
+  const u = new URL(url);
+  const path =
+    u.pathname.replace(/^\/functions\/v1/, "").replace(/^\/collector(?=\/|$)/, "") || "/";
+  if (method === "GET" && path === "/tiles") {
+    const statuses = (u.searchParams.get("status") ?? "wanted,refresh")
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s === "wanted" || s === "refresh");
+    const limitRaw = Number(u.searchParams.get("limit") ?? "20");
+    const limit = Number.isInteger(limitRaw) ? Math.min(100, Math.max(1, limitRaw)) : 20;
+    return { kind: "tiles", statuses: statuses.length ? statuses : ["wanted", "refresh"], limit };
+  }
+  if (method === "POST" && path === "/ingest/places") return { kind: "ingest" };
+  const done = /^\/tiles\/([0-9]{1,6})\/done$/.exec(path);
+  if (method === "POST" && done) {
+    const tileId = Number(done[1]);
+    if (tileId <= 259199) return { kind: "done", tileId };
+  }
+  return { kind: "not_found" };
+}
+
+export interface IngestArgs {
+  p_tile_id: number;
+  p_run_id: string;
+  p_batch: unknown[];
+  p_source: PlaceSource;
+  p_batch_no: number | null;
+}
+
+export interface DoneArgs {
+  p_tile_id: number;
+  p_run_id: string;
+  p_count: number;
+  p_source: PlaceSource;
+}
+
+export type Parsed<T> = { ok: true; args: T } | { ok: false; error: string };
+
+function source(value: unknown): PlaceSource | null {
+  if (value === undefined || value === null) return "osm";
+  return (SOURCES as readonly unknown[]).includes(value) ? (value as PlaceSource) : null;
+}
+
+/** Body of POST /collector/ingest/places: {tile_id, run_id, source?, batch_no?, rows: [...]}. */
+export function parseIngestBody(body: unknown): Parsed<IngestArgs> {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return { ok: false, error: "invalid_body" };
+  }
+  const b = body as Record<string, unknown>;
+  if (!Number.isInteger(b.tile_id) || (b.tile_id as number) < 0 || (b.tile_id as number) > 259199) {
+    return { ok: false, error: "invalid_tile_id" };
+  }
+  if (typeof b.run_id !== "string" || !RUN_ID.test(b.run_id))
+    return { ok: false, error: "invalid_run_id" };
+  const src = source(b.source);
+  if (!src) return { ok: false, error: "invalid_source" };
+  let batchNo: number | null = null;
+  if (b.batch_no !== undefined && b.batch_no !== null) {
+    if (
+      !Number.isInteger(b.batch_no) ||
+      (b.batch_no as number) < 0 ||
+      (b.batch_no as number) > 100000
+    ) {
+      return { ok: false, error: "invalid_batch_no" };
+    }
+    batchNo = b.batch_no as number;
+  }
+  if (!Array.isArray(b.rows)) return { ok: false, error: "invalid_rows" };
+  if (b.rows.length > MAX_BATCH_ROWS) return { ok: false, error: "batch_too_large" };
+  return {
+    ok: true,
+    args: {
+      p_tile_id: b.tile_id as number,
+      p_run_id: b.run_id,
+      p_batch: b.rows,
+      p_source: src,
+      p_batch_no: batchNo,
+    },
+  };
+}
+
+/** Body of POST /collector/tiles/{id}/done: {run_id, count, source?}. */
+export function parseDoneBody(tileId: number, body: unknown): Parsed<DoneArgs> {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return { ok: false, error: "invalid_body" };
+  }
+  const b = body as Record<string, unknown>;
+  if (typeof b.run_id !== "string" || !RUN_ID.test(b.run_id))
+    return { ok: false, error: "invalid_run_id" };
+  if (!Number.isInteger(b.count) || (b.count as number) < 0)
+    return { ok: false, error: "invalid_count" };
+  const src = source(b.source);
+  if (!src) return { ok: false, error: "invalid_source" };
+  return {
+    ok: true,
+    args: { p_tile_id: tileId, p_run_id: b.run_id, p_count: b.count as number, p_source: src },
+  };
+}
+
+/** The database error names the RPCs raise, mapped to HTTP statuses for the job. */
+const RPC_ERRORS: Record<string, number> = {
+  tile_unknown: 404,
+  run_unknown: 404,
+  tile_retired: 409,
+  run_finished: 409,
+  count_mismatch: 409,
+  empty_run: 409,
+  batch_too_large: 413,
+  source_invalid: 400,
+  run_id_invalid: 400,
+  batch_invalid: 400,
+  batch_no_invalid: 400,
+  count_invalid: 400,
+};
+
+/** Picks a known error name out of a PostgREST error body; anything else is a 502. */
+export function rpcError(body: string): { error: string; status: number } {
+  let message = "";
+  try {
+    const parsed = JSON.parse(body);
+    message = typeof parsed?.message === "string" ? parsed.message : "";
+  } catch {
+    message = "";
+  }
+  const status = RPC_ERRORS[message];
+  return status ? { error: message, status } : { error: "rpc_failed", status: 502 };
+}
