@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 42 (schema_version 2.38). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 43 (schema_version 2.39). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -2315,6 +2315,7 @@ export type Database = {
           file_published_at: string | null;
           file_rules_version: number | null;
           file_sha256: string | null;
+          geoapify_claimed_at: string | null;
           geoapify_run_at: string | null;
           id: number;
           idle_since: string | null;
@@ -2338,6 +2339,7 @@ export type Database = {
           file_published_at?: string | null;
           file_rules_version?: number | null;
           file_sha256?: string | null;
+          geoapify_claimed_at?: string | null;
           geoapify_run_at?: string | null;
           id: number;
           idle_since?: string | null;
@@ -2361,6 +2363,7 @@ export type Database = {
           file_published_at?: string | null;
           file_rules_version?: number | null;
           file_sha256?: string | null;
+          geoapify_claimed_at?: string | null;
           geoapify_run_at?: string | null;
           id?: number;
           idle_since?: string | null;
@@ -3859,6 +3862,15 @@ export type Database = {
         Args: { p_reasons: Json };
         Returns: Json;
       };
+      places_fill_dispatch: {
+        Args: { p_force?: boolean; p_reason?: string };
+        Returns: number;
+      };
+      places_fill_plan: { Args: { p_limit?: number }; Returns: Json };
+      places_fill_release: { Args: { p_tile_id: number }; Returns: boolean };
+      places_fill_spend: { Args: { p_credits: number }; Returns: number };
+      places_fill_supersede: { Args: never; Returns: number };
+      places_fill_tick: { Args: never; Returns: Json };
       places_in_view: {
         Args: {
           p_east: number;
