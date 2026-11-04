@@ -20,7 +20,15 @@ export type Route =
   | { kind: "done"; tileId: number }
   | { kind: "export"; after: string | null; limit: number }
   | { kind: "dump" }
+  | { kind: "files_queue"; limit: number; all: boolean; tiles: number[] | null }
+  | { kind: "file_rows"; tileId: number; after: string | null; limit: number }
+  | { kind: "files_record" }
   | { kind: "not_found" };
+
+/** place_tile_file_page's largest page and place_files_queue's largest list (migration 42). */
+export const FILE_PAGE = 5000;
+export const FILES_QUEUE_MAX = 500;
+const OSM_REF = /^[nwr][0-9]{1,15}$/;
 
 /** Matches `/collector/...` (or the path without the function name, as on a local server). */
 export function matchRoute(method: string, url: string): Route {
@@ -48,6 +56,34 @@ export function matchRoute(method: string, url: string): Route {
     return { kind: "export", after: afterRaw ? afterRaw.toLowerCase() : null, limit };
   }
   if (method === "POST" && path === "/runs/dump") return { kind: "dump" };
+  // Static place files (D-042 slices 3 and 4, migration 42).
+  if (method === "GET" && path === "/files/queue") {
+    const limitRaw = Number(u.searchParams.get("limit") ?? "50");
+    const limit = Number.isInteger(limitRaw)
+      ? Math.min(FILES_QUEUE_MAX, Math.max(1, limitRaw))
+      : 50;
+    const tilesRaw = u.searchParams.get("tiles");
+    let tiles: number[] | null = null;
+    if (tilesRaw !== null && tilesRaw !== "") {
+      if (!/^[0-9]{1,6}(,[0-9]{1,6}){0,499}$/.test(tilesRaw)) return { kind: "not_found" };
+      tiles = [...new Set(tilesRaw.split(",").map(Number))];
+      if (tiles.some((t) => t > 259199)) return { kind: "not_found" };
+    }
+    return { kind: "files_queue", limit, all: u.searchParams.get("all") === "1", tiles };
+  }
+  if (method === "POST" && path === "/files/record") return { kind: "files_record" };
+  const rows = /^\/tiles\/([0-9]{1,6})\/rows$/.exec(path);
+  if (method === "GET" && rows) {
+    const tileId = Number(rows[1]);
+    const afterRaw = u.searchParams.get("after");
+    if (afterRaw !== null && afterRaw !== "" && !OSM_REF.test(afterRaw))
+      return { kind: "not_found" };
+    const limitRaw = Number(u.searchParams.get("limit") ?? String(FILE_PAGE));
+    const limit = Number.isInteger(limitRaw)
+      ? Math.min(FILE_PAGE, Math.max(1, limitRaw))
+      : FILE_PAGE;
+    if (tileId <= 259199) return { kind: "file_rows", tileId, after: afterRaw || null, limit };
+  }
   const done = /^\/tiles\/([0-9]{1,6})\/done$/.exec(path);
   if (method === "POST" && done) {
     const tileId = Number(done[1]);
@@ -257,6 +293,32 @@ export function parseDumpBody(body: unknown): Parsed<DumpArgs> {
   };
 }
 
+/**
+ * Body of POST /collector/files/record: {published, rules?, tiles?}. Only the outline is checked
+ * here; place_files_record validates every field again (paths, hashes, sizes, tile ids).
+ */
+export function parseFilesRecordBody(body: unknown): Parsed<{ p: Record<string, unknown> }> {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return { ok: false, error: "invalid_body" };
+  }
+  const b = body as Record<string, unknown>;
+  if (typeof b.published !== "boolean") return { ok: false, error: "invalid_published" };
+  if (b.tiles !== undefined && (!Array.isArray(b.tiles) || b.tiles.length > 2000)) {
+    return { ok: false, error: "invalid_tiles" };
+  }
+  if (
+    b.rules !== undefined &&
+    b.rules !== null &&
+    (typeof b.rules !== "object" || Array.isArray(b.rules))
+  ) {
+    return { ok: false, error: "invalid_rules" };
+  }
+  const p: Record<string, unknown> = { published: b.published };
+  if (b.rules !== undefined) p.rules = b.rules;
+  if (b.tiles !== undefined) p.tiles = b.tiles;
+  return { ok: true, args: { p } };
+}
+
 /** The database error names the RPCs raise, mapped to HTTP statuses for the job. */
 const RPC_ERRORS: Record<string, number> = {
   tile_unknown: 404,
@@ -277,6 +339,10 @@ const RPC_ERRORS: Record<string, number> = {
   month_invalid: 400,
   sha256_invalid: 400,
   counts_invalid: 400,
+  tiles_invalid: 400,
+  rules_invalid: 400,
+  record_invalid: 400,
+  cursor_invalid: 400,
 };
 
 /** Picks a known error name out of a PostgREST error body; anything else is a 502. */

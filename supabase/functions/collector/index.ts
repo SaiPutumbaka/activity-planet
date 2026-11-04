@@ -15,6 +15,12 @@
 //                                                            ODbL dump, slice 14)
 //   POST /collector/runs/dump {month, rows, bytes, sha256, published, counts?}
 //                                                         -> record_place_dump()
+//   GET  /collector/files/queue?limit=50&all=1&tiles=1,2  -> place_files_queue() (static place
+//                                                            files, D-042 slice 3, migration 42)
+//   GET  /collector/tiles/{id}/rows?after=<osm_ref>&limit=5000
+//                                                         -> place_tile_file_page()
+//   POST /collector/files/record {published, rules?, tiles?}
+//                                                         -> place_files_record()
 //
 // The caller (a GitHub Actions job) sends the header x-collector-secret. The secret is generated
 // inside the database (vault secret collector_secret, migration 28) and checked here through
@@ -23,7 +29,7 @@
 // job never holds the service-role key. The gateway JWT check is off for this function
 // (config.toml) because the caller is not a user.
 //
-// Responses carry counts and error names only, never row data, except the export route: its rows
+// Responses carry counts and error names only, never row data, except the export and tile rows routes: their rows
 // are the public place facts the monthly ODbL release publishes anyway (no ids, no member data). SUPABASE_URL and
 // SUPABASE_SERVICE_ROLE_KEY are injected by Supabase.
 import {
@@ -32,6 +38,7 @@ import {
   parseDoneBody,
   parseDumpBody,
   parseEventsBody,
+  parseFilesRecordBody,
   parseIngestBody,
   rpcError,
 } from "./routes.ts";
@@ -111,6 +118,27 @@ Deno.serve(async (req: Request): Promise<Response> => {
       return json(page);
     }
 
+    if (route.kind === "files_queue") {
+      return json(
+        await rpc("place_files_queue", {
+          p_limit: route.limit,
+          p_all: route.all,
+          p_tiles: route.tiles,
+        }),
+      );
+    }
+
+    // Public ODbL facts of one tile (no ids, no member rows), as the files job writes them.
+    if (route.kind === "file_rows") {
+      return json(
+        await rpc("place_tile_file_page", {
+          p_tile_id: route.tileId,
+          p_after: route.after,
+          p_limit: route.limit,
+        }),
+      );
+    }
+
     let body: unknown;
     try {
       body = await readJson(req);
@@ -161,6 +189,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
         parsed.args.p_rows,
         parsed.args.p_published,
       );
+      return json(result);
+    }
+
+    if (route.kind === "files_record") {
+      const parsed = parseFilesRecordBody(body);
+      if (!parsed.ok) return json({ error: parsed.error }, 400);
+      const result = await rpc("place_files_record", { ...parsed.args });
+      console.log("collector files", JSON.stringify(result));
       return json(result);
     }
 

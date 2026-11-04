@@ -5,6 +5,7 @@ import {
   parseDoneBody,
   parseDumpBody,
   parseEventsBody,
+  parseFilesRecordBody,
   parseIngestBody,
   rpcError,
 } from "./routes.ts";
@@ -269,4 +270,61 @@ Deno.test("events body: POST /ingest/events, shape checked before the database s
     error: "source_not_collector",
     status: 409,
   });
+});
+
+Deno.test("static place files routes (migration 42)", () => {
+  const base = "https://x.supabase.co/functions/v1/collector";
+  assertEquals(matchRoute("GET", `${base}/files/queue`), {
+    kind: "files_queue",
+    limit: 50,
+    all: false,
+    tiles: null,
+  });
+  assertEquals(
+    matchRoute("GET", `${base}/files/queue?limit=9999&all=1&tiles=198375,178030,198375`),
+    {
+      kind: "files_queue",
+      limit: 500,
+      all: true,
+      tiles: [198375, 178030],
+    },
+  );
+  assertEquals(matchRoute("GET", `${base}/files/queue?tiles=300000`), { kind: "not_found" });
+  assertEquals(matchRoute("GET", `${base}/files/queue?tiles=1;drop`), { kind: "not_found" });
+  assertEquals(matchRoute("GET", `${base}/tiles/198375/rows`), {
+    kind: "file_rows",
+    tileId: 198375,
+    after: null,
+    limit: 5000,
+  });
+  assertEquals(matchRoute("GET", `${base}/tiles/198375/rows?after=w123&limit=10`), {
+    kind: "file_rows",
+    tileId: 198375,
+    after: "w123",
+    limit: 10,
+  });
+  assertEquals(matchRoute("GET", `${base}/tiles/198375/rows?after=x1`), { kind: "not_found" });
+  assertEquals(matchRoute("GET", `${base}/tiles/999999/rows`), { kind: "not_found" });
+  assertEquals(matchRoute("POST", `${base}/files/record`), { kind: "files_record" });
+  assertEquals(matchRoute("GET", `${base}/files/record`), { kind: "not_found" });
+});
+
+Deno.test("parseFilesRecordBody", () => {
+  assertEquals(parseFilesRecordBody({ published: false, tiles: [] }), {
+    ok: true,
+    args: { p: { published: false, tiles: [] } },
+  });
+  assertEquals(parseFilesRecordBody({ published: "yes" }), {
+    ok: false,
+    error: "invalid_published",
+  });
+  assertEquals(parseFilesRecordBody({ published: true, tiles: {} }), {
+    ok: false,
+    error: "invalid_tiles",
+  });
+  assertEquals(parseFilesRecordBody({ published: true, rules: [] }), {
+    ok: false,
+    error: "invalid_rules",
+  });
+  assertEquals(parseFilesRecordBody([]), { ok: false, error: "invalid_body" });
 });

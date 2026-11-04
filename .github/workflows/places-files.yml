@@ -1,0 +1,283 @@
+name: Places files
+
+# Static place tile files for the hub map (D-042 slices 3 and 4,
+# docs/design/auto-coverage/AUTO_COVERAGE_DESIGN.md 4.4). Reads the files queue from the target
+# (GET /collector/files/queue -> place_files_queue, migration 42: tiles with no file, an OSM run or
+# rules change since their file, or a file a week old), pages each tile's active public
+# OpenStreetMap rows (GET /collector/tiles/{id}/rows), and scripts/places/build_place_files.py
+# writes places/v{rules_version}/{tile}.{hash16}.json.gz per tile and rules/v{n}.{hash16}.json.gz.
+#
+# Where the files go:
+#   * on main (schedule or dispatch with production typed): reads PRODUCTION, publishes the files to
+#     GitHub Pages by committing them to the gh-pages branch (one orphan commit, force-pushed, so
+#     the branch never grows a history of data files), then records them as published
+#     (POST /collector/files/record), so the app is offered them (map_in_view p_files). Replaced
+#     files stay 7 days for devices holding the previous answer; files of tiles idle 180 days are
+#     deleted. The schedule does nothing unless the repository variable PLACES_EXTRACT_SCHEDULE is
+#     "production" (the same switch as the nightly extract, FOUNDER-TODO item 7).
+#   * any other ref (dispatch, or a push that changes scripts/places/files_request.json, since
+#     dispatch only works once this file is on main): reads STAGING, builds the same files, uploads
+#     them as a workflow artifact and records them on staging as built, not published. It never
+#     touches gh-pages or production.
+#
+# Hosting (D-042, Claude's call): GitHub Pages first (public repo, public ODbL data, no new account);
+# the same layout moves to Cloudflare R2 when traffic needs it. Pages serves every file with
+# Cache-Control max-age=600 and CORS *, and cannot set other headers, so the names carry a content
+# hash and the app's service worker keeps them cache-first (apps/app/vite.config.ts). headers.json in
+# the artifact lists the headers to set on R2 (immutable, one year).
+#
+# Secrets: none of its own. Like places-extract.yml it links the target with SUPABASE_ACCESS_TOKEN
+# and the database password, reads the collector secret from that project's vault, masks it and
+# sends it only as x-collector-secret. The service-role key never reaches the job. Logs hold tile
+# ids, counts and sizes; the rows are public ODbL facts and are not printed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tiles:
+        description: "Tile ids to build (198375,178030); empty: the queue"
+        type: string
+        default: ""
+      all:
+        description: "Rebuild every active tile's file"
+        type: boolean
+        default: false
+      max_tiles:
+        description: "Most tiles this run builds"
+        type: string
+        default: "200"
+      production:
+        description: "Type production to read and publish PRODUCTION (only from main)"
+        type: string
+        default: ""
+  push:
+    branches-ignore: [main, gh-pages]
+    paths:
+      - "scripts/places/files_request.json"
+  schedule:
+    # After the nightly extract (03:17 UTC, budget about 2 to 5 hours).
+    - cron: "43 9 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: places-files
+  cancel-in-progress: false
+
+env:
+  STAGING_PROJECT_REF: gzrscndzzggxmcwnvvcq
+  PROD_PROJECT_REF: gtesfiqxqontescqpllo
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      target: ${{ steps.mode.outputs.target }}
+      built: ${{ steps.build.outputs.built }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide target
+        id: mode
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          IN_TILES: ${{ inputs.tiles }}
+          IN_ALL: ${{ inputs.all }}
+          IN_MAX: ${{ inputs.max_tiles }}
+          IN_PRODUCTION: ${{ inputs.production }}
+          SCHEDULE_VAR: ${{ vars.PLACES_EXTRACT_SCHEDULE }}
+        run: |
+          target=none; tiles=""; all=false; max=200
+          case "$EVENT" in
+            schedule)
+              if [ "$SCHEDULE_VAR" = "production" ] && [ "$REF" = "refs/heads/main" ]; then
+                target=production
+              else
+                echo "Scheduled run: PLACES_EXTRACT_SCHEDULE is not production; nothing to do."
+              fi ;;
+            workflow_dispatch)
+              tiles="$IN_TILES"; all="$IN_ALL"; max="${IN_MAX:-200}"
+              if [ "$REF" = "refs/heads/main" ]; then
+                if [ "$IN_PRODUCTION" = "production" ]; then target=production; else echo "From main, type production."; fi
+              else
+                if [ -n "$IN_PRODUCTION" ]; then echo "production is only reachable from main"; exit 1; fi
+                target=staging
+              fi ;;
+            push)
+              if [ "$REF" = "refs/heads/main" ]; then echo "never on main pushes"; exit 1; fi
+              target=staging
+              tiles=$(python3 -I -c 'import json;print(json.load(open("scripts/places/files_request.json")).get("tiles", ""))')
+              all=$(python3 -I -c 'import json;print(str(json.load(open("scripts/places/files_request.json")).get("all", False)).lower())')
+              max=$(python3 -I -c 'import json;print(json.load(open("scripts/places/files_request.json")).get("max_tiles", 200))') ;;
+          esac
+          case "$tiles" in *[!0-9,]*) echo "Refusing tiles: $tiles"; exit 1 ;; esac
+          case "$max" in ''|*[!0-9]*) echo "Refusing max_tiles: $max"; exit 1 ;; esac
+          [ "$all" = "true" ] || all=false
+          ref=""
+          [ "$target" = "staging" ] && ref="$STAGING_PROJECT_REF"
+          [ "$target" = "production" ] && ref="$PROD_PROJECT_REF"
+          echo "target=$target tiles=${tiles:-queue} all=$all max_tiles=$max"
+          { echo "target=$target"; echo "project_ref=$ref"; echo "tiles=$tiles"; echo "all=$all"; echo "max=$max"; } >> "$GITHUB_OUTPUT"
+
+      - uses: supabase/setup-cli@v1
+        if: steps.mode.outputs.target != 'none'
+        with:
+          version: 2.122.0
+
+      # The secret is captured, never echoed; ::add-mask:: hides it if anything ever prints it.
+      - name: Link the target and read the collector secret
+        if: steps.mode.outputs.target != 'none'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ steps.mode.outputs.target == 'production' && secrets.SUPABASE_PROD_DB_PASSWORD || secrets.SUPABASE_STAGING_DB_PASSWORD }}
+          PROJECT_REF: ${{ steps.mode.outputs.project_ref }}
+        run: |
+          supabase link --project-ref "$PROJECT_REF" > /dev/null
+          out=$(supabase db query --linked "select 'CSECRET:' || ds.decrypted_secret as v from vault.decrypted_secrets ds where ds.name = 'collector_secret'" 2>/dev/null || true)
+          secret=$(printf '%s' "$out" | grep -o 'CSECRET:[0-9a-f]\{64\}' | head -1 | cut -d: -f2)
+          unset out
+          if [ -z "$secret" ]; then echo "collector_secret not found in the target vault"; exit 1; fi
+          echo "::add-mask::$secret"
+          echo "COLLECTOR_SECRET=$secret" >> "$GITHUB_ENV"
+          echo "Collector secret read (masked)."
+
+      - name: Files queue
+        if: steps.mode.outputs.target != 'none'
+        env:
+          PROJECT_REF: ${{ steps.mode.outputs.project_ref }}
+          TILES: ${{ steps.mode.outputs.tiles }}
+          ALL: ${{ steps.mode.outputs.all }}
+          MAX: ${{ steps.mode.outputs.max }}
+        run: |
+          mkdir -p work
+          q="limit=$MAX"
+          [ -n "$TILES" ] && q="$q&tiles=$TILES"
+          [ "$ALL" = "true" ] && q="$q&all=1"
+          code=$(curl -sS -o work/queue.json -w '%{http_code}' -H "x-collector-secret: $COLLECTOR_SECRET" \
+            "https://$PROJECT_REF.supabase.co/functions/v1/collector/files/queue?$q")
+          [ "$code" = "200" ] || { echo "files queue: HTTP $code"; exit 1; }
+          python3 -I -c 'import json;q=json.load(open("work/queue.json"));print("rules_version", q["rules_version"], "hubs", len(q["hubs"]), "build", [(t["id"], t["status"], t["row_count"]) for t in q["build"]], "drop", q["drop"])'
+
+      - name: Build the files
+        id: build
+        if: steps.mode.outputs.target != 'none'
+        env:
+          PROJECT_REF: ${{ steps.mode.outputs.project_ref }}
+        run: |
+          python3 -I scripts/places/build_place_files.py build --queue work/queue.json --out site \
+            --base-url "https://$PROJECT_REF.supabase.co/functions/v1/collector"
+          python3 -I -c 'import json;b=json.load(open("site/build.json"));print("built=" + ",".join(str(t["id"]) for t in b["tiles"]))' >> "$GITHUB_OUTPUT"
+          # The headers to set when the same layout moves to Cloudflare R2 (Pages cannot set them).
+          printf '%s\n' '{"places/v*/*.json.gz": {"Content-Type": "application/json", "Content-Encoding": "gzip", "Cache-Control": "public, max-age=31536000, immutable", "Access-Control-Allow-Origin": "*"}, "rules/*.json.gz": {"Content-Type": "application/json", "Content-Encoding": "gzip", "Cache-Control": "public, max-age=31536000, immutable", "Access-Control-Allow-Origin": "*"}, "places/manifest.json": {"Cache-Control": "public, max-age=300", "Access-Control-Allow-Origin": "*"}}' > site/headers.json
+          cat site/stats.json
+          du -sb site/places site/rules
+
+      - name: Upload the files (artifact)
+        if: steps.mode.outputs.target != 'none'
+        uses: actions/upload-artifact@v4
+        with:
+          name: places-files-${{ steps.mode.outputs.target }}
+          path: site
+          retention-days: 14
+          if-no-files-found: error
+
+      # Staging: recorded as built (file_* set, published_at null), so staging knows each file's
+      # hash, size and count; place_files_in_view never offers an unpublished file.
+      - name: Record the build (staging)
+        if: steps.mode.outputs.target == 'staging'
+        env:
+          PROJECT_REF: ${{ steps.mode.outputs.project_ref }}
+        run: |
+          python3 -I scripts/places/build_place_files.py record-body --build-dir site > work/record.json
+          code=$(curl -sS -o work/record_result.json -w '%{http_code}' -X POST -H "x-collector-secret: $COLLECTOR_SECRET" \
+            -H "Content-Type: application/json" --data-binary @work/record.json \
+            "https://$PROJECT_REF.supabase.co/functions/v1/collector/files/record")
+          echo "record: HTTP $code $(cat work/record_result.json)"
+          [ "$code" = "200" ]
+
+      - name: Summary
+        if: always() && steps.mode.outputs.target != 'none'
+        run: |
+          {
+            echo "### Places files (${{ steps.mode.outputs.target }})"
+            echo '```json'
+            [ -f site/stats.json ] && cat site/stats.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    needs: build
+    if: needs.build.outputs.target == 'production' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: repo
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: places-files-production
+          path: site
+
+      - name: Merge into gh-pages and push
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          mkdir pages
+          cd pages
+          git init -q
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          if git fetch -q --depth 1 origin gh-pages; then
+            git checkout -q FETCH_HEAD -- . 2>/dev/null || git checkout -q FETCH_HEAD
+          fi
+          cd ..
+          python3 -I repo/scripts/places/build_place_files.py publish --site pages --build-dir site --keep-days 7
+          cp site/headers.json pages/headers.json
+          du -sb pages
+          cd pages
+          git checkout -q --orphan gh-pages-next
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Place files $(date -u +%Y-%m-%dT%H:%MZ) (ODbL 1.0, © OpenStreetMap contributors)"
+          git push -q --force origin gh-pages-next:gh-pages
+          echo "gh-pages updated: $(git rev-parse --short HEAD)"
+
+  record:
+    needs: [build, publish]
+    if: needs.publish.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: places-files-production
+          path: site
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.0
+      - name: Record the published files
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
+          PROJECT_REF: ${{ env.PROD_PROJECT_REF }}
+        run: |
+          supabase link --project-ref "$PROJECT_REF" > /dev/null
+          out=$(supabase db query --linked "select 'CSECRET:' || ds.decrypted_secret as v from vault.decrypted_secrets ds where ds.name = 'collector_secret'" 2>/dev/null || true)
+          secret=$(printf '%s' "$out" | grep -o 'CSECRET:[0-9a-f]\{64\}' | head -1 | cut -d: -f2)
+          unset out
+          [ -n "$secret" ] || { echo "collector_secret not found"; exit 1; }
+          echo "::add-mask::$secret"
+          python3 -I scripts/places/build_place_files.py record-body --build-dir site --published > record.json
+          code=$(curl -sS -o result.json -w '%{http_code}' -X POST -H "x-collector-secret: $secret" \
+            -H "Content-Type: application/json" --data-binary @record.json \
+            "https://$PROJECT_REF.supabase.co/functions/v1/collector/files/record")
+          echo "record: HTTP $code $(cat result.json)"
+          [ "$code" = "200" ]
