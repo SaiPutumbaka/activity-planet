@@ -12,13 +12,14 @@
     {
       "id": "atl-fulton-library",
       "kind": "page",
+      "enabled": false,
       "url": "https://www.fulcolibrary.org/events/",
       "name": "Fulton County Library System events",
       "attribution": "Listed from the Fulton County Library System public calendar (fulcolibrary.org).",
       "host_org": "Fulton County Library System",
       "maxPages": 3,
       "verified": false,
-      "note": "BiblioCommons-hosted library site. dry run 41849155715: crawl_delay_too_long (robots.txt Crawl-delay over 60 s). The collector now waits the delay out inside the per-host budget, so maxPages is kept small. BiblioCommons documents no public events feed; this reads schema.org markup only, if the pages carry any. Unverified."
+      "note": "Off (review of the hardening commits): BiblioCommons-hosted library site. dry run 41849155715: crawl_delay_too_long (robots.txt Crawl-delay over 60 s). BiblioCommons documents no public events feed, its terms of use could not be read from the authoring environment, and a Crawl-delay that long on a vendor platform reads as a request not to be crawled. Re-enable only with a published feed (or written permission) from the Fulton County Library System or BiblioCommons; then prefer a feed seed."
     },
     {
       "id": "atl-dekalb-library",
@@ -161,7 +162,7 @@
       "host_org": "Kennesaw State University",
       "categories": ["Campus"],
       "verified": true,
-      "note": "Localist (confirmed by dry run 41849155715: 351 items from pages, plus /event/*/confirm and calendar.google.com links that are now skipped). Reads Localist's documented read-only API (/api/2/events, no key; developer.localist.com/doc/api) instead of crawling. Academic-calendar deadlines are dropped."
+      "note": "Localist (confirmed by dry run 41849155715: 351 items from pages, plus /event/*/confirm and calendar.google.com links that are now skipped). Reads Localist's documented read-only API (/api/2/events, no key; developer.localist.com/doc/api) instead of crawling. Academic-calendar deadlines are dropped. Terms: the developer docs say reading needs no key, but Concept3D help says API use needs a license; Kennesaw State is the licensee and the data is public, but ask Kennesaw State for permission as D-037 does for Georgia State, and switch back to kind page if they say no."
     },
     {
       "id": "atl-marietta-civicplus",

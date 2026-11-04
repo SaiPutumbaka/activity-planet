@@ -245,18 +245,22 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
           break;
         }
         fetched++;
-        if (parseXRobotsTag(res.xRobotsTag).noindex) {
-          errors.push({ sourceKey: run.key, url, reason: "noindex" });
+        const directives = parseXRobotsTag(res.xRobotsTag);
+        if (directives.noindex) {
+          errors.push({ sourceKey: run.key, url: redactUrl(url), reason: "noindex" });
           return;
         }
         let parsed: ReturnType<typeof parseLocalist>;
         try {
           parsed = parseLocalist(res.body, url);
         } catch {
-          errors.push({ sourceKey: run.key, url, reason: "bad_json" });
+          errors.push({ sourceKey: run.key, url: redactUrl(url), reason: "bad_json" });
           return;
         }
-        for (const raw of parsed.events) run.raws.push({ raw, idPrefix: "", fallbackUrl: null });
+        // nosnippet / max-snippet on the API response limit the excerpt like on any feed.
+        const snippetMax = snippetLimit(directives, EXCERPT_MAX);
+        for (const raw of parsed.events)
+          run.raws.push({ raw, idPrefix: "", fallbackUrl: null, snippetMax });
         if (parsed.page >= parsed.totalPages || parsed.events.length === 0) return;
       }
       if (!fallback) return;

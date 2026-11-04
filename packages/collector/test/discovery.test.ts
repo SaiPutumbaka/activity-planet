@@ -271,6 +271,56 @@ describe("Localist API seeds", () => {
     expect(result.errors).toEqual([]);
   });
 
+  it("honours X-Robots-Tag nosnippet and noindex on the API response", async () => {
+    const ONE_PAGE = JSON.stringify({
+      events: [
+        {
+          event: {
+            id: 201,
+            title: "Lecture",
+            description_text: "A talk about birds in the city and where to find them.",
+            localist_url: "https://calendar.example.edu/event/lecture",
+            event_instances: [{ event_instance: { id: 1, start: "2026-11-12T18:00:00-05:00" } }],
+          },
+        },
+      ],
+      page: { current: 1, size: 100, total: 1 },
+    });
+    const run = async (xrt: string) => {
+      const c = fakeClock();
+      const { transport } = fakeTransport(
+        {
+          "https://calendar.example.edu/robots.txt": { body: "User-agent: *\nAllow: /\n" },
+          "https://calendar.example.edu/api/2/events?days=60&pp=100&page=1": {
+            body: ONE_PAGE,
+            headers: { "content-type": "application/json", "x-robots-tag": xrt },
+          },
+        },
+        c.clock,
+      );
+      const fetcher = new PoliteFetcher({
+        denylist: Denylist.load(),
+        transport,
+        now: c.now,
+        sleep: c.sleep,
+      });
+      return collect({
+        regions: [ATL],
+        cities: [{ region: ATL, seeds: [LOCALIST_SEED] }],
+        fetcher,
+        now: NOW,
+      });
+    };
+    const plain = await run("all");
+    expect(plain.batches[0]!.items[0]?.description).toContain("birds");
+    const snipped = await run("nosnippet");
+    expect(snipped.batches[0]!.items).toHaveLength(1);
+    expect(snipped.batches[0]!.items[0]?.description ?? "").toBe("");
+    const hidden = await run("noindex");
+    expect(hidden.batches[0]?.items ?? []).toEqual([]);
+    expect(hidden.errors.map((e) => e.reason)).toEqual(["noindex"]);
+  });
+
   it("reads the calendar as a page when robots.txt keeps us off the API", async () => {
     const c = fakeClock();
     const page = [
