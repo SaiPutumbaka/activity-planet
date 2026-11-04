@@ -1,17 +1,16 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import { EVENT_FLAGS, PLACE_FLAGS } from "@ap/core/map";
 
 /**
- * Hub map client (HUB_MAP_DESIGN §5, §7, §9; D-038). Everything the Map tab needs that is not a
- * component: the typed contract of `map_in_view`, `places_in_view` and `place_detail`, the
- * decoder for their compact encoding, bbox snapping, the 0.1-degree cell geometry for
- * approved-only events, the hub-chip rules (generic spots only with exactly one hub chip), the
- * time windows, distance sorting and the directions hand-off.
+ * Hub map client (HUB_MAP_DESIGN §5, §7, §9; D-038, D-041). Everything the Map tab needs that is
+ * not a component: the typed contract of `map_in_view`, `places_in_view` and `place_detail` as
+ * built (migrations 29, 30 and 32), the decoder for their compact encoding, bbox snapping, the
+ * 0.1-degree cell geometry for approved-only events, the hub-chip rules (generic spots only with
+ * exactly one hub chip), the time windows, distance sorting and the directions hand-off.
  *
- * TODO(map-rpc): slice 6 adds the three RPCs. Until then a build without VITE_MAP_MOCK=true gets
- * `MapUnavailableError` from the real adapter (PostgREST answers "function not found") and the Map
- * tab shows a friendly "coming soon" state. Once the RPCs land on staging: regenerate
- * packages/core/src/types/database.ts, type `rpcMapAdapter` (lib/map-rpc.ts) against it, check the
- * argument names below match the migration, and drop VITE_MAP_MOCK from preview envs.
+ * The real adapter (lib/map-rpc.ts) calls the RPCs; the mock (lib/map-mock.ts) speaks the same
+ * encoding and is used only under Vitest and with VITE_MAP_MOCK=true. A database without the RPCs
+ * gives `MapUnavailableError` and the Map tab shows a friendly "coming soon" state.
  *
  * Privacy (§7): nothing here logs a bbox or a user id. Approved-only events only ever arrive as
  * cells and are drawn as shaded squares, never as points. Sensitive-hub chips filter on the client
@@ -53,9 +52,9 @@ export interface LngLat {
 }
 
 /**
- * Arguments of `map_in_view` (§5). Repo convention prefixes RPC arguments with `p_`; the design
- * table lists them without. `p_hub_ids` null means "the viewer's joined hubs" server-side, but this
- * client always sends the list explicitly so explored hubs are included and anon works the same.
+ * Arguments of `map_in_view` (§5, migration 32). `p_hub_ids` null means the viewer's joined hubs
+ * when signed in and every specific hub when signed out (D-041); `[]` means no hubs (plans only).
+ * Signed in, this client always sends the chip hubs explicitly so explored hubs are included.
  */
 export interface MapInViewArgs {
   p_west: number;
@@ -71,82 +70,123 @@ export interface MapInViewArgs {
 
 export type PlacesInViewArgs = Omit<MapInViewArgs, "p_layers" | "p_from" | "p_to">;
 
-/**
- * One feature, an array and not an object (§5: about 60 KB gzip per 1,000 features):
- *   [id, lng, lat, kind_or_type, hub_id_primary, flags, name?, starts_at_epoch_s?]
- * Positions 0 to 5 are the §5 contract. Positions 6 and 7 are this client's proposed amendment for
- * slice 6: the list panel (the accessible alternative to the canvas) needs a name per row and a
- * start time per plan, and a second request per row would break the one-request-per-view budget.
- * The decoder tolerates their absence.
- */
-export type FeatureTuple = [
+export type PlaceMode = "specific" | "generic" | "none";
+
+/** `hubs` entry: the selected hubs first, then the other hubs the events are in. */
+export type HubTuple = [
+  id: string,
+  slug: string,
+  name: string,
+  emoji: string,
+  placeMode: PlaceMode,
+];
+
+/** A place: `hubIdx` is the first matching selected hub, `hubIdxs` every one (indexes into hubs). */
+export type PlaceTuple = [
   id: string,
   lng: number,
   lat: number,
   kind: string,
-  hubId: string | null,
+  hubIdx: number | null,
   flags: number,
-  name?: string,
-  startsAt?: number,
+  name: string,
+  hubIdxs: number[],
+];
+
+/** A plan or show: `startsAt` in unix seconds; every event has a hub. */
+export type EventTuple = [
+  id: string,
+  lng: number,
+  lat: number,
+  kind: string,
+  hubIdx: number,
+  flags: number,
+  title: string,
+  startsAt: number,
 ];
 
 /**
- * Approved-only events in one 0.1-degree cell (D-038). `cell` is the cell centre, [lng, lat], the
- * same rounding as the stored `approx_point`. `names`, `starts` and `hubs` run parallel to `ids`
- * (same amendment as FeatureTuple); they never carry a point.
+ * Approved-only events in one 0.1-degree cell (D-038): the cell centre, the count, and per event
+ * its id, hub index, title and start (unix seconds), in parallel arrays. Never a point.
+ * `titles` and `starts` arrived with migration 32; the decoder tolerates their absence.
  */
-export interface CellPayload {
-  cell: [number, number];
-  n: number;
-  ids: string[];
-  names?: string[];
-  starts?: number[];
-  hubs?: (string | null)[];
-}
+export type CellTuple = [
+  lng: number,
+  lat: number,
+  n: number,
+  ids: string[],
+  hubIdxs: number[],
+  titles?: string[],
+  starts?: number[],
+];
 
 export interface MapInViewPayload {
-  places?: FeatureTuple[];
-  plans?: FeatureTuple[];
-  shows?: FeatureTuple[];
-  cells?: CellPayload[];
-  /** More than 50 hubs or more than 800 places: the result is a sample. */
+  v?: number;
+  /** null when the places layer is off or the bbox needs zoom_in. */
+  places?: PlaceTuple[] | null;
+  plans?: EventTuple[] | null;
+  shows?: EventTuple[] | null;
+  cells?: CellTuple[];
+  hubs?: HubTuple[];
+  /** More than 50 hubs, or more places, plans, shows or cell events than the caps. */
   truncated?: boolean;
+  more?: Partial<Record<"places" | "hubs" | "plans" | "shows" | "cells", boolean>>;
   /** The bbox is larger than 1.0 lat x 1.5 lng: places are left out, plans and shows still come. */
   zoom_in?: boolean;
-  /** Proposed: a place tile in view is still `wanted` (§3.5), so places may be missing. */
+  /** A signed-in viewer with no hubs (plans only). */
+  no_hubs?: boolean;
+  /** The one selected hub is generic and its general spots are in. */
+  generic?: boolean;
+  /** Migration 32: a place tile in view is still wanted or filling (§3.5), so places may be missing. */
   mapping?: boolean;
-  /** Proposed: hubs in the request with `place_mode = 'none'` ("Events only" chips). */
-  events_only?: string[];
 }
 
-/** Bits of the `flags` element. Proposed for slice 6; unknown bits are ignored. */
-export const FLAG = {
-  /** A place matched through a generic rule (café, park, library): "General spot". */
-  GENERIC: 1,
-  /** A plan that came from a feed (D-037): grey-blue teardrop. */
-  IMPORTED: 2,
+/** Place flag bits (§5 as built). */
+export const PLACE_FLAG = {
+  /** Matched through a generic hub's rules (café, park, library): "General spot". */
+  GENERAL: PLACE_FLAGS.general,
   /** The viewer's own place awaiting review (§7.3): dashed pin, visible only to its creator. */
-  PENDING: 4,
+  PENDING: PLACE_FLAGS.pending,
   /** The viewer's own private place (§7.1). */
-  OWN_PRIVATE: 8,
-  /** Alcohol and gambling hubs: "21+ at venue" (§7.8). */
-  ADULTS_ONLY: 16,
-  /** A plan that is free to join. */
-  FREE: 32,
-  /** A place whose data came through Geoapify (§8): "Powered by Geoapify" while one is in view. */
-  GEOAPIFY: 64,
+  PRIVATE: PLACE_FLAGS.private,
+  MEMBER: PLACE_FLAGS.member,
+  MEETING_SPOT: PLACE_FLAGS.meetingSpot,
+  /** Data through Geoapify (§8): "Powered by Geoapify" while one is in view. */
+  GEOAPIFY: PLACE_FLAGS.geoapify,
+  MINE: PLACE_FLAGS.mine,
+} as const;
+
+/** Plan and show flag bits (§5 as built). */
+export const EVENT_FLAG = {
+  /** Listed from a feed (D-037): grey-blue teardrop. */
+  IMPORTED: EVENT_FLAGS.imported,
+  SELECTED_HUB: EVENT_FLAGS.selectedHub,
+  FREE: EVENT_FLAGS.free,
+  /** 21+ (§7.8). */
+  ADULTS_ONLY: EVENT_FLAGS.adultsOnly21,
 } as const;
 
 export type FeatureKind = "place" | "plan" | "show";
+
+export interface MapHub {
+  id: string;
+  slug: string;
+  name: string;
+  emoji: string;
+  placeMode: PlaceMode;
+}
 
 export interface MapFeature {
   id: string;
   kind: FeatureKind;
   lng: number;
   lat: number;
-  /** Place kind slug (court, store, park...), or the event kind / show type. */
+  /** Place kind slug (court_field, park...), or the event kind (member, imported...). */
   type: string;
+  /** First matching selected hub (places; null when every specific hub was asked for), or the event's hub. */
   hubId: string | null;
+  /** Places: every selected hub the place matches. Events: their one hub. */
+  hubIds: string[];
   flags: number;
   name: string;
   startsAt: Date | null;
@@ -154,6 +194,11 @@ export interface MapFeature {
   imported: boolean;
   pending: boolean;
   geoapify: boolean;
+  /** The viewer's own place (always shown, whatever the chip). */
+  mine: boolean;
+  private: boolean;
+  free: boolean;
+  adultsOnly: boolean;
 }
 
 export interface MapCell {
@@ -162,10 +207,7 @@ export interface MapCell {
   center: LngLat;
   count: number;
   events: { id: string; name: string; startsAt: Date | null; hubId: string | null }[];
-  /**
-   * The payload carried a hub per listed event (the proposed `hubs` array). The plain §5 shape
-   * `{cell, n, ids}` does not, and such a cell cannot be matched to a hub chip.
-   */
+  /** Every listed event came with its hub, so the cell can be matched to a hub chip. */
   hubsKnown: boolean;
 }
 
@@ -174,9 +216,13 @@ export interface MapView {
   plans: MapFeature[];
   shows: MapFeature[];
   cells: MapCell[];
+  hubs: MapHub[];
   truncated: boolean;
   zoomIn: boolean;
   mapping: boolean;
+  noHubs: boolean;
+  generic: boolean;
+  /** Hubs in the response with `place_mode = 'none'` ("Events only" chips). */
   eventsOnlyHubIds: string[];
 }
 
@@ -185,9 +231,12 @@ export const EMPTY_VIEW: MapView = {
   plans: [],
   shows: [],
   cells: [],
+  hubs: [],
   truncated: false,
   zoomIn: false,
   mapping: false,
+  noHubs: false,
+  generic: false,
   eventsOnlyHubIds: [],
 };
 
@@ -220,63 +269,123 @@ function epochToDate(v: unknown): Date | null {
   return isFiniteNumber(v) ? new Date(v * 1000) : null;
 }
 
-/** One tuple to a feature, or null when it is malformed (wrong length, bad point, no id). */
-export function decodeFeature(tuple: unknown, kind: FeatureKind): MapFeature | null {
+function nonEmpty(v: unknown): string | null {
+  return typeof v === "string" && v.trim() ? v.trim() : null;
+}
+
+/** `hubs` to objects; malformed entries keep their slot (so indexes stay right) as null. */
+export function decodeHubs(raw: unknown): (MapHub | null)[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((h) => {
+    if (!Array.isArray(h)) return null;
+    const [id, slug, name, emoji, mode] = h as unknown[];
+    if (typeof id !== "string" || !id) return null;
+    return {
+      id,
+      slug: typeof slug === "string" ? slug : "",
+      name: typeof name === "string" ? name : "",
+      emoji: typeof emoji === "string" ? emoji : "",
+      placeMode: mode === "generic" || mode === "none" ? mode : "specific",
+    };
+  });
+}
+
+function hubAt(hubs: readonly (MapHub | null)[], idx: unknown): string | null {
+  return Number.isInteger(idx) ? (hubs[idx as number]?.id ?? null) : null;
+}
+
+/**
+ * One tuple to a feature, or null when it is malformed (too short, bad point, no id). `hubs` is
+ * the decoded `hubs` list of the same response, which the hub indexes point into.
+ */
+export function decodeFeature(
+  tuple: unknown,
+  kind: FeatureKind,
+  hubs: readonly (MapHub | null)[] = [],
+): MapFeature | null {
   if (!Array.isArray(tuple) || tuple.length < 6) return null;
-  const [id, lng, lat, type, hubId, flags, name, startsAt] = tuple as unknown[];
+  const [id, lng, lat, type, hubIdx, flags, name, extra] = tuple as unknown[];
   if (typeof id !== "string" || id === "") return null;
   if (!validPoint(lng, lat)) return null;
   const t = typeof type === "string" && type ? type : kind;
   const f = isFiniteNumber(flags) ? flags | 0 : 0;
+  const hubId = hubAt(hubs, hubIdx);
+  const isPlace = kind === "place";
+  const hubIds = isPlace
+    ? [
+        ...new Set(
+          (Array.isArray(extra) ? extra : [])
+            .map((i) => hubAt(hubs, i))
+            .filter((h): h is string => h !== null),
+        ),
+      ]
+    : [];
+  if (hubId && !hubIds.includes(hubId)) hubIds.unshift(hubId);
+  const bit = (b: number) => (f & b) !== 0;
   return {
     id,
     kind,
     lng: lng as number,
     lat: lat as number,
     type: t,
-    hubId: typeof hubId === "string" && hubId ? hubId : null,
+    hubId,
+    hubIds,
     flags: f,
-    name: typeof name === "string" && name.trim() ? name.trim() : fallbackName(kind, t),
-    startsAt: epochToDate(startsAt),
-    generic: (f & FLAG.GENERIC) !== 0,
-    imported: (f & FLAG.IMPORTED) !== 0,
-    pending: (f & FLAG.PENDING) !== 0,
-    geoapify: (f & FLAG.GEOAPIFY) !== 0,
+    name: nonEmpty(name) ?? fallbackName(kind, t),
+    startsAt: isPlace ? null : epochToDate(extra),
+    generic: isPlace && bit(PLACE_FLAG.GENERAL),
+    imported: !isPlace && (bit(EVENT_FLAG.IMPORTED) || t === "imported"),
+    pending: isPlace && bit(PLACE_FLAG.PENDING),
+    geoapify: isPlace && bit(PLACE_FLAG.GEOAPIFY),
+    mine: isPlace && bit(PLACE_FLAG.MINE),
+    private: isPlace && bit(PLACE_FLAG.PRIVATE),
+    free: !isPlace && bit(EVENT_FLAG.FREE),
+    adultsOnly: !isPlace && bit(EVENT_FLAG.ADULTS_ONLY),
   };
 }
 
-export function decodeCell(raw: unknown): MapCell | null {
-  if (!raw || typeof raw !== "object") return null;
-  const c = raw as Partial<CellPayload>;
-  if (!Array.isArray(c.cell) || c.cell.length !== 2) return null;
-  const [lng, lat] = c.cell;
+export function decodeCell(raw: unknown, hubs: readonly (MapHub | null)[] = []): MapCell | null {
+  if (!Array.isArray(raw) || raw.length < 4) return null;
+  const [lng, lat, n, rawIds, rawHubs, rawTitles, rawStarts] = raw as unknown[];
   if (!validPoint(lng, lat)) return null;
-  const center = cellCenter(lng, lat);
-  const ids = Array.isArray(c.ids) ? c.ids.filter((x): x is string => typeof x === "string") : [];
-  const count = isFiniteNumber(c.n) && c.n > 0 ? Math.floor(c.n) : ids.length;
+  const center = cellCenter(lng as number, lat as number);
+  const all = Array.isArray(rawIds) ? rawIds : [];
+  const hubIdx = Array.isArray(rawHubs) ? rawHubs : [];
+  const titles = Array.isArray(rawTitles) ? rawTitles : [];
+  const starts = Array.isArray(rawStarts) ? rawStarts : [];
+  const events = all.flatMap((id, i) =>
+    typeof id === "string" && id
+      ? [
+          {
+            id,
+            name: nonEmpty(titles[i]) ?? "Plan",
+            startsAt: epochToDate(starts[i]),
+            hubId: hubAt(hubs, hubIdx[i]),
+          },
+        ]
+      : [],
+  );
+  const count = isFiniteNumber(n) && n > 0 ? Math.floor(n) : events.length;
   if (count === 0) return null;
-  const hubsKnown =
-    ids.length > 0 && Array.isArray(c.hubs) && c.hubs.length === (c.ids as unknown[]).length;
   return {
     key: cellKey(center),
     center,
-    count: Math.max(count, ids.length),
-    hubsKnown,
-    events: ids.map((id, i) => ({
-      id,
-      name: typeof c.names?.[i] === "string" && c.names[i] ? c.names[i] : "Plan",
-      startsAt: epochToDate(c.starts?.[i]),
-      hubId: typeof c.hubs?.[i] === "string" ? (c.hubs[i] as string) : null,
-    })),
+    count: Math.max(count, events.length),
+    hubsKnown: events.length > 0 && hubIdx.length === all.length && events.every((e) => e.hubId),
+    events,
   };
 }
 
-function decodeList(raw: unknown, kind: FeatureKind): MapFeature[] {
+function decodeList(
+  raw: unknown,
+  kind: FeatureKind,
+  hubs: readonly (MapHub | null)[],
+): MapFeature[] {
   if (!Array.isArray(raw)) return [];
   const seen = new Set<string>();
   const out: MapFeature[] = [];
   for (const t of raw) {
-    const f = decodeFeature(t, kind);
+    const f = decodeFeature(t, kind, hubs);
     if (f && !seen.has(f.id)) {
       seen.add(f.id);
       out.push(f);
@@ -286,15 +395,17 @@ function decodeList(raw: unknown, kind: FeatureKind): MapFeature[] {
 }
 
 /**
- * The whole `map_in_view` jsonb to a MapView. Defensive: anything malformed is dropped rather
- * than thrown, so one bad row never blanks the map. Cells that share a centre are merged.
+ * The whole `map_in_view` (or `places_in_view`) jsonb to a MapView. Defensive: anything malformed
+ * is dropped rather than thrown, so one bad row never blanks the map. Cells that share a centre
+ * are merged.
  */
 export function decodeMapInView(raw: unknown): MapView {
-  if (!raw || typeof raw !== "object") return EMPTY_VIEW;
-  const p = raw as MapInViewPayload;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return EMPTY_VIEW;
+  const p = raw as Record<string, unknown>;
+  const slots = decodeHubs(p.hubs);
   const cells = new Map<string, MapCell>();
   for (const c of Array.isArray(p.cells) ? p.cells : []) {
-    const cell = decodeCell(c);
+    const cell = decodeCell(c, slots);
     if (!cell) continue;
     const prev = cells.get(cell.key);
     if (prev) {
@@ -303,17 +414,21 @@ export function decodeMapInView(raw: unknown): MapView {
       prev.hubsKnown &&= cell.hubsKnown;
     } else cells.set(cell.key, cell);
   }
+  const hubs = [
+    ...new Map(slots.filter((h): h is MapHub => h !== null).map((h) => [h.id, h])).values(),
+  ];
   return {
-    places: decodeList(p.places, "place"),
-    plans: decodeList(p.plans, "plan"),
-    shows: decodeList(p.shows, "show"),
+    places: decodeList(p.places, "place", slots),
+    plans: decodeList(p.plans, "plan", slots),
+    shows: decodeList(p.shows, "show", slots),
     cells: [...cells.values()],
+    hubs,
     truncated: p.truncated === true,
     zoomIn: p.zoom_in === true,
     mapping: p.mapping === true,
-    eventsOnlyHubIds: Array.isArray(p.events_only)
-      ? p.events_only.filter((x): x is string => typeof x === "string")
-      : [],
+    noHubs: p.no_hubs === true,
+    generic: p.generic === true,
+    eventsOnlyHubIds: hubs.filter((h) => h.placeMode === "none").map((h) => h.id),
   };
 }
 
@@ -323,34 +438,52 @@ export function decodeMapInView(raw: unknown): MapView {
 
 export type PlaceSource = "osm" | "user" | "geoapify" | "venue";
 
+export interface PlaceDetailHub {
+  id: string;
+  slug: string;
+  name: string;
+  emoji: string;
+  /** A generic hub (the place suits it as a general spot). */
+  general: boolean;
+  /** One of the viewer's joined hubs (listed first). */
+  joined: boolean;
+}
+
 export interface PlaceDetail {
   id: string;
   name: string;
   kind: string;
+  /** The server's label for the kind (place_kinds.label). */
+  kindLabel: string;
   lng: number;
   lat: number;
-  hubIds: string[];
+  /** Up to 12, joined first. */
+  hubs: PlaceDetailHub[];
+  moreHubs: boolean;
   /** Public places only; null otherwise. */
   address: string | null;
+  locality: string | null;
   /** opening_hours as text; no "Open now" parser yet (founder answer). */
   hours: string | null;
   website: string | null;
   source: PlaceSource;
-  /** "node/123" style OSM reference, for "Improve it on OpenStreetMap". */
-  osmRef: string | null;
+  /** "https://www.openstreetmap.org/node/123", for "Improve it on OpenStreetMap". */
+  osmUrl: string | null;
   checkedAt: Date | null;
+  /** A member-added place a moderator approved (active and public). */
   reviewed: boolean;
+  /** The viewer's own place still waiting for review. */
+  pending: boolean;
+  /** Only its creator sees it. */
+  private: boolean;
+  mine: boolean;
+  /** Every hub it is listed for is generic: "General spot". */
   generic: boolean;
-  adultsOnly: boolean;
-  plansHere: { id: string; title: string; startsAt: Date | null }[];
-}
-
-function str(v: unknown): string | null {
-  return typeof v === "string" && v.trim() ? v.trim() : null;
+  plansHere: { id: string; title: string; startsAt: Date | null; hubId: string | null }[];
 }
 
 function safeHttpUrl(v: unknown): string | null {
-  const s = str(v);
+  const s = nonEmpty(v);
   if (!s) return null;
   try {
     const u = new URL(s);
@@ -360,47 +493,78 @@ function safeHttpUrl(v: unknown): string | null {
   }
 }
 
+function isoDate(v: unknown): Date | null {
+  const s = nonEmpty(v);
+  if (!s) return null;
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+const OSM_URL = /^https:\/\/www\.openstreetmap\.org\/(node|way|relation)\/\d+$/;
+
+/** The `place_detail` jsonb (migration 29) to a PlaceDetail, or null when malformed. */
 export function decodePlaceDetail(raw: unknown): PlaceDetail | null {
-  if (!raw || typeof raw !== "object") return null;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
-  const id = str(r.id);
+  const id = nonEmpty(r.id);
   if (!id || !validPoint(r.lng, r.lat)) return null;
   const source: PlaceSource =
     r.source === "user" || r.source === "geoapify" || r.source === "venue" ? r.source : "osm";
-  const checked = str(r.checked_at);
-  const checkedAt = checked ? new Date(checked) : null;
-  const osmRef = str(r.osm_ref);
+  const kind = nonEmpty(r.kind) ?? "spot";
+  const status = nonEmpty(r.status);
+  const isPublic = r.is_public !== false;
+  const osmUrl = nonEmpty(r.osm_url);
+  const hubs: PlaceDetailHub[] = Array.isArray(r.hubs)
+    ? r.hubs.flatMap((h) => {
+        if (!h || typeof h !== "object") return [];
+        const o = h as Record<string, unknown>;
+        const hid = nonEmpty(o.id);
+        if (!hid) return [];
+        return [
+          {
+            id: hid,
+            slug: nonEmpty(o.slug) ?? "",
+            name: nonEmpty(o.name) ?? "",
+            emoji: typeof o.emoji === "string" ? o.emoji : "",
+            general: o.general === true,
+            joined: o.joined === true,
+          },
+        ];
+      })
+    : [];
   return {
     id,
-    name: str(r.name) ?? placeKindInfo(str(r.kind) ?? "").label,
-    kind: str(r.kind) ?? "place",
+    name: nonEmpty(r.name) ?? nonEmpty(r.kind_label) ?? placeKindInfo(kind).label,
+    kind,
+    kindLabel: nonEmpty(r.kind_label) ?? placeKindInfo(kind).label,
     lng: r.lng as number,
     lat: r.lat as number,
-    hubIds: Array.isArray(r.hub_ids)
-      ? r.hub_ids.filter((x): x is string => typeof x === "string")
-      : [],
-    address: str(r.address),
-    hours: str(r.hours),
+    hubs,
+    moreHubs: r.more_hubs === true,
+    address: isPublic ? nonEmpty(r.address_text) : null,
+    locality: nonEmpty(r.locality),
+    hours: nonEmpty(r.opening_hours),
     website: safeHttpUrl(r.website),
     source,
-    osmRef: osmRef && /^(node|way|relation)\/\d+$/.test(osmRef) ? osmRef : null,
-    checkedAt: checkedAt && !Number.isNaN(checkedAt.getTime()) ? checkedAt : null,
-    reviewed: r.reviewed === true,
-    generic: r.generic === true,
-    adultsOnly: r.adults_only === true,
+    osmUrl: osmUrl && OSM_URL.test(osmUrl) ? osmUrl : null,
+    checkedAt: isoDate(r.checked_at),
+    reviewed: source === "user" && status === "active" && isPublic,
+    pending: status === "pending",
+    private: !isPublic,
+    mine: r.mine === true,
+    generic: hubs.length > 0 && hubs.every((h) => h.general),
     plansHere: Array.isArray(r.plans_here)
       ? r.plans_here.flatMap((p) => {
           if (!p || typeof p !== "object") return [];
           const pr = p as Record<string, unknown>;
-          const pid = str(pr.id);
+          const pid = nonEmpty(pr.id);
           if (!pid) return [];
-          const s = str(pr.starts_at);
-          const d = s ? new Date(s) : null;
           return [
             {
               id: pid,
-              title: str(pr.title) ?? "Plan",
-              startsAt: d && !Number.isNaN(d.getTime()) ? d : null,
+              title: nonEmpty(pr.title) ?? "Plan",
+              startsAt: isoDate(pr.starts_at),
+              hubId: nonEmpty(pr.hub_id),
             },
           ];
         })
@@ -410,11 +574,14 @@ export function decodePlaceDetail(raw: unknown): PlaceDetail | null {
 
 /** The §8 source line under a place. */
 export function sourceLine(
-  detail: Pick<PlaceDetail, "source" | "checkedAt" | "reviewed">,
+  detail: Pick<PlaceDetail, "source" | "checkedAt" | "reviewed"> &
+    Partial<Pick<PlaceDetail, "pending" | "private">>,
   now = new Date(),
 ): string {
   switch (detail.source) {
     case "user":
+      if (detail.private) return "Added by you · only you can see it";
+      if (detail.pending) return "Added by you · waiting for review";
       return detail.reviewed ? "Added by a member · reviewed" : "Added by a member";
     case "geoapify":
       return "From Geoapify (OpenStreetMap data)";
@@ -430,10 +597,6 @@ export function sourceLine(
       return `From OpenStreetMap · checked ${ago}`;
     }
   }
-}
-
-export function osmEditUrl(osmRef: string): string {
-  return `https://www.openstreetmap.org/${osmRef}`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -455,6 +618,9 @@ export type MapIconKey =
   | "music"
   | "water"
   | "trail"
+  | "food"
+  | "drink"
+  | "landmark"
   | "place";
 
 export const MAP_ICON_KEYS: readonly MapIconKey[] = [
@@ -471,34 +637,65 @@ export const MAP_ICON_KEYS: readonly MapIconKey[] = [
   "music",
   "water",
   "trail",
+  "food",
+  "drink",
+  "landmark",
   "place",
 ];
 
+/**
+ * The place_kinds seed (migration 27, as on staging 2026-11-04): slug to its label and the pin
+ * icon group. place_detail sends the label too (kind_label); this table serves the list and the
+ * pins, which only carry the slug. An unknown slug reads "Place".
+ */
 const PLACE_KINDS: Record<string, { label: string; icon: MapIconKey }> = {
-  court: { label: "Court", icon: "court" },
-  basketball_court: { label: "Basketball court", icon: "court" },
-  tennis_court: { label: "Tennis court", icon: "court" },
-  pitch: { label: "Field", icon: "field" },
-  field: { label: "Field", icon: "field" },
-  store: { label: "Store", icon: "store" },
-  shop: { label: "Store", icon: "store" },
-  comic_store: { label: "Comic store", icon: "store" },
-  game_store: { label: "Game store", icon: "games" },
-  meeting_spot: { label: "Meeting spot", icon: "meet" },
-  community_centre: { label: "Community centre", icon: "meet" },
-  park: { label: "Park", icon: "park" },
+  adventure: { label: "Adventure spot", icon: "trail" },
+  anime_store: { label: "Anime store", icon: "store" },
+  arcade: { label: "Arcade or game room", icon: "games" },
+  arts_venue: { label: "Arts venue or museum", icon: "studio" },
+  attraction: { label: "Attraction", icon: "place" },
+  bar: { label: "Bar or pub", icon: "drink" },
+  beach: { label: "Beach or waterfront", icon: "water" },
+  bookstore: { label: "Bookstore", icon: "library" },
+  brewery: { label: "Brewery or winery", icon: "drink" },
   cafe: { label: "Café", icon: "cafe" },
+  camp: { label: "Campsite or hut", icon: "trail" },
+  cinema: { label: "Cinema", icon: "studio" },
+  club: { label: "Club", icon: "meet" },
+  collectors_shop: { label: "Collectors' shop", icon: "store" },
+  community: { label: "Community space", icon: "meet" },
+  court_field: { label: "Court or field", icon: "court" },
+  craft_shop: { label: "Craft and hobby shop", icon: "studio" },
+  dance: { label: "Dance studio", icon: "music" },
+  dojo: { label: "Dojo", icon: "gym" },
+  food_shop: { label: "Food shop", icon: "store" },
+  game_store: { label: "Game store", icon: "games" },
+  golf: { label: "Golf", icon: "field" },
+  gym: { label: "Gym or studio", icon: "gym" },
+  historic: { label: "Historic site", icon: "landmark" },
+  ice_rink: { label: "Ice rink", icon: "court" },
   library: { label: "Library", icon: "library" },
-  gym: { label: "Gym", icon: "gym" },
-  fitness_centre: { label: "Gym", icon: "gym" },
-  studio: { label: "Studio", icon: "studio" },
-  arts_centre: { label: "Arts centre", icon: "studio" },
+  maker: { label: "Makerspace or workshop", icon: "studio" },
+  market: { label: "Market", icon: "store" },
+  music_shop: { label: "Music shop", icon: "music" },
   music_venue: { label: "Music venue", icon: "music" },
-  pool: { label: "Pool", icon: "water" },
-  swimming_pool: { label: "Pool", icon: "water" },
-  beach: { label: "Beach", icon: "water" },
-  trailhead: { label: "Trailhead", icon: "trail" },
-  climbing: { label: "Climbing spot", icon: "trail" },
+  nature: { label: "Nature spot", icon: "park" },
+  nightlife: { label: "Nightlife", icon: "drink" },
+  park: { label: "Park or garden", icon: "park" },
+  pool: { label: "Pool or swim spot", icon: "water" },
+  range: { label: "Range", icon: "field" },
+  restaurant: { label: "Restaurant", icon: "food" },
+  riding: { label: "Riding stable", icon: "field" },
+  school: { label: "Classes", icon: "library" },
+  shop: { label: "Shop", icon: "store" },
+  snow: { label: "Snow sports", icon: "trail" },
+  sports_centre: { label: "Sports centre", icon: "gym" },
+  spot: { label: "Spot", icon: "place" },
+  track: { label: "Track or raceway", icon: "field" },
+  trail: { label: "Trail or route", icon: "trail" },
+  water_launch: { label: "Marina or launch", icon: "water" },
+  wellness: { label: "Sauna or spa", icon: "gym" },
+  worship: { label: "Place of worship", icon: "landmark" },
 };
 
 export function placeKindInfo(kind: string): { label: string; icon: MapIconKey } {
@@ -692,42 +889,54 @@ export function genericSpotsOn(selection: HubSelection, hubs: readonly ChipHub[]
 }
 
 export interface HubRequestPlan {
-  /** What goes to the server, sorted (also the cache key). Empty: plans and shows only. */
-  hubIds: string[];
+  /**
+   * What goes to the server, sorted (also the cache key). Null: every specific hub (signed out
+   * with no hub picked, D-041). Empty: no hubs, plans and shows only.
+   */
+  hubIds: string[] | null;
   generic: boolean;
-  /** Hub ids to keep on the client, or null for everything the server sent. */
-  localFilter: string[] | null;
+  /** Hub ids whose places to keep on the client, or null for every place the server sent. */
+  placeFilter: string[] | null;
+  /** Hub ids whose plans, shows and cell events to keep, or null for every one in view. */
+  eventFilter: string[] | null;
 }
 
 /** The server's hub cap per request (§5). */
 export const MAX_REQUEST_HUBS = 50;
 
 /**
- * Turns the chip selection into one request plus a local filter. One non-sensitive chip asks the
+ * Turns the chip selection into one request plus local filters. One non-sensitive chip asks the
  * server for that hub with its generic spots. Anything else asks for every chip hub together
  * ("All my hubs" plus explored ones) and filters on the client, so tapping between chips does not
- * refetch (§9) and tapping a sensitive chip is never visible to the server (§7.6).
+ * refetch (§9) and tapping a sensitive chip is never visible to the server (§7.6). Signed out with
+ * no hub picked, it asks for every specific hub (`hubIds` null), the founder's public map.
+ *
+ * The server sends every published plan and show in view whatever the hubs (selected hubs first),
+ * so under "All my hubs" they all stay; a chip keeps its own hub's.
  *
  * A joined sensitive hub is already known to the server through the membership, so it rides with
  * the other joined hubs. A sensitive hub the viewer only explored (a signed-out visitor, or a
  * member with no other hubs) would otherwise be the whole request, so it goes out with
  * `sensitiveCover`, the ids of every sensitive hub in the catalog: the server learns that one of
- * them is wanted, not which. The extra hubs' features are dropped by the local filter.
+ * them is wanted, not which. The extra hubs' places are dropped by the place filter.
  */
 export function planHubRequest(
   selection: HubSelection,
   hubs: readonly ChipHub[],
   sensitiveCover: readonly string[] = [],
+  opts: { signedOut?: boolean } = {},
 ): HubRequestPlan {
   const all = [...new Set(hubs.map((h) => h.id))].sort();
-  const known = selection?.filter((id) => all.includes(id)) ?? null;
-  const sel = known && known.length ? known : null;
-  if (genericSpotsOn(sel, hubs)) {
-    return { hubIds: [sel![0]!], generic: true, localFilter: null };
+  if (opts.signedOut && all.length === 0) {
+    return { hubIds: null, generic: false, placeFilter: null, eventFilter: null };
   }
-  const localFilter = sel ? [...sel].sort() : null;
+  const known = selection?.filter((id) => all.includes(id)) ?? null;
+  const sel = known && known.length ? [...known].sort() : null;
+  if (genericSpotsOn(sel, hubs)) {
+    return { hubIds: [sel![0]!], generic: true, placeFilter: null, eventFilter: [sel![0]!] };
+  }
   if (!hubs.some((h) => h.sensitive && !h.joined)) {
-    return { hubIds: all, generic: false, localFilter };
+    return { hubIds: all, generic: false, placeFilter: sel, eventFilter: sel };
   }
   const chips = new Set(all);
   const room = Math.max(0, MAX_REQUEST_HUBS - all.length);
@@ -735,29 +944,42 @@ export function planHubRequest(
     .filter((id) => !chips.has(id))
     .sort()
     .slice(0, room);
-  return { hubIds: [...all, ...cover].sort(), generic: false, localFilter: localFilter ?? all };
+  return {
+    hubIds: [...all, ...cover].sort(),
+    generic: false,
+    placeFilter: sel ?? all,
+    eventFilter: sel,
+  };
 }
 
-/** Keeps the features (and cell events) of the given hubs. A null filter keeps everything. */
-export function applyHubFilter(view: MapView, filter: readonly string[] | null): MapView {
-  if (!filter) return view;
-  const keep = new Set(filter);
-  const byHub = (f: MapFeature) => f.hubId !== null && keep.has(f.hubId);
-  // Plans and shows with no hub are public listings nearby; they stay under any hub filter, the
-  // same way the feed shows public plans around you.
-  const happening = (f: MapFeature) => f.hubId === null || keep.has(f.hubId);
-  const cells = view.cells.flatMap((c) => {
-    // Without a hub per event there is no telling whether the cell belongs to the chip: hide it
-    // rather than show every hub's approved-only events under any chip with the full count.
-    if (!c.hubsKnown) return [];
-    const events = c.events.filter((e) => e.hubId === null || keep.has(e.hubId));
-    return events.length ? [{ ...c, events, count: events.length }] : [];
-  });
+/**
+ * Keeps the places and events of the given hubs (a null filter keeps everything). The viewer's
+ * own places always stay (§7.3: their private and pending pins show whatever the chip).
+ */
+export function applyHubFilter(
+  view: MapView,
+  filters: Pick<HubRequestPlan, "placeFilter" | "eventFilter">,
+): MapView {
+  const { placeFilter, eventFilter } = filters;
+  if (!placeFilter && !eventFilter) return view;
+  const places = placeFilter ? new Set(placeFilter) : null;
+  const events = eventFilter ? new Set(eventFilter) : null;
+  const placeOk = (f: MapFeature) => !places || f.mine || f.hubIds.some((h) => places.has(h));
+  const eventOk = (f: MapFeature) => !events || (f.hubId !== null && events.has(f.hubId));
+  const cells = !events
+    ? view.cells
+    : view.cells.flatMap((c) => {
+        // Without a hub per event there is no telling whether the cell belongs to the chip: hide
+        // it rather than show every hub's approved-only events under any chip with the full count.
+        if (!c.hubsKnown) return [];
+        const kept = c.events.filter((e) => e.hubId !== null && events.has(e.hubId));
+        return kept.length ? [{ ...c, events: kept, count: kept.length }] : [];
+      });
   return {
     ...view,
-    places: view.places.filter(byHub),
-    plans: view.plans.filter(happening),
-    shows: view.shows.filter(happening),
+    places: view.places.filter(placeOk),
+    plans: view.plans.filter(eventOk),
+    shows: view.shows.filter(eventOk),
     cells,
   };
 }
@@ -875,7 +1097,7 @@ export function directionsUrl(dest: LngLat & { name?: string }, platform: Device
 /* Adapter and queries                                                  */
 /* ------------------------------------------------------------------ */
 
-/** The map RPCs are not deployed (slice 6). The Map tab shows "coming soon" for this one error. */
+/** The map RPCs are not deployed on this database. The Map tab shows "coming soon" for this one error. */
 export class MapUnavailableError extends Error {
   constructor() {
     super("The map is not available yet.");
@@ -918,7 +1140,8 @@ export function getMapAdapter(): Promise<MapAdapter> {
 
 export interface MapQueryParams {
   bbox: BBox;
-  hubIds: string[];
+  /** Null: every specific hub (signed out, no hub picked). */
+  hubIds: string[] | null;
   generic: boolean;
   when: MapWhen;
 }
@@ -926,7 +1149,14 @@ export interface MapQueryParams {
 export const mapKeys = {
   all: ["map"] as const,
   inView: (p: MapQueryParams) =>
-    ["map", "in-view", bboxKey(p.bbox), p.hubIds.join(","), p.generic, p.when] as const,
+    [
+      "map",
+      "in-view",
+      bboxKey(p.bbox),
+      p.hubIds === null ? "*" : p.hubIds.join(","),
+      p.generic,
+      p.when,
+    ] as const,
   place: (id: string) => ["map", "place", id] as const,
 };
 

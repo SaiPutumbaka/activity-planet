@@ -1,10 +1,12 @@
 import {
+  Beer,
   BookOpen,
   CalendarDays,
   Coffee,
   Dumbbell,
   Gamepad2,
   Goal,
+  Landmark,
   MapPin,
   Mountain,
   Music,
@@ -14,6 +16,7 @@ import {
   Ticket,
   Trees,
   Users,
+  Utensils,
   Volleyball,
   Waves,
   type LucideIcon,
@@ -36,6 +39,9 @@ export const PLACE_ICONS: Record<MapIconKey, LucideIcon> = {
   music: Music,
   water: Waves,
   trail: Mountain,
+  food: Utensils,
+  drink: Beer,
+  landmark: Landmark,
   place: MapPin,
 };
 

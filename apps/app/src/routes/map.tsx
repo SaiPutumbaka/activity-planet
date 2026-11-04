@@ -262,8 +262,8 @@ function MapScreen({ userId }: { userId: string | null }) {
     return ids.length ? ids : null;
   }, [selectedSlugs, chipHubs]);
   const plan = useMemo(
-    () => planHubRequest(selection, chipHubs, sensitiveCover),
-    [selection, chipHubs, sensitiveCover],
+    () => planHubRequest(selection, chipHubs, sensitiveCover, { signedOut: !signedIn }),
+    [selection, chipHubs, sensitiveCover, signedIn],
   );
 
   const layers = parseLayersParam(search.layers);
@@ -285,14 +285,32 @@ function MapScreen({ userId }: { userId: string | null }) {
 
   const placesHidden = camera.zoom < PLACES_MIN_ZOOM || bboxTooLargeForPlaces(snapped);
   const view = useMemo(() => {
-    const filtered = applyLayerFilter(
-      applyHubFilter(query.data ?? EMPTY_VIEW, plan.localFilter),
-      layers,
-    );
+    const filtered = applyLayerFilter(applyHubFilter(query.data ?? EMPTY_VIEW, plan), layers);
     return placesHidden ? { ...filtered, places: [] } : filtered;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query.data, plan.localFilter, search.layers, placesHidden]);
-  const eventsOnly = useMemo(() => new Set(query.data?.eventsOnlyHubIds ?? []), [query.data]);
+  }, [query.data, plan, search.layers, placesHidden]);
+  // place_mode never changes, so what one response said about a hub holds for later views (a
+  // one-chip request only lists that hub).
+  const [eventsOnly, setEventsOnly] = useState<ReadonlySet<string>>(() => new Set());
+  useEffect(() => {
+    const hubs = query.data?.hubs;
+    if (!hubs?.length) return;
+    setEventsOnly((prev) => {
+      const next = new Set(prev);
+      for (const h of hubs) {
+        if (h.placeMode === "none") next.add(h.id);
+        else next.delete(h.id);
+      }
+      return next.size === prev.size && [...next].every((id) => prev.has(id)) ? prev : next;
+    });
+  }, [query.data]);
+  // Alcohol and gambling hubs (§7.8): their places carry "21+ at venue".
+  const adultHubIds = useMemo(
+    () =>
+      new Set((catalog.data?.hubs ?? []).filter((h) => (h.min_age ?? 0) >= 21).map((h) => h.id)),
+    [catalog.data],
+  );
+  const placesAsked = plan.hubIds === null || plan.hubIds.length > 0;
 
   // Locate: only on tap, coarse, never stored on the server (D-036 rules, lib/location.ts).
   async function locate() {
@@ -470,11 +488,11 @@ function MapScreen({ userId }: { userId: string | null }) {
           </Button>
         }
       >
-        Pick a hub to see its places. Public plans nearby show either way.
+        Showing places for every hub. Pick one to narrow it down.
       </Notice>,
     );
   }
-  if (layers.includes("places") && placesHidden && plan.hubIds.length > 0) {
+  if (layers.includes("places") && placesHidden && placesAsked) {
     notices.push(<Notice key="zoom">Zoom in to see places.</Notice>);
   }
   if (selectedOne && eventsOnly.has(selectedOne.id)) {
@@ -585,7 +603,7 @@ function MapScreen({ userId }: { userId: string | null }) {
                     <LocateFixed className="size-4" aria-hidden="true" />
                   )}
                 </button>
-                {layers.includes("places") && placesHidden && plan.hubIds.length > 0 ? (
+                {layers.includes("places") && placesHidden && placesAsked ? (
                   <p className="pointer-events-none absolute inset-x-0 bottom-[8.25rem] z-[5] mx-auto w-fit rounded-control bg-toast px-3 py-1.5 text-[13px] font-semibold text-on-toast">
                     Zoom in to see places
                   </p>
@@ -616,7 +634,7 @@ function MapScreen({ userId }: { userId: string | null }) {
 
       <PlaceSheet
         placeId={search.place ?? null}
-        hubs={chipHubs}
+        adultHubIds={adultHubIds}
         signedIn={signedIn}
         timeZone={timeZone}
         onClose={() => setSearch({ place: undefined })}

@@ -15,11 +15,8 @@ import {
   detectPlatform,
   directionsUrl,
   isMapUnavailable,
-  osmEditUrl,
   placeDetailQuery,
-  placeKindInfo,
   sourceLine,
-  type ChipHub,
   type MapCell,
   type MapFeature,
 } from "@/lib/map";
@@ -65,21 +62,23 @@ function platform() {
  */
 export function PlaceSheet({
   placeId,
-  hubs,
+  adultHubIds,
   signedIn,
   timeZone,
   onClose,
 }: {
   placeId: string | null;
-  hubs: readonly ChipHub[];
+  /** Hubs with min_age 21 or more (alcohol, gambling): their places say "21+ at venue". */
+  adultHubIds: ReadonlySet<string>;
   signedIn: boolean;
   timeZone: string;
   onClose: () => void;
 }) {
   const detail = useQuery({ ...placeDetailQuery(placeId ?? ""), enabled: Boolean(placeId) });
   const d = detail.data;
-  const hubList = d ? hubs.filter((h) => d.hubIds.includes(h.id)) : [];
+  const hubList = d?.hubs ?? [];
   const firstJoined = hubList.find((h) => h.joined);
+  const adultsOnly = hubList.some((h) => adultHubIds.has(h.id));
 
   return (
     <Sheet open={Boolean(placeId)} onClose={onClose} title={d?.name ?? "Place"}>
@@ -98,11 +97,16 @@ export function PlaceSheet({
       ) : (
         <div className="flex flex-col gap-4 pt-1">
           <div className="flex items-center gap-3">
-            <PlaceGlyph kind={d.kind} generic={d.generic} />
+            <PlaceGlyph kind={d.kind} generic={d.generic} pending={d.pending} />
             <div className="min-w-0">
-              <p className="text-[15px] font-semibold">{placeKindInfo(d.kind).label}</p>
+              <p className="text-[15px] font-semibold">{d.kindLabel}</p>
               <p className="text-[13px] text-text-2">
-                {[d.generic ? "General spot" : "", d.adultsOnly ? "21+ at venue" : ""]
+                {[
+                  d.generic ? "General spot" : "",
+                  adultsOnly ? "21+ at venue" : "",
+                  d.private ? "Only you can see it" : "",
+                  d.pending ? "Waiting for review" : "",
+                ]
                   .filter(Boolean)
                   .join(" · ") || sourceLine(d)}
               </p>
@@ -120,13 +124,14 @@ export function PlaceSheet({
                   {h.name}
                 </li>
               ))}
+              {d.moreHubs ? <li className="px-1 py-1 text-[13px] text-text-2">and more</li> : null}
             </ul>
           ) : null}
 
           <dl className="flex flex-col gap-2 text-[15px]">
-            {d.address ? (
-              <Detail icon={MapPin} label="Address">
-                {d.address}
+            {d.address || d.locality ? (
+              <Detail icon={MapPin} label={d.address ? "Address" : "Area"}>
+                {d.address ?? d.locality}
               </Detail>
             ) : null}
             {d.hours ? (
@@ -204,9 +209,9 @@ export function PlaceSheet({
 
           <div className="flex flex-col gap-1 border-t border-border pt-3 text-[13px] text-text-2">
             <p>{sourceLine(d)}</p>
-            {d.source === "osm" && d.osmRef ? (
+            {d.osmUrl && (d.source === "osm" || d.source === "geoapify") ? (
               <a
-                href={osmEditUrl(d.osmRef)}
+                href={d.osmUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-link underline-offset-2 hover:underline"

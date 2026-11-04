@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  FLAG,
+  PLACE_FLAG,
   decodeMapInView,
   decodePlaceDetail,
   getMapAdapter,
@@ -87,6 +87,39 @@ describe("mock map adapter", () => {
     expect(v.shows.length).toBeGreaterThan(0);
   });
 
+  it("gives a signed-out view with no hubs every specific hub's places (hub_idx null)", () => {
+    const v = decodeMapInView(mockMapInView(argsAround(BERLIN, { p_hub_ids: null })));
+    expect(v.places).toHaveLength(PLACES_PER_HUB_PER_CITY);
+    expect(v.places.every((p) => p.hubId === null && p.hubIds.length === 0)).toBe(true);
+    expect(v.noHubs).toBe(false);
+    for (const p of v.places) expect(decodePlaceDetail(mockPlaceDetail(p.id))?.id).toBe(p.id);
+  });
+
+  it("speaks the as-built encoding: hub indexes, event hubs, cell titles", () => {
+    const raw = mockMapInView(argsAround(BERLIN, { p_to: "2026-12-04T12:00:00.000Z" }));
+    const hubs = raw.hubs ?? [];
+    expect(hubs.slice(0, 2).map((h) => h[0])).toEqual(["hub-a", "hub-b"]);
+    for (const t of raw.places ?? []) {
+      expect(t).toHaveLength(8);
+      expect(typeof t[4]).toBe("number");
+      expect(t[7]).toContain(t[4]);
+    }
+    for (const t of [...(raw.plans ?? []), ...(raw.shows ?? [])]) {
+      expect(t).toHaveLength(8);
+      expect(hubs[t[4]]).toBeDefined();
+    }
+    for (const c of raw.cells ?? []) {
+      expect(c).toHaveLength(7);
+      expect(c[3]).toHaveLength(c[2]);
+      expect(c[5]).toHaveLength(c[2]);
+    }
+    const v = decodeMapInView(raw);
+    expect(v.plans.every((p) => p.hubId !== null)).toBe(true);
+    expect(v.cells.every((c) => c.hubsKnown && c.events.every((e) => e.name !== "Plan"))).toBe(
+      true,
+    );
+  });
+
   it("keeps approved-only events as cells only", () => {
     const raw = mockMapInView(argsAround(BERLIN, { p_to: "2026-12-04T12:00:00.000Z" }));
     const v = decodeMapInView(raw);
@@ -130,7 +163,7 @@ describe("mock map adapter", () => {
       p_north: 85,
     });
     expect(raw.zoom_in).toBe(true);
-    expect(raw.places).toEqual([]);
+    expect(raw.places).toBeNull();
     expect((raw.plans ?? []).length).toBeGreaterThan(0);
   });
 
@@ -162,7 +195,7 @@ describe("mock map adapter", () => {
       expect(d?.id).toBe(p.id);
       expect(d?.name).toBe(p.name);
       expect(d?.lng).toBe(p.lng);
-      expect(d?.generic).toBe((p.flags & FLAG.GENERIC) !== 0);
+      expect(d?.generic).toBe((p.flags & PLACE_FLAG.GENERAL) !== 0);
     }
     expect(mockPlaceDetail("nope")).toBeNull();
     expect(mockPlaceDetail("mock:place:berlin:hub-a:99")).toBeNull();

@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   EMPTY_VIEW,
-  FLAG,
+  EVENT_FLAG,
+  PLACE_FLAG,
   MAP_MOCK,
   applyHubFilter,
   applyLayerFilter,
@@ -16,6 +17,7 @@ import {
   cellRing,
   countLine,
   decodeFeature,
+  decodeHubs,
   decodeMapInView,
   decodePlaceDetail,
   detectPlatform,
@@ -48,39 +50,83 @@ const hub = (id: string, extra: Partial<ChipHub> = {}): ChipHub => ({
   ...extra,
 });
 
-describe("decodeFeature (compact encoding)", () => {
-  it("reads the six contract positions plus the optional name and start", () => {
+const HUBS = decodeHubs([
+  ["h1", "basketball", "Basketball", "🏀", "specific"],
+  ["h2", "cafes", "Cafés", "☕", "generic"],
+  ["h9", "hunting", "Hunting", "🦌", "none"],
+]);
+
+describe("decodeFeature (encoding as built)", () => {
+  it("reads a place: hub index, every matching hub, name and flags", () => {
     const f = decodeFeature(
-      ["p1", -84.39, 33.75, "basketball_court", "h1", FLAG.GENERIC, "Court A", 1_800_000_000],
+      [
+        "p1",
+        -84.39,
+        33.75,
+        "court_field",
+        0,
+        PLACE_FLAG.GEOAPIFY | PLACE_FLAG.MINE,
+        "Court A",
+        [0, 1],
+      ],
       "place",
+      HUBS,
     );
     expect(f).toMatchObject({
       id: "p1",
       kind: "place",
       lng: -84.39,
       lat: 33.75,
-      type: "basketball_court",
+      type: "court_field",
       hubId: "h1",
+      hubIds: ["h1", "h2"],
       name: "Court A",
-      generic: true,
-      imported: false,
+      startsAt: null,
+      generic: false,
+      geoapify: true,
+      mine: true,
       pending: false,
+      imported: false,
+    });
+  });
+
+  it("reads a plan: its hub, title, start and event flags", () => {
+    const f = decodeFeature(
+      ["e1", 1, 1, "imported", 1, EVENT_FLAG.IMPORTED | EVENT_FLAG.FREE, "Run", 1_800_000_000],
+      "plan",
+      HUBS,
+    );
+    expect(f).toMatchObject({
+      hubId: "h2",
+      hubIds: ["h2"],
+      name: "Run",
+      imported: true,
+      free: true,
     });
     expect(f?.startsAt?.toISOString()).toBe(new Date(1_800_000_000_000).toISOString());
+    // Event bits never read as place bits (1 is "imported" on a plan, "general" on a place).
+    expect(f?.generic).toBe(false);
+    expect(
+      decodeFeature(["e", 1, 1, "member", 0, EVENT_FLAG.ADULTS_ONLY, "x", 1], "plan", HUBS),
+    ).toMatchObject({ adultsOnly: true, imported: false, pending: false });
   });
 
   it("falls back to a kind label when the name is missing", () => {
     expect(decodeFeature(["p1", 0, 0, "library", null, 0], "place")?.name).toBe("Library");
-    expect(decodeFeature(["e1", 0, 0, "member", "h", 0], "plan")?.name).toBe("Plan");
-    expect(decodeFeature(["s1", 0, 0, "show", null, 0], "show")?.name).toBe("Show");
+    expect(decodeFeature(["p1", 0, 0, "court_field", null, 0, ""], "place")?.name).toBe(
+      "Court or field",
+    );
+    expect(decodeFeature(["e1", 0, 0, "member", 0, 0], "plan")?.name).toBe("Plan");
+    expect(decodeFeature(["s1", 0, 0, "imported", 0, 0], "show")?.name).toBe("Show");
     expect(decodeFeature(["p1", 0, 0, "nope", null, 0], "place")?.name).toBe("Place");
   });
 
-  it("reads the flag bits", () => {
-    const f = decodeFeature(["e1", 1, 1, "imported", "h", FLAG.IMPORTED | FLAG.PENDING], "plan");
-    expect(f?.imported).toBe(true);
-    expect(f?.pending).toBe(true);
-    expect(f?.generic).toBe(false);
+  it("reads the place flag bits", () => {
+    const f = decodeFeature(
+      ["p", 1, 1, "spot", null, PLACE_FLAG.PENDING | PLACE_FLAG.PRIVATE | PLACE_FLAG.GENERAL],
+      "place",
+    );
+    expect(f).toMatchObject({ pending: true, private: true, generic: true, geoapify: false });
   });
 
   it("rejects malformed tuples", () => {
@@ -94,31 +140,38 @@ describe("decodeFeature (compact encoding)", () => {
     expect(decodeFeature(["x", "1", 2, "k", null, 0], "place")).toBeNull();
   });
 
-  it("treats junk flags and hub ids as empty", () => {
-    const f = decodeFeature(["x", 1, 2, "", "", "7"], "place");
+  it("treats junk flags and hub indexes as empty", () => {
+    const f = decodeFeature(["x", 1, 2, "", "h1", "7", "", [7, "a", 1.5]], "place", HUBS);
     expect(f?.flags).toBe(0);
     expect(f?.hubId).toBeNull();
+    expect(f?.hubIds).toEqual([]);
     expect(f?.type).toBe("place");
   });
 });
 
 describe("decodeMapInView", () => {
-  it("decodes every list and the flags", () => {
+  it("decodes every list, the hubs and the flags", () => {
     const v = decodeMapInView({
-      places: [["p1", 1, 1, "park", "h1", 1]],
-      plans: [["e1", 1, 1, "member", "h1", 0, "Run", 1]],
-      shows: [["s1", 1, 1, "show", null, 0, "Final"]],
-      cells: [
-        { cell: [1.1, 2.2], n: 2, ids: ["a", "b"], names: ["A"], starts: [10], hubs: ["h1", null] },
+      v: 1,
+      places: [["p1", 1, 1, "park", 1, PLACE_FLAG.GENERAL, "Park", [1]]],
+      plans: [["e1", 1, 1, "member", 0, 0, "Run", 1]],
+      shows: [["s1", 1, 1, "imported", 3, EVENT_FLAG.IMPORTED, "Final", 2]],
+      cells: [[1.1, 2.2, 2, ["a", "b"], [0, 3], ["A"], [10]]],
+      hubs: [
+        ["h1", "basketball", "Basketball", "🏀", "specific"],
+        ["h2", "cafes", "Cafés", "☕", "generic"],
+        ["h9", "hunting", "Hunting", "🦌", "none"],
+        ["h4", "music", "Music", "🎵", "specific"],
       ],
       truncated: true,
       zoom_in: false,
       mapping: true,
-      events_only: ["h9", 3],
+      no_hubs: false,
+      generic: true,
     });
-    expect(v.places).toHaveLength(1);
-    expect(v.plans[0]?.name).toBe("Run");
-    expect(v.shows[0]?.kind).toBe("show");
+    expect(v.places[0]).toMatchObject({ hubId: "h2", hubIds: ["h2"], generic: true });
+    expect(v.plans[0]).toMatchObject({ name: "Run", hubId: "h1" });
+    expect(v.shows[0]).toMatchObject({ kind: "show", hubId: "h4", imported: true });
     expect(v.cells).toEqual([
       {
         key: "1.1,2.2",
@@ -126,26 +179,55 @@ describe("decodeMapInView", () => {
         count: 2,
         events: [
           { id: "a", name: "A", startsAt: new Date(10_000), hubId: "h1" },
-          { id: "b", name: "Plan", startsAt: null, hubId: null },
+          { id: "b", name: "Plan", startsAt: null, hubId: "h4" },
         ],
         hubsKnown: true,
       },
     ]);
+    expect(v.hubs.map((h) => h.slug)).toEqual(["basketball", "cafes", "hunting", "music"]);
     expect(v.truncated).toBe(true);
     expect(v.zoomIn).toBe(false);
     expect(v.mapping).toBe(true);
+    expect(v.generic).toBe(true);
     expect(v.eventsOnlyHubIds).toEqual(["h9"]);
+  });
+
+  it("reads a migration 29 cell (no titles or starts) and a zoom_in reply", () => {
+    const v = decodeMapInView({
+      places: null,
+      plans: [],
+      cells: [[1, 1, 1, ["a"], [0]]],
+      hubs: [["h1", "x", "X", "", "specific"]],
+      zoom_in: true,
+    });
+    expect(v.places).toEqual([]);
+    expect(v.zoomIn).toBe(true);
+    expect(v.cells[0]?.events).toEqual([{ id: "a", name: "Plan", startsAt: null, hubId: "h1" }]);
+    expect(v.cells[0]?.hubsKnown).toBe(true);
+    expect(v.mapping).toBe(false);
   });
 
   it("returns the empty view for junk and drops bad rows without throwing", () => {
     expect(decodeMapInView(null)).toEqual(EMPTY_VIEW);
     expect(decodeMapInView("x")).toEqual(EMPTY_VIEW);
+    expect(decodeMapInView([1])).toEqual(EMPTY_VIEW);
     const v = decodeMapInView({
-      places: [["ok", 0, 0, "park", null, 0], "bad", ["no"]],
+      places: [["ok", 0, 0, "park", null, 0, "Ok", []], "bad", ["no"]],
       plans: "nope",
+      hubs: "nope",
     });
     expect(v.places.map((p) => p.id)).toEqual(["ok"]);
     expect(v.plans).toEqual([]);
+    expect(v.hubs).toEqual([]);
+  });
+
+  it("keeps hub indexes right past a malformed hub entry", () => {
+    const v = decodeMapInView({
+      hubs: ["junk", ["h2", "b", "B", "", "specific"]],
+      places: [["p", 0, 0, "park", 1, 0, "P", [0, 1]]],
+    });
+    expect(v.places[0]?.hubIds).toEqual(["h2"]);
+    expect(v.hubs.map((h) => h.id)).toEqual(["h2"]);
   });
 
   it("deduplicates features by id and merges cells with the same centre", () => {
@@ -154,11 +236,12 @@ describe("decodeMapInView", () => {
         ["p", 0, 0, "park", null, 0],
         ["p", 1, 1, "park", null, 0],
       ],
+      hubs: [["h", "h", "H", "", "specific"]],
       cells: [
-        { cell: [3.4, 5.6], n: 1, ids: ["a"] },
-        { cell: [3.4000000001, 5.6], n: 2, ids: ["b", "c"] },
-        { cell: [3.4, 5.6], n: 0, ids: [] },
-        { cell: [500, 1], n: 1, ids: ["z"] },
+        [3.4, 5.6, 1, ["a"], [0]],
+        [3.4000000001, 5.6, 2, ["b", "c"], [0, 0]],
+        [3.4, 5.6, 0, [], []],
+        [500, 1, 1, ["z"], [0]],
       ],
     });
     expect(v.places).toHaveLength(1);
@@ -168,41 +251,97 @@ describe("decodeMapInView", () => {
   });
 
   it("never turns a cell into a point", () => {
-    const v = decodeMapInView({ cells: [{ cell: [1, 1], n: 1, ids: ["secret"] }] });
+    const v = decodeMapInView({ cells: [[1, 1, 1, ["secret"], [0]]] });
     const all = [...v.places, ...v.plans, ...v.shows].map((f) => f.id);
     expect(all).not.toContain("secret");
+    // No hub list: the cell cannot be matched to a chip.
+    expect(v.cells[0]?.hubsKnown).toBe(false);
   });
 });
 
 describe("decodePlaceDetail", () => {
-  it("reads a place and sanitizes links", () => {
+  it("reads place_detail as built and sanitizes links", () => {
     const d = decodePlaceDetail({
+      v: 1,
       id: "p",
       name: "Court",
-      kind: "basketball_court",
+      kind: "court_field",
+      kind_label: "Court or field",
+      kind_icon: "trophy",
       lng: 1,
       lat: 2,
-      hub_ids: ["h", 4],
+      address_text: "1 Main St",
+      locality: "Decatur",
+      opening_hours: "Mo-Su 06:00-22:00",
+      hubs: [
+        { id: "h", slug: "b", name: "Basketball", emoji: "🏀", general: false, joined: true },
+        { slug: "no id" },
+      ],
+      more_hubs: true,
       website: "javascript:alert(1)",
-      osm_ref: "node/123",
+      osm_url: "https://www.openstreetmap.org/way/123",
       source: "osm",
+      status: "active",
+      is_public: true,
+      mine: false,
       checked_at: "2026-11-01T00:00:00Z",
       plans_here: [
-        { id: "e", title: "Game", starts_at: "2026-11-05T18:00:00Z" },
+        { id: "e", title: "Game", starts_at: "2026-11-05T18:00:00Z", hub_id: "h" },
         { title: "no id" },
       ],
     });
-    expect(d?.website).toBeNull();
-    expect(d?.hubIds).toEqual(["h"]);
-    expect(d?.osmRef).toBe("node/123");
-    expect(d?.plansHere).toHaveLength(1);
-    expect(decodePlaceDetail({ id: "p", lng: 1, lat: 2, osm_ref: "../evil" })?.osmRef).toBeNull();
+    expect(d).toMatchObject({
+      kindLabel: "Court or field",
+      address: "1 Main St",
+      locality: "Decatur",
+      hours: "Mo-Su 06:00-22:00",
+      website: null,
+      osmUrl: "https://www.openstreetmap.org/way/123",
+      moreHubs: true,
+      generic: false,
+      reviewed: false,
+      pending: false,
+      private: false,
+    });
+    expect(d?.hubs).toEqual([
+      { id: "h", slug: "b", name: "Basketball", emoji: "🏀", general: false, joined: true },
+    ]);
+    expect(d?.plansHere).toEqual([
+      { id: "e", title: "Game", startsAt: new Date("2026-11-05T18:00:00Z"), hubId: "h" },
+    ]);
+    expect(
+      decodePlaceDetail({ id: "p", lng: 1, lat: 2, osm_url: "https://evil.example/node/1" })
+        ?.osmUrl,
+    ).toBeNull();
     expect(decodePlaceDetail({ id: "p", lng: 1, lat: 2, website: "https://x.org" })?.website).toBe(
       "https://x.org/",
     );
     expect(decodePlaceDetail({ lng: 1, lat: 2 })).toBeNull();
   });
 
+  it("derives reviewed, pending, private and general spot", () => {
+    const base = { id: "p", lng: 1, lat: 2, source: "user" };
+    expect(decodePlaceDetail({ ...base, status: "active", is_public: true })?.reviewed).toBe(true);
+    expect(decodePlaceDetail({ ...base, status: "pending", is_public: true })).toMatchObject({
+      reviewed: false,
+      pending: true,
+    });
+    const priv = decodePlaceDetail({
+      ...base,
+      status: "active",
+      is_public: false,
+      address_text: "should not show",
+    });
+    expect(priv).toMatchObject({ reviewed: false, private: true, address: null });
+    expect(
+      decodePlaceDetail({
+        ...base,
+        source: "osm",
+        hubs: [{ id: "c", general: true }],
+      })?.generic,
+    ).toBe(true);
+    expect(decodePlaceDetail({ ...base, kind: "court_field" })?.kindLabel).toBe("Court or field");
+  });
   it("writes the §8 source line", () => {
     const now = new Date("2026-11-04T12:00:00Z");
     const checked = new Date("2026-11-01T11:00:00Z");
@@ -341,18 +480,45 @@ describe("hub chips", () => {
     expect(planHubRequest(["b"], hubs)).toEqual({
       hubIds: ["b"],
       generic: true,
-      localFilter: null,
+      placeFilter: null,
+      eventFilter: ["b"],
     });
   });
 
   it("asks for every chip hub and filters locally otherwise", () => {
     const all = ["a", "b", "faith", "x"];
-    expect(planHubRequest(null, hubs)).toEqual({ hubIds: all, generic: false, localFilter: null });
+    expect(planHubRequest(null, hubs)).toEqual({
+      hubIds: all,
+      generic: false,
+      placeFilter: null,
+      eventFilter: null,
+    });
     expect(planHubRequest(["b", "a"], hubs)).toEqual({
       hubIds: all,
       generic: false,
-      localFilter: ["a", "b"],
+      placeFilter: ["a", "b"],
+      eventFilter: ["a", "b"],
     });
+  });
+
+  it("asks for every specific hub when signed out with no hub picked (D-041)", () => {
+    expect(planHubRequest(null, [], [], { signedOut: true })).toEqual({
+      hubIds: null,
+      generic: false,
+      placeFilter: null,
+      eventFilter: null,
+    });
+    // Signed in with no hubs: none (plans only).
+    expect(planHubRequest(null, [])).toEqual({
+      hubIds: [],
+      generic: false,
+      placeFilter: null,
+      eventFilter: null,
+    });
+    // Signed out with a picked hub: that hub.
+    expect(
+      planHubRequest(["x"], [hub("x", { joined: false })], [], { signedOut: true }).hubIds,
+    ).toEqual(["x"]);
   });
 
   it("sends an explored sensitive hub only inside the full sensitive cover (§7.6)", () => {
@@ -360,16 +526,18 @@ describe("hub chips", () => {
     const cover = ["lgbtq", "faith-1", "faith-2", "wellness"];
     // Alone (signed out, or a member with no other hubs), with the chip selected or not.
     for (const sel of [["lgbtq"], null]) {
-      const p = planHubRequest(sel, explored, cover);
+      const p = planHubRequest(sel, explored, cover, { signedOut: true });
       expect(p.hubIds).toEqual([...cover].sort());
       expect(p.generic).toBe(false);
-      expect(p.localFilter).toEqual(["lgbtq"]);
+      expect(p.placeFilter).toEqual(["lgbtq"]);
     }
-    // With joined hubs: the cover is added and the local filter keeps the chip hubs only.
+    // With joined hubs: the cover is added and the place filter keeps the chip hubs only; every
+    // plan in view stays under "All my hubs".
     const mixed = [hub("a"), ...explored];
     const p = planHubRequest(null, mixed, cover);
     expect(p.hubIds).toEqual(["a", ...cover].sort());
-    expect(p.localFilter).toEqual(["a", "lgbtq"]);
+    expect(p.placeFilter).toEqual(["a", "lgbtq"]);
+    expect(p.eventFilter).toBeNull();
     // A joined sensitive hub needs no cover: the server knows the membership.
     expect(planHubRequest(null, hubs, cover).hubIds).toEqual(["a", "b", "faith", "x"]);
     // The cover never pushes the request past the hub cap.
@@ -380,20 +548,23 @@ describe("hub chips", () => {
 
   it("hides cells without per-event hubs under a hub filter", () => {
     const view = decodeMapInView({
+      hubs: [["a", "a", "A", "", "specific"]],
       cells: [
-        { cell: [0, 0], n: 3, ids: ["c1", "c2", "c3"] },
-        { cell: [1, 1], n: 1, ids: ["d1"], hubs: ["a"] },
+        [0, 0, 3, ["c1", "c2", "c3"]],
+        [1, 1, 1, ["d1"], [0]],
       ],
     });
     expect(view.cells.map((c) => c.hubsKnown)).toEqual([false, true]);
-    expect(applyHubFilter(view, null).cells).toHaveLength(2);
-    expect(applyHubFilter(view, ["a"]).cells.map((c) => c.key)).toEqual(["1.0,1.0"]);
-    expect(applyHubFilter(view, ["b"]).cells).toEqual([]);
+    const only = (ids: string[] | null) => ({ placeFilter: ids, eventFilter: ids });
+    expect(applyHubFilter(view, only(null)).cells).toHaveLength(2);
+    expect(applyHubFilter(view, only(["a"])).cells.map((c) => c.key)).toEqual(["1.0,1.0"]);
+    expect(applyHubFilter(view, only(["b"])).cells).toEqual([]);
     // Merging a cell without hubs into one with hubs makes the merged cell unknown.
     const merged = decodeMapInView({
+      hubs: [["a", "a", "A", "", "specific"]],
       cells: [
-        { cell: [0, 0], n: 1, ids: ["x"], hubs: ["a"] },
-        { cell: [0, 0], n: 1, ids: ["y"] },
+        [0, 0, 1, ["x"], [0]],
+        [0, 0, 1, ["y"]],
       ],
     });
     expect(merged.cells[0]?.hubsKnown).toBe(false);
@@ -401,36 +572,45 @@ describe("hub chips", () => {
 
   it("never sends a sensitive chip on its own (§7.6)", () => {
     const p = planHubRequest(["faith"], hubs);
-    expect(p.hubIds.length).toBeGreaterThan(1);
+    expect(p.hubIds?.length).toBeGreaterThan(1);
     expect(p.generic).toBe(false);
-    expect(p.localFilter).toEqual(["faith"]);
+    expect(p.placeFilter).toEqual(["faith"]);
   });
 
-  it("ignores selected ids that are not chips, and works with no hubs (anon)", () => {
-    expect(planHubRequest(["gone"], hubs).localFilter).toBeNull();
-    expect(planHubRequest(null, [])).toEqual({ hubIds: [], generic: false, localFilter: null });
+  it("ignores selected ids that are not chips", () => {
+    expect(planHubRequest(["gone"], hubs).placeFilter).toBeNull();
   });
 
-  it("filters features locally by hub; hubless plans and shows stay", () => {
+  it("filters features locally by hub; own places always stay", () => {
     const view = decodeMapInView({
+      hubs: [
+        ["a", "a", "A", "", "specific"],
+        ["b", "b", "B", "", "specific"],
+      ],
       places: [
-        ["p1", 0, 0, "park", "a", 0],
-        ["p2", 0, 0, "park", "b", 0],
-        ["p3", 0, 0, "park", null, 0],
+        ["p1", 0, 0, "park", 0, 0, "P1", [0]],
+        ["p2", 0, 0, "park", 1, 0, "P2", [1]],
+        ["p3", 0, 0, "park", null, 0, "P3", []],
+        ["p4", 0, 0, "park", 1, 0, "P4", [1, 0]],
+        ["p5", 0, 0, "spot", null, PLACE_FLAG.MINE | PLACE_FLAG.PRIVATE, "Mine", []],
       ],
       plans: [
-        ["e1", 0, 0, "member", "a", 0],
-        ["e2", 0, 0, "member", "b", 0],
+        ["e1", 0, 0, "member", 0, 0, "E1", 1],
+        ["e2", 0, 0, "member", 1, 0, "E2", 1],
       ],
-      shows: [["s1", 0, 0, "show", null, 0]],
-      cells: [{ cell: [0, 0], n: 2, ids: ["c1", "c2"], hubs: ["a", "b"] }],
+      shows: [["s1", 0, 0, "imported", 1, 1, "S1", 1]],
+      cells: [[0, 0, 2, ["c1", "c2"], [0, 1]]],
     });
-    const f = applyHubFilter(view, ["a"]);
-    expect(f.places.map((p) => p.id)).toEqual(["p1"]);
+    const f = applyHubFilter(view, { placeFilter: ["a"], eventFilter: ["a"] });
+    expect(f.places.map((p) => p.id)).toEqual(["p1", "p4", "p5"]);
     expect(f.plans.map((p) => p.id)).toEqual(["e1"]);
-    expect(f.shows.map((p) => p.id)).toEqual(["s1"]);
+    expect(f.shows).toEqual([]);
     expect(f.cells[0]?.count).toBe(1);
-    expect(applyHubFilter(view, null)).toBe(view);
+    // Places only (the sensitive cover under "All my hubs"): every event stays.
+    const placesOnly = applyHubFilter(view, { placeFilter: ["a"], eventFilter: null });
+    expect(placesOnly.plans).toHaveLength(2);
+    expect(placesOnly.cells[0]?.count).toBe(2);
+    expect(applyHubFilter(view, { placeFilter: null, eventFilter: null })).toBe(view);
   });
 });
 
@@ -520,7 +700,7 @@ describe("misc", () => {
   it("counts what is in view, cells included", () => {
     const v = decodeMapInView({
       places: [["p", 0, 0, "park", null, 0]],
-      cells: [{ cell: [0, 0], n: 3, ids: [] }],
+      cells: [[0, 0, 3, []]],
     });
     expect(countLine(v)).toBe("1 place, 3 plans in this area");
   });
@@ -536,15 +716,16 @@ describe("map overlay data", () => {
       await import("../map-style");
     const view = decodeMapInView({
       places: [
-        ["p1", 0, 0, "park", "a", 0],
-        ["p2", 0, 0, "park", "a", FLAG.GENERIC],
-        ["p3", 0, 0, "park", "a", FLAG.PENDING],
+        ["p1", 0, 0, "park", 0, 0, "P1", [0]],
+        ["p2", 0, 0, "park", 0, PLACE_FLAG.GENERAL, "P2", [0]],
+        ["p3", 0, 0, "park", 0, PLACE_FLAG.PENDING, "P3", [0]],
       ],
       plans: [
-        ["e1", 0, 0, "member", "a", 0],
-        ["e2", 0, 0, "imported", "a", FLAG.IMPORTED],
+        ["e1", 0, 0, "member", 0, 0, "E1", 1],
+        ["e2", 0, 0, "imported", 0, EVENT_FLAG.IMPORTED, "E2", 1],
       ],
-      cells: [{ cell: [0, 0], n: 2, ids: ["c1", "c2"] }],
+      cells: [[0, 0, 2, ["c1", "c2"], [0, 0], ["C1", "C2"], [1, 2]]],
+      hubs: [["a", "a", "A", "", "specific"]],
     });
     expect(cellsGeoJSON(view).features[0]?.properties.label).toBe(
       "2 events in this area · exact spot shared after host approval",

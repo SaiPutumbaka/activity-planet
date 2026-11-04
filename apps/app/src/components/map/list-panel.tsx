@@ -202,6 +202,7 @@ function PlaceRow({
             {kind}
             {f.generic ? " · General spot" : ""}
             {f.pending ? " · Waiting for review" : ""}
+            {f.private && !f.pending ? " · Only you" : ""}
           </span>
         </span>
         <Distance from={origin} to={f} />
@@ -229,6 +230,8 @@ function EventRow({
   const meta = [
     when(f.startsAt, timeZone),
     f.kind === "plan" && f.imported ? "Listed from a feed" : "",
+    f.free ? "Free" : "",
+    f.adultsOnly ? "21+" : "",
   ]
     .filter(Boolean)
     .join(" · ");

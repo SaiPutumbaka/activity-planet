@@ -1,27 +1,30 @@
 import {
-  FLAG,
+  EVENT_FLAG,
   MAP_LAYERS,
+  PLACE_FLAG,
   bboxContains,
   bboxTooLargeForPlaces,
   cellCenter,
   type BBox,
-  type CellPayload,
-  type FeatureTuple,
+  type CellTuple,
+  type EventTuple,
+  type HubTuple,
   type MapAdapter,
   type MapInViewArgs,
   type MapInViewPayload,
+  type PlaceTuple,
   type PlacesInViewArgs,
 } from "./map";
 
 /**
- * Deterministic fixtures for the §5 map RPCs, used when VITE_MAP_MOCK=true and in every test.
- * The same arguments always give the same payload (no Math.random, no clock other than the
- * `p_from` / `p_to` window passed in). Places are generated per requested hub around a handful of
- * cities on several continents, so whatever hubs the viewer joined, the map has something to show.
- * The payload follows the real contract exactly, compact tuples and all, so the decoder is
- * exercised end to end.
- *
- * TODO(map-rpc): delete this file's use outside tests once slice 6 ships (see lib/map.ts).
+ * Deterministic fixtures in the exact encoding of `map_in_view`, `places_in_view` and
+ * `place_detail` as built (migrations 29, 30 and 32; HUB_MAP_DESIGN §5), used only under Vitest
+ * and when VITE_MAP_MOCK=true. The same arguments always give the same payload (no Math.random,
+ * no clock other than the `p_from` / `p_to` window passed in). Places are generated per requested
+ * hub around a handful of cities on several continents, so whatever hubs the viewer joined, the
+ * map has something to show; signed out with no hubs (`p_hub_ids` null) stands in for every
+ * specific hub. Hub references are indexes into `hubs`, plans and shows carry their hub, and
+ * approved-only events are cells only, as on the server.
  */
 
 export interface MockCity {
@@ -57,36 +60,54 @@ const NEIGHBOURHOODS = [
   "Lakeview",
 ];
 
+// Real place_kinds slugs (migration 27), so pins and labels match what staging returns.
 const SPECIFIC_KINDS = [
-  "basketball_court",
-  "pitch",
-  "comic_store",
-  "meeting_spot",
-  "gym",
-  "studio",
+  "court_field",
+  "sports_centre",
   "game_store",
+  "community",
+  "gym",
+  "arts_venue",
+  "anime_store",
   "music_venue",
-  "trailhead",
-  "swimming_pool",
-  "community_centre",
-  "tennis_court",
+  "trail",
+  "pool",
+  "club",
+  "dojo",
 ];
 const GENERIC_KINDS = ["cafe", "park", "library"];
 const KIND_LABEL: Record<string, string> = {
-  basketball_court: "Courts",
-  pitch: "Fields",
-  comic_store: "Comics",
-  meeting_spot: "Club Room",
-  gym: "Gym",
-  studio: "Studio",
+  court_field: "Courts",
+  sports_centre: "Sports Centre",
   game_store: "Games",
+  community: "Community Room",
+  gym: "Gym",
+  arts_venue: "Arts Centre",
+  anime_store: "Anime",
   music_venue: "Music Hall",
-  trailhead: "Trailhead",
-  swimming_pool: "Pool",
-  community_centre: "Community Centre",
-  tennis_court: "Tennis",
+  trail: "Trail",
+  pool: "Pool",
+  club: "Club Room",
+  dojo: "Dojo",
   cafe: "Café",
   park: "Park",
+  library: "Library",
+};
+const KIND_TITLE: Record<string, string> = {
+  court_field: "Court or field",
+  sports_centre: "Sports centre",
+  game_store: "Game store",
+  community: "Community space",
+  gym: "Gym or studio",
+  arts_venue: "Arts venue or museum",
+  anime_store: "Anime store",
+  music_venue: "Music venue",
+  trail: "Trail or route",
+  pool: "Pool or swim spot",
+  club: "Club",
+  dojo: "Dojo",
+  cafe: "Café",
+  park: "Park or garden",
   library: "Library",
 };
 const PLAN_TITLES = [
@@ -102,6 +123,10 @@ const PLAN_TITLES = [
 const SHOW_TITLES = ["Cup final", "Live: The Comets", "Comedy night", "League match"];
 /** Hours after `p_from` at which mock plans start; spread over a month. */
 const START_OFFSETS_H = [1, 3, 6, 20, 30, 52, 75, 100, 140, 210, 330, 520, 690];
+/** Hubs the mock's public plans and shows belong to (the RPC lists them after the selected hubs). */
+const OPEN_HUBS = ["mock-hub-open-1", "mock-hub-open-2", "mock-hub-shows"];
+/** Signed out with no hubs: every specific hub, which the mock stands in for with one key. */
+const ALL_KEY = "all";
 
 export const MOCK_LIMITS = { places: 800, happenings: 300, hubs: 50 } as const;
 export const PLACES_PER_HUB_PER_CITY = 6;
@@ -129,8 +154,8 @@ export function seeded(seed: number): () => number {
   };
 }
 
-function round6(v: number): number {
-  return Math.round(v * 1e6) / 1e6;
+function round5(v: number): number {
+  return Math.round(v * 1e5) / 1e5;
 }
 
 /** A point within about `spread` degrees of the city, wrapped back into [-180, 180]. */
@@ -139,12 +164,18 @@ function near(city: MockCity, rand: () => number, spread = 0.09): [number, numbe
   if (lng > 180) lng -= 360;
   if (lng < -180) lng += 360;
   const lat = city.lat + (rand() * 2 - 1) * spread * 0.8;
-  return [round6(lng), round6(lat)];
+  return [round5(lng), round5(lat)];
 }
 
+/** A mock place before encoding: the hub key it belongs to, not yet an index. */
 interface MockPlace {
-  tuple: FeatureTuple;
-  city: MockCity;
+  id: string;
+  lng: number;
+  lat: number;
+  kind: string;
+  hubKey: string;
+  flags: number;
+  name: string;
 }
 
 /**
@@ -160,12 +191,16 @@ function mockSource(id: string): { source: "osm" | "user" | "geoapify"; pending:
 
 function sourceFlags(id: string): number {
   const m = mockSource(id);
-  return (m.source === "geoapify" ? FLAG.GEOAPIFY : 0) | (m.pending ? FLAG.PENDING : 0);
+  if (m.source === "geoapify") return PLACE_FLAG.GEOAPIFY;
+  if (m.source === "user") {
+    return PLACE_FLAG.MEMBER | (m.pending ? PLACE_FLAG.PENDING | PLACE_FLAG.MINE : 0);
+  }
+  return 0;
 }
 
-function hubPlaces(city: MockCity, hubId: string): MockPlace[] {
-  const rand = seeded(hashString(`${city.slug}|${hubId}`));
-  const h = hashString(hubId);
+function hubPlaces(city: MockCity, hubKey: string): MockPlace[] {
+  const rand = seeded(hashString(`${city.slug}|${hubKey}`));
+  const h = hashString(hubKey);
   const kinds = [
     SPECIFIC_KINDS[h % SPECIFIC_KINDS.length]!,
     SPECIFIC_KINDS[(h >>> 8) % SPECIFIC_KINDS.length]!,
@@ -174,10 +209,15 @@ function hubPlaces(city: MockCity, hubId: string): MockPlace[] {
     const kind = kinds[i % kinds.length]!;
     const [lng, lat] = near(city, rand);
     const hood = NEIGHBOURHOODS[Math.floor(rand() * NEIGHBOURHOODS.length)]!;
-    const id = `mock:place:${city.slug}:${hubId}:${i}`;
+    const id = `mock:place:${city.slug}:${hubKey}:${i}`;
     return {
-      city,
-      tuple: [id, lng, lat, kind, hubId, sourceFlags(id), `${hood} ${KIND_LABEL[kind] ?? "Spot"}`],
+      id,
+      lng,
+      lat,
+      kind,
+      hubKey,
+      flags: sourceFlags(id),
+      name: `${hood} ${KIND_LABEL[kind] ?? "Spot"}`,
     };
   });
 }
@@ -189,16 +229,13 @@ function genericPlaces(city: MockCity, hubId: string): MockPlace[] {
     const [lng, lat] = near(city, rand, 0.11);
     const hood = NEIGHBOURHOODS[Math.floor(rand() * NEIGHBOURHOODS.length)]!;
     return {
-      city,
-      tuple: [
-        `mock:place:${city.slug}:generic~${hubId}:${i}`,
-        lng,
-        lat,
-        kind,
-        hubId,
-        FLAG.GENERIC,
-        `${hood} ${KIND_LABEL[kind]}`,
-      ],
+      id: `mock:place:${city.slug}:generic~${hubId}:${i}`,
+      lng,
+      lat,
+      kind,
+      hubKey: hubId,
+      flags: PLACE_FLAG.GENERAL,
+      name: `${hood} ${KIND_LABEL[kind]}`,
     };
   });
 }
@@ -211,55 +248,84 @@ function inWindow(epochS: number, fromMs: number, toMs: number): boolean {
   return epochS * 1000 >= fromMs && epochS * 1000 <= toMs;
 }
 
+interface MockEvent {
+  id: string;
+  lng: number;
+  lat: number;
+  kind: string;
+  hubId: string;
+  flags: number;
+  title: string;
+  starts: number;
+}
+
+interface MockCellEvent {
+  id: string;
+  hubId: string;
+  title: string;
+  starts: number;
+}
+
 function cityPlans(city: MockCity, hubIds: readonly string[], fromMs: number, toMs: number) {
   const rand = seeded(hashString(`${city.slug}|plans`));
-  const plans: FeatureTuple[] = [];
-  const shows: FeatureTuple[] = [];
-  const cells: CellPayload[] = [];
-  // Hub-tagged plans for the requested hubs, then public plans from other hubs nearby.
-  const hubsForPlans = [...hubIds.slice(0, 4), "mock-hub-open-1", "mock-hub-open-2"];
+  const plans: MockEvent[] = [];
+  const shows: MockEvent[] = [];
+  const cells: { lng: number; lat: number; events: MockCellEvent[] }[] = [];
+  // Plans for the requested hubs, then public plans from other hubs nearby (the RPC sends every
+  // published plan in view, the selected hubs' first).
+  const hubsForPlans = [...hubIds.slice(0, 4), OPEN_HUBS[0]!, OPEN_HUBS[1]!];
   for (let i = 0; i < 10; i++) {
     const [lng, lat] = near(city, rand, 0.08);
     const s = startsAt(fromMs, i);
     const hub = hubsForPlans[i % hubsForPlans.length]!;
     const imported = i % 4 === 3;
     if (!inWindow(s, fromMs, toMs)) continue;
-    plans.push([
-      `mock-plan-${city.slug}-${i}`,
+    plans.push({
+      id: `mock-plan-${city.slug}-${i}`,
       lng,
       lat,
-      imported ? "imported" : "member",
-      hub,
-      (imported ? FLAG.IMPORTED : 0) | (i % 3 === 0 ? FLAG.FREE : 0),
-      `${PLAN_TITLES[i % PLAN_TITLES.length]} · ${NEIGHBOURHOODS[i % NEIGHBOURHOODS.length]}`,
-      s,
-    ]);
+      kind: imported ? "imported" : "member",
+      hubId: hub,
+      flags:
+        (imported ? EVENT_FLAG.IMPORTED : 0) |
+        (i % 3 === 0 ? EVENT_FLAG.FREE : 0) |
+        (hubIds.includes(hub) ? EVENT_FLAG.SELECTED_HUB : 0),
+      title: `${PLAN_TITLES[i % PLAN_TITLES.length]} · ${NEIGHBOURHOODS[i % NEIGHBOURHOODS.length]}`,
+      starts: s,
+    });
   }
   for (let i = 0; i < SHOW_TITLES.length; i++) {
     const [lng, lat] = near(city, rand, 0.06);
     const s = startsAt(fromMs, i * 3 + 2);
     if (!inWindow(s, fromMs, toMs)) continue;
-    shows.push([`mock-show-${city.slug}-${i}`, lng, lat, "show", null, 0, SHOW_TITLES[i]!, s]);
+    shows.push({
+      id: `mock-show-${city.slug}-${i}`,
+      lng,
+      lat,
+      kind: "imported",
+      hubId: OPEN_HUBS[2]!,
+      flags: EVENT_FLAG.IMPORTED,
+      title: SHOW_TITLES[i]!,
+      starts: s,
+    });
   }
   // Approved-only events: only their 0.1-degree cell, never a point (D-038).
   for (let c = 0; c < 2; c++) {
     const [vLng, vLat] = near(city, rand, 0.12);
     const centre = cellCenter(vLng, vLat);
     const n = 1 + (hashString(`${city.slug}|cell|${c}`) % 3);
-    const ids: string[] = [];
-    const names: string[] = [];
-    const starts: number[] = [];
-    const hubs: (string | null)[] = [];
+    const events: MockCellEvent[] = [];
     for (let k = 0; k < n; k++) {
       const s = startsAt(fromMs, c * 4 + k + 1);
       if (!inWindow(s, fromMs, toMs)) continue;
-      ids.push(`mock-private-${city.slug}-${c}-${k}`);
-      names.push(`${PLAN_TITLES[(c + k + 2) % PLAN_TITLES.length]} at a member's spot`);
-      starts.push(s);
-      hubs.push(hubsForPlans[(c + k) % hubsForPlans.length] ?? null);
+      events.push({
+        id: `mock-private-${city.slug}-${c}-${k}`,
+        hubId: hubsForPlans[(c + k) % hubsForPlans.length]!,
+        title: `${PLAN_TITLES[(c + k + 2) % PLAN_TITLES.length]} at a member's spot`,
+        starts: s,
+      });
     }
-    if (ids.length)
-      cells.push({ cell: [centre.lng, centre.lat], n: ids.length, ids, names, starts, hubs });
+    if (events.length) cells.push({ lng: centre.lng, lat: centre.lat, events });
   }
   return { plans, shows, cells };
 }
@@ -284,73 +350,146 @@ function bboxOf(args: { p_west: number; p_south: number; p_east: number; p_north
   return { west: args.p_west, south: args.p_south, east: args.p_east, north: args.p_north };
 }
 
-function pointIn(bbox: BBox, t: FeatureTuple | CellPayload): boolean {
-  const [lng, lat] = Array.isArray(t) ? [t[1], t[2]] : t.cell;
-  return bboxContains(bbox, { lng, lat });
+function inBox(bbox: BBox, p: { lng: number; lat: number }): boolean {
+  return bboxContains(bbox, p);
 }
 
-export function mockPlaces(args: PlacesInViewArgs): {
-  places: FeatureTuple[];
-  truncated: boolean;
-  zoom_in: boolean;
-} {
-  const bbox = bboxOf(args);
-  if (bboxTooLargeForPlaces(bbox)) return { places: [], truncated: false, zoom_in: true };
-  const hubIds = [...new Set(args.p_hub_ids ?? [])];
-  const capped = hubIds.slice(0, MOCK_LIMITS.hubs);
-  const generic = args.p_generic && capped.length === 1;
-  const out: FeatureTuple[] = [];
-  for (const city of MOCK_CITIES) {
-    if (!cityTouches(city, bbox)) continue;
-    for (const hub of capped) out.push(...hubPlaces(city, hub).map((p) => p.tuple));
-    if (generic) out.push(...genericPlaces(city, capped[0]!).map((p) => p.tuple));
-  }
-  const inView = out.filter((t) => pointIn(bbox, t));
+/** The hub list the RPC answers with, and an index lookup that appends hubs as events need them. */
+function hubTable(selected: readonly string[], generic: boolean) {
+  const hubs: HubTuple[] = selected.map((id) => [
+    id,
+    id,
+    `Hub ${id}`,
+    "",
+    generic ? "generic" : "specific",
+  ]);
+  const index = new Map(selected.map((id, i) => [id, i]));
   return {
-    places: inView.slice(0, MOCK_LIMITS.places),
-    truncated: hubIds.length > MOCK_LIMITS.hubs || inView.length > MOCK_LIMITS.places,
-    zoom_in: false,
+    hubs,
+    selected: (id: string) => index.get(id) ?? null,
+    any(id: string): number {
+      let i = index.get(id);
+      if (i === undefined) {
+        i = hubs.length;
+        hubs.push([id, id, `Hub ${id}`, "", "specific"]);
+        index.set(id, i);
+      }
+      return i;
+    },
   };
 }
 
+function selectedHubs(ids: readonly string[] | null): {
+  all: boolean;
+  ids: string[];
+  cut: boolean;
+} {
+  if (ids === null) return { all: true, ids: [], cut: false };
+  const unique = [...new Set(ids)];
+  return {
+    all: false,
+    ids: unique.slice(0, MOCK_LIMITS.hubs),
+    cut: unique.length > MOCK_LIMITS.hubs,
+  };
+}
+
+/** `places_in_view` as built: `[id, lng, lat, kind, hub_idx, flags, name, hub_idxs]`. */
+export function mockPlaces(args: PlacesInViewArgs): MapInViewPayload {
+  const bbox = bboxOf(args);
+  const sel = selectedHubs(args.p_hub_ids);
+  const generic = Boolean(args.p_generic) && sel.ids.length === 1;
+  const table = hubTable(sel.ids, generic);
+  const base = { v: 1, hubs: table.hubs, no_hubs: !sel.all && sel.ids.length === 0 };
+  if (bboxTooLargeForPlaces(bbox)) {
+    return { ...base, places: null, zoom_in: true, truncated: sel.cut, generic: false };
+  }
+  const raw: MockPlace[] = [];
+  for (const city of MOCK_CITIES) {
+    if (!cityTouches(city, bbox)) continue;
+    if (sel.all) raw.push(...hubPlaces(city, ALL_KEY));
+    // A generic hub has no specific rules: only its general spots.
+    else if (generic) raw.push(...genericPlaces(city, sel.ids[0]!));
+    else for (const hub of sel.ids) raw.push(...hubPlaces(city, hub));
+  }
+  const inView = raw.filter((p) => inBox(bbox, p));
+  const places: PlaceTuple[] = inView.slice(0, MOCK_LIMITS.places).map((p) => {
+    const idx = sel.all ? null : table.selected(p.hubKey);
+    return [p.id, p.lng, p.lat, p.kind, idx, p.flags, p.name, idx === null ? [] : [idx]];
+  });
+  return {
+    ...base,
+    places,
+    zoom_in: false,
+    truncated: sel.cut || inView.length > MOCK_LIMITS.places,
+    generic,
+  };
+}
+
+/** `map_in_view` as built (migration 32), from the same fixtures. */
 export function mockMapInView(args: MapInViewArgs): MapInViewPayload {
   const bbox = bboxOf(args);
   const layers = new Set(args.p_layers?.length ? args.p_layers : MAP_LAYERS);
   const fromMs = Date.parse(args.p_from);
   const toMs = Math.min(Date.parse(args.p_to), fromMs + 31 * 86_400_000);
-  const hubIds = [...new Set(args.p_hub_ids ?? [])];
+  const sel = selectedHubs(args.p_hub_ids);
+  const pl = layers.has("places") ? mockPlaces(args) : null;
+  const generic = Boolean(args.p_generic) && sel.ids.length === 1 && pl !== null;
+  const table = hubTable(sel.ids, generic);
 
-  const placeResult = layers.has("places")
-    ? mockPlaces(args)
-    : { places: [], truncated: false, zoom_in: false };
-
-  const plans: FeatureTuple[] = [];
-  const shows: FeatureTuple[] = [];
-  const cells: CellPayload[] = [];
+  const plans: EventTuple[] = [];
+  const shows: EventTuple[] = [];
+  const cells: CellTuple[] = [];
   let touched = false;
+  const enc = (e: MockEvent): EventTuple => [
+    e.id,
+    e.lng,
+    e.lat,
+    e.kind,
+    table.any(e.hubId),
+    e.flags,
+    e.title,
+    e.starts,
+  ];
   for (const city of MOCK_CITIES) {
     if (!cityTouches(city, bbox)) continue;
     touched = true;
-    const c = cityPlans(city, hubIds, fromMs, toMs);
-    plans.push(...c.plans.filter((t) => pointIn(bbox, t)));
-    shows.push(...c.shows.filter((t) => pointIn(bbox, t)));
-    cells.push(...c.cells.filter((t) => pointIn(bbox, t)));
+    const c = cityPlans(city, sel.ids, fromMs, toMs);
+    if (layers.has("plans")) {
+      plans.push(...c.plans.filter((e) => inBox(bbox, e)).map(enc));
+      for (const cell of c.cells.filter((x) => inBox(bbox, x))) {
+        const ev = cell.events;
+        cells.push([
+          cell.lng,
+          cell.lat,
+          ev.length,
+          ev.map((e) => e.id),
+          ev.map((e) => table.any(e.hubId)),
+          ev.map((e) => e.title),
+          ev.map((e) => e.starts),
+        ]);
+      }
+    }
+    if (layers.has("shows")) shows.push(...c.shows.filter((e) => inBox(bbox, e)).map(enc));
   }
 
+  const zoomIn = pl?.zoom_in === true;
   return {
-    places: placeResult.places,
-    plans: layers.has("plans") ? plans.slice(0, MOCK_LIMITS.happenings) : [],
-    shows: layers.has("shows") ? shows.slice(0, MOCK_LIMITS.happenings) : [],
-    cells: layers.has("plans") ? cells : [],
-    truncated: placeResult.truncated,
-    zoom_in: placeResult.zoom_in,
+    v: 1,
+    places: pl ? (pl.places ?? null) : null,
+    plans: layers.has("plans") ? plans.slice(0, MOCK_LIMITS.happenings) : null,
+    shows: layers.has("shows") ? shows.slice(0, MOCK_LIMITS.happenings) : null,
+    cells,
+    hubs: table.hubs,
+    truncated: (pl?.truncated ?? sel.cut) || plans.length > MOCK_LIMITS.happenings,
+    zoom_in: zoomIn,
+    no_hubs: !sel.all && sel.ids.length === 0,
+    generic: pl?.generic === true,
     // An area with no fixtures stands in for a tile that is still being mapped (§9 empty state).
-    mapping: !placeResult.zoom_in && !touched,
-    events_only: [],
+    mapping: pl !== null && !zoomIn && !touched,
   };
 }
 
-/** Rebuilds a place from its id (`mock:place:<city>:<hub or generic~hub>:<i>`). */
+/** Rebuilds a place's `place_detail` from its id (`mock:place:<city>:<hub or generic~hub>:<i>`). */
 export function mockPlaceDetail(id: string): Record<string, unknown> | null {
   const m = /^mock:place:([^:]+):([^:]+):(\d+)$/.exec(id);
   if (!m) return null;
@@ -362,27 +501,50 @@ export function mockPlaceDetail(id: string): Record<string, unknown> | null {
   const list = generic ? genericPlaces(city, hubId) : hubPlaces(city, hubId);
   const place = list[Number(idx)];
   if (!place) return null;
-  const [pid, lng, lat, kind, hub, flags, name] = place.tuple;
-  const seed = hashString(pid);
-  const isGeneric = (flags & FLAG.GENERIC) !== 0;
-  const origin = isGeneric ? { source: "osm" as const, pending: false } : mockSource(pid);
+  const seed = hashString(place.id);
+  const origin = generic ? { source: "osm" as const, pending: false } : mockSource(place.id);
   const fromOsm = origin.source !== "user";
   return {
-    id: pid,
-    name,
-    kind,
-    lng,
-    lat,
-    hub_ids: hub ? [hub] : [],
-    address: `${NEIGHBOURHOODS[seed % NEIGHBOURHOODS.length]} Road ${1 + (seed % 90)}, ${city.name}`,
-    hours: seed % 3 === 0 ? null : seed % 3 === 1 ? "Mo-Fr 07:00-22:00; Sa-Su 09:00-20:00" : "24/7",
+    v: 1,
+    id: place.id,
+    name: place.name,
+    kind: place.kind,
+    kind_label: KIND_TITLE[place.kind] ?? "Spot",
+    kind_icon: "map-pin",
+    lng: place.lng,
+    lat: place.lat,
+    address_text: `${NEIGHBOURHOODS[seed % NEIGHBOURHOODS.length]} Road ${1 + (seed % 90)}, ${city.name}`,
+    locality: city.name,
+    country: null,
+    opening_hours:
+      seed % 3 === 0 ? null : seed % 3 === 1 ? "Mo-Fr 07:00-22:00; Sa-Su 09:00-20:00" : "24/7",
     website: seed % 2 === 0 ? `https://example.org/${city.slug}/${Number(idx) + 1}` : null,
+    tags: {},
     source: origin.source,
-    osm_ref: fromOsm ? `node/${1_000_000 + (seed % 9_000_000)}` : null,
-    checked_at: new Date(Date.UTC(2026, 9, 1 + (seed % 28))).toISOString(),
-    reviewed: origin.source === "user" && !origin.pending,
-    generic: isGeneric,
-    adults_only: false,
+    status: origin.pending ? "pending" : "active",
+    is_public: true,
+    mine: origin.pending,
+    attribution: fromOsm ? "© OpenStreetMap contributors" : null,
+    license: fromOsm ? "ODbL-1.0" : null,
+    checked_at: fromOsm ? new Date(Date.UTC(2026, 9, 1 + (seed % 28))).toISOString() : null,
+    osm_url:
+      origin.source === "osm"
+        ? `https://www.openstreetmap.org/node/${1_000_000 + (seed % 9_000_000)}`
+        : null,
+    hubs:
+      hubId === ALL_KEY
+        ? []
+        : [
+            {
+              id: hubId,
+              slug: hubId,
+              name: `Hub ${hubId}`,
+              emoji: "",
+              general: generic,
+              joined: false,
+            },
+          ],
+    more_hubs: false,
     plans_here:
       seed % 2 === 0
         ? [
@@ -390,6 +552,12 @@ export function mockPlaceDetail(id: string): Record<string, unknown> | null {
               id: `mock-plan-${city.slug}-${seed % 10}`,
               title: PLAN_TITLES[seed % PLAN_TITLES.length],
               starts_at: null,
+              ends_at: null,
+              timezone: "UTC",
+              hub_id: hubId === ALL_KEY ? OPEN_HUBS[0] : hubId,
+              hub_slug: hubId,
+              kind: "member",
+              listing_kind: "plan",
             },
           ]
         : [],
