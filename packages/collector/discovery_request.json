@@ -1,4 +1,4 @@
 {
   "$comment": "Push trigger for discovery.yml on branches other than main (staging only): mode gate runs the Atlanta quality gate, nightly runs gate-if-needed, candidates and probes.",
-  "mode": "gate"
+  "mode": "nightly"
 }
