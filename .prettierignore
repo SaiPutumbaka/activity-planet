@@ -7,3 +7,4 @@ scripts/places/hub_place_rules.json
 scripts/places/rule_ids.json
 scripts/places/rules_stats.json
 scripts/places/taginfo_counts.json
+scripts/places/extract_rules.json

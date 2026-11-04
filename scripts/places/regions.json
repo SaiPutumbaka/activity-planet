@@ -1,0 +1,9 @@
+{
+  "_about": "Named regions for the places extract job (places-extract.yml, D-041 slice 5): place tile ids on the 0.5-degree grid (id = row * 720 + column, see public.place_tile_id). The tiles must exist in public.place_tiles of the target project.",
+  "regions": {
+    "atlanta": {
+      "label": "Atlanta, Georgia, US",
+      "tiles": [178030, 178031, 178751]
+    }
+  }
+}

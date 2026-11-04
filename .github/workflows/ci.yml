@@ -47,10 +47,11 @@ jobs:
       - run: deno test --allow-read supabase/functions/import-feed supabase/functions/collector
 
   # Hub map place rules (D-041): rebuild the JSON from the research tables, regenerate the seed and
-  # the osmium filter, and fail if anything differs from what is committed. Python stdlib only.
+  # the osmium filter, and fail if anything differs from what is committed (stdlib only); then the
+  # extract evaluator's tests.
   place-rules:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Rebuild hub_place_rules.json from scripts/places/rules
@@ -62,3 +63,8 @@ jobs:
           git status --porcelain -- scripts/places supabase/seed
           git diff --exit-code -- scripts/places supabase/seed
           test -z "$(git status --porcelain -- scripts/places supabase/seed)"
+      # The extract job's evaluator (slice 5); shapely from Ubuntu, as places-extract.yml uses.
+      - name: Extract evaluator tests
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq python3-shapely > /dev/null
+          python3 -I -m unittest discover -s scripts/places -p 'test_*.py' -v
