@@ -1,12 +1,15 @@
 // One collector run: regions in, one SourceBatch per source out.
 //   Lane 1  API adapters per region (only those whose key is set) and open-data seeds.
-//   Lane 2  ICS and RSS/Atom seeds, plus feeds discovered on seed pages.
+//   Lane 2  ICS and RSS/Atom seeds, Localist API seeds, plus feeds discovered on seed pages.
+//           A page's own calendar-wide feed is preferred: when it yields events, single-event
+//           exports and event pages are not crawled (unless the seed sets crawlPages).
 //   Lane 3  schema.org Event JSON-LD and microdata on seed pages and on same-site event pages
 //           linked from them (one level), honouring noindex, nofollow and X-Robots-Tag.
 // Every request goes through the PoliteFetcher; every item through normalize() and the
 // region, window and dedupe filters.
 
 import { type ApiAdapter, enabledAdapters, redactUrl } from "./adapters/api.ts";
+import { LOCALIST_MAX_PAGES, localistEventsUrl, parseLocalist } from "./adapters/localist.ts";
 import { arcgisUrl, parseArcgis, parseSocrata, socrataUrl } from "./adapters/opendata.ts";
 import { citiesFor } from "./config.ts";
 import { type Candidate, dedupe, inAnyRegion, windowReason } from "./filter.ts";
@@ -15,6 +18,7 @@ import { EXCERPT_MAX, normalize } from "./normalize.ts";
 import { isFeed, parseFeed } from "./parse/feed.ts";
 import { discoverLinks, scanHtml } from "./parse/html.ts";
 import { parseIcs } from "./parse/ics.ts";
+import { isPerEventExport } from "./parse/links.ts";
 import { jsonLdEvents, schemaEvents } from "./parse/schema.ts";
 import { mergeDirectives, metaDirectives, parseXRobotsTag, snippetLimit } from "./policy/meta.ts";
 import type { CityFile, RawEvent, Region, Seed, SourceBatch } from "./types.ts";
@@ -54,6 +58,8 @@ export interface CollectResult {
     items: number;
     skipped: Record<string, number>;
     requestsByHost: Record<string, number>;
+    /** Discovered links never followed (Google Calendar pages, action pages), by reason. */
+    linksSkipped: Record<string, number>;
   };
 }
 
@@ -101,6 +107,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
   const maxFeeds = opts.maxFeedsPerSeed ?? 10;
   const errors: SourceError[] = [];
   const visited = new Set<string>();
+  const linksSkipped: Record<string, number> = {};
   let fetched = 0;
 
   const fail = (sourceKey: string, res: Extract<FetchResult, { ok: false }>) => {
@@ -135,11 +142,16 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
 
   const zoneFor = (run: SourceRun) => run.region.timezone ?? "UTC";
 
-  const readFeed = (run: SourceRun, res: Extract<FetchResult, { ok: true }>, idPrefix: string) => {
+  /** Reads a feed into the run; returns how many events it gave. */
+  const readFeed = (
+    run: SourceRun,
+    res: Extract<FetchResult, { ok: true }>,
+    idPrefix: string,
+  ): number => {
     const directives = parseXRobotsTag(res.xRobotsTag);
     if (directives.noindex) {
       errors.push({ sourceKey: run.key, url: res.url, reason: "noindex" });
-      return;
+      return 0;
     }
     let events: RawEvent[];
     if (looksLikeIcs(res)) {
@@ -153,11 +165,12 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
       events = parseFeed(res.body, { sourceUrl: res.url });
     } else {
       errors.push({ sourceKey: run.key, url: res.url, reason: "not_a_feed" });
-      return;
+      return 0;
     }
     const fallback = run.seed?.kind === "page" ? run.seed.url : null;
     const snippetMax = snippetLimit(directives, EXCERPT_MAX);
     for (const raw of events) run.raws.push({ raw, idPrefix, fallbackUrl: fallback, snippetMax });
+    return events.length;
   };
 
   const readPage = (
@@ -189,7 +202,10 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
     }
     if (!discover || nofollow) return none;
     const site = siteOf(hostOf(res.url));
-    return discoverLinks(scan, (u) => siteOf(hostOf(u)) === site);
+    const found = discoverLinks(scan, (u) => siteOf(hostOf(u)) === site);
+    for (const [reason, n] of Object.entries(found.skipped))
+      linksSkipped[reason] = (linksSkipped[reason] ?? 0) + (n ?? 0);
+    return found;
   };
 
   const runSeed = async (run: SourceRun) => {
@@ -214,6 +230,30 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
       return;
     }
 
+    if (seed.kind === "localist") {
+      const days = Math.ceil((windowEnd.getTime() - windowStart.getTime()) / 86_400_000);
+      for (let page = 1; page <= LOCALIST_MAX_PAGES; page++) {
+        const url = localistEventsUrl(seed, days, page);
+        const res = await fetcher.get(url, { accept: "application/json" });
+        if (!res.ok) return fail(run.key, res);
+        fetched++;
+        if (parseXRobotsTag(res.xRobotsTag).noindex) {
+          errors.push({ sourceKey: run.key, url, reason: "noindex" });
+          return;
+        }
+        let parsed: ReturnType<typeof parseLocalist>;
+        try {
+          parsed = parseLocalist(res.body, url);
+        } catch {
+          errors.push({ sourceKey: run.key, url, reason: "bad_json" });
+          return;
+        }
+        for (const raw of parsed.events) run.raws.push({ raw, idPrefix: "", fallbackUrl: null });
+        if (parsed.page >= parsed.totalPages || parsed.events.length === 0) return;
+      }
+      return;
+    }
+
     visited.add(seed.url);
     const res = await fetcher.get(seed.url);
     if (!res.ok) return fail(run.key, res);
@@ -225,8 +265,12 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
 
     const found = readPage(run, res, seed.discover !== false);
     const feeds = found.feeds.filter((u) => !visited.has(u)).slice(0, maxFeeds);
-    const pages = found.pages.filter((u) => !visited.has(u)).slice(0, seed.maxPages ?? maxPages);
+    let pages = found.pages.filter((u) => !visited.has(u)).slice(0, seed.maxPages ?? maxPages);
+    // The source's own calendar-wide feed first; single-event exports and event pages are a
+    // fallback for when it gives nothing.
+    let feedEvents = 0;
     for (const url of feeds) {
+      if (feedEvents > 0 && isPerEventExport(url)) continue;
       visited.add(url);
       const pre = fetcher.precheck(url);
       if (pre) {
@@ -239,8 +283,10 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
         continue;
       }
       fetched++;
-      readFeed(run, fr, `f${shortHash(url, 8)}:`);
+      const n = readFeed(run, fr, `f${shortHash(url, 8)}:`);
+      if (!isPerEventExport(url)) feedEvents += n;
     }
+    if (feedEvents > 0 && seed.crawlPages !== true) pages = [];
     for (const url of pages) {
       visited.add(url);
       const pre = fetcher.precheck(url);
@@ -373,6 +419,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
       items: kept.length,
       skipped: totalSkipped,
       requestsByHost: Object.fromEntries(fetcher.requests),
+      linksSkipped,
     },
   };
 }

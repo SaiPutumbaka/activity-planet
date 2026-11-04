@@ -22,6 +22,8 @@ export type SeedKind =
   | "ics"
   /** An RSS 2.0 or Atom feed whose items carry event dates. */
   | "rss"
+  /** A Localist calendar: its documented read-only JSON API, /api/2/events (no key). */
+  | "localist"
   /** A Socrata SODA dataset (resource/<id>.json) with a field map. */
   | "socrata"
   /** An ArcGIS FeatureServer/MapServer layer with a field map. */
@@ -57,6 +59,11 @@ export interface Seed {
   discover?: boolean;
   /** Pages only: at most this many discovered pages and feeds (default from the run options). */
   maxPages?: number;
+  /**
+   * Pages only: also crawl discovered event pages when a calendar-wide feed on the page
+   * already yielded events (default false: the source's own feed is preferred).
+   */
+  crawlPages?: boolean;
   /** Open data only. */
   fields?: FieldMap;
   /** Socrata only: column holding a point for within_circle() filtering. */

@@ -7,6 +7,7 @@ import { parseDocument } from "htmlparser2";
 import type { ChildNode, Element } from "domhandler";
 import { looksLikeLoginPage } from "../policy/meta.ts";
 import { fetchableUrl } from "../util/url.ts";
+import { classifyLink, isPerEventExport, type LinkSkipReason } from "./links.ts";
 
 export interface PageLink {
   href: string;
@@ -211,31 +212,58 @@ const CALENDAR_HREF =
   /^webcal:|\.ics(?:$|[?#])|[?&](?:ical|ics|outlook-ical)=1\b|\/iCalendar\.aspx\?[^#]*\bcatID=|\/RSSFeed\.aspx\?[^#]*\bmodID=58\b|\/calendar\.ics|\/events?\.ics|\/(?:events|calendar)\/(?:feed|rss|ical)\/?(?:$|[?#])|\.rss(?:$|[?#])|\/rss(?:\/|$|[?#])|[?&]format=(?:rss|ical)\b/i;
 
 export interface DiscoveredLinks {
+  /**
+   * Feed URLs, best first: the page's own <link rel="alternate"> feeds, then calendar-wide
+   * export links, then single-event exports (which the caller reads only as a fallback).
+   */
   feeds: string[];
   pages: string[];
+  /** Links never followed, by reason (Google Calendar pages, add-to-calendar, action pages). */
+  skipped: Partial<Record<LinkSkipReason, number>>;
 }
 
 /**
  * Feed and same-site event links on a page. rel=nofollow anchors are skipped; the caller skips
- * the whole page when it says nofollow.
+ * the whole page when it says nofollow. Google Calendar links become the calendar's public
+ * ICS (or the feed a cid= wraps) and are otherwise dropped; action pages are dropped.
  */
 export function discoverLinks(scan: PageScan, sameSite: (url: string) => boolean): DiscoveredLinks {
-  const feeds = new Set<string>();
+  const documented = new Set<string>();
+  const exports = new Set<string>();
   const pages = new Set<string>();
+  const skipped: Partial<Record<LinkSkipReason, number>> = {};
+  const skip = (r: LinkSkipReason) => {
+    skipped[r] = (skipped[r] ?? 0) + 1;
+  };
+  const addFeed = (u: string, into: Set<string>) => {
+    const c = classifyLink(u);
+    if (c.kind === "skip") return skip(c.reason);
+    if (c.kind === "feed") for (const f of c.urls) into.add(f);
+    else into.add(u);
+  };
   for (const l of scan.links) {
     if (!l.rel.includes("alternate") || !l.type || !FEED_TYPES.has(l.type)) continue;
     const u = fetchableUrl(l.href, scan.baseUrl);
-    if (u) feeds.add(u);
+    if (u) addFeed(u, documented);
   }
   for (const a of scan.anchors) {
     if (a.rel.includes("nofollow")) continue;
-    if (CALENDAR_HREF.test(a.href) || (a.type !== null && FEED_TYPES.has(a.type))) {
-      const u = fetchableUrl(a.href, scan.baseUrl);
-      if (u) feeds.add(u);
+    const u = fetchableUrl(a.href, scan.baseUrl);
+    if (!u) continue;
+    const c = classifyLink(u);
+    if (c.kind === "skip") {
+      skip(c.reason);
       continue;
     }
-    const u = fetchableUrl(a.href, scan.baseUrl);
-    if (!u || !sameSite(u)) continue;
+    if (c.kind === "feed") {
+      for (const f of c.urls) exports.add(f);
+      continue;
+    }
+    if (CALENDAR_HREF.test(a.href) || (a.type !== null && FEED_TYPES.has(a.type))) {
+      exports.add(u);
+      continue;
+    }
+    if (!sameSite(u)) continue;
     const path = new URL(u).pathname;
     if (
       /\/(events?|calendar|programs?|exhibitions?)\/[^/]+/i.test(path) &&
@@ -244,5 +272,10 @@ export function discoverLinks(scan: PageScan, sameSite: (url: string) => boolean
       pages.add(u);
     }
   }
-  return { feeds: [...feeds], pages: [...pages] };
+  const all = [...documented, ...[...exports].filter((u) => !documented.has(u))];
+  const feeds = [
+    ...all.filter((u) => !isPerEventExport(u)),
+    ...all.filter((u) => isPerEventExport(u)),
+  ];
+  return { feeds, pages: [...pages], skipped };
 }

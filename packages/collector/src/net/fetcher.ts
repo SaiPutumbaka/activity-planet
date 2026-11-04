@@ -7,7 +7,8 @@
 //     never follow a redirect to another host,
 //   - API responses are never cached (their URLs carry keys),
 //   - robots.txt is read once per host per run (conditional GET across runs) and obeyed,
-//   - at most one request per 2 seconds per host (longer when robots.txt sets Crawl-delay),
+//   - at most one request per 2 seconds per host (longer when robots.txt sets Crawl-delay; a
+//     long Crawl-delay is waited out, with the host's requests capped by a per-run time budget),
 //   - an identifying User-Agent with a link to the bot page and no email,
 //   - conditional GET (If-None-Match / If-Modified-Since) from the cache,
 //   - a timeout per request and a cap on body size; anything bigger is abandoned.
@@ -25,8 +26,13 @@ export const MIN_INTERVAL_MS = 2000;
 export const TIMEOUT_MS = 20_000;
 export const MAX_BYTES = 3_000_000;
 export const MAX_REDIRECTS = 5;
-/** Crawl-delay above this is treated as "do not crawl this run" rather than waited out. */
+/**
+ * Crawl-delay up to this is plain spacing. A longer one is still honoured: the host gets
+ * requests at that spacing until its share of the run (slowHostBudgetMs) is spent.
+ */
 export const MAX_CRAWL_DELAY_SEC = 60;
+/** Wall-clock time one slow host (Crawl-delay over MAX_CRAWL_DELAY_SEC) may take per run. */
+export const SLOW_HOST_BUDGET_MS = 10 * 60_000;
 
 export type Transport = (url: string, init: RequestInit) => Promise<Response>;
 
@@ -38,6 +44,7 @@ export type FetchFailReason =
   | "robots_disallowed"
   | "robots_unavailable"
   | "crawl_delay_too_long"
+  | "crawl_budget_spent"
   | "http_error"
   | "auth_required"
   | "too_large"
@@ -76,6 +83,11 @@ export interface FetcherOptions {
   minIntervalMs?: number;
   timeoutMs?: number;
   maxBytes?: number;
+  /**
+   * Time a host with a Crawl-delay over MAX_CRAWL_DELAY_SEC may take in one run: it gets
+   * floor(budget / delay) + 1 requests. A delay longer than the budget skips the host.
+   */
+  slowHostBudgetMs?: number;
 }
 
 const BINARY_TYPE =
@@ -91,6 +103,9 @@ export class PoliteFetcher {
   private readonly minIntervalMs: number;
   private readonly timeoutMs: number;
   private readonly maxBytes: number;
+  private readonly slowHostBudgetMs: number;
+  /** Requests granted so far to hosts with a long Crawl-delay. */
+  private readonly slowGranted = new Map<string, number>();
   private readonly nextAt = new Map<string, number>();
   private readonly chains = new Map<string, Promise<void>>();
   private readonly robots = new Map<string, Promise<Robots>>();
@@ -107,6 +122,17 @@ export class PoliteFetcher {
     this.minIntervalMs = opts.minIntervalMs ?? MIN_INTERVAL_MS;
     this.timeoutMs = opts.timeoutMs ?? TIMEOUT_MS;
     this.maxBytes = opts.maxBytes ?? MAX_BYTES;
+    this.slowHostBudgetMs = opts.slowHostBudgetMs ?? SLOW_HOST_BUDGET_MS;
+  }
+
+  /**
+   * Requests a host whose Crawl-delay exceeds MAX_CRAWL_DELAY_SEC may get this run (0 when
+   * the delay is longer than the whole budget).
+   */
+  slowHostAllowance(crawlDelaySec: number): number {
+    const delayMs = crawlDelaySec * 1000;
+    if (delayMs > this.slowHostBudgetMs) return 0;
+    return Math.floor(this.slowHostBudgetMs / delayMs) + 1;
   }
 
   /** Checks a URL against https, the denylist and login patterns without fetching it. */
@@ -152,7 +178,12 @@ export class PoliteFetcher {
         }
         if (robots.crawlDelaySec !== null) {
           if (robots.crawlDelaySec > MAX_CRAWL_DELAY_SEC) {
-            return { ok: false, url: current, reason: "crawl_delay_too_long" };
+            const allowance = this.slowHostAllowance(robots.crawlDelaySec);
+            if (allowance === 0) return { ok: false, url: current, reason: "crawl_delay_too_long" };
+            const granted = this.slowGranted.get(host) ?? 0;
+            if (granted >= allowance)
+              return { ok: false, url: current, reason: "crawl_budget_spent" };
+            this.slowGranted.set(host, granted + 1);
           }
           interval = Math.max(interval, robots.crawlDelaySec * 1000);
         }

@@ -54,6 +54,8 @@ const CITY: CityFile = {
       url: "https://parks.example.gov/events/",
       name: "Parks",
       attribution: "Listed from the parks calendar (parks.example.gov).",
+      // Crawl the event pages too, so this fixture exercises noindex and login pages.
+      crawlPages: true,
     },
     {
       id: "test-library",

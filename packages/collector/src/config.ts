@@ -10,7 +10,7 @@ import { isValidZone } from "./util/time.ts";
 
 export const CITIES_DIR = fileURLToPath(new URL("../data/cities/", import.meta.url));
 
-const KINDS: SeedKind[] = ["page", "ics", "rss", "socrata", "arcgis"];
+const KINDS: SeedKind[] = ["page", "ics", "rss", "localist", "socrata", "arcgis"];
 
 export function validateRegion(r: unknown, where: string): Region {
   const o = (r ?? {}) as Record<string, unknown>;

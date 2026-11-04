@@ -7,6 +7,9 @@
 //   --dry-run             print counts only; required until the real ingest is wired
 //   --window-days <n>     how far ahead to collect (default 60)
 //   --max-pages <n>       discovered event pages per page seed (default 25)
+//   --slow-host-minutes <n>  time a host whose robots.txt Crawl-delay is over 60 s may take
+//                         per run (default 10); its requests are capped to fit, and a delay
+//                         longer than this skips the host
 //   --cache <path>        conditional-GET cache file (default .cache/http.json)
 //   --no-cache            do not read or write the cache
 //   --list                print the seeds that would run and exit, with no network
@@ -37,6 +40,7 @@ async function main(argv: string[]): Promise<number> {
       "dry-run": { type: "boolean", default: false },
       "window-days": { type: "string" },
       "max-pages": { type: "string" },
+      "slow-host-minutes": { type: "string" },
       cache: { type: "string" },
       "no-cache": { type: "boolean", default: false },
       list: { type: "boolean", default: false },
@@ -99,11 +103,18 @@ async function main(argv: string[]): Promise<number> {
   if (!Number.isFinite(windowDays) || windowDays < 1 || windowDays > 180)
     throw new Error("--window-days must be 1..180");
   const maxPages = values["max-pages"] ? Number(values["max-pages"]) : undefined;
+  const slowMinutes = values["slow-host-minutes"] ? Number(values["slow-host-minutes"]) : 10;
+  if (!Number.isFinite(slowMinutes) || slowMinutes < 0 || slowMinutes > 60)
+    throw new Error("--slow-host-minutes must be 0..60");
 
   const cache = values["no-cache"]
     ? new MemoryHttpCache()
     : new FileHttpCache(values.cache ?? DEFAULT_CACHE);
-  const fetcher = new PoliteFetcher({ denylist: Denylist.load(), cache });
+  const fetcher = new PoliteFetcher({
+    denylist: Denylist.load(),
+    cache,
+    slowHostBudgetMs: slowMinutes * 60_000,
+  });
   const ingest = new DryRunIngest();
   const started = Date.now();
   const result = await collect({
@@ -127,6 +138,7 @@ async function main(argv: string[]): Promise<number> {
     items: result.stats.items,
     skipped: result.stats.skipped,
     errors: errorsByReason,
+    linksSkipped: result.stats.linksSkipped,
     requests: Object.values(result.stats.requestsByHost).reduce((a, b) => a + b, 0),
     hosts: Object.keys(result.stats.requestsByHost).length,
     seconds: Math.round((Date.now() - started) / 1000),
