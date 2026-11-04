@@ -167,6 +167,10 @@ jobs:
           echo "db_bytes=$(echo "$db" | cut -d: -f2)" >> "$GITHUB_OUTPUT"
           echo "places_bytes=$(echo "$db" | cut -d: -f3)" >> "$GITHUB_OUTPUT"
           echo "database $(echo "$db" | cut -d: -f2) bytes, places $(echo "$db" | cut -d: -f3) bytes"
+          # Slice 15's size alarm (120 MB, design 4.5 and 9): time to start the static-file fallback.
+          if [ "$(echo "$db" | cut -d: -f3)" -ge 125829120 ]; then
+            echo "::warning title=Places size alarm::the places table is $(echo "$db" | cut -d: -f3) bytes, past the 120 MB alarm (cap 150 MB)"
+          fi
 
       - name: Tiles queue
         if: steps.mode.outputs.post == 'true'

@@ -1,0 +1,209 @@
+name: Places ODbL dump
+
+# Monthly ODbL release of public place facts (D-041 slice 14, docs/design/hub-map/HUB_MAP_DESIGN.md 8).
+# Reads every public active place through the collector Edge Function
+# (GET /collector/places/export -> places_odbl_page, migration 35: source, osm_ref, name, kind,
+# lat, lng, tags, opening_hours, website; no ids, no member data), checks and writes
+# places-YYYY-MM.ndjson.gz, README.md (ODbL 1.0 and credits) and SHA256SUMS with
+# scripts/places/dump_places.py, records the run (POST /collector/runs/dump) and:
+#
+#   * on main (schedule or dispatch): reads PRODUCTION and publishes the GitHub release
+#     places-YYYY-MM with the three files. The schedule does nothing unless the repository
+#     variable PLACES_DUMP_SCHEDULE is "production" (set it at the production cutover, as with
+#     PLACES_EXTRACT_SCHEDULE). A month that already has a release is skipped unless replace is
+#     ticked.
+#   * on any other ref (dispatch, or a push that changes scripts/places/dump_request.json, since
+#     dispatch only works once this file is on main): reads STAGING, builds the same files and uploads them as a
+#     workflow artifact only. It never creates a release or a tag.
+#
+# Secrets: none of its own. Like places-extract.yml it links the target with SUPABASE_ACCESS_TOKEN
+# and the database password, reads the collector secret from that project's vault, masks it and
+# sends it only as x-collector-secret. The service-role key never reaches the job. Logs hold
+# counts, sizes and the sha256; the rows are public ODbL facts but are not printed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      month:
+        description: "Release month YYYY-MM (default: the current UTC month)"
+        type: string
+        default: ""
+      replace:
+        description: "Main only: replace the month's existing release assets"
+        type: boolean
+        default: false
+  push:
+    branches-ignore: [main]
+    paths:
+      - "scripts/places/dump_request.json"
+  schedule:
+    - cron: "41 5 2 * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: places-dump
+  cancel-in-progress: false
+
+env:
+  STAGING_PROJECT_REF: gzrscndzzggxmcwnvvcq
+  PROD_PROJECT_REF: gtesfiqxqontescqpllo
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      target: ${{ steps.mode.outputs.target }}
+      month: ${{ steps.mode.outputs.month }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide target and month
+        id: mode
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          IN_MONTH: ${{ inputs.month }}
+          SCHEDULE_VAR: ${{ vars.PLACES_DUMP_SCHEDULE }}
+        run: |
+          if [ "$EVENT" = "push" ]; then
+            IN_MONTH=$(python3 -I -c 'import json;print(json.load(open("scripts/places/dump_request.json")).get("month") or "")')
+          fi
+          month="${IN_MONTH:-$(date -u +%Y-%m)}"
+          echo "$month" | grep -Eq '^[0-9]{4}-(0[1-9]|1[0-2])$' || { echo "Refusing month: $month"; exit 1; }
+          target=none
+          if [ "$REF" = "refs/heads/main" ]; then
+            if [ "$EVENT" = "schedule" ] && [ "$SCHEDULE_VAR" != "production" ]; then
+              echo "Scheduled run: PLACES_DUMP_SCHEDULE is not production; nothing to do."
+            else
+              target=production
+            fi
+          else
+            case "$EVENT" in workflow_dispatch|push) ;; *) echo "only dispatch or push runs off main"; exit 1 ;; esac
+            target=staging
+          fi
+          ref=""
+          [ "$target" = "staging" ] && ref="$STAGING_PROJECT_REF"
+          [ "$target" = "production" ] && ref="$PROD_PROJECT_REF"
+          echo "target=$target month=$month"
+          { echo "target=$target"; echo "project_ref=$ref"; echo "month=$month"; } >> "$GITHUB_OUTPUT"
+
+      - uses: supabase/setup-cli@v1
+        if: steps.mode.outputs.target != 'none'
+        with:
+          version: 2.122.0
+
+      # The secret is captured, never echoed; ::add-mask:: hides it if anything ever prints it.
+      - name: Link the target and read the collector secret
+        if: steps.mode.outputs.target != 'none'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ steps.mode.outputs.target == 'production' && secrets.SUPABASE_PROD_DB_PASSWORD || secrets.SUPABASE_STAGING_DB_PASSWORD }}
+          PROJECT_REF: ${{ steps.mode.outputs.project_ref }}
+        run: |
+          supabase link --project-ref "$PROJECT_REF" > /dev/null
+          out=$(supabase db query --linked "select 'CSECRET:' || ds.decrypted_secret as v from vault.decrypted_secrets ds where ds.name = 'collector_secret'" 2>/dev/null || true)
+          secret=$(printf '%s' "$out" | grep -o 'CSECRET:[0-9a-f]\{64\}' | head -1 | cut -d: -f2)
+          unset out
+          if [ -z "$secret" ]; then echo "collector_secret not found in the target vault"; exit 1; fi
+          echo "::add-mask::$secret"
+          echo "COLLECTOR_SECRET=$secret" >> "$GITHUB_ENV"
+          echo "Collector secret read (masked)."
+
+      - name: Build the dump
+        if: steps.mode.outputs.target != 'none'
+        env:
+          PROJECT_REF: ${{ steps.mode.outputs.project_ref }}
+          MONTH: ${{ steps.mode.outputs.month }}
+        run: |
+          python3 -I scripts/places/dump_places.py --month "$MONTH" --out dump \
+            --base-url "https://$PROJECT_REF.supabase.co/functions/v1/collector"
+          ls -l dump
+          cat dump/SHA256SUMS
+
+      - name: Upload the files (artifact)
+        if: steps.mode.outputs.target != 'none'
+        uses: actions/upload-artifact@v4
+        with:
+          name: places-${{ steps.mode.outputs.month }}-${{ steps.mode.outputs.target }}
+          path: |
+            dump/places-*.ndjson.gz
+            dump/README.md
+            dump/SHA256SUMS
+            dump/stats.json
+          retention-days: 30
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: needs.build.outputs.target == 'production' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: places-${{ needs.build.outputs.month }}-production
+          path: dump
+
+      - name: Publish the release
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MONTH: ${{ needs.build.outputs.month }}
+          REPLACE: ${{ inputs.replace }}
+        run: |
+          tag="places-$MONTH"
+          rows=$(python3 -I -c 'import json;print(json.load(open("dump/stats.json"))["rows"])')
+          if gh release view "$tag" > /dev/null 2>&1; then
+            if [ "$REPLACE" = "true" ]; then
+              gh release upload "$tag" dump/places-*.ndjson.gz dump/README.md dump/SHA256SUMS --clobber
+              echo "Replaced the assets of $tag."
+            else
+              echo "Release $tag already exists; tick replace to update it."
+            fi
+          else
+            gh release create "$tag" dump/places-*.ndjson.gz dump/README.md dump/SHA256SUMS \
+              --target main --title "Places $MONTH (ODbL)" \
+              --notes "Public place facts from the Activity Planet hub map, $rows rows, under the Open Database License 1.0. © OpenStreetMap contributors. See README.md for sources, columns and credits."
+            echo "Published $tag."
+          fi
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+  record:
+    # Records the run on the target (shown on the admin health panel), after the release when there is one.
+    needs: [build, release]
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.build.outputs.target != 'none' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: places-${{ needs.build.outputs.month }}-${{ needs.build.outputs.target }}
+          path: dump
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.0
+      - name: Record the run
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ needs.build.outputs.target == 'production' && secrets.SUPABASE_PROD_DB_PASSWORD || secrets.SUPABASE_STAGING_DB_PASSWORD }}
+          PROJECT_REF: ${{ needs.build.outputs.target == 'production' && env.PROD_PROJECT_REF || env.STAGING_PROJECT_REF }}
+          PUBLISHED: ${{ needs.release.result == 'success' }}
+        run: |
+          supabase link --project-ref "$PROJECT_REF" > /dev/null
+          out=$(supabase db query --linked "select 'CSECRET:' || ds.decrypted_secret as v from vault.decrypted_secrets ds where ds.name = 'collector_secret'" 2>/dev/null || true)
+          secret=$(printf '%s' "$out" | grep -o 'CSECRET:[0-9a-f]\{64\}' | head -1 | cut -d: -f2)
+          unset out
+          [ -n "$secret" ] || { echo "collector_secret not found"; exit 1; }
+          echo "::add-mask::$secret"
+          body=$(PUBLISHED="$PUBLISHED" python3 -I -c 'import json,os;s=json.load(open("dump/stats.json"));print(json.dumps({"month":s["month"],"rows":s["rows"],"bytes":s["bytes"],"sha256":s["sha256"],"published":os.environ["PUBLISHED"]=="true","counts":s["counts"]}))')
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H "x-collector-secret: $secret" \
+            -H "Content-Type: application/json" --data "$body" \
+            "https://$PROJECT_REF.supabase.co/functions/v1/collector/runs/dump")
+          echo "record: HTTP $code"
+          [ "$code" = "200" ]
