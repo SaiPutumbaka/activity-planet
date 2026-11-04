@@ -104,6 +104,12 @@ export interface FetcherOptions {
   deadlineAt?: number;
 }
 
+/**
+ * What collect() needs from a fetcher. The discovery probe passes a wrapper (discovery/probe.ts)
+ * that caps one probe's requests per host and remembers its pages, over one shared PoliteFetcher.
+ */
+export type Fetcher = Pick<PoliteFetcher, "get" | "precheck" | "robotsVerdict" | "requests">;
+
 const BINARY_TYPE =
   /^(image|video|audio|font)\/|^application\/(pdf|zip|octet-stream|x-gzip|gzip|vnd\.)/i;
 

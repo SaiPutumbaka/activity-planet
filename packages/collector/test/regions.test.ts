@@ -274,12 +274,31 @@ describe("collector regions (D-042 slice 6)", () => {
       ],
     );
     expect(results).toEqual([
-      { candidate_id: C1, outcome: "ok", items: 3, in_region: 1, errors: 1, complete: true },
+      // The item without a point counts as inside (it passed the run's region filter).
+      { candidate_id: C1, outcome: "ok", items: 3, in_region: 2, errors: 1, complete: true },
       { candidate_id: C2, outcome: "empty", items: 1, in_region: 0, errors: 0, complete: true },
       { candidate_id: C3, outcome: "robots", items: 0, in_region: 0, errors: 1, complete: true },
       { candidate_id: C4, outcome: "no_feed", items: 0, in_region: 0, errors: 2, complete: false },
     ]);
     expect(sourceResults({}, [collectorAtl], [])).toEqual([]);
+    // A sample of listing views is a whole read for the lifecycle unless a fetch left a gap.
+    const sampled = (gap: boolean) =>
+      ({
+        sourceKey: "disc-a",
+        items: [item(33.75, -84.39)],
+        errors: {},
+        complete: false,
+        sampled: true,
+        ...(gap ? { gap: true } : {}),
+      }) as unknown as SourceBatch;
+    expect(
+      sourceResults({ sources: [entry(C1, "disc-a")] }, [collectorAtl], [sampled(false)])[0]
+        ?.complete,
+    ).toBe(true);
+    expect(
+      sourceResults({ sources: [entry(C1, "disc-a")] }, [collectorAtl], [sampled(true)])[0]
+        ?.complete,
+    ).toBe(false);
   });
 
   it("posts discovered source results in chunks and sums the counts", async () => {

@@ -189,13 +189,13 @@ export interface ServiceOptions {
   fetch?: typeof fetch;
 }
 
-function checkService(opts: ServiceOptions): void {
+export function checkService(opts: ServiceOptions): void {
   if (!/^https:\/\/[^/]+\/functions\/v1\/collector$/.test(opts.baseUrl))
     throw new Error("collector base URL must be https://<host>/functions/v1/collector");
   if (opts.secret.length < 32) throw new Error("COLLECTOR_SECRET is missing or too short");
 }
 
-async function call(
+export async function call(
   opts: ServiceOptions,
   path: string,
   init: RequestInit = {},
@@ -310,10 +310,13 @@ export function sourceResults(
     const batch = batches.find((b) => b.sourceKey === seedId);
     if (!region || !batch) continue;
     done.add(seedId);
+    // An item without a point passed the run's region filter on its source's area (the
+    // collector region), so it counts as inside it (D-042 slice 8): most city and venue feeds
+    // give a place name, not coordinates.
     let inRegion = 0;
     for (const it of batch.items) {
-      if (it.lat === null || it.lng === null) continue;
-      if (haversineKm(region.lat, region.lng, it.lat, it.lng) <= region.radiusKm) inRegion++;
+      if (it.lat === null || it.lng === null) inRegion++;
+      else if (haversineKm(region.lat, region.lng, it.lat, it.lng) <= region.radiusKm) inRegion++;
     }
     const errs = batch.errors ?? {};
     const keys = Object.keys(errs);
@@ -334,7 +337,9 @@ export function sourceResults(
       items: batch.items.length,
       in_region: inRegion,
       errors,
-      complete: batch.complete,
+      // A complete read: nothing left unread for a failure (gap). A sample of listing views is
+      // a whole read for the lifecycle, though never complete for cancelling items (D-042 slice 8).
+      complete: batch.gap !== true && (batch.complete || batch.sampled === true),
     });
   }
   return out;

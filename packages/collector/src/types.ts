@@ -183,6 +183,16 @@ export interface SourceBatch {
    * unavailable): the ingest then counts no missed runs, so nothing is cancelled for a gap.
    */
   complete: boolean;
+  /**
+   * The items came from listing views and event pages (a sample of the calendar), so the batch
+   * is not complete for cancelling; the read itself may still have been whole (see gap).
+   */
+  sampled?: boolean;
+  /**
+   * A fetch failed in a way that leaves part of the source unread (sources.ts isGap: a 5xx, a
+   * timeout, a budget). The discovery lifecycle reads "a complete read" as no gap (D-042 slice 8).
+   */
+  gap?: boolean;
   /** The feed_sources row this batch is for. */
   source: SourceInfo;
 }

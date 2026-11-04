@@ -23,7 +23,7 @@ import {
   pageHints,
 } from "./diagnose.ts";
 import { type Candidate, dedupe, inAnyRegion, windowReason } from "./filter.ts";
-import type { FetchResult, PoliteFetcher } from "./net/fetcher.ts";
+import type { Fetcher, FetchResult } from "./net/fetcher.ts";
 import { EXCERPT_MAX, normalize } from "./normalize.ts";
 import { parseFeed } from "./parse/feed.ts";
 import { discoverLinks, scanHtml, tecListViewsFor } from "./parse/html.ts";
@@ -38,7 +38,7 @@ import { hostOf, shortHash, siteOf } from "./util/url.ts";
 export interface CollectOptions {
   regions: Region[];
   cities: CityFile[];
-  fetcher: PoliteFetcher;
+  fetcher: Fetcher;
   env?: Record<string, string | undefined>;
   now?: Date;
   windowDays?: number;
@@ -704,6 +704,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
       const seen = [...(notSent.get(run.key) ?? [])]
         .filter((id) => !sent.has(id))
         .slice(0, MAX_SEEN_IDS);
+      const gap = errors.some((e) => e.sourceKey === run.key && e.gap);
       return {
         sourceKey: run.key,
         sourceName: run.name,
@@ -717,7 +718,9 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
         // may still be listed, so it must not count toward the two missed runs that cancel it.
         // Nor is a set with any failed fetch other than an answer (sources.ts isGap): a 5xx or
         // 429 on page 3 of an API, or on one of a page's feeds, leaves those events unread.
-        complete: run.sampled !== true && !errors.some((e) => e.sourceKey === run.key && e.gap),
+        complete: run.sampled !== true && !gap,
+        ...(run.sampled === true ? { sampled: true } : {}),
+        ...(gap ? { gap: true } : {}),
         source: run.source,
       };
     });

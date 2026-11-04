@@ -1,0 +1,66 @@
+{
+  "$comment": "Automatic source discovery (D-042 slice 8, docs/design/auto-coverage/AUTO_COVERAGE_DESIGN.md 6 and 7). Caps are per collector region per UTC day unless named otherwise. euGate: automatic discovery (OSM and Wikidata candidates, and probing them) stays off for regions in these countries until the attorney review of the EU database right (FOUNDER-TODO item 12); the database keeps the same list in source_discovery_allowed (migration 46) behind meta.eu_discovery, and test/discovery-config.test.ts keeps the two in step. A region's country comes from its time zone (src/discovery/eu.ts); a European zone not in that table counts as gated. The gate lists the Atlanta seeds that work today (enabled in data/cities/atl.json): before the probe may read candidates for any region, an Atlanta run from scratch must rediscover at least 'required' of them.",
+  "caps": {
+    "newRegionsPerDay": 10,
+    "probeHostsPerRegionPerDay": 150,
+    "requestsPerHostPerProbe": 8,
+    "eventPagesPerProbe": 3,
+    "candidatesPerRegion": 500,
+    "wikidataEntityCallsPerRegion": 5,
+    "wikidataSparqlPerRegion": 1,
+    "wikidataAroundKm": 25,
+    "probeConcurrency": 8,
+    "probeRunMinutes": 40
+  },
+  "euGate": {
+    "enabled": true,
+    "countries": [
+      "AT",
+      "BE",
+      "BG",
+      "HR",
+      "CY",
+      "CZ",
+      "DK",
+      "EE",
+      "FI",
+      "FR",
+      "DE",
+      "GR",
+      "HU",
+      "IE",
+      "IT",
+      "LV",
+      "LT",
+      "LU",
+      "MT",
+      "NL",
+      "PL",
+      "PT",
+      "RO",
+      "SK",
+      "SI",
+      "ES",
+      "SE",
+      "IS",
+      "LI",
+      "NO",
+      "GB"
+    ]
+  },
+  "gate": {
+    "city": "atl",
+    "required": 6,
+    "expected": [
+      { "seed": "atl-kennesaw-state", "site": "kennesaw.edu" },
+      { "seed": "atl-botanical-garden", "site": "atlantabg.org" },
+      { "seed": "atl-marietta-civicplus", "site": "mariettaga.gov" },
+      { "seed": "atl-piedmont-park", "site": "piedmontpark.org" },
+      { "seed": "atl-artsatl-calendar", "site": "artsatl.org" },
+      { "seed": "atl-history-center", "site": "atlantahistorycenter.com" },
+      { "seed": "atl-contra-dance", "site": "contradance.org" },
+      { "seed": "atl-park-pride", "site": "parkpride.org" },
+      { "seed": "atl-alliance-offstage", "site": "alliancetheatre.org" }
+    ]
+  }
+}
