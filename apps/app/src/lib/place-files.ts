@@ -8,7 +8,7 @@ import { PLACE_FLAG, placeKindInfo } from "./map";
  * (later Cloudflare R2, same layout), built by .github/workflows/places-files.yml. When the app
  * asks (`map_in_view` p_files, only while VITE_PLACES_BASE_URL is set) and the server switch is on,
  * the RPC leaves those tiles' OSM rows out and returns `place_files`: the files of the tiles in view,
- * the rules file and the OSM refs hidden since a file was built. This module fetches the files
+ * the rules file and the OSM refs changed since a file was built (migration 44). This module fetches the files
  * (hashed names, so a file never changes; the service worker keeps them cache-first), matches each
  * row to the hubs exactly as places_in_view does, and merges them with the database rows: a
  * database row with the same osm_ref wins (a moderator's correction, a member's hub link), hidden
@@ -49,7 +49,7 @@ export interface PlaceFilesInfo {
   rules: string;
   rulesVersion: number;
   tiles: { id: number; path: string; count: number }[];
-  /** OSM refs hidden, closed or removed since their file was built. */
+  /** OSM refs changed since their file was built (hidden, closed, removed, corrected or moved); the database owns them. */
   hidden: Set<string>;
   /** How many entries at the start of `hubs` are the selected hubs. */
   sel: number;
