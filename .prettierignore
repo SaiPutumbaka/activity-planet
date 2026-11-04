@@ -3,3 +3,7 @@ pnpm-lock.yaml
 **/dist
 **/.next
 docs/design/boards
+scripts/places/hub_place_rules.json
+scripts/places/rule_ids.json
+scripts/places/rules_stats.json
+scripts/places/taginfo_counts.json

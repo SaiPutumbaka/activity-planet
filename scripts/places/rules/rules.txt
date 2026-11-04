@@ -1,0 +1,640 @@
+# slug | confidence | kind(specific|generic|none) | osm filters (";"-separated, macros allowed) | geoapify ids (",") | notes
+# ---------- team-sports ----------
+soccer|high|specific|@SP(soccer)|sport.pitch,sport.stadium,activity.sport_club|Post-filter Geoapify by raw sport tag.
+basketball|high|specific|@SP(basketball)|sport.pitch,sport.sports_centre|Public courts dominate; many park hoops are leisure=pitch inside leisure=park.
+volleyball|high|specific|@SP(volleyball)|sport.pitch,sport.sports_centre|
+beach-volleyball|high|specific|@SP(beachvolleyball) ; natural=beach&sport=beachvolleyball|sport.pitch,beach|OSM value is beachvolleyball (one word).
+baseball|high|specific|@SP(baseball)|sport.pitch,sport.stadium|
+softball|high|specific|@SP(softball) ; leisure=pitch&sport=baseball|sport.pitch|Many softball diamonds are tagged baseball.
+american-football|high|specific|@SP(american_football)|sport.pitch,sport.stadium|
+flag-football|medium|specific|@SP(american_football) ; leisure=pitch&sport=soccer|sport.pitch|No distinct OSM value; reuse football/soccer fields.
+rugby-union|high|specific|@SP(rugby_union|rugby)|sport.pitch|
+rugby-league|high|specific|@SP(rugby_league|rugby)|sport.pitch|
+cricket|high|specific|@SP(cricket) ; leisure=pitch&sport=cricket_nets|sport.pitch|
+ice-hockey|high|specific|@RINK ; @SP(ice_hockey)|sport.ice_rink|
+field-hockey|high|specific|@SP(field_hockey)|sport.pitch|
+handball|high|specific|@SP(handball)|sport.pitch,sport.sports_centre|
+water-polo|medium|specific|@POOL(water_polo) ; leisure=swimming_pool&access=yes|sport.swimming_pool|Any public pool is a fallback.
+lacrosse|high|specific|@SP(lacrosse)|sport.pitch|
+ultimate-frisbee|high|specific|@SP(ultimate) ; leisure=pitch&sport=soccer|sport.pitch|Wiki says use sport=ultimate, not ultimate_frisbee.
+dodgeball|low|generic|leisure=sports_hall|sports_centre&sport=multi ; leisure=sports_centre|sport.sports_centre|No OSM value; indoor gyms/halls; league events carry the signal.
+netball|high|specific|@SP(netball)|sport.pitch|
+kickball|low|generic|leisure=pitch&sport=baseball|softball ; leisure=park|sport.pitch,leisure.park|Played on baseball diamonds and park fields.
+curling|high|specific|@HALL(curling) ; leisure=ice_rink&sport=curling|sport.ice_rink|
+kabaddi|medium|specific|@SP(kabaddi)|sport.pitch|Rare in OSM outside South Asia.
+sepak-takraw|medium|specific|@SP(sepak_takraw)|sport.pitch|Rare outside SE Asia.
+tug-of-war|low|none||| Events-only; no venue type.
+futsal|high|specific|@SP(futsal) ; leisure=sports_hall&sport=soccer|sport.pitch,sport.sports_centre|
+gaelic-football|high|specific|@SP(gaelic_games)|sport.pitch|One OSM value covers football and hurling.
+hurling|high|specific|@SP(gaelic_games)|sport.pitch|
+airsoft|medium|specific|leisure=pitch|sports_centre&sport=airsoft ; leisure=shooting_ground&shooting=airsoft|sport.pitch|
+bocce-ball|high|specific|@SP(boules)&boules=bocce|sport.pitch|Duplicate of bocce hub; consider merge.
+capture-the-flag|low|generic|leisure=park ; natural=wood|leisure.park|Played in parks/woods; events carry the signal.
+cheerleading|medium|specific|@HALL(cheerleading|gymnastics)|sport.sports_centre|
+dragon-boat-racing|medium|specific|@WATER ; leisure=sports_centre&sport=dragon_boat|canoe|rowing ; club=sport&sport=dragon_boat|canoe|rowing|sport,rental.boat|
+floorball|high|specific|@HALL(floorball)|sport.sports_centre|
+korfball|high|specific|@SP(korfball)|sport.pitch|
+laser-tag|medium|specific|leisure=amusement_arcade|sports_centre&sport=laser_tag ; leisure=amusement_arcade|entertainment.amusement_arcade|
+paintball|high|specific|leisure=pitch|sports_centre&sport=paintball ; leisure=shooting_ground&shooting=paintball|sport.pitch|
+polo|high|specific|@SP(polo) ; leisure=horse_riding|sport.horse_riding|
+roller-derby|medium|specific|@HALL(roller_derby|roller_skating) ; leisure=pitch&sport=roller_skating|sport.sports_centre|
+roller-hockey|medium|specific|@SP(roller_hockey|inline_hockey)|sport.pitch|
+rowing|high|specific|@SP(rowing) ; club=sport&sport=rowing ; leisure=slipway|sport,activity.sport_club|Boathouses: building=boathouse.
+spikeball|low|generic|leisure=pitch&sport=roundnet ; leisure=park ; natural=beach|leisure.park,beach|sport=roundnet not found on wiki.
+tug-of-war-placeholder|skip|skip|||
+# ---------- individual-and-racquet-sports ----------
+air-hockey|low|specific|leisure=amusement_arcade ; amenity=bar&sport=air_hockey|entertainment.amusement_arcade|
+archery|high|specific|@SP(archery) ; leisure=shooting_ground&shooting=archery|sport.pitch|
+badminton|high|specific|@HALL(badminton) ; leisure=pitch&sport=badminton|sport.sports_centre|
+beach-tennis|medium|specific|leisure=pitch&sport=beach_tennis ; leisure=pitch&sport=beachvolleyball|sport.pitch,beach|
+bowling|high|specific|leisure=bowling_alley ; @HALL(10pin|9pin)|entertainment.bowling_alley|
+boxing|high|specific|@MA(boxing)|sport.fitness,activity.sport_club|
+cycling|high|specific|route=bicycle|mtb (relation) ; highway=cycleway ; shop=bicycle ; leisure=track&sport=cycling|commercial.outdoor_and_sport.bicycle,sport.track|Routes are relations; render as lines.
+darts|medium|specific|leisure=sports_centre&sport=darts ; amenity=pub|bar&sport=darts|catering.pub,catering.bar|Most darts boards sit in pubs, rarely tagged.
+disc-golf|high|specific|leisure=disc_golf_course ; leisure=pitch&sport=disc_golf|sport,leisure.park|
+fencing|high|specific|@HALL(fencing)|sport.sports_centre|
+foosball|low|specific|leisure=amusement_arcade ; amenity=bar|pub&sport=table_soccer|entertainment.amusement_arcade|
+golf|high|specific|leisure=golf_course ; golf=driving_range ; leisure=sports_centre&sport=golf|sport.golf_course|
+gymnastics|high|specific|@HALL(gymnastics)|sport.sports_centre|
+horseback-riding|high|specific|leisure=horse_riding ; leisure=pitch&sport=equestrian|sport.horse_riding|
+ice-skating|high|specific|@RINK ; leisure=pitch&sport=ice_skating|sport.ice_rink|
+martial-arts|high|specific|amenity=dojo ; leisure=sports_centre|fitness_centre&sport=martial_arts|karate|judo|taekwondo|aikido|kickboxing|jiu-jitsu|boxing|sport.fitness,activity.sport_club|Umbrella hub: union of combat values.
+padel|high|specific|@SP(padel)|sport.pitch|
+parkour|medium|specific|leisure=pitch|sports_centre&sport=parkour ; leisure=fitness_station|sport.fitness|
+pickleball|high|specific|@SP(pickleball) ; leisure=pitch&sport=tennis|sport.pitch|Tennis courts are a lower-ranked fallback (lines often shared).
+platform-tennis|medium|specific|@SP(platform_tennis|paddle_tennis)|sport.pitch|
+pool|high|specific|@HALL(billiards) ; amenity=pub|bar&sport=billiards|catering.pub,catering.bar|
+racquetball|high|specific|@HALL(racquetball) ; leisure=pitch&sport=racquetball|sport.sports_centre|
+rock-climbing|high|specific|@HALL(climbing) ; sport=climbing&natural=cliff|crag ; climbing=crag|entertainment.activity_park.climbing|Outdoor crags: natural=cliff + sport=climbing.
+roller-skating|high|specific|@SP(roller_skating) ; leisure=sports_centre&sport=roller_skating|sport.pitch|
+skateboarding|high|specific|leisure=pitch&sport=skateboard ; leisure=sports_centre&sport=skateboard|sport.pitch|Skateparks.
+skiing|high|specific|@PIST(downhill|nordic) ; aerialway=chair_lift|gondola|drag_lift|ski|Also see alpine/cross-country hubs.
+snooker|high|specific|@HALL(snooker|billiards)|sport.sports_centre|
+snowboarding|high|specific|@PIST(downhill) ; leisure=pitch&sport=snowboard|ski|
+squash|high|specific|@HALL(squash) ; leisure=pitch&sport=squash|sport.sports_centre|
+surfing|high|specific|natural=beach&sport=surfing ; sport=surfing ; shop=surf|beach,commercial.outdoor_and_sport.water_sports|Surf spots mapped as nodes with sport=surfing.
+swimming|high|specific|leisure=swimming_pool&access=yes|customers ; leisure=sports_centre&sport=swimming ; leisure=bathing_place ; natural=beach|sport.swimming_pool,beach|Exclude access=private pools (home pools).
+table-tennis|high|specific|@SP(table_tennis)|sport.pitch|Outdoor tables in parks are common.
+tennis|high|specific|@SP(tennis)|sport.pitch|
+trampolining|high|specific|leisure=trampoline_park ; @HALL(trampoline)|entertainment.activity_park.trampoline|
+weightlifting|high|specific|leisure=fitness_centre ; @HALL(weightlifting)|sport.fitness|
+wrestling|high|specific|@MA(wrestling)|sport.sports_centre,activity.sport_club|
+yoga|high|specific|@FIT(yoga) ; amenity=studio&sport=yoga ; leisure=dance&sport=yoga|sport.fitness|
+# ---------- combat ----------
+aikido|high|specific|@MA(aikido)|sport.fitness,activity.sport_club|
+arm-wrestling|low|generic|leisure=fitness_centre ; amenity=bar|sport.fitness|No OSM value; events/clubs.
+bare-knuckle-boxing|low|specific|@MA(boxing)|sport.fitness|Boxing gyms only; events are ticketed shows.
+brazilian-jiu-jitsu|high|specific|@MA(jiu-jitsu|brazilian_jiu-jitsu)|sport.fitness,activity.sport_club|
+capoeira|medium|specific|@MA(capoeira) ; leisure=dance&dance:style=capoeira|sport.fitness|
+catch-wrestling|medium|specific|@MA(wrestling)|sport.fitness|
+eskrima|medium|specific|@MA(eskrima|arnis|martial_arts)|sport.fitness|
+hapkido|medium|specific|@MA(hapkido|martial_arts)|sport.fitness|
+jeet-kune-do|medium|specific|@MA(jeet_kune_do|martial_arts)|sport.fitness|
+judo|high|specific|@MA(judo)|sport.fitness,activity.sport_club|
+kalaripayattu|medium|specific|@MA(kalaripayattu|martial_arts)|sport.fitness|
+karate|high|specific|@MA(karate)|sport.fitness,activity.sport_club|
+kendo|medium|specific|@MA(kendo)|sport.fitness|
+kickboxing|high|specific|@MA(kickboxing)|sport.fitness|
+krav-maga|medium|specific|@MA(krav_maga|martial_arts)|sport.fitness|
+kung-fu|medium|specific|@MA(kung_fu|wushu|martial_arts)|sport.fitness|
+luta-livre|low|specific|@MA(luta_livre|jiu-jitsu|martial_arts)|sport.fitness|
+mixed-martial-arts|high|specific|@MA(mma|mixed_martial_arts|martial_arts)|sport.fitness|
+muay-thai|high|specific|@MA(muay_thai|thai_boxing)|sport.fitness|
+ninjutsu|low|specific|@MA(ninjutsu|martial_arts)|sport.fitness|
+sambo|medium|specific|@MA(sambo|wrestling|judo)|sport.fitness|
+sanda|low|specific|@MA(sanda|kickboxing|kung_fu)|sport.fitness|
+savate|low|specific|@MA(savate|kickboxing)|sport.fitness|
+silat|low|specific|@MA(silat|martial_arts)|sport.fitness|
+sumo|medium|specific|@MA(sumo)|sport.fitness|
+systema|low|specific|@MA(systema|martial_arts)|sport.fitness|
+taekwondo|high|specific|@MA(taekwondo)|sport.fitness,activity.sport_club|
+tai-chi|medium|specific|@MA(tai_chi|taichi) ; leisure=park|sport.fitness,leisure.park|Often practiced in parks at fixed times; events carry the signal.
+wing-chun|medium|specific|@MA(wing_chun|kung_fu|martial_arts)|sport.fitness|
+# ---------- running-cycling-and-endurance ----------
+adventure-racing|low|generic|@TRAIL|leisure.park,natural|Events-driven.
+bikepacking|medium|specific|route=mtb|bicycle (relation) ; tourism=camp_site ; shop=bicycle|commercial.outdoor_and_sport.bicycle,camping|
+bmx-freestyle|high|specific|leisure=pitch&sport=bmx ; leisure=bike_park ; leisure=pitch&sport=skateboard|sport.pitch|Skateparks often allow BMX.
+bmx-racing|high|specific|leisure=track|pitch&sport=bmx|sport.track|
+cross-country-running|medium|specific|leisure=park ; leisure=track&sport=running|athletics ; @TRAIL|leisure.park,sport.track|
+cyclocross|low|specific|leisure=park ; leisure=track&sport=cyclocross|cycling|leisure.park|Events at parks.
+downhill-mountain-biking|high|specific|leisure=bike_park ; route=mtb (relation) ; highway=path&mtb:scale=* ; piste:type=downhill&bicycle=designated ; leisure=pitch&sport=bmx|commercial.outdoor_and_sport.bicycle|leisure=bike_park confirmed on wiki (can carry mtb:scale).
+duathlon|low|generic|leisure=track&sport=running|athletics ; highway=cycleway|sport.track|Events-only mostly.
+electric-mountain-biking|medium|specific|route=mtb (relation) ; highway=path&mtb:scale=* ; shop=bicycle|commercial.outdoor_and_sport.bicycle|Check local e-bike trail access.
+enduro-mountain-biking|medium|specific|route=mtb (relation) ; highway=path&mtb:scale=*|commercial.outdoor_and_sport.bicycle|
+fell-running|medium|specific|natural=peak ; route=hiking (relation)|natural.mountain.peak|
+gravel-cycling|medium|specific|route=bicycle (relation)&surface=gravel ; highway=track&bicycle=yes|commercial.outdoor_and_sport.bicycle|
+handcycling|medium|specific|highway=cycleway ; route=bicycle (relation)|commercial.outdoor_and_sport.bicycle|Prefer wheelchair=yes surfaces.
+indoor-cycling|high|specific|@FIT(cycling|indoor_cycling) ; leisure=fitness_centre|sport.fitness|
+marathon-running|medium|specific|leisure=track&sport=running|athletics ; leisure=park ; shop=sports|sport.track,leisure.park|Training routes; races are events.
+mountain-biking|high|specific|route=mtb (relation) ; highway=path&mtb:scale=* ; leisure=bike_park ; shop=bicycle|commercial.outdoor_and_sport.bicycle|
+nordic-walking|medium|specific|route=hiking|foot (relation) ; leisure=park|leisure.park|
+obstacle-course-racing|low|specific|leisure=fitness_station ; leisure=sports_centre&sport=obstacle_course|sport.fitness|OCR gyms rarely tagged.
+orienteering|medium|specific|sport=orienteering ; leisure=park ; natural=wood|leisure.park,natural.forest|Permanent courses: sport=orienteering (unverified).
+race-walking|medium|specific|leisure=track&sport=athletics|running|sport.track|
+randonneuring|low|specific|route=bicycle (relation)|commercial.outdoor_and_sport.bicycle|Events (brevets) matter more.
+road-cycling|high|specific|route=bicycle (relation) ; highway=cycleway ; shop=bicycle|commercial.outdoor_and_sport.bicycle|
+running|high|specific|leisure=track&sport=running|athletics ; leisure=park ; highway=footway|path&leisure=park|sport.track,leisure.park|Running clubs meet at shop=sports and breweries; events carry it.
+skyrunning|low|specific|natural=peak ; route=hiking (relation)|natural.mountain.peak|
+snowshoe-racing|low|specific|piste:type=hike|ski|
+sprinting|high|specific|leisure=track&sport=athletics|running|sport.track|
+swimrun|low|specific|leisure=bathing_place ; natural=beach ; natural=water&sport=swimming|beach|
+tower-running|low|none|||Events-only (stair races).
+track-cycling|high|specific|leisure=track|sports_centre&sport=cycling|sport.track|Velodromes.
+trail-running|high|specific|highway=trailhead ; route=hiking (relation) ; leisure=nature_reserve|natural,leisure.park|
+triathlon|medium|specific|leisure=swimming_pool ; leisure=track&sport=athletics ; highway=cycleway|sport.swimming_pool,sport.track|
+ultramarathon|low|specific|highway=trailhead ; route=hiking (relation)|natural|Events-driven.
+# ---------- fitness-gym-and-wellness ----------
+aerobics|high|specific|@FIT(aerobics|fitness)|sport.fitness|
+barre|medium|specific|@FIT(barre|fitness) ; leisure=dance|sport.fitness|
+bodybuilding|high|specific|leisure=fitness_centre ; @FIT(bodybuilding)|sport.fitness|
+boot-camp-training|medium|specific|leisure=fitness_centre ; leisure=fitness_station ; leisure=park|sport.fitness,leisure.park|
+breathwork|low|generic|@FIT(yoga) ; amenity=community_centre|sport.fitness|Studios rarely tagged; events matter.
+calisthenics|high|specific|leisure=fitness_station ; leisure=pitch|sports_centre&sport=calisthenics|sport.fitness.fitness_station|
+cold-plunge-and-ice-bath|medium|specific|leisure=sauna ; amenity=public_bath ; leisure=bathing_place|leisure.spa|
+crossfit|high|specific|@FIT(crossfit)|sport.fitness|Also brand=CrossFit tag on gyms.
+functional-training|high|specific|leisure=fitness_centre ; leisure=fitness_station|sport.fitness|
+hiit-training|high|specific|leisure=fitness_centre|sport.fitness|
+hot-yoga|medium|specific|@FIT(yoga)|sport.fitness|No "hot" attribute; name match "hot".
+kettlebell-training|medium|specific|leisure=fitness_centre|sport.fitness|
+massage-therapy|medium|specific|shop=massage ; leisure=sauna|commercial.health_and_beauty,leisure.spa|Commercial only.
+meditation|medium|specific|amenity=place_of_worship&religion=buddhist ; @FIT(yoga) ; leisure=park|religion.place_of_worship.buddhism|Sensitive overlap with faith hubs.
+mobility-and-stretching|medium|specific|@FIT(yoga|fitness)|sport.fitness|
+personal-training|high|specific|leisure=fitness_centre|sport.fitness|
+pilates|high|specific|@FIT(pilates)|sport.fitness|
+powerlifting|high|specific|leisure=fitness_centre ; @FIT(powerlifting|weightlifting)|sport.fitness|
+sauna-and-spa|high|specific|leisure=sauna ; amenity=public_bath ; leisure=spa|leisure.spa|
+sound-bath|low|generic|@FIT(yoga) ; amenity=community_centre|sport.fitness|Events matter.
+spin-class|high|specific|leisure=fitness_centre ; @FIT(cycling)|sport.fitness|
+trx-training|medium|specific|leisure=fitness_centre|sport.fitness|
+water-aerobics|high|specific|leisure=swimming_pool&access=yes|customers ; leisure=sports_centre&sport=swimming|sport.swimming_pool|
+zumba|high|specific|leisure=fitness_centre ; leisure=dance ; amenity=dancing_school|sport.fitness|
+# ---------- outdoors-and-adventure ----------
+backpacking|high|specific|@TRAIL ; tourism=camp_site|wilderness_hut|alpine_hut|natural,camping|
+beekeeping|low|specific|craft=beekeeper ; landuse=allotments|commercial.agrarian|Apiaries are often private land; do not pin landuse=apiary on private parcels.
+birdwatching|high|specific|leisure=bird_hide|wildlife_hide ; leisure=nature_reserve|natural,leisure.park.nature_reserve|
+bouldering|high|specific|@HALL(climbing) ; sport=climbing&climbing:boulder=yes|entertainment.activity_park.climbing|
+bungee-jumping|medium|specific|sport=bungee_jumping ; attraction=bungee_jumping|entertainment|
+bushcraft|low|generic|natural=wood ; landuse=forest ; leisure=nature_reserve|natural.forest|
+camping|high|specific|tourism=camp_site ; tourism=caravan_site|camping|
+canoeing|high|specific|sport=canoe ; leisure=slipway ; amenity=boat_rental ; canoe=put_in|rental.boat|
+canyoning|low|specific|sport=canyoning|natural|
+caving|high|specific|natural=cave_entrance|natural|Many entrances are on private land or closed; respect access=*.
+dog-walking|high|specific|leisure=dog_park ; leisure=park|pet.dog_park,leisure.park|
+fishing|high|specific|leisure=fishing ; shop=fishing ; leisure=slipway|sport.fishing,commercial.outdoor_and_sport.fishing|
+gardening|high|specific|landuse=allotments ; leisure=garden&garden:type=community ; shop=garden_centre|commercial.garden,leisure.park.garden|
+geocaching|low|none|||Caches are not in OSM and geocaching.com is login/terms-walled (D-040 never list). Parks as fallback only.
+hiking|high|specific|@TRAIL ; natural=peak ; tourism=viewpoint|natural,leisure.park,tourism.sights|
+hunting|low|none|||Events only (founder, 2026-11-03). Was: leisure=shooting_ground ; shop=weapons ; shop=outdoor. Hunting land and stands are not participation spots.
+ice-climbing|low|specific|sport=climbing&climbing:ice=yes ; @HALL(climbing)|entertainment.activity_park.climbing|
+kayaking|high|specific|sport=canoe ; leisure=slipway ; amenity=boat_rental ; canoe=put_in|rental.boat|OSM uses canoe for kayak too.
+mountaineering|high|specific|natural=peak ; tourism=alpine_hut ; @HALL(climbing)|natural.mountain.peak|
+off-roading|medium|specific|highway=track&4wd_only=yes ; leisure=track&sport=motor|offroad|sport.track|
+paragliding|high|specific|sport=free_flying ; leisure=pitch&sport=free_flying|sport|
+sailing|high|specific|leisure=marina ; @SP(sailing) ; club=sport|sailing&sport=sailing|sport,rental.boat|
+scuba-diving|high|specific|amenity=dive_centre ; sport=scuba_diving|sport.dive_centre|
+skydiving|medium|specific|sport=skydiving|parachuting ; aeroway=aerodrome&sport=skydiving|sport|
+snorkeling|medium|specific|natural=beach ; amenity=dive_centre ; sport=snorkelling|beach,sport.dive_centre|
+snowshoeing|high|specific|piste:type=hike|ski|
+stand-up-paddleboarding|medium|specific|amenity=boat_rental ; leisure=slipway ; natural=beach ; sport=canoe|sup|rental.boat,beach|
+stargazing-and-astronomy|medium|specific|man_made=observatory ; amenity=planetarium ; tourism=viewpoint|entertainment.planetarium|Dark-sky parks: boundary=protected_area + name.
+whitewater-rafting|high|specific|whitewater=put_in|egress|rapid ; sport=rafting|canoe|rental.boat|
+zip-lining|high|specific|aerialway=zip_line|entertainment.activity_park|
+# ---------- water-sports ----------
+bodyboarding|medium|specific|natural=beach&sport=surfing ; sport=surfing|beach|
+bodysurfing|medium|specific|natural=beach&sport=surfing ; natural=beach|beach|
+cliff-diving|low|none|||Events only (founder, 2026-11-03). Was: sport=cliff_diving ; leisure=bathing_place. Safety-sensitive.
+coasteering|low|specific|natural=beach ; natural=cliff&sport=coasteering|beach|
+flyboarding|low|specific|amenity=boat_rental ; leisure=marina|rental.boat|Operators rarely tagged.
+free-diving|medium|specific|amenity=dive_centre ; leisure=swimming_pool&sport=diving|sport.dive_centre|
+jet-skiing|medium|specific|amenity=boat_rental&boat:rental=jet_ski ; leisure=slipway ; leisure=marina|rental.boat|
+kitesurfing|high|specific|sport=kitesurfing ; natural=beach&sport=kitesurfing|beach|
+kneeboarding|low|specific|sport=wakeboarding|water_ski|sport|Cable parks.
+outrigger-canoeing|medium|specific|sport=canoe|outrigger ; club=sport&sport=canoe ; leisure=slipway|sport|
+parasailing|low|specific|amenity=boat_rental ; natural=beach|beach,rental.boat|
+platform-diving|high|specific|leisure=swimming_pool&sport=diving ; leisure=sports_centre&sport=diving|sport.swimming_pool|
+spearfishing|low|none|||Events only (founder, 2026-11-03). Was: amenity=dive_centre ; shop=fishing. Local regulations and protected areas vary.
+synchronized-swimming|medium|specific|leisure=swimming_pool&access=yes|customers ; leisure=sports_centre&sport=swimming|sport.swimming_pool|
+underwater-hockey|medium|specific|leisure=swimming_pool&sport=underwater_hockey ; leisure=swimming_pool&access=yes|sport.swimming_pool|
+wakeboarding|high|specific|sport=wakeboarding ; leisure=sports_centre&sport=wakeboarding|sport|
+wakesurfing|low|specific|leisure=marina ; amenity=boat_rental|rental.boat|
+water-skiing|medium|specific|sport=water_ski ; leisure=marina|sport|
+water-tubing|low|specific|amenity=boat_rental ; whitewater=put_in|rental.boat|
+windsurfing|high|specific|sport=windsurfing ; natural=beach&sport=windsurfing|beach|
+wing-foiling|low|specific|sport=kitesurfing|windsurfing|wingfoil|beach|
+# ---------- winter-sports ----------
+alpine-skiing|high|specific|@PIST(downhill) ; aerialway=chair_lift|gondola|drag_lift|t-bar|ski|
+backcountry-skiing|high|specific|piste:type=skitour ; tourism=alpine_hut|ski|Avalanche terrain; show safety note.
+bandy|medium|specific|@RINK&sport=bandy ; leisure=pitch&sport=bandy|sport.ice_rink|
+biathlon|medium|specific|@SP(biathlon) ; piste:type=nordic|ski|
+bobsled|medium|specific|piste:type=bobsleigh ; sport=bobsleigh|ski|Few tracks worldwide.
+broomball|medium|specific|@RINK|sport.ice_rink|
+cross-country-skiing|high|specific|piste:type=nordic ; route=piste (relation)&piste:type=nordic|ski|
+dog-sledding|medium|specific|piste:type=sleigh|ski|Wiki extends sleigh to established dog-sled routes.
+figure-skating|high|specific|@RINK ; leisure=ice_rink&sport=figure_skating|sport.ice_rink|
+freestyle-skiing|high|specific|piste:type=downhill ; landuse=winter_sports|ski|Terrain parks: piste:type=snow_park (unverified).
+ice-diving|low|specific|amenity=dive_centre|sport.dive_centre|
+ice-fishing|low|specific|leisure=fishing ; shop=fishing|sport.fishing|Ice safety; seasonal.
+ice-sailing|low|specific|natural=water ; club=sport&sport=ice_sailing|natural.water|
+ice-sculpting|low|none|||Events/festivals only.
+luge|medium|specific|piste:type=luge|sled|ski|
+nordic-combined|medium|specific|piste:type=ski_jump|nordic|ski|
+ringette|medium|specific|@RINK|sport.ice_rink|
+skeleton|medium|specific|piste:type=bobsleigh ; sport=skeleton|ski|
+ski-jumping|high|specific|piste:type=ski_jump|ski|
+snow-kiting|low|specific|natural=water ; landuse=winter_sports|ski|
+snow-tubing|medium|specific|piste:type=sled ; landuse=winter_sports|ski|
+snowmobiling|medium|specific|piste:type=snowmobile ; snowmobile=designated|yes|ski|
+speed-skating|medium|specific|@RINK&sport=speed_skating|sport.ice_rink|
+telemark-skiing|high|specific|piste:type=downhill|skitour|ski|
+tobogganing|high|specific|piste:type=sled|ski|
+winter-camping|medium|specific|tourism=camp_site ; tourism=wilderness_hut|camping|
+# ---------- golf-precision-and-target-sports ----------
+axe-throwing|medium|specific|leisure=sports_centre|pitch&sport=axe_throwing|entertainment|
+bocce|high|specific|@SP(boules)&boules=bocce|sport.pitch|
+boccia|medium|specific|@SP(boccia|boules)|sport.pitch|Paralympic variant; often in sports halls.
+carom-billiards|medium|specific|@HALL(billiards)&billiards=carom ; leisure=sports_centre&sport=billiards|sport.sports_centre|
+cornhole|low|generic|leisure=pitch&sport=cornhole ; amenity=bar|pub ; leisure=park|catering.bar,leisure.park|
+croquet|high|specific|@SP(croquet)|sport.pitch|
+crossbow-shooting|medium|specific|leisure=shooting_ground&shooting=crossbow|archery ; @SP(archery)|sport|
+horseshoes|high|specific|@SP(horseshoes)|sport.pitch|
+knife-throwing|low|specific|leisure=sports_centre&sport=axe_throwing|knife_throwing|entertainment|
+kubb|low|generic|leisure=park ; leisure=pitch&sport=kubb|leisure.park|
+ladder-toss|low|generic|leisure=park ; amenity=pub|leisure.park|
+lawn-bowls|high|specific|@SP(bowls)|sport.pitch|
+mini-golf|high|specific|leisure=miniature_golf|entertainment.miniature_golf|
+molkky|low|generic|leisure=park ; leisure=pitch&sport=molkky|leisure.park|
+petanque|high|specific|@SP(boules)&boules=petanque|sport.pitch|
+pistol-shooting|high|specific|leisure=shooting_ground&shooting=pistol ; leisure=pitch&sport=shooting|sport|Weapon venues: no promotion to under-21 where local law requires.
+rifle-shooting|high|specific|leisure=shooting_ground&shooting=rifle ; leisure=pitch&sport=shooting|sport|
+ring-toss|low|none|||Party/fair game; no venue type.
+shuffleboard|medium|specific|@SP(shuffleboard) ; amenity=bar&sport=shuffleboard|sport.pitch,catering.bar|
+skeet-shooting|high|specific|leisure=shooting_ground&shooting=clay_pigeon|skeet|sport|
+skittles|medium|specific|@HALL(skittles|9pin) ; amenity=pub&sport=skittles|catering.pub|
+sporting-clays|high|specific|leisure=shooting_ground&shooting=clay_pigeon|sporting_clays|sport|
+trap-shooting|high|specific|leisure=shooting_ground&shooting=clay_pigeon|trap|sport|
+washer-toss|low|generic|leisure=park ; amenity=bar|leisure.park|
+# ---------- tabletop ----------
+backgammon|low|generic|@GAMES ; amenity=cafe|commercial.hobby.games|
+bingo|medium|specific|amenity=gambling&gambling=bingo ; amenity=community_centre|adult.casino|Gambling; respect local age rules.
+blackjack|medium|specific|amenity=casino|adult.casino|Casino min age often 21; hub is 18+.
+bridge|medium|specific|club=bridge ; amenity=community_centre|activity.community_center|
+canasta|low|generic|@GAMES|commercial.hobby.games|
+carrom|low|generic|@GAMES ; club=carrom|commercial.hobby.games|
+catan|medium|specific|@GAMES|commercial.hobby.games|Game stores host play nights.
+checkers|low|generic|@GAMES ; leisure=pitch&sport=chess|commercial.hobby.games|
+chess|high|specific|club=chess ; leisure=pitch|picnic_table&sport=chess ; @GAMES|commercial.hobby.games,activity.club|sport=chess must be combined with a physical tag per wiki.
+chinese-checkers|low|generic|@GAMES|commercial.hobby.games|
+codenames|low|generic|@GAMES|commercial.hobby.games|
+cribbage|low|generic|@GAMES ; amenity=pub|commercial.hobby.games|
+dominoes|low|generic|@GAMES ; amenity=community_centre|commercial.hobby.games|
+euchre|low|generic|@GAMES ; amenity=pub|commercial.hobby.games|
+go|medium|specific|club=go ; @GAMES|commercial.hobby.games|
+hearts|low|generic|@GAMES|commercial.hobby.games|
+jenga|low|generic|@GAMES ; amenity=bar|commercial.hobby.games|
+jigsaw-puzzles|low|generic|@GAMES ; amenity=library ; shop=toys|commercial.hobby.games,commercial.toy_and_game|
+ludo|low|generic|@GAMES|commercial.hobby.games|
+mahjong|medium|specific|club=mahjong ; @GAMES ; amenity=community_centre|commercial.hobby.games|
+miniature-wargaming|high|specific|@GAMES ; shop=model|commercial.hobby.games,commercial.hobby.model|
+monopoly|low|generic|@GAMES|commercial.hobby.games|
+pictionary|low|generic|@GAMES|commercial.hobby.games|
+pinochle|low|generic|@GAMES ; amenity=community_centre|commercial.hobby.games|
+poker|medium|specific|amenity=casino ; amenity=gambling&gambling=poker|card_games|adult.casino|Gambling age rules.
+reversi|low|generic|@GAMES|commercial.hobby.games|
+risk|low|generic|@GAMES|commercial.hobby.games|
+rummy|low|generic|@GAMES|commercial.hobby.games|
+scrabble|low|generic|@GAMES ; club=scrabble|commercial.hobby.games|
+shogi|medium|specific|club=shogi ; @GAMES|commercial.hobby.games|
+solitaire|low|none|||Solo; no place.
+spades|low|generic|@GAMES|commercial.hobby.games|
+trading-card-games|high|specific|@GAMES ; shop=collector&collector=trading_cards ; shop=toys|commercial.hobby.games,commercial.hobby.collecting,commercial.toy_and_game|Local game stores host Magic/Pokemon nights.
+uno|low|generic|@GAMES|commercial.hobby.games|
+whist|low|generic|@GAMES ; club=whist|commercial.hobby.games|
+xiangqi|low|generic|@GAMES ; leisure=pitch&sport=chess|commercial.hobby.games|
+yahtzee|low|generic|@GAMES|commercial.hobby.games|
+# ---------- video-gaming-and-esports ----------
+action-adventure-games|low|generic|@VG|commercial.video_and_music|Genre hub; online-first.
+arcade-gaming|high|specific|leisure=amusement_arcade ; amenity=bar&arcade=yes|entertainment.amusement_arcade|
+battle-royale|low|generic|@VG ; amenity=internet_cafe|commercial.video_and_music|
+collectible-card-games|high|specific|@GAMES ; shop=collector&collector=trading_cards|commercial.hobby.games,commercial.hobby.collecting|
+console-gaming|low|generic|@VG|commercial.video_and_music|
+esports|medium|specific|leisure=sports_centre|amusement_arcade&sport=esports ; amenity=internet_cafe ; leisure=stadium&sport=esports|entertainment.amusement_arcade|Esports arenas/LAN centres.
+fighting-games|medium|specific|leisure=amusement_arcade ; @VG|entertainment.amusement_arcade|FGC locals meet at arcades and game stores.
+fps-gaming|low|generic|@VG ; amenity=internet_cafe|commercial.video_and_music|
+game-streaming|low|none|||Online.
+horror-games|low|generic|@VG|commercial.video_and_music|
+lan-parties|medium|specific|amenity=internet_cafe ; leisure=sports_centre&sport=esports|entertainment.amusement_arcade|
+life-simulation-games|low|generic|@VG|commercial.video_and_music|
+mmorpg|low|generic|@VG ; amenity=internet_cafe|commercial.video_and_music|
+moba-gaming|low|generic|@VG ; amenity=internet_cafe|commercial.video_and_music|
+mobile-gaming|low|none|||Online; Pokemon Go-style meetups come as events.
+party-games|low|generic|@VG ; amenity=bar&arcade=yes|commercial.video_and_music|
+pc-gaming|low|generic|amenity=internet_cafe ; shop=computer ; @VG|commercial.elektronics|
+platformer-games|low|generic|@VG|commercial.video_and_music|
+puzzle-games|low|generic|@VG ; leisure=escape_game|commercial.video_and_music,entertainment.escape_game|
+real-time-strategy|low|generic|@VG ; amenity=internet_cafe|commercial.video_and_music|
+retro-gaming|medium|specific|leisure=amusement_arcade ; @VG ; shop=second_hand|entertainment.amusement_arcade,commercial.second_hand|
+rhythm-games|medium|specific|leisure=amusement_arcade|entertainment.amusement_arcade|Dance-game cabinets live in arcades.
+roguelike-games|low|generic|@VG|commercial.video_and_music|
+rpg-gaming|low|generic|@VG|commercial.video_and_music|
+sandbox-gaming|low|generic|@VG|commercial.video_and_music|
+sim-racing|medium|specific|leisure=amusement_arcade ; leisure=sports_centre&sport=simracing ; sport=karting|entertainment.amusement_arcade|
+speedrunning|low|none|||Online.
+sports-video-games|low|generic|@VG|commercial.video_and_music|
+stealth-games|low|generic|@VG|commercial.video_and_music|
+survival-games|low|generic|@VG|commercial.video_and_music|
+tower-defense-games|low|generic|@VG|commercial.video_and_music|
+turn-based-strategy|low|generic|@VG ; @GAMES|commercial.video_and_music|
+visual-novels|low|generic|shop=anime ; @VG|commercial.hobby.anime|
+vr-gaming|medium|specific|leisure=amusement_arcade&vr=yes ; leisure=amusement_arcade|entertainment.amusement_arcade|VR arcades rarely tagged distinctly.
+# ---------- arts-crafts-and-making ----------
+animation|low|generic|amenity=arts_centre ; leisure=hackerspace ; amenity=library|entertainment.culture.arts_centre|
+basket-weaving|low|specific|craft=basket_maker ; shop=craft|commercial.hobby.art|
+beading|medium|specific|shop=craft ; shop=beads|commercial.hobby.art|
+blacksmithing|medium|specific|craft=blacksmith ; leisure=hackerspace|commercial|Forges offering classes are rare in OSM.
+bookbinding|low|specific|craft=bookbinder ; shop=stationery|commercial.stationery|
+calligraphy|low|specific|shop=art ; shop=stationery|commercial.hobby.art,commercial.stationery|
+candle-making|low|specific|shop=craft ; shop=candles|commercial.hobby.art|
+card-making|low|specific|shop=craft ; shop=stationery|commercial.hobby.art|
+crocheting|medium|specific|shop=fabric ; shop=wool ; shop=craft|commercial.hobby.sewing_and_knitting|
+cross-stitch|medium|specific|shop=fabric ; shop=haberdashery ; shop=craft|commercial.hobby.sewing_and_knitting|
+digital-art|low|generic|amenity=arts_centre ; leisure=hackerspace|entertainment.culture.arts_centre|
+diy-and-home-improvement|medium|specific|shop=doityourself ; shop=hardware ; leisure=hackerspace ; amenity=workshop|commercial.houseware_and_hardware|Repair cafes: repair=assisted_self_service (unverified).
+drawing|medium|specific|shop=art ; amenity=arts_centre ; tourism=gallery|commercial.hobby.art,entertainment.culture.arts_centre|
+embroidery|medium|specific|shop=fabric ; shop=haberdashery|commercial.hobby.sewing_and_knitting|
+felting|low|specific|shop=wool ; shop=craft|commercial.hobby.sewing_and_knitting|
+filmmaking|low|generic|amenity=cinema ; amenity=arts_centre ; shop=photo|entertainment.cinema,commercial.hobby.photo|
+flower-arranging|medium|specific|shop=florist ; shop=garden_centre|commercial.florist|
+glassblowing|medium|specific|craft=glassblower ; amenity=arts_centre|commercial|
+jewelry-making|medium|specific|shop=beads ; shop=craft ; craft=jeweller|commercial.hobby.art|
+knitting|high|specific|shop=wool ; shop=fabric ; shop=craft|commercial.hobby.sewing_and_knitting|Yarn shops host knit nights.
+leatherworking|low|specific|craft=saddler ; shop=leather ; shop=craft|commercial|
+macrame|low|specific|shop=craft ; shop=wool|commercial.hobby.art|
+metalworking|medium|specific|leisure=hackerspace ; craft=metal_construction ; craft=blacksmith|commercial|Makerspaces are the real participation spot.
+mosaic-art|low|specific|shop=craft ; amenity=arts_centre|commercial.hobby.art|
+origami|low|generic|shop=stationery ; amenity=library|commercial.stationery|
+painting|high|specific|shop=art ; shop=craft ; amenity=arts_centre ; tourism=gallery|commercial.hobby.art,entertainment.culture.arts_centre,entertainment.culture.gallery|
+photography|high|specific|shop=photo ; tourism=viewpoint ; tourism=gallery|commercial.hobby.photo,tourism.sights.viewpoint|
+pottery|high|specific|craft=pottery ; shop=pottery ; amenity=arts_centre|commercial.hobby.art|Studios with classes; also paint-your-own (shop=pottery).
+printmaking|low|specific|amenity=arts_centre ; shop=art ; craft=printmaker|entertainment.culture.arts_centre|
+quilting|medium|specific|shop=fabric ; shop=sewing|commercial.hobby.sewing_and_knitting|
+resin-art|low|specific|shop=craft|commercial.hobby.art|
+scrapbooking|low|specific|shop=craft ; shop=stationery|commercial.hobby.art,commercial.stationery|
+sculpting|medium|specific|amenity=arts_centre ; shop=art ; craft=sculptor|entertainment.culture.arts_centre|
+sewing|high|specific|shop=fabric ; shop=sewing ; shop=haberdashery|commercial.hobby.sewing_and_knitting|
+soap-making|low|specific|shop=craft|commercial.hobby.art|
+stained-glass|low|specific|craft=stained_glass ; shop=craft|commercial.hobby.art|
+tie-dye|low|specific|shop=craft|commercial.hobby.art|
+weaving|low|specific|shop=wool ; craft=weaver ; shop=craft|commercial.hobby.sewing_and_knitting|
+woodworking|medium|specific|leisure=hackerspace ; shop=doityourself ; craft=carpenter|commercial.houseware_and_hardware|
+# ---------- music-and-performance ----------
+a-cappella|low|generic|amenity=music_school ; amenity=community_centre|education.music_school|
+accordion|medium|specific|shop=musical_instrument ; amenity=music_school|commercial.hobby.music,education.music_school|
+acting|medium|specific|amenity=theatre ; amenity=arts_centre|entertainment.culture.theatre|Community theatres; auditions are events.
+audio-engineering|low|specific|amenity=studio&studio=audio ; shop=musical_instrument ; leisure=hackerspace|commercial.hobby.music|
+ballet|high|specific|amenity=dancing_school ; leisure=dance&dance:style=ballet ; amenity=theatre&theatre:genre=ballet|education.dancing_school|
+ballroom-dancing|high|specific|leisure=dance&dance:style=ballroom ; amenity=dancing_school|education.dancing_school|
+bass-guitar|medium|specific|shop=musical_instrument ; amenity=music_school|commercial.hobby.music|
+beatboxing|low|generic|amenity=music_venue ; amenity=community_centre|entertainment|Events/open mics.
+breakdancing|medium|specific|amenity=dancing_school ; leisure=dance&dance:style=breakdance|education.dancing_school|
+cello|medium|specific|shop=musical_instrument ; amenity=music_school|commercial.hobby.music,education.music_school|
+choir-singing|medium|specific|amenity=music_school ; amenity=community_centre ; amenity=place_of_worship|education.music_school|Many choirs meet at churches; treat as generic venues.
+circus-arts|medium|specific|leisure=sports_centre&sport=circus|acrobatics ; amenity=theatre&theatre:genre=circus|entertainment|
+djing|medium|specific|amenity=nightclub ; shop=musical_instrument ; shop=music|adult.nightclub,commercial.hobby.music|
+drums|medium|specific|shop=musical_instrument ; amenity=music_school|commercial.hobby.music|
+flute|medium|specific|shop=musical_instrument ; amenity=music_school|commercial.hobby.music|
+guitar|high|specific|shop=musical_instrument ; amenity=music_school|commercial.hobby.music,education.music_school|
+harmonica|low|specific|shop=musical_instrument|commercial.hobby.music|
+hip-hop-dance|high|specific|amenity=dancing_school ; leisure=dance&dance:style=hip_hop|education.dancing_school|
+improv-comedy|medium|specific|amenity=theatre&theatre:genre=comedy ; amenity=theatre|entertainment.culture.theatre|
+karaoke|high|specific|amenity=karaoke_box ; amenity=bar|restaurant&karaoke=yes|entertainment|Wiki: bars with karaoke use karaoke=yes.
+magic-tricks|low|specific|shop=magic ; amenity=theatre&theatre:genre=magic|entertainment.culture.theatre|
+marching-band|low|generic|amenity=music_school ; leisure=stadium|education.music_school|
+music-production|medium|specific|amenity=studio&studio=audio ; shop=musical_instrument ; leisure=hackerspace|commercial.hobby.music|
+music-theory|low|generic|amenity=music_school ; amenity=library|education.music_school|
+musical-theater|high|specific|amenity=theatre&theatre:genre=musical ; amenity=theatre|entertainment.culture.theatre|
+orchestra|medium|specific|amenity=music_school ; amenity=theatre&theatre:genre=concert_hall ; amenity=concert_hall|entertainment.culture.theatre|
+piano|medium|specific|amenity=music_school ; shop=musical_instrument&musical_instrument:type=piano ; leisure=park&piano=yes|education.music_school|
+public-speaking|low|generic|amenity=community_centre ; amenity=library|activity.community_center|Toastmasters-style clubs; events carry the signal.
+rapping|low|generic|amenity=music_venue ; amenity=studio&studio=audio|entertainment|
+saxophone|medium|specific|shop=musical_instrument ; amenity=music_school|commercial.hobby.music|
+singing|medium|specific|amenity=music_school ; amenity=karaoke_box|education.music_school|
+songwriting|low|generic|amenity=music_venue ; amenity=cafe|entertainment|Open mics.
+stand-up-comedy|high|specific|amenity=theatre&theatre:genre=comedy ; amenity=nightclub&nightclub=comedy ; amenity=bar|entertainment.culture.theatre,catering.bar|No settled comedy-club tag; mixed.
+trumpet|medium|specific|shop=musical_instrument ; amenity=music_school|commercial.hobby.music|
+ukulele|medium|specific|shop=musical_instrument ; amenity=music_school|commercial.hobby.music|
+ventriloquism|low|none|||No venue type; shows are events.
+violin|medium|specific|shop=musical_instrument ; amenity=music_school|commercial.hobby.music,education.music_school|
+voice-acting|low|generic|amenity=studio&studio=audio ; amenity=theatre|entertainment.culture.theatre|
+# ---------- food-and-drink ----------
+baking|medium|specific|amenity=cooking_school ; shop=bakery ; shop=pastry|catering,commercial.food_and_drink.bakery|Classes matter more than shops.
+barbecue|medium|specific|amenity=bbq ; leisure=picnic_site ; amenity=restaurant&cuisine=barbecue|leisure.picnic,catering.restaurant.barbecue|amenity=bbq = public grills.
+beer-tasting|high|specific|craft=brewery ; amenity=pub|bar|biergarten ; amenity=pub&microbrewery=yes|catering.pub,catering.bar,catering.biergarten|21+ in US; enforce venue min age.
+bread-making|low|specific|amenity=cooking_school ; shop=bakery|commercial.food_and_drink.bakery|
+cake-decorating|low|specific|amenity=cooking_school ; shop=pastry ; shop=craft|commercial.food_and_drink.confectionery|
+candy-making|low|specific|shop=confectionery ; shop=chocolate|commercial.food_and_drink.confectionery|
+canning-and-preserving|low|generic|amenity=community_centre ; amenity=marketplace ; landuse=allotments|commercial.marketplace|
+charcuterie|low|specific|shop=deli ; shop=butcher ; shop=cheese|commercial.food_and_drink.deli,commercial.food_and_drink.cheese_and_dairy|
+cheese-making|low|specific|shop=cheese ; amenity=cooking_school ; craft=cheese_maker|commercial.food_and_drink.cheese_and_dairy|
+cheese-tasting|medium|specific|shop=cheese ; shop=wine|commercial.food_and_drink.cheese_and_dairy|
+chocolate-making|low|specific|shop=chocolate ; amenity=cooking_school|commercial.food_and_drink.chocolate|
+coffee-brewing|high|specific|amenity=cafe ; shop=coffee ; craft=coffee_roaster|catering.cafe,commercial.food_and_drink.coffee_and_tea|
+cooking|high|specific|amenity=cooking_school ; amenity=marketplace|catering,commercial.marketplace|Cooking classes; markets as sourcing spots.
+distilling|medium|specific|craft=distillery|catering|Tours; 21+ in US.
+donut-making|low|specific|shop=pastry ; amenity=cafe&cuisine=donut ; amenity=fast_food&cuisine=donut|catering.cafe|
+dumpling-making|low|specific|amenity=cooking_school ; amenity=restaurant&cuisine=chinese|dumpling|catering.restaurant|
+fermenting|low|generic|amenity=community_centre ; amenity=marketplace|commercial.marketplace|
+food-photography|low|generic|amenity=restaurant ; amenity=marketplace|catering.restaurant|
+foraging|medium|specific|landuse=forest ; natural=wood ; leisure=nature_reserve|natural.forest|Foraging rules vary; protected areas often prohibit.
+home-brewing|medium|specific|shop=brewing_supplies ; craft=brewery|commercial.hobby.brewing|
+honey-tasting|low|specific|shop=honey ; craft=beekeeper ; amenity=marketplace|commercial.food_and_drink,commercial.marketplace|
+ice-cream-making|low|specific|amenity=ice_cream ; shop=ice_cream|catering.ice_cream|
+kombucha-brewing|low|specific|shop=brewing_supplies ; shop=health_food|commercial.hobby.brewing|
+latte-art|medium|specific|amenity=cafe ; craft=coffee_roaster|catering.cafe|
+mixology|medium|specific|amenity=bar ; shop=alcohol|catering.bar|21+.
+pasta-making|low|specific|amenity=cooking_school ; shop=pasta|catering|
+pizza-making|low|specific|amenity=cooking_school ; amenity=restaurant&cuisine=pizza|catering.restaurant.pizza|
+restaurant-hopping|high|specific|amenity=restaurant ; amenity=food_court ; amenity=marketplace|catering.restaurant|Large result sets; rank by cuisine prefs.
+sushi-making|low|specific|amenity=cooking_school ; amenity=restaurant&cuisine=sushi|catering.restaurant.sushi|
+tea-tasting|medium|specific|shop=tea ; amenity=cafe&cuisine=tea|bubble_tea|commercial.food_and_drink.coffee_and_tea,catering.cafe|
+whiskey-tasting|medium|specific|craft=distillery ; amenity=bar ; shop=alcohol|catering.bar|21+.
+wine-making|medium|specific|craft=winery ; landuse=vineyard ; shop=brewing_supplies|commercial.food_and_drink.drinks|
+wine-tasting|high|specific|craft=winery ; shop=wine ; amenity=bar&bar=wine|catering.bar,commercial.food_and_drink.drinks|21+ in US.
+# ---------- movies-tv-and-fandom ----------
+anime-conventions|medium|specific|amenity=conference_centre ; amenity=exhibition_centre|building|Conventions are events; venues only for context.
+anime|high|specific|shop=anime ; shop=books&books=comic ; shop=books&books=manga ; shop=video_games ; amenity=cafe&cuisine=maid_cafe ; club=anime|commercial.hobby.anime,commercial.books,commercial.video_and_music|Founder example. Clubs rarely mapped; user-added spots fill gaps.
+bollywood-fandom|low|generic|amenity=cinema|entertainment.cinema|Showings come as events.
+comic-conventions|medium|specific|amenity=conference_centre ; amenity=exhibition_centre ; shop=books&books=comic|commercial.books|
+cosplay|medium|specific|shop=anime ; shop=costume ; shop=fabric|commercial.hobby.anime|
+disney-fandom|low|generic|tourism=theme_park ; amenity=cinema|entertainment.theme_park|
+documentary-watching|low|generic|amenity=cinema ; amenity=library|entertainment.cinema|
+fan-art|low|generic|shop=art ; shop=anime|commercial.hobby.art|
+fan-fiction-writing|low|none|||Online.
+fan-filmmaking|low|generic|amenity=arts_centre ; shop=photo|entertainment.culture.arts_centre|
+film-festival-attending|low|generic|amenity=cinema|entertainment.cinema|Festivals are events.
+film-location-tourism|low|generic|tourism=attraction|tourism.attraction|No OSM tag marks film locations; user-added places.
+film-podcasting|low|none|||Online.
+harry-potter-fandom|low|generic|shop=books ; @GAMES|commercial.books|
+k-drama-watching|low|generic|shop=books ; amenity=cafe|catering.cafe|Korean cafes/markets weakly related.
+larping|low|generic|leisure=park ; natural=wood|leisure.park|
+light-novel-reading|medium|specific|shop=anime ; shop=books&books=comic|manga ; amenity=library|commercial.hobby.anime,commercial.books|
+manga-reading|high|specific|shop=anime&anime:manga=yes ; shop=books&books=comic|manga ; amenity=library|commercial.hobby.anime,commercial.books|
+memorabilia-collecting|medium|specific|shop=collector ; shop=antiques|commercial.hobby.collecting,commercial.antiques|
+movie-discussion-club|low|generic|amenity=cinema ; amenity=library|entertainment.cinema|
+movie-marathons|medium|specific|amenity=cinema|entertainment.cinema|
+movie-trivia|low|generic|amenity=pub|bar ; amenity=cinema|catering.pub|
+movies|high|specific|amenity=cinema ; leisure=outdoor_seating&cinema=yes|entertainment.cinema|Drive-ins: amenity=cinema + drive_in=yes.
+prop-and-costume-making|medium|specific|shop=fabric ; shop=craft ; leisure=hackerspace|commercial.hobby.art|
+sci-fi-and-fantasy-fandom|low|generic|shop=books ; @GAMES ; shop=books&books=comic|commercial.books,commercial.hobby.games|
+screenwriting|low|generic|amenity=library ; amenity=cafe|education.library|
+script-table-reads|low|generic|amenity=theatre ; amenity=library|entertainment.culture.theatre|
+star-trek-fandom|low|generic|shop=books&books=comic ; @GAMES|commercial.books|
+star-wars-fandom|low|generic|shop=toys ; shop=books&books=comic ; @GAMES|commercial.toy_and_game|
+superhero-fandom|medium|specific|shop=books&books=comic ; shop=toys|commercial.books,commercial.toy_and_game|
+tv-show-watching|low|generic|amenity=pub|bar|catering.pub|Watch parties at bars; events.
+tv-shows|low|generic|amenity=pub|bar|catering.pub|Duplicate-ish of tv-show-watching.
+webtoon-reading|low|generic|shop=books&books=comic ; amenity=library|commercial.books|
+# ---------- books-writing-and-learning ----------
+blogging|low|none|||Online.
+book-club|medium|specific|amenity=library ; shop=books ; amenity=cafe|education.library,commercial.books|
+book-collecting|medium|specific|shop=books&second_hand=yes|only ; shop=antiques ; amenity=public_bookcase|commercial.books,commercial.second_hand|
+book-reviewing|low|generic|shop=books ; amenity=library|commercial.books,education.library|
+copywriting|low|none|||Professional/online.
+creative-writing|low|generic|amenity=library ; amenity=cafe|education.library|
+crossword-puzzles|low|none|||Solo; library as weak fallback.
+debate|low|generic|amenity=university|college ; amenity=library|education.university|
+etymology|low|none|||
+genealogy-research|medium|specific|amenity=library ; amenity=archive ; landuse=cemetery|education.library|Archives tagging varies (office=archive also used).
+history-discussion|medium|specific|tourism=museum ; historic=* ; amenity=library|entertainment.museum,heritage|
+journaling|low|none|||Solo.
+journalism|low|none|||Professional.
+language-learning|medium|specific|amenity=language_school ; amenity=library|education.language_school|
+letter-writing|low|none|||
+memoir-writing|low|generic|amenity=library|education.library|
+memory-training|low|none|||
+philosophy-discussion|low|generic|amenity=library ; amenity=cafe|education.library|
+playwriting|low|generic|amenity=theatre ; amenity=library|entertainment.culture.theatre|
+podcasting|low|generic|amenity=studio&studio=audio ; amenity=library|education.library|Some libraries have recording booths.
+poetry|low|generic|amenity=library ; amenity=cafe ; shop=books|education.library|Open mics.
+proofreading-and-editing|low|none|||Professional/online.
+reading|medium|specific|amenity=library ; shop=books ; amenity=public_bookcase|education.library,commercial.books|
+speed-reading|low|none|||
+spelling-bee|low|none|||Events-only.
+storytelling|low|generic|amenity=library ; amenity=theatre|education.library|
+sudoku|low|none|||Solo.
+translation|low|none|||Professional/online.
+trivia|medium|specific|amenity=pub|bar|catering.pub,catering.bar|Trivia nights are recurring bar events.
+zine-making|low|generic|amenity=library ; shop=books ; leisure=hackerspace|education.library|
+# ---------- collecting-tech-and-automotive ----------
+3d-printing|medium|specific|leisure=hackerspace ; amenity=library&makerspace=yes|commercial|Many libraries host makerspaces (tagging inconsistent).
+action-figure-collecting|medium|specific|shop=toys ; shop=collector ; shop=anime|commercial.toy_and_game,commercial.hobby.collecting|
+antique-collecting|high|specific|shop=antiques ; amenity=marketplace ; shop=second_hand|commercial.antiques,commercial.marketplace|
+car-detailing|low|specific|amenity=car_wash&self_service=yes ; shop=car_parts|service.vehicle.car_wash,commercial.vehicle|
+car-restoration|low|specific|shop=car_parts ; shop=car_repair|commercial.vehicle|Car meets are events; never pin private garages.
+coding-and-programming|medium|specific|leisure=hackerspace ; amenity=coworking_space ; office=coworking ; amenity=library|education.library|
+coin-collecting|medium|specific|shop=collector&collector=coins ; shop=coins ; shop=antiques|commercial.hobby.collecting|
+comic-book-collecting|high|specific|shop=books&books=comic ; shop=collector&collector=comics|commercial.books,commercial.hobby.collecting|
+drag-racing|medium|specific|highway=raceway&sport=motor ; leisure=track&sport=drag_racing|motor|sport.track|Street racing must never be surfaced.
+drifting|low|specific|highway=raceway ; leisure=track&sport=motor|sport.track|Legal tracks only.
+drone-flying|medium|specific|sport=model_aerodrome ; leisure=park|sport|Respect no-fly zones; show airspace notice.
+go-karting|high|specific|leisure=track|sports_centre&sport=karting ; highway=raceway&sport=karting|sport.track|
+ham-radio|low|specific|club=amateur_radio ; amenity=community_centre|activity.club|Repeater sites are not participation spots.
+knife-collecting|low|none|||Events only (founder, 2026-11-03). Was: shop=knives ; shop=weapons. Weapons.
+metal-detecting|low|generic|natural=beach ; leisure=park|beach,leisure.park|Detecting is banned in many parks; note rules.
+model-building|medium|specific|shop=model ; shop=toys ; shop=games|commercial.hobby.model|
+model-railroading|medium|specific|shop=model ; club=model_railway ; tourism=attraction&railway=miniature|commercial.hobby.model|
+motorcycle-riding|medium|specific|shop=motorcycle ; highway=raceway&sport=motor|commercial.vehicle|Rides are events.
+overlanding|low|specific|highway=track&4wd_only=yes ; tourism=camp_site|camping|
+pc-building|medium|specific|shop=computer ; shop=electronics ; leisure=hackerspace|commercial.elektronics|
+rc-car-racing|high|specific|sport=rc_car ; highway=raceway&sport=rc_car ; shop=model|sport,commercial.hobby.model|
+rc-plane-flying|high|specific|sport=model_aerodrome ; shop=model|sport,commercial.hobby.model|
+robotics|low|specific|leisure=hackerspace|commercial|
+rockhounding|low|generic|geological=outcrop ; landuse=quarry&disused=yes ; shop=rocks|natural|Collection often prohibited on public land.
+slot-car-racing|low|specific|shop=model ; leisure=amusement_arcade&slot_car=yes|commercial.hobby.model|
+sneaker-collecting|medium|specific|shop=shoes ; shop=second_hand|commercial.clothing.shoes|
+sports-memorabilia-collecting|medium|specific|shop=collector ; shop=antiques|commercial.hobby.collecting|
+stamp-collecting|medium|specific|shop=collector&collector=stamps ; shop=stamps|commercial.hobby.collecting|
+trading-card-collecting|high|specific|@GAMES ; shop=collector&collector=trading_cards ; shop=toys|commercial.hobby.games,commercial.hobby.collecting|
+video-game-collecting|high|specific|shop=video_games ; shop=second_hand|commercial.video_and_music,commercial.second_hand|
+vintage-computer-collecting|low|specific|shop=second_hand ; tourism=museum&museum=technology|commercial.second_hand,entertainment.museum|
+vinyl-record-collecting|high|specific|shop=music ; shop=second_hand|commercial.video_and_music|shop=music = recorded music shops.
+watch-collecting|medium|specific|shop=watches ; shop=jewelry|commercial.watches|
+# ---------- social-lifestyle-and-community ----------
+astrology|low|none|||No venue type.
+board-game-night|high|specific|@GAMES ; amenity=cafe&cuisine=board_game ; amenity=library|commercial.hobby.games,catering.cafe|Board game cafes are under-tagged; user-added places matter.
+coffee-meetup|high|specific|amenity=cafe|catering.cafe|
+craft-beer-tasting|high|specific|craft=brewery ; amenity=pub&microbrewery=yes ; amenity=biergarten|catering.pub,catering.biergarten|21+ in US.
+escape-room|high|specific|leisure=escape_game|entertainment.escape_game|
+fantasy-sports|low|none|||Online; sports bars at most.
+flea-market|high|specific|amenity=marketplace ; shop=second_hand|commercial.marketplace,commercial.second_hand|Many flea markets are weekly events; opening_hours matters.
+language-exchange|low|generic|amenity=cafe ; amenity=library ; amenity=language_school|catering.cafe,education.language_school|
+murder-mystery-dinner|low|generic|amenity=restaurant ; amenity=theatre|catering.restaurant|Events-only.
+open-mic-night|medium|specific|amenity=music_venue ; amenity=bar ; amenity=cafe|catering.bar,catering.cafe|
+paint-and-sip|low|generic|amenity=arts_centre ; shop=craft|entertainment.culture.arts_centre|Studios rarely tagged.
+potluck-dinner|low|none|||Homes; private addresses never pinned (D-038).
+pub-crawl|high|specific|amenity=pub|bar|catering.pub,catering.bar|21+ in US.
+salsa-dancing|high|specific|leisure=dance&dance:style=salsa ; amenity=dancing_school ; amenity=nightclub|education.dancing_school,adult.nightclub|
+silent-disco|low|none|||Events-only.
+speed-dating|low|none|||Events-only.
+supper-club|low|none|||Often in homes; never pin.
+tabletop-rpg|high|specific|@GAMES|commercial.hobby.games|
+tarot-reading|low|specific|shop=psychic ; shop=esoteric|commercial|
+# ---------- careers-and-networking ----------
+career-events|low|none|||Events-only.
+entrepreneurship|low|generic|amenity=coworking_space ; office=coworking ; amenity=library|commercial|
+internships-and-jobs|low|none|||
+networking-nights|low|none|||Events at varying venues.
+resume-and-interview-prep|low|generic|amenity=library ; amenity=university|education.library|
+# ---------- academics-and-study ----------
+graduate-school-prep|low|none|||
+lectures-and-talks|medium|specific|amenity=university|college ; amenity=library ; amenity=conference_centre|education.university,education.library|
+research-and-labs|low|generic|amenity=university|education.university|Campus-scoped.
+study-sessions|high|specific|amenity=library ; amenity=university ; amenity=cafe|education.library,education.university,catering.cafe|
+tutoring|low|generic|amenity=library|education.library|
+workshops-and-skill-builders|low|generic|amenity=community_centre ; leisure=hackerspace ; amenity=library|activity.community_center|
+# ---------- culture-and-identity (sensitive) ----------
+asian-and-pacific-islander-life|low|generic|amenity=community_centre ; amenity=university|activity.community_center|SENSITIVE: show institutional places only; never infer membership from proximity.
+black-student-life|low|generic|amenity=university|education.university|SENSITIVE; campus-scoped.
+cultural-celebrations|medium|specific|amenity=community_centre ; amenity=events_venue ; leisure=park|activity.community_center|Celebrations are events.
+first-generation-students|low|generic|amenity=university|education.university|SENSITIVE; campus-scoped.
+international-students|low|generic|amenity=university ; amenity=language_school|education.university|SENSITIVE; campus-scoped.
+latinx-student-life|low|generic|amenity=university ; amenity=community_centre|education.university|SENSITIVE; campus-scoped.
+lgbtq-plus-community|medium|specific|lgbtq=primary ; amenity=community_centre&lgbtq=primary|activity.community_center|SENSITIVE: wiki value lgbtq=primary; do not show who saved/visited. Geofence nothing.
+veterans-and-military|low|specific|club=veterans ; amenity=social_facility&social_facility:for=veteran|activity.club|SENSITIVE.
+women-in-leadership|low|none|||Events-only.
+# ---------- faith-and-spirituality (sensitive) ----------
+buddhist-community|high|specific|amenity=place_of_worship&religion=buddhist|religion.place_of_worship.buddhism|SENSITIVE: public institutions only.
+christian-fellowship|high|specific|amenity=place_of_worship&religion=christian|religion.place_of_worship.christianity|SENSITIVE. Very large result sets; denomination=* filter.
+hindu-community|high|specific|amenity=place_of_worship&religion=hindu|religion.place_of_worship.hinduism|SENSITIVE.
+interfaith-dialogue|medium|specific|amenity=place_of_worship&religion=multifaith ; amenity=community_centre|religion.place_of_worship.multifaith|SENSITIVE.
+jewish-student-life|high|specific|amenity=place_of_worship&religion=jewish|religion.place_of_worship.judaism|SENSITIVE: security concerns; consider campus-only scope.
+muslim-student-life|high|specific|amenity=place_of_worship&religion=muslim|religion.place_of_worship.islam|SENSITIVE.
+sikh-community|high|specific|amenity=place_of_worship&religion=sikh|religion.place_of_worship.sikhism|SENSITIVE.
+# ---------- service-and-causes ----------
+animal-rescue|high|specific|amenity=animal_shelter|pet.animal_shelter|
+civic-engagement-and-voting|low|generic|amenity=townhall ; amenity=library|office.government|Polling places are temporary; use official election data.
+fundraisers|low|none|||Events-only.
+mentoring-and-tutoring-kids|low|generic|amenity=library ; amenity=community_centre|education.library|Adults-only app; no pins on schools.
+sustainability-and-climate|medium|specific|landuse=allotments ; leisure=garden&garden:type=community ; amenity=recycling&recycling_type=centre|leisure.park.garden|
+volunteering|medium|specific|amenity=social_facility&social_facility=food_bank ; amenity=animal_shelter ; amenity=community_centre|activity.community_center|
+# ---------- wellness-and-support (sensitive) ----------
+disability-and-accessibility|low|generic|amenity=community_centre&wheelchair=yes|activity.community_center|SENSITIVE; wheelchair=yes is a filter on every hub, not a hub place type.
+mental-health-and-peer-support|low|none|||SENSITIVE: never pin support-group locations; show crisis resources instead.
+parents-and-caregivers|medium|specific|leisure=playground ; amenity=library|leisure.playground,education.library|
+sleep-stress-and-balance|low|generic|leisure=park ; @FIT(yoga)|leisure.park|
+sober-and-substance-free-fun|low|generic|amenity=cafe ; leisure=park ; amenity=community_centre|catering.cafe,leisure.park|SENSITIVE; never pin recovery meeting locations.
+# ---------- campus-life-and-free-food ----------
+campus-jobs-and-involvement-fairs|low|none|||Campus events.
+campus-traditions-and-spirit|low|generic|amenity=university ; leisure=stadium|education.university|Campus polygon only.
+free-food|low|none|||Events-only.
+game-room-and-hangouts|low|generic|amenity=university ; leisure=amusement_arcade|education.university|Campus polygon only.
+new-student-welcome|low|none|||Campus events.
+residence-hall-events|low|none|||Dorms are residences; never pin (D-038).
+transfer-and-commuter-students|low|generic|amenity=university ; amenity=parking&access=yes|education.university|
+# ---------- nightlife-and-21-plus ----------
+bar-trivia|high|specific|amenity=pub|bar|catering.pub,catering.bar|
+brewery-runs-and-tours|high|specific|craft=brewery ; amenity=pub&microbrewery=yes|catering.pub,catering.biergarten|
+clubs-and-dj-nights|high|specific|amenity=nightclub|adult.nightclub|
+cocktail-nights|high|specific|amenity=bar|catering.bar|
+comedy-clubs|medium|specific|amenity=theatre&theatre:genre=comedy ; amenity=nightclub&nightclub=comedy|entertainment.culture.theatre|No settled tag.
+live-music-venues|high|specific|amenity=music_venue ; amenity=bar|pub&live_music=yes ; amenity=nightclub|entertainment,catering.bar|music_venue is still a proposal but in use.
+wine-nights|high|specific|amenity=bar&bar=wine ; craft=winery ; shop=wine|catering.bar|
