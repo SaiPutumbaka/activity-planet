@@ -2,8 +2,11 @@
 
 Called by .github/workflows/places-extract.yml, one subcommand per step:
 
+  tiles     region input (named region, tile ids or the server queue) -> tile ids, queue order
   plan      tiles + Geofabrik index-v1.json -> plan.json (the smallest extracts covering each tile,
             one bounding box per extract group)
+  budget    plan.json + extract sizes (HEAD) -> the tiles this run builds within the per-run budget
+            (tiles, downloads, download bytes, largest extract, disk) and why each other tile waits
   evaluate  osmium geojsonseq exports -> one NDJSON file of place rows per tile, plus stats.json
   post      NDJSON rows -> the collector Edge Function (POST /collector/ingest/places in batches,
             then POST /collector/tiles/{id}/done), with the row-count guard
@@ -38,6 +41,14 @@ MAX_ROWS_PER_TILE = 60000
 DROP_GUARD = 0.7  # refuse to finish a tile whose row count fell more than 30%
 GUARD_MIN_ROWS = 50
 DEDUPE_METERS = 150.0
+# Per-run budget defaults (D-042 slice 2, design 5.1 and 7); the workflow passes its inputs.
+BUDGET_TILES = 12
+BUDGET_DOWNLOADS = 6
+BUDGET_DOWNLOAD_BYTES = 6 * 1024 ** 3
+BUDGET_EXTRACT_BYTES = 3 * 1024 ** 3
+DISK_HEADROOM_BYTES = 3 * 1024 ** 3  # filtered and cut files, exports, rows
+DISK_FACTOR = 1.25  # an extract on disk plus its filtered copies
+
 LINE_CELL_DEG = 0.02
 
 # Tags kept on a row (design 4.3; the database applies the same allowlist).
@@ -190,12 +201,14 @@ def extract_country(c):
     return codes.pop() if len(codes) == 1 else None
 
 
-def pick_extracts(tids, index):
+def pick_extracts(tids, index, strict=True):
     """Per tile, the smallest extract holding each of 9 sample points (corners, edge midpoints,
     centre), so a tile on a border takes both sides and an aggregate such as us-south never wins
-    over the state files inside it."""
+    over the state files inside it. With strict=False a tile no extract covers is listed in
+    plan["uncovered"] instead of stopping the run (the nightly queue)."""
     cands = extract_candidates(index)
     picks = {}
+    uncovered = []
     for t in tids:
         w, s, e, n = tile_bbox(t)
         pts = [(x, y) for x in (w + 1e-6, (w + e) / 2, e - 1e-6) for y in (s + 1e-6, (s + n) / 2, n - 1e-6)]
@@ -207,7 +220,10 @@ def pick_extracts(tids, index):
                 if best not in chosen:
                     chosen.append(best)
         if not chosen:
-            die(f"no Geofabrik extract covers tile {t}")
+            if strict:
+                die(f"no Geofabrik extract covers tile {t}")
+            uncovered.append(t)
+            continue
         picks[t] = chosen
     groups = defaultdict(list)  # extract ids tuple -> tiles
     meta = {}
@@ -216,7 +232,7 @@ def pick_extracts(tids, index):
         groups[key].append(t)
         for c in chosen:
             meta[c["id"]] = c
-    plan = {"groups": [], "extracts": {}}
+    plan = {"groups": [], "extracts": {}, "uncovered": uncovered}
     for key, ts in sorted(groups.items()):
         ts = sorted(ts)
         countries = {extract_country(meta[i]) for i in key}
@@ -230,6 +246,63 @@ def pick_extracts(tids, index):
     for i, c in meta.items():
         plan["extracts"][i] = {"name": c["name"], "pbf": c["pbf"]}
     return plan
+
+
+def apply_budget(plan, order, sizes, max_tiles=BUDGET_TILES, max_downloads=BUDGET_DOWNLOADS,
+                 max_download_bytes=BUDGET_DOWNLOAD_BYTES, max_extract_bytes=BUDGET_EXTRACT_BYTES):
+    """The tiles one run builds (D-042 slice 2). Tiles go in `order` (the queue's: no OSM run
+    first, then demand). A tile whose extracts include one over max_extract_bytes, or of unknown
+    size, or that no extract covers, waits as extract_too_big (unknown size: budget, since the
+    HEAD check may work next time). Otherwise it is taken while the run stays within max_tiles,
+    max_downloads extract files and max_download_bytes; an extract another taken tile already
+    needs costs nothing more. Every extract counts as a download, cached or not (the cache is
+    restored after this choice). Returns (plan with only the taken tiles, {tile: reason})."""
+    by_tile = {t: g for g in plan["groups"] for t in g["tiles"]}
+    deferred = {t: "extract_too_big" for t in plan.get("uncovered", [])}
+    taken, files = [], set()
+    nbytes = 0
+    for t in order:
+        if t in deferred or t in taken:
+            continue
+        g = by_tile.get(t)
+        if g is None:
+            continue
+        ext = g["extracts"]
+        if any(sizes.get(i) is not None and sizes[i] > max_extract_bytes for i in ext):
+            deferred[t] = "extract_too_big"
+            continue
+        if any(sizes.get(i) is None for i in ext):
+            deferred[t] = "budget"
+            continue
+        new = [i for i in ext if i not in files]
+        if (len(taken) + 1 > max_tiles or len(files) + len(new) > max_downloads
+                or nbytes + sum(sizes[i] for i in new) > max_download_bytes):
+            deferred[t] = "budget"
+            continue
+        taken.append(t)
+        files.update(new)
+        nbytes += sum(sizes[i] for i in new)
+    keep = set(taken)
+    out = {"groups": [], "extracts": {}, "uncovered": plan.get("uncovered", []),
+           "budget": {"tiles": len(taken), "downloads": len(files), "download_bytes": nbytes,
+                      "max_tiles": max_tiles, "max_downloads": max_downloads,
+                      "max_download_bytes": max_download_bytes, "max_extract_bytes": max_extract_bytes}}
+    for g in plan["groups"]:
+        ts = [t for t in g["tiles"] if t in keep]
+        if not ts:
+            continue
+        out["groups"].append({**g, "tiles": ts, "bbox": [round(v, 6) for v in union_bbox(ts)]})
+        for i in g["extracts"]:
+            out["extracts"][i] = plan["extracts"][i]
+    return out, deferred
+
+
+def disk_budget(free_bytes, max_download_bytes):
+    """Download bytes the runner's free disk allows (an extract plus its filtered copies, and
+    headroom for exports), never more than max_download_bytes."""
+    if free_bytes is None:
+        return max_download_bytes
+    return max(0, min(max_download_bytes, int((free_bytes - DISK_HEADROOM_BYTES) / DISK_FACTOR)))
 
 
 # ------------------------------------------------------------------------------------------------
@@ -627,7 +700,9 @@ def cmd_plan(a):
     tids = [int(x) for x in a.tiles.split(",") if x]
     if not tids:
         die("no tiles")
-    plan = pick_extracts(tids, index)
+    plan = pick_extracts(tids, index, strict=not a.lenient)
+    if plan["uncovered"]:
+        log(f"no Geofabrik extract covers tiles {plan['uncovered']}")
     with open(a.out, "w", encoding="utf-8") as fh:
         json.dump(plan, fh, indent=1)
     for g in plan["groups"]:
@@ -636,12 +711,35 @@ def cmd_plan(a):
         log(f"extract {i}: {e['name']} {e['pbf']}")
 
 
+def cmd_budget(a):
+    plan = json.load(open(a.plan, encoding="utf-8"))
+    sizes = json.load(open(a.sizes, encoding="utf-8"))
+    order = [int(x) for x in a.order.split(",") if x]
+    max_bytes = disk_budget(a.disk_free, int(a.max_download_gb * 1024 ** 3))
+    if a.disk_free is not None:
+        log(f"disk: {a.disk_free} bytes free; downloads up to {max_bytes} bytes this run")
+    out, deferred = apply_budget(plan, order, sizes, a.max_tiles, a.max_downloads, max_bytes,
+                                 int(a.max_extract_gb * 1024 ** 3))
+    for i in sorted({i for g in plan["groups"] for i in g["extracts"]}):
+        log(f"extract {i}: {sizes.get(i) if sizes.get(i) is not None else 'size unknown'} bytes")
+    with open(a.out, "w", encoding="utf-8") as fh:
+        json.dump(out, fh, indent=1)
+    with open(a.deferred, "w", encoding="utf-8") as fh:
+        json.dump({str(k): v for k, v in sorted(deferred.items())}, fh, indent=1)
+    taken = [t for g in out["groups"] for t in g["tiles"]]
+    log(f"budget: {json.dumps(out['budget'])}")
+    log(f"this run: {len(taken)} tiles; waiting: " + json.dumps(dict(Counter(deferred.values()))))
+    with open(a.tiles_out, "w", encoding="utf-8") as fh:
+        fh.write(",".join(str(t) for t in sorted(taken)))
+
+
 def cmd_tiles(a):
-    """Resolve the region input to tile ids (prints a comma list)."""
+    """Resolve the region input to tile ids (prints a comma list; the queue keeps its order:
+    tiles with no OSM run first, then by demand)."""
     tids = resolve_tiles(a.region)
     if tids is None:
         q = json.load(open(a.queue, encoding="utf-8")) if a.queue else {"tiles": []}
-        tids = sorted({int(t["id"]) for t in q.get("tiles", [])})
+        tids = list(dict.fromkeys(int(t["id"]) for t in q.get("tiles", [])))
     elif a.queue and not a.force:
         q = json.load(open(a.queue, encoding="utf-8"))
         due = {int(t["id"]) for t in q.get("tiles", [])}
@@ -778,7 +876,21 @@ def main(argv=None):
     s.add_argument("--index", required=True)
     s.add_argument("--tiles", required=True)
     s.add_argument("--out", required=True)
+    s.add_argument("--lenient", action="store_true", help="list uncovered tiles instead of failing")
     s.set_defaults(fn=cmd_plan)
+    s = sub.add_parser("budget")
+    s.add_argument("--plan", required=True)
+    s.add_argument("--sizes", required=True)
+    s.add_argument("--order", required=True)
+    s.add_argument("--max-tiles", type=int, default=BUDGET_TILES)
+    s.add_argument("--max-downloads", type=int, default=BUDGET_DOWNLOADS)
+    s.add_argument("--max-download-gb", type=float, default=BUDGET_DOWNLOAD_BYTES / 1024 ** 3)
+    s.add_argument("--max-extract-gb", type=float, default=BUDGET_EXTRACT_BYTES / 1024 ** 3)
+    s.add_argument("--disk-free", type=int)
+    s.add_argument("--out", required=True)
+    s.add_argument("--deferred", required=True)
+    s.add_argument("--tiles-out", required=True)
+    s.set_defaults(fn=cmd_budget)
     s = sub.add_parser("evaluate")
     s.add_argument("--plan", required=True)
     s.add_argument("--group", required=True)

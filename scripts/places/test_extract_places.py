@@ -94,6 +94,97 @@ class Pick(unittest.TestCase):
         self.assertEqual(plan["groups"][0]["extracts"], ["us/alabama", "us/georgia"])
 
 
+class Budget(unittest.TestCase):
+    """The per-run budget (D-042 slice 2)."""
+
+    def plan(self):
+        # Three groups: A (tiles 1, 2) needs a; B (tile 3) needs a and b; C (tile 4) needs c.
+        return {"groups": [
+            {"name": "a", "extracts": ["a"], "tiles": [10, 11], "bbox": [0, 0, 1, 1], "country": "DE"},
+            {"name": "a-b", "extracts": ["a", "b"], "tiles": [12], "bbox": [0, 0, 1, 1], "country": None},
+            {"name": "c", "extracts": ["c"], "tiles": [13], "bbox": [0, 0, 1, 1], "country": "FR"},
+        ], "extracts": {i: {"name": i, "pbf": f"https://x/{i}.osm.pbf"} for i in "abc"}, "uncovered": [14]}
+
+    GB = 1024 ** 3
+
+    def test_takes_in_order_and_shares_downloads(self):
+        sizes = {"a": 1 * self.GB, "b": 1 * self.GB, "c": 1 * self.GB}
+        out, deferred = ep.apply_budget(self.plan(), [12, 10, 11, 13, 14], sizes, max_tiles=12,
+                                        max_downloads=6, max_download_bytes=6 * self.GB)
+        self.assertEqual(sorted(t for g in out["groups"] for t in g["tiles"]), [10, 11, 12, 13])
+        self.assertEqual(out["budget"]["downloads"], 3)
+        self.assertEqual(out["budget"]["download_bytes"], 3 * self.GB)
+        self.assertEqual(deferred, {14: "extract_too_big"})
+        self.assertEqual(sorted(out["extracts"]), ["a", "b", "c"])
+
+    def test_tile_cap(self):
+        sizes = {"a": 1, "b": 1, "c": 1}
+        out, deferred = ep.apply_budget(self.plan(), [13, 10, 11, 12], sizes, max_tiles=2)
+        self.assertEqual([g["tiles"] for g in out["groups"]], [[10], [13]])
+        self.assertEqual(deferred, {11: "budget", 12: "budget", 14: "extract_too_big"})
+        # The group box shrinks to the taken tiles.
+        self.assertEqual(out["groups"][0]["bbox"], [round(v, 6) for v in ep.union_bbox([10])])
+        self.assertEqual(sorted(out["extracts"]), ["a", "c"])
+
+    def test_download_caps(self):
+        sizes = {"a": 2 * self.GB, "b": 2 * self.GB, "c": 2 * self.GB}
+        _, deferred = ep.apply_budget(self.plan(), [10, 12, 13], sizes, max_download_bytes=4 * self.GB)
+        self.assertEqual(deferred[13], "budget")
+        self.assertNotIn(12, deferred)
+        _, deferred = ep.apply_budget(self.plan(), [10, 12, 13], sizes, max_downloads=1)
+        self.assertEqual((deferred[12], deferred[13]), ("budget", "budget"))
+        self.assertNotIn(10, deferred)
+
+    def test_too_big_and_unknown(self):
+        sizes = {"a": 4 * self.GB, "b": None, "c": 1}
+        out, deferred = ep.apply_budget(self.plan(), [10, 11, 12, 13], sizes)
+        self.assertEqual(deferred[10], "extract_too_big")
+        self.assertEqual(deferred[12], "extract_too_big")
+        self.assertEqual([g["tiles"] for g in out["groups"]], [[13]])
+        sizes = {"a": 1, "b": None, "c": 1}
+        _, deferred = ep.apply_budget(self.plan(), [12], sizes)
+        self.assertEqual(deferred[12], "budget")
+
+    def test_disk_budget(self):
+        self.assertEqual(ep.disk_budget(None, 6 * self.GB), 6 * self.GB)
+        self.assertEqual(ep.disk_budget(100 * self.GB, 6 * self.GB), 6 * self.GB)
+        self.assertEqual(ep.disk_budget(8 * self.GB, 6 * self.GB), 4 * self.GB)
+        self.assertEqual(ep.disk_budget(self.GB, 6 * self.GB), 0)
+
+    def test_uncovered_lenient(self):
+        idx = Pick().index()
+        with self.assertRaises(SystemExit):
+            ep.pick_extracts([ep.tile_id(-60, 100)], idx)
+        plan = ep.pick_extracts([ep.tile_id(-60, 100), 178031], idx, strict=False)
+        self.assertEqual(plan["uncovered"], [ep.tile_id(-60, 100)])
+        self.assertEqual(plan["groups"][0]["tiles"], [178031])
+
+    def test_cli(self):
+        with tempfile.TemporaryDirectory() as d:
+            json.dump(self.plan(), open(os.path.join(d, "plan.json"), "w"))
+            json.dump({"a": 1, "b": 1, "c": 1}, open(os.path.join(d, "sizes.json"), "w"))
+            ep.main(["budget", "--plan", os.path.join(d, "plan.json"), "--sizes", os.path.join(d, "sizes.json"),
+                     "--order", "13,10,11,12", "--max-tiles", "3", "--disk-free", str(50 * self.GB),
+                     "--out", os.path.join(d, "out.json"), "--deferred", os.path.join(d, "deferred.json"),
+                     "--tiles-out", os.path.join(d, "tiles.txt")])
+            self.assertEqual(open(os.path.join(d, "tiles.txt")).read(), "10,11,13")
+            self.assertEqual(json.load(open(os.path.join(d, "deferred.json"))),
+                             {"12": "budget", "14": "extract_too_big"})
+
+
+class QueueOrder(unittest.TestCase):
+    def test_queue_keeps_server_order(self):
+        with tempfile.TemporaryDirectory() as d:
+            q = os.path.join(d, "q.json")
+            json.dump({"tiles": [{"id": 203424}, {"id": 178031}, {"id": 203424}]}, open(q, "w"))
+            import io
+            import contextlib
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                ep.main(["tiles", "--region", "queue", "--queue", q])
+            self.assertEqual(buf.getvalue().strip(), "203424,178031")
+
+
 class RuleMatch(unittest.TestCase):
     def setUp(self):
         self.rules = ep.Rules(RULES)
