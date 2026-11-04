@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Mark } from "@ap/ui/brand";
+import { deviceTimeZone } from "@ap/core/feed";
 import { ageOn } from "@ap/core/validation";
 
 import {
@@ -14,7 +15,13 @@ import {
 } from "@/components/onboarding/steps";
 import { authErrorMessage, getSession, rpcErrorMessage, signOut } from "@/lib/auth";
 import { cn } from "@/lib/cn";
-import { areaErrorMessage, areasQuery, clearFeedLocation, type HomeChoice } from "@/lib/location";
+import {
+  areaErrorMessage,
+  areasQuery,
+  clearFeedLocation,
+  setMyTimezone,
+  type HomeChoice,
+} from "@/lib/location";
 import { campusesQuery, getProfile, hubCatalogQuery, profileQuery } from "@/lib/profile";
 import { supabase } from "@/lib/supabase";
 
@@ -127,6 +134,9 @@ function OnboardingPage() {
       return;
     }
     queryClient.setQueryData(profileQuery(session.user.id).queryKey, data);
+    // The device's zone for Today / This week (D-040); best effort, Home saves it again if missing.
+    const zone = deviceTimeZone();
+    if (zone) await setMyTimezone(zone).catch(() => undefined);
     void queryClient.invalidateQueries({ queryKey: ["my-hubs"] });
     void queryClient.invalidateQueries({ queryKey: ["feed"] });
     void queryClient.invalidateQueries({ queryKey: ["feed-prefs"] });

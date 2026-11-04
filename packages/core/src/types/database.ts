@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 25 (schema_version 2.21). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 26 (schema_version 2.22). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -1844,6 +1844,7 @@ export type Database = {
           location: unknown;
           location_text: string;
           location_updated_at: string | null;
+          timezone: string | null;
           updated_at: string;
           user_id: string;
         };
@@ -1862,6 +1863,7 @@ export type Database = {
           location?: unknown;
           location_text?: string;
           location_updated_at?: string | null;
+          timezone?: string | null;
           updated_at?: string;
           user_id: string;
         };
@@ -1880,6 +1882,7 @@ export type Database = {
           location?: unknown;
           location_text?: string;
           location_updated_at?: string | null;
+          timezone?: string | null;
           updated_at?: string;
           user_id?: string;
         };
@@ -2153,7 +2156,7 @@ export type Database = {
           address_line2: string;
           campus_id: string | null;
           city: string;
-          country: string;
+          country: string | null;
           created_at: string;
           created_by: string | null;
           id: string;
@@ -2173,7 +2176,7 @@ export type Database = {
           address_line2?: string;
           campus_id?: string | null;
           city?: string;
-          country?: string;
+          country?: string | null;
           created_at?: string;
           created_by?: string | null;
           id?: string;
@@ -2193,7 +2196,7 @@ export type Database = {
           address_line2?: string;
           campus_id?: string | null;
           city?: string;
-          country?: string;
+          country?: string | null;
           created_at?: string;
           created_by?: string | null;
           id?: string;
@@ -2713,6 +2716,7 @@ export type Database = {
           p_limit?: number;
           p_lng?: number;
           p_radius_km?: number;
+          p_timezone?: string;
           p_to: string;
         };
         Returns: {
@@ -3066,6 +3070,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      set_my_timezone: { Args: { p_timezone: string }; Returns: Json };
       set_project_url: { Args: { p_url: string }; Returns: Json };
       set_rsvp: {
         Args: {
@@ -3235,7 +3240,7 @@ export type Database = {
           address_line2: string;
           campus_id: string | null;
           city: string;
-          country: string;
+          country: string | null;
           created_at: string;
           created_by: string | null;
           id: string;

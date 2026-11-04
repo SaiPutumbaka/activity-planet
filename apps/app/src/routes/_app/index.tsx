@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarX, ChevronDown, LocateFixed, MapPin, Search } from "lucide-react";
 import { z } from "zod";
-import { FEED_TIMEZONE, groupFeed } from "@ap/core/feed";
+import { deviceTimeZone, feedTimeZone, groupFeed } from "@ap/core/feed";
 
 import { AttendancePromptCard } from "@/components/events/attendance-prompt-card";
 import { EventCard } from "@/components/events/event-card";
@@ -20,7 +20,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FormError } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { feedQuery } from "@/lib/events";
-import { areasQuery, feedPrefsQuery, useFeedOrigin } from "@/lib/location";
+import { areasQuery, feedPrefsQuery, setMyTimezone, useFeedOrigin } from "@/lib/location";
 import { myHubsQuery } from "@/lib/profile";
 
 const appRoute = getRouteApi("/_app");
@@ -30,15 +30,6 @@ const searchSchema = z.object({
   hub: z.string().min(1).max(80).optional(),
   free: z.boolean().optional(),
 });
-
-/** The viewer's own time zone for Today / This week, wherever they are; the feed's default otherwise. */
-function viewerTimeZone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || FEED_TIMEZONE;
-  } catch {
-    return FEED_TIMEZONE;
-  }
-}
 
 /**
  * Home: Feed v2 (D-036, D-040). Plans near the viewer's saved home, anywhere in the world (or,
@@ -99,6 +90,17 @@ function Feed({ userId }: { userId: string }) {
   const myHubs = (hubs.data ?? []).flatMap((m) => (m.hubs ? [m.hubs] : []));
   const hubFilter = search.hub ? myHubs.find((h) => h.slug === search.hub) : undefined;
   const radiusKm = radius.data?.radiusKm ?? 10;
+  // Today / This week follow the viewer's own day, wherever they are (D-040): the device zone is
+  // sent with each request and saved once it differs from the stored one.
+  const deviceZone = deviceTimeZone();
+  const savedZone = radius.data?.timeZone ?? null;
+  const zoneSaved = useRef(false);
+  useEffect(() => {
+    if (!deviceZone || !radius.isSuccess || savedZone === deviceZone || zoneSaved.current) return;
+    zoneSaved.current = true;
+    // Best effort: the feed already sends the zone, so a failed save changes nothing on screen.
+    setMyTimezone(deviceZone).catch(() => undefined);
+  }, [deviceZone, savedZone, radius.isSuccess]);
 
   // Wait for the radius, the areas (part of the key) and, when filtering by a slug, the hub list,
   // so the first request is the right one. A failed load of any of them still lets the feed run.
@@ -114,12 +116,13 @@ function Feed({ userId }: { userId: string }) {
       radiusKm,
       hubId: hubFilter?.id,
       free: search.free,
+      timeZone: deviceZone,
     }),
     enabled: ready,
   });
 
   const now = new Date();
-  const groups = groupFeed(feed.data?.events ?? [], now, viewerTimeZone());
+  const groups = groupFeed(feed.data?.events ?? [], now, feedTimeZone(deviceZone, savedZone));
   const filtered = Boolean(hubFilter) || Boolean(search.free);
 
   function setFilter(next: { hub?: string; free?: boolean }) {

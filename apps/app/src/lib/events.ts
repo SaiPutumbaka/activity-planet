@@ -290,6 +290,8 @@ export interface FeedParams {
   radiusKm: number;
   hubId?: string;
   free?: boolean;
+  /** The device's IANA zone (deviceTimeZone()); feed_events_v2 files sections in it. */
+  timeZone?: string | null;
 }
 
 /**
@@ -316,6 +318,7 @@ export const feedQuery = (p: FeedParams) =>
         radiusKm: p.radiusKm,
         hubId: p.hubId ?? null,
         free: Boolean(p.free),
+        timeZone: p.timeZone ?? null,
       },
     ] as const,
     queryFn: async () => {
@@ -332,6 +335,7 @@ export const feedQuery = (p: FeedParams) =>
           ...(p.point ? { p_lat: p.point.lat, p_lng: p.point.lng } : {}),
           ...(p.hubId ? { p_hub_ids: [p.hubId] } : {}),
           ...(p.free ? { p_free_only: true } : {}),
+          ...(p.timeZone ? { p_timezone: p.timeZone } : {}),
         });
         if (error) throw error;
         return data.filter((e) => !isOver(e.ends_at, now));

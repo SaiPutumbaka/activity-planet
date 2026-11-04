@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   clampRadiusKm,
+  deviceTimeZone,
   distanceBandLabel,
   feedSection,
+  feedTimeZone,
   groupFeed,
   nextRadiusKm,
+  normalizeTimeZone,
   roundCoordinate,
   roundPoint,
 } from "../index";
@@ -137,5 +140,51 @@ describe("distanceBandLabel", () => {
     expect(distanceBandLabel("25+ mi")).toBe("25+ mi");
     expect(distanceBandLabel(null)).toBeNull();
     expect(distanceBandLabel("weird")).toBeNull();
+  });
+});
+
+describe("normalizeTimeZone", () => {
+  it("keeps IANA names and trims them", () => {
+    expect(normalizeTimeZone(" Europe/London ")).toBe("Europe/London");
+    expect(normalizeTimeZone("America/Argentina/Buenos_Aires")).toBe(
+      "America/Argentina/Buenos_Aires",
+    );
+  });
+
+  it("maps UTC aliases to Etc/UTC", () => {
+    expect(normalizeTimeZone("UTC")).toBe("Etc/UTC");
+    expect(normalizeTimeZone("gmt")).toBe("Etc/UTC");
+  });
+
+  it("refuses abbreviations, unknown names and non-strings", () => {
+    expect(normalizeTimeZone("EST")).toBeNull();
+    expect(normalizeTimeZone("Mars/Olympus_Mons")).toBeNull();
+    expect(normalizeTimeZone("")).toBeNull();
+    expect(normalizeTimeZone(null)).toBeNull();
+    expect(normalizeTimeZone(`Europe/${"x".repeat(70)}`)).toBeNull();
+  });
+});
+
+describe("feedTimeZone", () => {
+  it("prefers the device, then the saved zone, then America/New_York", () => {
+    expect(feedTimeZone("Asia/Tokyo", "Europe/London")).toBe("Asia/Tokyo");
+    expect(feedTimeZone(null, "Europe/London")).toBe("Europe/London");
+    expect(feedTimeZone("EST", null)).toBe("America/New_York");
+  });
+
+  it("deviceTimeZone gives a zone the feed accepts or null", () => {
+    const tz = deviceTimeZone();
+    expect(tz === null || normalizeTimeZone(tz) === tz).toBe(true);
+  });
+});
+
+describe("feedSection in the viewer's zone", () => {
+  it("files the same instant differently in Tokyo and Atlanta", () => {
+    // 23:30 Thursday in Atlanta is 13:30 Friday in Tokyo; 16:00 UTC Friday is 01:00 Saturday there.
+    expect(feedSection("2026-11-13T16:00:00Z", lateThursdayAtlanta)).toBe("this_week");
+    expect(feedSection("2026-11-13T10:00:00Z", lateThursdayAtlanta, "Asia/Tokyo")).toBe("today");
+    expect(feedSection("2026-11-13T16:00:00Z", lateThursdayAtlanta, "Asia/Tokyo")).toBe(
+      "this_week",
+    );
   });
 });

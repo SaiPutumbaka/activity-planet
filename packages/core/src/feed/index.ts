@@ -1,15 +1,64 @@
 /**
  * Feed v2 helpers (D-036), pure so they can be tested without a browser or a database.
  *
- *   feedSection(e.starts_at, now)                 // "today" | "this_week" | "later" (America/New_York)
+ *   feedSection(e.starts_at, now, "Asia/Tokyo")   // "today" | "this_week" | "later" in that zone
+ *   deviceTimeZone()                              // "Europe/London" (the device's IANA zone) or null
+ *   feedTimeZone(deviceTimeZone(), saved)         // device, else saved, else America/New_York
  *   groupFeed(events, now)                        // { sections: [{ key, title, events }], imported }
  *   nextRadiusKm(10, 3)                           // 25: fewer than 5 results, widen one step
  *   roundCoordinate(33.74901)                     // 33.75 (about 1 km; never send more)
  *   distanceBandLabel("approximate")              // "Approximate area"
  */
 
-/** The feed's day boundaries are Atlanta's, the same zone feed_events_v2 uses. */
+/**
+ * The zone used for Today / This week / Later only when the viewer's own is unknown (feed_events_v2
+ * falls back to the event's zone first, then this one).
+ */
 export const FEED_TIMEZONE = "America/New_York";
+
+/** Zone names that mean UTC but have no "/", which the database refuses; sent as Etc/UTC. */
+const UTC_ALIASES = new Set([
+  "UTC",
+  "UCT",
+  "GMT",
+  "ZULU",
+  "UNIVERSAL",
+  "GREENWICH",
+  "ETC/UCT",
+  "ETC/GMT",
+]);
+
+/**
+ * An IANA zone name the database accepts (a name with a "/", at most 64 characters, known to this
+ * runtime), or null. "UTC" and its aliases become "Etc/UTC"; abbreviations such as "EST" give null.
+ */
+export function normalizeTimeZone(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null;
+  const tz = value.trim();
+  if (!tz) return null;
+  if (UTC_ALIASES.has(tz.toUpperCase())) return "Etc/UTC";
+  if (tz.length > 64 || !tz.includes("/")) return null;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return tz;
+  } catch {
+    return null;
+  }
+}
+
+/** The device's own IANA time zone (Intl.DateTimeFormat().resolvedOptions().timeZone), or null. */
+export function deviceTimeZone(): string | null {
+  try {
+    return normalizeTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  } catch {
+    return null;
+  }
+}
+
+/** The zone the feed files its sections in: the device's, else the saved one, else FEED_TIMEZONE. */
+export function feedTimeZone(device: string | null | undefined, saved?: string | null): string {
+  return normalizeTimeZone(device) ?? normalizeTimeZone(saved) ?? FEED_TIMEZONE;
+}
 
 /** Radius choices offered in the location sheet and on the You tab, in km. */
 export const RADIUS_OPTIONS_KM = [5, 10, 25, 50] as const;

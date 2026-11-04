@@ -57,6 +57,8 @@ export interface FeedPrefs {
   homeLabel: string | null;
   /** profile_private.home_point, rounded to about 1 km; null when no home was saved. */
   homePoint: { lat: number; lng: number } | null;
+  /** profile_private.timezone: the saved IANA zone (set_my_timezone); null until the app saves one. */
+  timeZone: string | null;
 }
 
 /** The saved home and feed radius. All of it lives in profile_private, readable by the owner only. */
@@ -66,7 +68,7 @@ export const feedPrefsQuery = (userId: string) =>
     queryFn: async (): Promise<FeedPrefs> => {
       const { data, error } = await supabase
         .from("profile_private")
-        .select("feed_radius_km,home_area_id,home_label,home_point")
+        .select("feed_radius_km,home_area_id,home_label,home_point,timezone")
         .eq("user_id", userId)
         .maybeSingle();
       if (error) throw error;
@@ -75,6 +77,7 @@ export const feedPrefsQuery = (userId: string) =>
         homeAreaId: data?.home_area_id ?? null,
         homeLabel: data?.home_label ?? null,
         homePoint: parseGeoPoint(data?.home_point),
+        timeZone: data?.timezone ?? null,
       };
     },
     staleTime: 5 * 60_000,
@@ -86,6 +89,15 @@ export async function setHomeArea(areaId: string, radiusKm?: number): Promise<vo
     p_area_id: areaId,
     ...(radiusKm !== undefined ? { p_radius_km: radiusKm } : {}),
   });
+  if (error) throw error;
+}
+
+/**
+ * set_my_timezone: saves the device's IANA zone (D-040) so the feed files Today / This week /
+ * Later in the viewer's own day even when a request sends no zone. Null clears it.
+ */
+export async function setMyTimezone(timeZone: string | null): Promise<void> {
+  const { error } = await supabase.rpc("set_my_timezone", { p_timezone: timeZone ?? "" });
   if (error) throw error;
 }
 
