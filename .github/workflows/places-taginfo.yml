@@ -1,0 +1,49 @@
+name: Places taginfo check
+
+# Counts worldwide OpenStreetMap uses of every tag in scripts/places/hub_place_rules.json on
+# taginfo.openstreetmap.org (D-041, hub map slice 2). Read-only: no secrets, no database, no user
+# data; the log and summary hold public tag statistics only. The result is an artifact with
+# taginfo_counts.json and a report; commit taginfo_counts.json to scripts/places/ and re-run
+# scripts/places/gen_place_rules.py, which drops tags with fewer than 50 uses worldwide.
+# Re-run by hand when the rules change (about 500 tags, one request at a time, a few minutes).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: places-taginfo
+  cancel-in-progress: false
+
+jobs:
+  taginfo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Count tag uses on taginfo
+        run: python3 -I scripts/places/taginfo_check.py out
+      - name: Regenerate the seed and filter with these counts
+        run: |
+          cp out/taginfo_counts.json scripts/places/taginfo_counts.json
+          python3 -I scripts/places/gen_place_rules.py > out/gen_stats.json
+          cp scripts/places/rules_stats.json scripts/places/filters.txt supabase/seed/place_rules.sql scripts/places/rule_ids.json out/
+      - name: Summary
+        run: |
+          cat out/taginfo_report.md >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo ""
+            echo "### Generator with these counts"
+            echo ""
+            echo '```json'
+            cat out/gen_stats.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat out/gen_stats.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: places-taginfo
+          path: out/
+          retention-days: 30
