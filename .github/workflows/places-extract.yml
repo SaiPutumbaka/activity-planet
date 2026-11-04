@@ -1,0 +1,338 @@
+name: Places extract
+
+# OpenStreetMap places for the hub map (D-041 slice 5, docs/design/hub-map/HUB_MAP_DESIGN.md 3.1).
+# For each requested place tile: pick the smallest Geofabrik extracts that cover it, cache them for
+# the ISO week, keep the rule base tags with osmium (scripts/places/filters.txt), cut the tiles'
+# box plus 2 km, export points, lines and polygons, then scripts/places/extract_places.py reduces
+# them to points, evaluates the place rules, and posts batches to the collector Edge Function
+# (POST /collector/ingest/places, then /collector/tiles/{id}/done).
+#
+# Where it posts:
+#   * workflow_dispatch from a ref other than main: STAGING only.
+#   * workflow_dispatch from main: PRODUCTION only when the input production is "production";
+#     otherwise it evaluates and measures and posts nothing.
+#   * push to a branch other than main that changes scripts/places/extract_request.json: STAGING,
+#     with that file's region/post/force (dispatch works only once this file is on main).
+#   * schedule (weekly): a no-op unless the repository variable PLACES_EXTRACT_SCHEDULE is
+#     "production" and production's tiles queue has wanted tiles or tiles due a refresh.
+#
+# Guards: a tile with more than 60,000 rows fails before posting; the run refuses to post when the
+# database plus the estimated rows (900 bytes each, design 4.5) would pass the 150 MB cap; a tile
+# whose row count fell more than 30% against the tile's last count is not finished (nothing is
+# closed); after finishing, a drop against the previous run's seen count fails the run.
+#
+# Secrets: none of its own. It links the target project with SUPABASE_ACCESS_TOKEN and the
+# database password (as migrate.yml does), reads the collector secret that migration 28 generated
+# in that project's vault, masks it, and uses it only as the x-collector-secret header. The
+# service-role key never reaches the job. Logs hold counts, sizes, error names and a few sample
+# rows of public OpenStreetMap data; never the secret and never member data.
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: "Region from scripts/places/regions.json (atlanta), tile ids (178030,178031), or queue"
+        type: string
+        default: "atlanta"
+      post:
+        description: "Post to the collector (off: evaluate and measure only)"
+        type: boolean
+        default: true
+      force:
+        description: "Run named tiles even when they are not wanted or due a refresh"
+        type: boolean
+        default: false
+      production:
+        description: "Type production to post to PRODUCTION (only from main)"
+        type: string
+        default: ""
+  push:
+    branches-ignore: [main]
+    paths:
+      - "scripts/places/extract_request.json"
+  schedule:
+    - cron: "17 3 * * 0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: places-extract
+  cancel-in-progress: false
+
+env:
+  STAGING_PROJECT_REF: gzrscndzzggxmcwnvvcq
+  PROD_PROJECT_REF: gtesfiqxqontescqpllo
+  DB_CAP_BYTES: "157286400"
+  USER_AGENT: "ActivityPlanet-places/1 (+https://github.com/SaiPutumbaka/activity-planet)"
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide target and region
+        id: mode
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          IN_REGION: ${{ inputs.region }}
+          IN_POST: ${{ inputs.post }}
+          IN_FORCE: ${{ inputs.force }}
+          IN_PRODUCTION: ${{ inputs.production }}
+          SCHEDULE_VAR: ${{ vars.PLACES_EXTRACT_SCHEDULE }}
+        run: |
+          target=none; region=""; post=false; force=false
+          case "$EVENT" in
+            schedule)
+              if [ "$SCHEDULE_VAR" = "production" ] && [ "$REF" = "refs/heads/main" ]; then
+                target=production; region=queue; post=true
+              else
+                echo "Scheduled run: PLACES_EXTRACT_SCHEDULE is not production; nothing to do."
+              fi ;;
+            workflow_dispatch)
+              region="$IN_REGION"; force="$IN_FORCE"; post="$IN_POST"
+              if [ "$REF" = "refs/heads/main" ]; then
+                if [ "$IN_PRODUCTION" = "production" ]; then target=production; else target=none; post=false; fi
+              else
+                if [ -n "$IN_PRODUCTION" ]; then echo "production is only reachable from main"; exit 1; fi
+                target=staging
+              fi ;;
+            push)
+              if [ "$REF" = "refs/heads/main" ]; then echo "never on main pushes"; exit 1; fi
+              target=staging
+              region=$(python3 -I -c 'import json;print(json.load(open("scripts/places/extract_request.json"))["region"])')
+              post=$(python3 -I -c 'import json;print(str(json.load(open("scripts/places/extract_request.json")).get("post", False)).lower())')
+              force=$(python3 -I -c 'import json;print(str(json.load(open("scripts/places/extract_request.json")).get("force", False)).lower())') ;;
+          esac
+          case "$region" in *[!a-zA-Z0-9,_-]*) echo "Refusing region: $region"; exit 1 ;; esac
+          if [ "$target" = "none" ] && [ "$EVENT" = "schedule" ]; then region=""; fi
+          if [ "$target" = "none" ]; then post=false; fi
+          if [ "$post" != "true" ] && [ "$region" = "queue" ]; then echo "region queue needs post"; exit 1; fi
+          ref=""
+          [ "$target" = "staging" ] && ref="$STAGING_PROJECT_REF"
+          [ "$target" = "production" ] && ref="$PROD_PROJECT_REF"
+          echo "target=$target region=$region post=$post force=$force"
+          {
+            echo "target=$target"; echo "project_ref=$ref"; echo "region=$region"
+            echo "post=$post"; echo "force=$force"
+            echo "week=$(date -u +%G-W%V)"
+            echo "run_id=gh-${{ github.run_id }}-${{ github.run_attempt }}"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: supabase/setup-cli@v1
+        if: steps.mode.outputs.post == 'true'
+        with:
+          version: 2.122.0
+
+      # The secret is captured, never echoed; ::add-mask:: hides it if anything ever prints it.
+      - name: Link the target and read the collector secret
+        if: steps.mode.outputs.post == 'true'
+        id: link
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ steps.mode.outputs.target == 'production' && secrets.SUPABASE_PROD_DB_PASSWORD || secrets.SUPABASE_STAGING_DB_PASSWORD }}
+          PROJECT_REF: ${{ steps.mode.outputs.project_ref }}
+        run: |
+          supabase link --project-ref "$PROJECT_REF" > /dev/null
+          out=$(supabase db query --linked "select 'CSECRET:' || ds.decrypted_secret as v from vault.decrypted_secrets ds where ds.name = 'collector_secret'" 2>/dev/null || true)
+          secret=$(printf '%s' "$out" | grep -o 'CSECRET:[0-9a-f]\{64\}' | head -1 | cut -d: -f2)
+          unset out
+          if [ -z "$secret" ]; then echo "collector_secret not found in the target vault"; exit 1; fi
+          echo "::add-mask::$secret"
+          echo "COLLECTOR_SECRET=$secret" >> "$GITHUB_ENV"
+          echo "Collector secret read (masked)."
+
+      - name: Database size before
+        if: steps.mode.outputs.post == 'true'
+        id: before
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          out=$(supabase db query --linked "select 'DBBYTES:' || pg_database_size(current_database()) || ':' || pg_total_relation_size('public.places') as v")
+          db=$(printf '%s' "$out" | grep -o 'DBBYTES:[0-9]*:[0-9]*' | head -1)
+          [ -n "$db" ] || { echo "could not read the database size"; exit 1; }
+          echo "db_bytes=$(echo "$db" | cut -d: -f2)" >> "$GITHUB_OUTPUT"
+          echo "places_bytes=$(echo "$db" | cut -d: -f3)" >> "$GITHUB_OUTPUT"
+          echo "database $(echo "$db" | cut -d: -f2) bytes, places $(echo "$db" | cut -d: -f3) bytes"
+
+      - name: Tiles queue
+        if: steps.mode.outputs.post == 'true'
+        env:
+          PROJECT_REF: ${{ steps.mode.outputs.project_ref }}
+        run: |
+          mkdir -p work
+          code=$(curl -sS -o work/queue.json -w '%{http_code}' -H "x-collector-secret: $COLLECTOR_SECRET" \
+            "https://$PROJECT_REF.supabase.co/functions/v1/collector/tiles?status=wanted,refresh&limit=100")
+          [ "$code" = "200" ] || { echo "tiles queue: HTTP $code"; exit 1; }
+          python3 -I -c 'import json;q=json.load(open("work/queue.json"))["tiles"];print(f"{len(q)} tiles queued:", [(t["id"], t["status"], t["row_count"]) for t in q])'
+
+      - name: Resolve tiles
+        id: tiles
+        if: steps.mode.outputs.region != ''
+        env:
+          REGION: ${{ steps.mode.outputs.region }}
+          FORCE: ${{ steps.mode.outputs.force }}
+        run: |
+          mkdir -p work
+          args="--region $REGION"
+          [ -f work/queue.json ] && args="$args --queue work/queue.json"
+          [ "$FORCE" = "true" ] && args="$args --force"
+          tiles=$(python3 -I scripts/places/extract_places.py tiles $args)
+          echo "tiles: ${tiles:-none}"
+          echo "tiles=$tiles" >> "$GITHUB_OUTPUT"
+
+      - name: Install osmium and shapely
+        if: steps.tiles.outputs.tiles != ''
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq osmium-tool python3-shapely > /dev/null
+          osmium --version | head -1
+          python3 -I -c 'import shapely; print("shapely", shapely.__version__)'
+
+      - name: Cache the Geofabrik index
+        if: steps.tiles.outputs.tiles != ''
+        uses: actions/cache@v4
+        with:
+          path: geofabrik/index-v1.json
+          key: geofabrik-index-${{ steps.mode.outputs.week }}
+
+      - name: Plan extracts
+        id: plan
+        if: steps.tiles.outputs.tiles != ''
+        env:
+          TILES: ${{ steps.tiles.outputs.tiles }}
+        run: |
+          mkdir -p geofabrik
+          if [ ! -s geofabrik/index-v1.json ]; then
+            curl -fsS -A "$USER_AGENT" -o geofabrik/index-v1.json https://download.geofabrik.de/index-v1.json
+          fi
+          python3 -I scripts/places/extract_places.py plan --index geofabrik/index-v1.json --tiles "$TILES" --out work/plan.json
+          key=$(python3 -I -c 'import json;print("-".join(sorted(json.load(open("work/plan.json"))["extracts"])).replace("/", "_"))')
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the extracts for the week
+        if: steps.tiles.outputs.tiles != ''
+        uses: actions/cache@v4
+        with:
+          path: geofabrik/pbf
+          key: geofabrik-${{ steps.plan.outputs.key }}-${{ steps.mode.outputs.week }}
+
+      - name: Download missing extracts
+        if: steps.tiles.outputs.tiles != ''
+        run: |
+          mkdir -p geofabrik/pbf
+          python3 -I -c 'import json
+          for i, e in sorted(json.load(open("work/plan.json"))["extracts"].items()):
+              print(i.replace("/", "_"), e["pbf"])' > work/extracts.txt
+          while read -r id url; do
+            f="geofabrik/pbf/$id.osm.pbf"
+            if [ -s "$f" ]; then echo "$id: cached, $(stat -c %s "$f") bytes"; continue; fi
+            curl -fsS -A "$USER_AGENT" -o "$f" "$url"
+            curl -fsS -A "$USER_AGENT" -o "$f.md5" "$url.md5"
+            want=$(cut -d' ' -f1 "$f.md5"); got=$(md5sum "$f" | cut -d' ' -f1)
+            [ "$want" = "$got" ] || { echo "$id: md5 mismatch"; rm -f "$f"; exit 1; }
+            echo "$id: downloaded, $(stat -c %s "$f") bytes"
+          done < work/extracts.txt
+
+      - name: Filter, cut and export with osmium
+        if: steps.tiles.outputs.tiles != ''
+        run: |
+          python3 -I -c 'import json
+          for g in json.load(open("work/plan.json"))["groups"]:
+              print(g["name"].replace("/", "_"), ",".join(str(v) for v in g["bbox"]), " ".join(x.replace("/", "_") for x in g["extracts"]))' > work/groups.txt
+          while read -r name bbox extracts; do
+            fs=""; rs=""
+            for id in $extracts; do
+              osmium tags-filter "geofabrik/pbf/$id.osm.pbf" --expressions=scripts/places/filters.txt -o "work/f_$id.pbf" --overwrite
+              osmium tags-filter "geofabrik/pbf/$id.osm.pbf" wr/landuse=residential -o "work/r_$id.pbf" --overwrite
+              fs="$fs work/f_$id.pbf"; rs="$rs work/r_$id.pbf"
+            done
+            if [ "$(echo $fs | wc -w)" -gt 1 ]; then
+              osmium merge $fs -o "work/f_$name.all.pbf" --overwrite; osmium merge $rs -o "work/r_$name.all.pbf" --overwrite
+            else
+              cp $fs "work/f_$name.all.pbf"; cp $rs "work/r_$name.all.pbf"
+            fi
+            osmium extract -b "$bbox" -s smart "work/f_$name.all.pbf" -o "work/t_$name.pbf" --overwrite
+            osmium extract -b "$bbox" -s smart "work/r_$name.all.pbf" -o "work/tr_$name.pbf" --overwrite
+            osmium export "work/t_$name.pbf" -f geojsonseq --geometry-types=point,linestring,polygon -i type_id -o "work/features_$name.geojsonseq" --overwrite
+            osmium export "work/tr_$name.pbf" -f geojsonseq --geometry-types=polygon -o "work/res_$name.geojsonseq" --overwrite
+            echo "$name: filtered $(stat -c %s "work/f_$name.all.pbf") bytes, cut $(stat -c %s "work/t_$name.pbf") bytes, $(wc -l < "work/features_$name.geojsonseq") features, $(wc -l < "work/res_$name.geojsonseq") residential polygons"
+          done < work/groups.txt
+
+      - name: Evaluate rules
+        if: steps.tiles.outputs.tiles != ''
+        run: |
+          python3 -I -c 'import json
+          for g in json.load(open("work/plan.json"))["groups"]:
+              print(g["name"], g["name"].replace("/", "_"))' > work/groupnames.txt
+          while read -r name safe; do
+            python3 -I scripts/places/extract_places.py evaluate --plan work/plan.json --group "$name" \
+              --features "work/features_$safe.geojsonseq" --residential "work/res_$safe.geojsonseq" --out-dir work/rows
+          done < work/groupnames.txt
+
+      - name: Size check
+        if: steps.tiles.outputs.tiles != ''
+        env:
+          DB_BYTES: ${{ steps.before.outputs.db_bytes }}
+        run: |
+          python3 -I - <<'EOF'
+          import glob, json, os
+          rows = est = js = 0
+          for p in glob.glob("work/rows/stats_*.json"):
+              for t in json.load(open(p))["tiles"].values():
+                  rows += t["rows"]; est += t["est_db_bytes"]; js += t["json_bytes"]
+          db = int(os.environ.get("DB_BYTES") or 0)
+          cap = int(os.environ["DB_CAP_BYTES"])
+          print(f"rows {rows}, JSON {js} bytes, estimated {est} database bytes; database now {db or 'not read'}; cap {cap}")
+          if db and db + est > cap:
+              raise SystemExit("size check: the database would pass the 150 MB cap; not posting")
+          EOF
+
+      - name: Post to the collector
+        if: steps.tiles.outputs.tiles != '' && steps.mode.outputs.post == 'true'
+        env:
+          PROJECT_REF: ${{ steps.mode.outputs.project_ref }}
+          TILES: ${{ steps.tiles.outputs.tiles }}
+          RUN_ID: ${{ steps.mode.outputs.run_id }}
+        run: |
+          python3 -I scripts/places/extract_places.py post --base-url "https://$PROJECT_REF.supabase.co/functions/v1/collector" \
+            --tiles "$TILES" --rows-dir work/rows --run-id "$RUN_ID" --queue work/queue.json --out work/rows/post_results.json
+
+      - name: Database size after
+        if: always() && steps.tiles.outputs.tiles != '' && steps.mode.outputs.post == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          TILES: ${{ steps.tiles.outputs.tiles }}
+        run: |
+          case "$TILES" in *[!0-9,]*) echo "bad tiles"; exit 1 ;; esac
+          supabase db query --linked "select pg_database_size(current_database()) as db_bytes, pg_total_relation_size('public.places') as places_total_bytes, pg_relation_size('public.places') as places_heap_bytes, pg_indexes_size('public.places') as places_index_bytes, (select count(*) from public.places) as places_rows"
+          supabase db query --linked "select t.id, t.status, t.row_count, t.osm_run_at is not null as osm_run, (select count(*) from public.places p where p.tile_id = t.id and p.source = 'osm' and p.status = 'active') as osm_active from public.place_tiles t where t.id = any (array[$TILES]::integer[]) order by t.id"
+          supabase db query --linked "select kind, count(*) as n from public.places where source = 'osm' and tile_id = any (array[$TILES]::integer[]) group by kind order by n desc"
+
+      - name: Summary
+        if: always() && steps.tiles.outputs.tiles != ''
+        run: |
+          {
+            echo "### Places extract (${{ steps.mode.outputs.target }}, post ${{ steps.mode.outputs.post }})"
+            echo ""
+            echo '```json'
+            python3 -I -c 'import glob, json
+          print(json.dumps([json.load(open(p)) for p in sorted(glob.glob("work/rows/stats_*.json"))], indent=1))' || true
+            [ -f work/rows/post_results.json ] && cat work/rows/post_results.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Counts only (stats and post results); the row files stay on the runner.
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.tiles.outputs.tiles != ''
+        with:
+          name: places-extract-stats
+          path: |
+            work/rows/stats_*.json
+            work/rows/post_results.json
+            work/plan.json
+          if-no-files-found: ignore
+          retention-days: 30
