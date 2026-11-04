@@ -5,12 +5,13 @@ import { cn } from "@/lib/cn";
 const TABS = [
   { to: "/admin/claims", label: "Chapter claims" },
   { to: "/admin/places", label: "Places" },
+  { to: "/admin/calendars", label: "Calendars" },
   { to: "/admin/health", label: "Map health" },
 ] as const;
 
 /**
- * The moderator pages, side by side: chapter claims and places (hub map slice 12), and the map
- * health panel (slice 15).
+ * The moderator pages, side by side: chapter claims, places (hub map slice 12), member calendar
+ * suggestions (D-042 slice 7) and the map health panel (slice 15).
  */
 export function AdminTabs({ current }: { current: (typeof TABS)[number]["to"] }) {
   return (

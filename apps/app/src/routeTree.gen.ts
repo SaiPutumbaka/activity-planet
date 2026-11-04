@@ -18,6 +18,7 @@ import { Route as AppChatsRouteImport } from './routes/_app/chats'
 import { Route as AppHubsRouteImport } from './routes/_app/hubs'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppPostRouteImport } from './routes/_app/post'
+import { Route as AppSuggestCalendarRouteImport } from './routes/_app/suggest-calendar'
 import { Route as AppYouRouteImport } from './routes/_app/you'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AuthCheckEmailRouteImport } from './routes/auth/check-email'
@@ -26,6 +27,7 @@ import { Route as AuthForgotRouteImport } from './routes/auth/forgot'
 import { Route as AuthResetRouteImport } from './routes/auth/reset'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
+import { Route as AppAdminCalendarsRouteImport } from './routes/_app/admin/calendars'
 import { Route as AppAdminClaimsRouteImport } from './routes/_app/admin/claims'
 import { Route as AppAdminHealthRouteImport } from './routes/_app/admin/health'
 import { Route as AppAdminPlacesRouteImport } from './routes/_app/admin/places'
@@ -84,6 +86,11 @@ const AppPostRoute = AppPostRouteImport.update({
   path: '/post',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSuggestCalendarRoute = AppSuggestCalendarRouteImport.update({
+  id: '/suggest-calendar',
+  path: '/suggest-calendar',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppYouRoute = AppYouRouteImport.update({
   id: '/you',
   path: '/you',
@@ -123,6 +130,11 @@ const AuthSignUpRoute = AuthSignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
   getParentRoute: () => AuthRoute,
+} as any)
+const AppAdminCalendarsRoute = AppAdminCalendarsRouteImport.update({
+  id: '/admin/calendars',
+  path: '/admin/calendars',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppAdminClaimsRoute = AppAdminClaimsRouteImport.update({
   id: '/admin/claims',
@@ -200,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/hubs': typeof AppHubsRoute
   '/inbox': typeof AppInboxRoute
   '/post': typeof AppPostRoute
+  '/suggest-calendar': typeof AppSuggestCalendarRoute
   '/you': typeof AppYouRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/check-email': typeof AuthCheckEmailRoute
@@ -208,6 +221,7 @@ export interface FileRoutesByFullPath {
   '/auth/reset': typeof AuthResetRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/admin/calendars': typeof AppAdminCalendarsRoute
   '/admin/claims': typeof AppAdminClaimsRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/places': typeof AppAdminPlacesRoute
@@ -230,6 +244,7 @@ export interface FileRoutesByTo {
   '/hubs': typeof AppHubsRoute
   '/inbox': typeof AppInboxRoute
   '/post': typeof AppPostRoute
+  '/suggest-calendar': typeof AppSuggestCalendarRoute
   '/you': typeof AppYouRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/check-email': typeof AuthCheckEmailRoute
@@ -239,6 +254,7 @@ export interface FileRoutesByTo {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/': typeof AppIndexRoute
+  '/admin/calendars': typeof AppAdminCalendarsRoute
   '/admin/claims': typeof AppAdminClaimsRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/places': typeof AppAdminPlacesRoute
@@ -263,6 +279,7 @@ export interface FileRoutesById {
   '/_app/hubs': typeof AppHubsRoute
   '/_app/inbox': typeof AppInboxRoute
   '/_app/post': typeof AppPostRoute
+  '/_app/suggest-calendar': typeof AppSuggestCalendarRoute
   '/_app/you': typeof AppYouRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/check-email': typeof AuthCheckEmailRoute
@@ -272,6 +289,7 @@ export interface FileRoutesById {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/admin/calendars': typeof AppAdminCalendarsRoute
   '/_app/admin/claims': typeof AppAdminClaimsRoute
   '/_app/admin/health': typeof AppAdminHealthRoute
   '/_app/admin/places': typeof AppAdminPlacesRoute
@@ -297,6 +315,7 @@ export interface FileRouteTypes {
     | '/hubs'
     | '/inbox'
     | '/post'
+    | '/suggest-calendar'
     | '/you'
     | '/auth/callback'
     | '/auth/check-email'
@@ -305,6 +324,7 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/admin/calendars'
     | '/admin/claims'
     | '/admin/health'
     | '/admin/places'
@@ -327,6 +347,7 @@ export interface FileRouteTypes {
     | '/hubs'
     | '/inbox'
     | '/post'
+    | '/suggest-calendar'
     | '/you'
     | '/auth/callback'
     | '/auth/check-email'
@@ -336,6 +357,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/'
+    | '/admin/calendars'
     | '/admin/claims'
     | '/admin/health'
     | '/admin/places'
@@ -359,6 +381,7 @@ export interface FileRouteTypes {
     | '/_app/hubs'
     | '/_app/inbox'
     | '/_app/post'
+    | '/_app/suggest-calendar'
     | '/_app/you'
     | '/auth/callback'
     | '/auth/check-email'
@@ -368,6 +391,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/_app/'
+    | '/_app/admin/calendars'
     | '/_app/admin/claims'
     | '/_app/admin/health'
     | '/_app/admin/places'
@@ -455,6 +479,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPostRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/suggest-calendar': {
+      id: '/_app/suggest-calendar'
+      path: '/suggest-calendar'
+      fullPath: '/suggest-calendar'
+      preLoaderRoute: typeof AppSuggestCalendarRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/you': {
       id: '/_app/you'
       path: '/you'
@@ -510,6 +541,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/sign-up'
       preLoaderRoute: typeof AuthSignUpRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/_app/admin/calendars': {
+      id: '/_app/admin/calendars'
+      path: '/admin/calendars'
+      fullPath: '/admin/calendars'
+      preLoaderRoute: typeof AppAdminCalendarsRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/admin/claims': {
       id: '/_app/admin/claims'
@@ -610,8 +648,10 @@ interface AppRouteChildren {
   AppHubsRoute: typeof AppHubsRoute
   AppInboxRoute: typeof AppInboxRoute
   AppPostRoute: typeof AppPostRoute
+  AppSuggestCalendarRoute: typeof AppSuggestCalendarRoute
   AppYouRoute: typeof AppYouRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAdminCalendarsRoute: typeof AppAdminCalendarsRoute
   AppAdminClaimsRoute: typeof AppAdminClaimsRoute
   AppAdminHealthRoute: typeof AppAdminHealthRoute
   AppAdminPlacesRoute: typeof AppAdminPlacesRoute
@@ -632,8 +672,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppHubsRoute: AppHubsRoute,
   AppInboxRoute: AppInboxRoute,
   AppPostRoute: AppPostRoute,
+  AppSuggestCalendarRoute: AppSuggestCalendarRoute,
   AppYouRoute: AppYouRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAdminCalendarsRoute: AppAdminCalendarsRoute,
   AppAdminClaimsRoute: AppAdminClaimsRoute,
   AppAdminHealthRoute: AppAdminHealthRoute,
   AppAdminPlacesRoute: AppAdminPlacesRoute,

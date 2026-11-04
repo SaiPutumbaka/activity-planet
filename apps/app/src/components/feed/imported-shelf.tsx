@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 
 import { EventCard } from "@/components/events/event-card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ export function ImportedShelf({ events }: { events: FeedEvent[] }) {
           Also happening
         </h3>
         <p className="text-[13px] text-text-2">
-          From public calendars around town. Details and sign-up are on each source's site.
+          From public calendars near you. Details and sign-up are on each source's site.
         </p>
       </div>
       {visible.map((e) => (
@@ -48,6 +49,12 @@ export function ImportedShelf({ events }: { events: FeedEvent[] }) {
           Show more ({events.length - shown} more)
         </Button>
       ) : null}
+      <p className="text-[13px] text-text-2">
+        Missing a calendar near you?{" "}
+        <Link to="/suggest-calendar" className="font-semibold text-primary hover:underline">
+          Suggest it
+        </Link>
+      </p>
     </section>
   );
 }

@@ -133,6 +133,12 @@ function YouPage() {
               }
             />
             <LinkRow to="/inbox" label="Inbox" value="Open" />
+            <LinkRow
+              to="/suggest-calendar"
+              label="Suggest a calendar"
+              value="Add"
+              hint="A public events calendar near you we should list"
+            />
           </div>
         </section>
 
@@ -222,6 +228,14 @@ function YouPage() {
                   label="Chapter claims"
                   value="Review"
                   hint="Moderators approve who runs a chapter"
+                />
+              ) : null}
+              {isMod.data ? (
+                <LinkRow
+                  to="/admin/calendars"
+                  label="Calendars"
+                  value="Review"
+                  hint="Calendars members suggested"
                 />
               ) : null}
               {isMod.data ? (

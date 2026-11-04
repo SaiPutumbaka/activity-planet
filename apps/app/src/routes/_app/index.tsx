@@ -242,6 +242,9 @@ function Feed({ userId }: { userId: string }) {
                     <Link to="/hubs" className={buttonVariants({ variant: "ghost" })}>
                       Browse hubs
                     </Link>
+                    <Link to="/suggest-calendar" className={buttonVariants({ variant: "ghost" })}>
+                      Suggest a calendar
+                    </Link>
                   </div>
                 }
                 className="py-8"
