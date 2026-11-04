@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 47 (schema_version 2.43). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 48 (schema_version 2.44). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -3436,6 +3436,16 @@ export type Database = {
         };
       };
       clear_foreign_image_urls: { Args: never; Returns: Json };
+      collector_api_budget_cap: { Args: { p_api: string }; Returns: number };
+      collector_api_budget_return: {
+        Args: { p_api: string; p_calls: number; p_day: string };
+        Returns: Json;
+      };
+      collector_api_budget_take: {
+        Args: { p_api: string; p_calls: number };
+        Returns: Json;
+      };
+      collector_api_shows_sweep: { Args: never; Returns: Json };
       collector_host_denied: { Args: { p_host: string }; Returns: string };
       collector_ingest_events: {
         Args: {
