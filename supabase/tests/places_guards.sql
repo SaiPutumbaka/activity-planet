@@ -77,6 +77,14 @@ begin
   perform set_config('test.r', v_r::text, true);
 end $$;
 
+-- Every finish in this one transaction has the same now(), so finished runs are moved a minute
+-- back after each finish to keep "the last finished run" well defined, as it is across real runs.
+create function pg_temp.age_runs() returns void language sql as $$
+  update public.place_tile_runs
+     set finished_at = finished_at - interval '1 minute', started_at = started_at - interval '1 minute'
+   where tile_id = current_setting('test.t')::integer and finished_at is not null;
+$$;
+
 -- n rows of the drop-guard tile, ids n9200000001 upward.
 create function pg_temp.rows(p_n integer) returns jsonb language sql stable as $$
   select coalesce(jsonb_agg(jsonb_build_object(
@@ -153,6 +161,7 @@ begin
   if (v_res ->> 'seen')::integer <> 60 or (v_res ->> 'missed')::integer <> 0 then
     raise exception 'FAIL run 1: %', v_res;
   end if;
+  perform pg_temp.age_runs();
   select osm_run_at into v_at from public.place_tiles where id = v_t;
 
   -- Run 2: 41 of 60 (68%) is refused before anything changes.
@@ -181,6 +190,7 @@ begin
      or (v_res ->> 'missed')::integer <> 18 or (v_res ->> 'closed')::integer <> 0 then
     raise exception 'FAIL run 3 at 70%%: %', v_res;
   end if;
+  perform pg_temp.age_runs();
 
   -- Run 4: 10 of 42 is refused, then accepted with p_allow_drop (50 missed; the 18 missed
   -- in run 3 close).
@@ -206,6 +216,7 @@ begin
   if not coalesce((v_res ->> 'already_finished')::boolean, false) then
     raise exception 'FAIL a finished run was not returned as already finished';
   end if;
+  perform pg_temp.age_runs();
 
   -- Run 5: the last run saw 10 (< 50), so 5 is not guarded.
   perform public.ingest_places(v_t, 'pgd-r5', pg_temp.rows(5));
