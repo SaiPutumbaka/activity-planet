@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, Search, X } from "lucide-react";
+import { Check, MapPin, Search, X } from "lucide-react";
 import {
   birthDateSchema,
   firstNameSchema,
@@ -8,12 +8,13 @@ import {
   meetsMinimumAge,
 } from "@ap/core/validation";
 
+import { HomePicker } from "@/components/feed/home-picker";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Field, FormError, inputClassName } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/cn";
-import { areaErrorMessage, areasQuery, joinAreaWaitlist } from "@/lib/location";
+import { homeChoiceLabel, type HomeChoice } from "@/lib/location";
 import { campusesQuery, hubCatalogQuery, type CatalogHub } from "@/lib/profile";
 import { supabase } from "@/lib/supabase";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
@@ -334,144 +335,57 @@ export function HubsStep({
 }
 
 /* ------------------------------------------------------------------ */
-/* 4. Area                                                              */
+/* 4. Where are you?                                                    */
 /* ------------------------------------------------------------------ */
 
 /**
- * "Where do you hang out?" (D-036): Atlanta by default, or one neighborhood. It never asks for
- * device location. People outside Atlanta can leave their city on the waitlist and still finish
- * with Atlanta.
+ * "Where are you?" (D-036, D-040): anywhere in the world. "Use my location" asks the browser only
+ * when tapped and keeps a rough spot (about 1 km); or search for a city or neighborhood. Nothing is
+ * saved until complete_onboarding at the end.
  */
-export function AreaStep({
-  initialAreaId,
+export function LocationStep({
+  initial,
+  error,
   onContinue,
 }: {
-  initialAreaId: string | null;
-  onContinue: (areaId: string | null) => void;
+  initial: HomeChoice | null;
+  error: string | null;
+  onContinue: (choice: HomeChoice) => void;
 }) {
-  const areas = useQuery(areasQuery);
-  const [picked, setPicked] = useState<string | null>(initialAreaId);
-  const [elsewhere, setElsewhere] = useState(false);
-
-  const atlanta = areas.data?.find((a) => a.slug === "atlanta") ?? null;
-  const neighborhoods = (areas.data ?? []).filter((a) => a.kind === "neighborhood");
-  const selected = picked ?? atlanta?.id ?? null;
+  const [picked, setPicked] = useState<HomeChoice | null>(initial);
 
   return (
     <StepFrame
-      title="Where do you hang out?"
-      body="We'll show plans around there first. You can change it any time, or use your location from Home."
+      title="Where are you?"
+      body="We'll show plans around there first. You can change it any time."
       footer={
-        <Button size="lg" block onClick={() => onContinue(selected)} disabled={areas.isPending}>
-          Continue
-        </Button>
+        <>
+          <FormError>{error}</FormError>
+          <Button
+            size="lg"
+            block
+            onClick={() => picked && onContinue(picked)}
+            disabled={picked === null}
+          >
+            {picked ? "Continue" : "Pick a place to continue"}
+          </Button>
+        </>
       }
     >
-      {areas.isPending ? (
-        <div className="flex justify-center py-10 text-text-3">
-          <Spinner className="size-6" label="Loading areas" />
+      {picked ? (
+        <div
+          className="flex items-center gap-3 rounded-input border border-primary bg-primary-tint px-4 py-3"
+          role="status"
+        >
+          <MapPin className="size-5 shrink-0 text-primary-text" aria-hidden="true" />
+          <p className="min-w-0 flex-1 truncate text-[15px] font-semibold">
+            {homeChoiceLabel(picked)}
+          </p>
+          <Check className="size-5 shrink-0 text-primary-text" aria-hidden="true" />
         </div>
-      ) : areas.isError ? (
-        <FormError>
-          Couldn't load areas. You can continue with Atlanta and change it later.
-        </FormError>
-      ) : (
-        <>
-          {atlanta ? (
-            <OptionRow
-              checked={selected === atlanta.id}
-              onSelect={() => setPicked(atlanta.id)}
-              label="All of Atlanta"
-              hint="A good start if you get around."
-            />
-          ) : null}
-          <section>
-            <h3 className="mb-2 text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">
-              Or a neighborhood
-            </h3>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Neighborhoods">
-              {neighborhoods.map((a) => (
-                <Chip key={a.id} selected={selected === a.id} onClick={() => setPicked(a.id)}>
-                  {a.name}
-                </Chip>
-              ))}
-            </div>
-          </section>
-          {elsewhere ? (
-            <WaitlistForm />
-          ) : (
-            <button
-              type="button"
-              onClick={() => setElsewhere(true)}
-              className="-my-2 inline-flex min-h-11 items-center self-start text-[14px] font-semibold text-primary-text"
-            >
-              I'm not in Atlanta
-            </button>
-          )}
-        </>
-      )}
+      ) : null}
+      <HomePicker selectedKey={picked?.key ?? null} onPick={setPicked} />
     </StepFrame>
-  );
-}
-
-function WaitlistForm() {
-  const [city, setCity] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [savedCity, setSavedCity] = useState<string | null>(null);
-
-  async function submit() {
-    const trimmed = city.trim();
-    if (trimmed.length < 2) {
-      setError("Enter your city.");
-      return;
-    }
-    setSaving(true);
-    setError(null);
-    try {
-      await joinAreaWaitlist(trimmed);
-      setSavedCity(trimmed);
-    } catch (err) {
-      setError(areaErrorMessage(err));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (savedCity) {
-    return (
-      <div className="rounded-card border border-border bg-surface-2 p-4" role="status">
-        <p className="text-[15px] font-semibold">You're on the list for {savedCity}.</p>
-        <p className="mt-1 text-[14px] text-text-2">
-          We're starting in Atlanta and will let you know when we get to you. Until then, finish
-          with Atlanta and look around.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-3 rounded-card border border-border p-4">
-      <p className="text-[14px] text-text-2">
-        We're starting in Atlanta. Tell us where you are and we'll let you know when we get there.
-      </p>
-      <Field
-        label="Your city"
-        value={city}
-        onChange={(e) => {
-          setCity(e.target.value);
-          setError(null);
-        }}
-        autoComplete="address-level2"
-        autoCapitalize="words"
-        maxLength={80}
-        error={error ?? undefined}
-        disabled={saving}
-      />
-      <Button variant="secondary" onClick={() => void submit()} loading={saving}>
-        Let me know
-      </Button>
-    </div>
   );
 }
 
