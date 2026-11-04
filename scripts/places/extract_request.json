@@ -2,6 +2,6 @@
   "_about": "Push trigger for places-extract.yml on branches other than main (workflow_dispatch only works once the workflow is on main). A push that changes this file runs the extract for region against STAGING only; post false evaluates and measures without sending anything. Bump nonce to run again.",
   "region": "atlanta",
   "post": true,
-  "force": false,
-  "nonce": 7
+  "force": true,
+  "nonce": 8
 }
