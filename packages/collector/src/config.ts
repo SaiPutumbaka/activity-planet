@@ -28,6 +28,8 @@ export function validateRegion(r: unknown, where: string): Region {
   if (o.timezone !== undefined && (typeof o.timezone !== "string" || !isValidZone(o.timezone))) {
     fail(`unknown timezone ${String(o.timezone)}`);
   }
+  for (const k of ["seedsOnly", "collector"] as const)
+    if (o[k] !== undefined && typeof o[k] !== "boolean") fail(`${k} must be true or false`);
   return o as unknown as Region;
 }
 

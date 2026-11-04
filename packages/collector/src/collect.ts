@@ -573,6 +573,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
   const apiRuns: { run: SourceRun; adapter: ApiAdapter; key: string; region: Region }[] = [];
   for (const { adapter, key } of enabledAdapters(env, opts.adapters)) {
     for (const region of opts.regions) {
+      if (region.seedsOnly) continue;
       apiRuns.push({
         adapter,
         key,

@@ -4,6 +4,9 @@
 //   --region <id>         a city region from data/cities (repeatable; default: every city)
 //   --regions-file <path> JSON array of {id, label, lat, lng, radiusKm, timezone?}: the areas
 //                         people use the app in (coverage follows users)
+//   --sources-file <path> discovered sources for collector regions in the regions file,
+//                         {sources: [{region_id, seed}]} as `regions fetch --sources-out`
+//                         writes them; they run like that region's hand-written seeds
 //   --dry-run             print counts only
 //   --ingest <base-url>   post each source's items to the collector Edge Function
 //                         (https://<ref>.supabase.co/functions/v1/collector, POST /ingest/events)
@@ -48,6 +51,7 @@ import { FileHttpCache, MemoryHttpCache } from "./net/cache.ts";
 import { MAX_REQUESTS_PER_HOST, PoliteFetcher } from "./net/fetcher.ts";
 import { readFileSync, writeFileSync } from "node:fs";
 import { DryRunIngest, HttpIngest, type Ingest } from "./ingest.ts";
+import { discoveredCities } from "./regions.ts";
 import { sourceForSeed } from "./sources.ts";
 import { Denylist } from "./policy/denylist.ts";
 import type { Region } from "./types.ts";
@@ -63,6 +67,7 @@ async function main(argv: string[]): Promise<number> {
     options: {
       region: { type: "string", multiple: true },
       "regions-file": { type: "string" },
+      "sources-file": { type: "string" },
       "dry-run": { type: "boolean", default: false },
       ingest: { type: "string" },
       enable: { type: "boolean", default: false },
@@ -91,7 +96,7 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
 
-  const cities = loadCities();
+  let cities = loadCities();
   let regions: Region[];
   if (values["regions-file"]) {
     regions = loadRegions(values["regions-file"]);
@@ -106,6 +111,15 @@ async function main(argv: string[]): Promise<number> {
     });
   } else {
     regions = cities.map((c) => c.region);
+  }
+
+  if (values["sources-file"]) {
+    if (!values["regions-file"]) throw new Error("--sources-file needs --regions-file");
+    const d = discoveredCities(JSON.parse(readFileSync(values["sources-file"], "utf8")), regions);
+    cities = [...cities, ...d.cities];
+    console.error(
+      `discovered sources: ${d.cities.reduce((n, c) => n + c.seeds.length, 0)} in ${d.cities.length} region(s), ${d.dropped} dropped`,
+    );
   }
 
   const env = process.env as Record<string, string | undefined>;

@@ -13,6 +13,14 @@ export interface Region {
   radiusKm: number;
   /** IANA zone for floating and date-only times; defaults to UTC when unknown. */
   timezone?: string;
+  /**
+   * A city file's own area added to a run of collector regions (regions.ts withCityRegions):
+   * its seeds keep their whole area, but API adapters do not run for it (they run for the
+   * collector region it contains).
+   */
+  seedsOnly?: boolean;
+  /** A collector_regions row (D-042 slice 6): the run records its counts there afterwards. */
+  collector?: boolean;
 }
 
 export type Lane = "api" | "feed" | "page";

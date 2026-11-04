@@ -6,6 +6,22 @@ name: Collector ingest
 # creates or updates the source's feed_sources row from the seed file and runs
 # import_upsert_batch on the items (collector_ingest_events, migration 37).
 #
+# Regions (D-042 slice 6, docs/design/auto-coverage/AUTO_COVERAGE_DESIGN.md 5.3):
+#   * region "due" (the nightly schedule and the default): the collector regions not yet
+#     collected today, from GET /collector/regions on the project whose members they are
+#     (production when production posting is on, else staging), at most region_limit a night.
+#     Each region gets the seeds of every hand-written city file that overlaps it, plus the
+#     discovered sources the database lists for it (GET /collector/sources, D-042 slice 7; none
+#     until that route exists). A city file whose area contains a collector region also runs as
+#     its own area (seeds only), so Atlanta keeps its 60 km. Zones missing on a region are looked
+#     up offline (tz-lookup). After the posts, each region's counts (sources and items inside it)
+#     and its looked-up zone are recorded on that same project (POST /collector/regions/record).
+#     "all" does the same for every region, collected today or not.
+#   * region "<city id>": one city seed file only (packages/collector/data/cities), as before.
+#   All regions of a run are collected in one pass with one fetcher, so the per-host spacing
+#   (one request per 2 s), robots.txt, the 60-requests-per-host cap and the run deadline hold
+#   across regions, and a seed shared by two regions is read once.
+#
 # Where it posts:
 #   * STAGING on every run, from any ref (workflow_dispatch, or a push to a branch other than main
 #     that changes packages/collector/ingest_request.json) and on the schedule. Staging sources
@@ -26,18 +42,28 @@ on:
   workflow_dispatch:
     inputs:
       region:
-        description: "City seed file under packages/collector/data/cities (for example atl)"
+        description: "due (collector regions not collected today), all (every collector region), or a city seed file id under packages/collector/data/cities (for example atl)"
         type: string
-        default: atl
+        default: due
+      region_limit:
+        description: "Most collector regions in one run (due or all; 1 to 100)"
+        type: string
+        default: "20"
+      max_run_minutes:
+        description: "No request starts after this many minutes (default 30 for due or all, 9 for a city)"
+        type: string
+        default: ""
   # A branch other than main can run it before the file reaches main (workflow_dispatch only
   # works for workflows on the default branch): a push that changes
-  # packages/collector/ingest_request.json posts that file's region to STAGING only.
+  # packages/collector/ingest_request.json posts that file's region (due, all or a city id) to
+  # STAGING only.
   push:
     branches-ignore: [main]
     paths:
       - "packages/collector/ingest_request.json"
+  # Nightly, after the places job (03:17 UTC) and outside the busy US morning hours.
   schedule:
-    - cron: "41 */6 * * *"
+    - cron: "41 5 * * *"
 
 permissions:
   contents: read
@@ -53,7 +79,7 @@ env:
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@v4
 
@@ -63,23 +89,52 @@ jobs:
           EVENT: ${{ github.event_name }}
           REF: ${{ github.ref }}
           IN_REGION: ${{ inputs.region }}
+          IN_LIMIT: ${{ inputs.region_limit }}
+          IN_MINUTES: ${{ inputs.max_run_minutes }}
           PROD_VAR: ${{ vars.COLLECTOR_PRODUCTION }}
         run: |
-          region="${IN_REGION:-atl}"
+          region="${IN_REGION:-due}"
+          limit="${IN_LIMIT:-20}"
+          minutes="${IN_MINUTES:-}"
           if [ "$EVENT" = "push" ]; then
             if [ "$REF" = "refs/heads/main" ]; then echo "never on main pushes"; exit 1; fi
             region=$(python3 -I -c 'import json;print(json.load(open("packages/collector/ingest_request.json"))["region"])')
+            limit=$(python3 -I -c 'import json;print(json.load(open("packages/collector/ingest_request.json")).get("region_limit", 20))')
+            minutes=$(python3 -I -c 'import json;print(json.load(open("packages/collector/ingest_request.json")).get("max_run_minutes", ""))')
           fi
           case "$region" in
             *[!a-z0-9-]*|"") echo "Refusing region: $region"; exit 1 ;;
           esac
-          test -f "packages/collector/data/cities/$region.json" || { echo "No such city file: $region"; exit 1; }
+          case "$limit" in
+            ""|*[!0-9]*) echo "Refusing region_limit: $limit"; exit 1 ;;
+          esac
+          if [ "$limit" -lt 1 ] || [ "$limit" -gt 100 ]; then echo "region_limit must be 1..100"; exit 1; fi
+          if [ "$region" = "due" ] || [ "$region" = "all" ]; then
+            mode=regions
+            minutes="${minutes:-30}"
+          else
+            mode=city
+            minutes="${minutes:-9}"
+            test -f "packages/collector/data/cities/$region.json" || { echo "No such city file: $region"; exit 1; }
+          fi
+          case "$minutes" in
+            *[!0-9]*|"") echo "Refusing max_run_minutes: $minutes"; exit 1 ;;
+          esac
+          if [ "$minutes" -lt 1 ] || [ "$minutes" -gt 55 ]; then echo "max_run_minutes must be 1..55"; exit 1; fi
           production=false
           if [ "$EVENT" != "push" ] && [ "$REF" = "refs/heads/main" ] && [ "$PROD_VAR" = "true" ]; then production=true; fi
-          echo "event=$EVENT region=$region staging=true production=$production"
+          # The collector regions are read from (and recorded on) the project whose members they
+          # are: production when production posting is on, else staging.
+          regions_from=staging
+          if [ "$production" = "true" ]; then regions_from=production; fi
+          echo "event=$EVENT region=$region mode=$mode limit=$limit minutes=$minutes staging=true production=$production regions_from=$regions_from"
           {
             echo "region=$region"
+            echo "mode=$mode"
+            echo "limit=$limit"
+            echo "minutes=$minutes"
             echo "production=$production"
+            echo "regions_from=$regions_from"
             echo "run_id=gh-${{ github.run_id }}-${{ github.run_attempt }}"
           } >> "$GITHUB_OUTPUT"
 
@@ -96,16 +151,6 @@ jobs:
           path: packages/collector/.cache
           key: collector-http-${{ github.run_id }}
           restore-keys: collector-http-
-
-      - name: Collect once
-        env:
-          REGION: ${{ steps.mode.outputs.region }}
-        run: |
-          mkdir -p work
-          # --diagnose: one stderr line per request (status, host, media type, size, robots.txt
-          # and parser verdicts, page-type hints); metadata and counts only.
-          pnpm --filter collector collect --region "$REGION" --dry-run --diagnose \
-            --save "$GITHUB_WORKSPACE/work/batches.json" --summary "$GITHUB_WORKSPACE/work/collected.json"
 
       - uses: supabase/setup-cli@v1
         with:
@@ -126,27 +171,12 @@ jobs:
           echo "STAGING_COLLECTOR_SECRET=$secret" >> "$GITHUB_ENV"
           echo "Staging collector secret read (masked)."
 
-      - name: Staging, post
-        env:
-          REGION: ${{ steps.mode.outputs.region }}
-          RUN_ID: ${{ steps.mode.outputs.run_id }}
-        run: |
-          COLLECTOR_SECRET="$STAGING_COLLECTOR_SECRET" pnpm --filter collector collect --region "$REGION" \
-            --ingest "https://$STAGING_PROJECT_REF.supabase.co/functions/v1/collector" --enable \
-            --from "$GITHUB_WORKSPACE/work/batches.json" --run-id "$RUN_ID-staging" \
-            --summary "$GITHUB_WORKSPACE/work/staging.json"
-
-      - name: Staging, counts by source and hub
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: |
-          supabase db query --linked --file supabase/tests/collector_ingest_counts.sql
-
       - name: Production, read the collector secret
         if: steps.mode.outputs.production == 'true'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
+          STAGING_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
           supabase link --project-ref "$PROD_PROJECT_REF" > /dev/null
           out=$(supabase db query --linked "select 'CSECRET:' || ds.decrypted_secret as v from vault.decrypted_secrets ds where ds.name = 'collector_secret'" 2>/dev/null || true)
@@ -156,24 +186,95 @@ jobs:
           echo "::add-mask::$secret"
           echo "PROD_COLLECTOR_SECRET=$secret" >> "$GITHUB_ENV"
           echo "Production collector secret read (masked)."
+          # Relink staging for the staging steps below.
+          SUPABASE_DB_PASSWORD="$STAGING_DB_PASSWORD" supabase link --project-ref "$STAGING_PROJECT_REF" > /dev/null
+
+      # Counts and region ids only; the regions file (points) stays on the runner.
+      - name: Regions, fetch
+        if: steps.mode.outputs.mode == 'regions'
+        id: regions
+        env:
+          FROM: ${{ steps.mode.outputs.regions_from }}
+          REGION: ${{ steps.mode.outputs.region }}
+          LIMIT: ${{ steps.mode.outputs.limit }}
+        run: |
+          mkdir -p work
+          if [ "$FROM" = "production" ]; then ref="$PROD_PROJECT_REF"; secret="$PROD_COLLECTOR_SECRET"; else ref="$STAGING_PROJECT_REF"; secret="$STAGING_COLLECTOR_SECRET"; fi
+          all=""
+          if [ "$REGION" = "all" ]; then all="--all"; fi
+          COLLECTOR_SECRET="$secret" pnpm --silent --filter collector regions fetch \
+            --from "https://$ref.supabase.co/functions/v1/collector" $all --limit "$LIMIT" \
+            --out "$GITHUB_WORKSPACE/work/regions.json" --sources-out "$GITHUB_WORKSPACE/work/sources.json"
+          n=$(python3 -I -c 'import json,sys;print(sum(1 for r in json.load(open(sys.argv[1]))["regions"] if r.get("collector")))' "$GITHUB_WORKSPACE/work/regions.json")
+          echo "collector_regions=$n" >> "$GITHUB_OUTPUT"
+
+      - name: Collect once
+        if: steps.mode.outputs.mode == 'city' || steps.regions.outputs.collector_regions != '0'
+        env:
+          REGION: ${{ steps.mode.outputs.region }}
+          MODE: ${{ steps.mode.outputs.mode }}
+          MINUTES: ${{ steps.mode.outputs.minutes }}
+        run: |
+          mkdir -p work
+          if [ "$MODE" = "regions" ]; then
+            set -- --regions-file "$GITHUB_WORKSPACE/work/regions.json" --sources-file "$GITHUB_WORKSPACE/work/sources.json"
+          else
+            set -- --region "$REGION"
+          fi
+          printf '%s\n' "$@" > work/region-args
+          # --diagnose: one stderr line per request (status, host, media type, size, robots.txt
+          # and parser verdicts, page-type hints); metadata and counts only.
+          pnpm --filter collector collect "$@" --dry-run --diagnose --max-run-minutes "$MINUTES" \
+            --save "$GITHUB_WORKSPACE/work/batches.json" --summary "$GITHUB_WORKSPACE/work/collected.json"
+
+      - name: Staging, post
+        if: steps.mode.outputs.mode == 'city' || steps.regions.outputs.collector_regions != '0'
+        env:
+          RUN_ID: ${{ steps.mode.outputs.run_id }}
+        run: |
+          mapfile -t args < work/region-args
+          COLLECTOR_SECRET="$STAGING_COLLECTOR_SECRET" pnpm --filter collector collect "${args[@]}" \
+            --ingest "https://$STAGING_PROJECT_REF.supabase.co/functions/v1/collector" --enable \
+            --from "$GITHUB_WORKSPACE/work/batches.json" --run-id "$RUN_ID-staging" \
+            --summary "$GITHUB_WORKSPACE/work/staging.json"
+
+      - name: Staging, counts by source and hub
+        if: steps.mode.outputs.mode == 'city' || steps.regions.outputs.collector_regions != '0'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase db query --linked --file supabase/tests/collector_ingest_counts.sql
 
       # No --enable: production sources stay as the database has them (new rows start off).
       - name: Production, post
-        if: steps.mode.outputs.production == 'true'
+        if: steps.mode.outputs.production == 'true' && (steps.mode.outputs.mode == 'city' || steps.regions.outputs.collector_regions != '0')
         env:
-          REGION: ${{ steps.mode.outputs.region }}
           RUN_ID: ${{ steps.mode.outputs.run_id }}
         run: |
-          COLLECTOR_SECRET="$PROD_COLLECTOR_SECRET" pnpm --filter collector collect --region "$REGION" \
+          mapfile -t args < work/region-args
+          COLLECTOR_SECRET="$PROD_COLLECTOR_SECRET" pnpm --filter collector collect "${args[@]}" \
             --ingest "https://$PROD_PROJECT_REF.supabase.co/functions/v1/collector" \
             --from "$GITHUB_WORKSPACE/work/batches.json" --run-id "$RUN_ID-production" \
             --summary "$GITHUB_WORKSPACE/work/production.json"
+
+      # Each collector region's sources and items inside it, and its looked-up zone, on the
+      # project the regions came from. Counts only in the log.
+      - name: Regions, record the run
+        if: steps.mode.outputs.mode == 'regions' && steps.regions.outputs.collector_regions != '0'
+        env:
+          FROM: ${{ steps.mode.outputs.regions_from }}
+          RUN_ID: ${{ steps.mode.outputs.run_id }}
+        run: |
+          if [ "$FROM" = "production" ]; then ref="$PROD_PROJECT_REF"; secret="$PROD_COLLECTOR_SECRET"; else ref="$STAGING_PROJECT_REF"; secret="$STAGING_COLLECTOR_SECRET"; fi
+          COLLECTOR_SECRET="$secret" pnpm --silent --filter collector regions record \
+            --to "https://$ref.supabase.co/functions/v1/collector" --run-id "$RUN_ID-$FROM" \
+            --regions "$GITHUB_WORKSPACE/work/regions.json" --batches "$GITHUB_WORKSPACE/work/batches.json"
 
       - name: Summary
         if: always()
         run: |
           {
-            echo "### Collector ingest (production ${{ steps.mode.outputs.production }})"
+            echo "### Collector ingest (${{ steps.mode.outputs.region }}, collector regions ${{ steps.regions.outputs.collector_regions || '-' }}, production ${{ steps.mode.outputs.production }})"
             echo ""
             echo '```json'
             for f in collected staging production; do
