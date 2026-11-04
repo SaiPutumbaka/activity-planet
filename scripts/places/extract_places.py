@@ -488,6 +488,7 @@ class Evaluator:
                 continue
             rows.append(row)
         rows.extend(lines.values())
+        rows = self.one_per_element(rows)
         rows = self.dedupe(rows)
         for r in rows:
             r.pop("_geom", None)
@@ -525,6 +526,21 @@ class Evaluator:
         if kept:
             row["tags"] = kept
         return row
+
+    def one_per_element(self, rows):
+        """osmium can export one closed way as a polygon and as a line; keep one row per element
+        (the polygon's interior point first, then a node, then a line midpoint)."""
+        rank = {"Polygon": 0, "MultiPolygon": 0, "Point": 1}
+        best = {}
+        for r in rows:
+            cur = best.get(r["source_id"])
+            if cur is None:
+                best[r["source_id"]] = r
+                continue
+            self.drops["same_element"] += 1
+            if rank.get(r["_geom"], 2) < rank.get(cur["_geom"], 2):
+                best[r["source_id"]] = r
+        return list(best.values())
 
     def dedupe(self, rows):
         """Same name and kind within 150 m: keep one (areas and lines before nodes, then lowest id)."""

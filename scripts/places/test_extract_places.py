@@ -195,6 +195,17 @@ class Evaluate(unittest.TestCase):
         self.assertNotIn("w100", ev.named)
         self.assertIn("n1", ev.named)
 
+    def test_one_row_per_element(self):
+        poly = sq(-84.30, 33.70, 0.02)
+        ring = poly["coordinates"][0]
+        ev, rows = self.run_eval([
+            feat("w70", {"type": "LineString", "coordinates": ring}, leisure="park", name="Big Park"),
+            feat("w70", poly, leisure="park", name="Big Park"),
+        ])
+        self.assertEqual(list(rows), ["w70"])
+        self.assertAlmostEqual(rows["w70"]["lat"], 33.71, places=2)
+        self.assertEqual(ev.drops["same_element"], 1)
+
     def test_named_lines_collapse(self):
         line = lambda fid, x: feat(fid, {"type": "LineString", "coordinates": [[x, 33.75], [x + 0.001, 33.75]]},
                                    highway="cycleway", name="Eastside Trail")
