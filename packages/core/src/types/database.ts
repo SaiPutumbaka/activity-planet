@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 26 (schema_version 2.22). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 27 (schema_version 2.23). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -308,6 +308,27 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      collector_budget: {
+        Row: {
+          day: string;
+          source: string;
+          updated_at: string;
+          used: number;
+        };
+        Insert: {
+          day: string;
+          source: string;
+          updated_at?: string;
+          used?: number;
+        };
+        Update: {
+          day?: string;
+          source?: string;
+          updated_at?: string;
+          used?: number;
+        };
+        Relationships: [];
       };
       collector_regions: {
         Row: {
@@ -804,6 +825,7 @@ export type Database = {
           interested_count: number;
           is_free: boolean;
           kind: Database["public"]["Enums"]["event_kind"];
+          listing_kind: string;
           location_hint: string;
           members_only: boolean;
           min_age: number;
@@ -845,6 +867,7 @@ export type Database = {
           interested_count?: number;
           is_free?: boolean;
           kind?: Database["public"]["Enums"]["event_kind"];
+          listing_kind?: string;
           location_hint?: string;
           members_only?: boolean;
           min_age?: number;
@@ -886,6 +909,7 @@ export type Database = {
           interested_count?: number;
           is_free?: boolean;
           kind?: Database["public"]["Enums"]["event_kind"];
+          listing_kind?: string;
           location_hint?: string;
           members_only?: boolean;
           min_age?: number;
@@ -962,6 +986,7 @@ export type Database = {
           last_run_at: string | null;
           last_sample: Json | null;
           last_stats: Json | null;
+          listing_kind: string;
           name: string;
           partner: boolean;
           region_label: string | null;
@@ -991,6 +1016,7 @@ export type Database = {
           last_run_at?: string | null;
           last_sample?: Json | null;
           last_stats?: Json | null;
+          listing_kind?: string;
           name: string;
           partner?: boolean;
           region_label?: string | null;
@@ -1020,6 +1046,7 @@ export type Database = {
           last_run_at?: string | null;
           last_sample?: Json | null;
           last_stats?: Json | null;
+          listing_kind?: string;
           name?: string;
           partner?: boolean;
           region_label?: string | null;
@@ -1248,6 +1275,36 @@ export type Database = {
           },
         ];
       };
+      hub_place_rules: {
+        Row: {
+          hub_id: string;
+          rule_id: number;
+        };
+        Insert: {
+          hub_id: string;
+          rule_id: number;
+        };
+        Update: {
+          hub_id?: string;
+          rule_id?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "hub_place_rules_hub_id_fkey";
+            columns: ["hub_id"];
+            isOneToOne: false;
+            referencedRelation: "hubs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "hub_place_rules_rule_id_fkey";
+            columns: ["rule_id"];
+            isOneToOne: false;
+            referencedRelation: "place_rules";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       hub_requests: {
         Row: {
           created_at: string;
@@ -1366,11 +1423,13 @@ export type Database = {
           created_by: string | null;
           description: string;
           emoji: string;
+          geoapify_categories: string[];
           id: string;
           is_active: boolean;
           is_featured: boolean;
           min_age: number;
           name: string;
+          place_mode: string;
           scope: string;
           search_text: string | null;
           slug: string;
@@ -1384,11 +1443,13 @@ export type Database = {
           created_by?: string | null;
           description?: string;
           emoji?: string;
+          geoapify_categories?: string[];
           id?: string;
           is_active?: boolean;
           is_featured?: boolean;
           min_age?: number;
           name: string;
+          place_mode?: string;
           scope?: string;
           search_text?: string | null;
           slug: string;
@@ -1402,11 +1463,13 @@ export type Database = {
           created_by?: string | null;
           description?: string;
           emoji?: string;
+          geoapify_categories?: string[];
           id?: string;
           is_active?: boolean;
           is_featured?: boolean;
           min_age?: number;
           name?: string;
+          place_mode?: string;
           scope?: string;
           search_text?: string | null;
           slug?: string;
@@ -1828,6 +1891,264 @@ export type Database = {
         };
         Relationships: [];
       };
+      place_hubs: {
+        Row: {
+          created_at: string;
+          hub_id: string;
+          place_id: string;
+          via: string;
+          weight: number;
+        };
+        Insert: {
+          created_at?: string;
+          hub_id: string;
+          place_id: string;
+          via: string;
+          weight?: number;
+        };
+        Update: {
+          created_at?: string;
+          hub_id?: string;
+          place_id?: string;
+          via?: string;
+          weight?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "place_hubs_hub_id_fkey";
+            columns: ["hub_id"];
+            isOneToOne: false;
+            referencedRelation: "hubs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "place_hubs_place_id_fkey";
+            columns: ["place_id"];
+            isOneToOne: false;
+            referencedRelation: "places";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      place_kinds: {
+        Row: {
+          icon: string;
+          label: string;
+          slug: string;
+          sort: number;
+        };
+        Insert: {
+          icon: string;
+          label: string;
+          slug: string;
+          sort?: number;
+        };
+        Update: {
+          icon?: string;
+          label?: string;
+          slug?: string;
+          sort?: number;
+        };
+        Relationships: [];
+      };
+      place_rules: {
+        Row: {
+          extra: Json;
+          id: number;
+          kind: string;
+          osm_key: string;
+          osm_type: string;
+          osm_value: string | null;
+          rules_version: number;
+          verified: boolean;
+        };
+        Insert: {
+          extra?: Json;
+          id: number;
+          kind: string;
+          osm_key: string;
+          osm_type?: string;
+          osm_value?: string | null;
+          rules_version: number;
+          verified?: boolean;
+        };
+        Update: {
+          extra?: Json;
+          id?: number;
+          kind?: string;
+          osm_key?: string;
+          osm_type?: string;
+          osm_value?: string | null;
+          rules_version?: number;
+          verified?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "place_rules_kind_fkey";
+            columns: ["kind"];
+            isOneToOne: false;
+            referencedRelation: "place_kinds";
+            referencedColumns: ["slug"];
+          },
+        ];
+      };
+      place_tiles: {
+        Row: {
+          bbox: unknown;
+          created_at: string;
+          demand: number;
+          geoapify_run_at: string | null;
+          id: number;
+          last_member_at: string | null;
+          osm_run_at: string | null;
+          row_count: number;
+          status: Database["public"]["Enums"]["place_tile_status"];
+          updated_at: string;
+        };
+        Insert: {
+          bbox?: unknown;
+          created_at?: string;
+          demand?: number;
+          geoapify_run_at?: string | null;
+          id: number;
+          last_member_at?: string | null;
+          osm_run_at?: string | null;
+          row_count?: number;
+          status?: Database["public"]["Enums"]["place_tile_status"];
+          updated_at?: string;
+        };
+        Update: {
+          bbox?: unknown;
+          created_at?: string;
+          demand?: number;
+          geoapify_run_at?: string | null;
+          id?: number;
+          last_member_at?: string | null;
+          osm_run_at?: string | null;
+          row_count?: number;
+          status?: Database["public"]["Enums"]["place_tile_status"];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      places: {
+        Row: {
+          address_text: string;
+          attribution: string;
+          country: string | null;
+          created_at: string;
+          created_by: string | null;
+          geom: unknown;
+          id: string;
+          is_public: boolean;
+          kind: string;
+          last_seen_at: string;
+          lat: number | null;
+          license: string;
+          lng: number | null;
+          locality: string;
+          location: unknown;
+          locked_fields: string[];
+          merged_into: string | null;
+          name: string;
+          opening_hours: string | null;
+          osm_ref: string | null;
+          rule_ids: number[];
+          search_text: string | null;
+          source: Database["public"]["Enums"]["place_source"];
+          source_id: string | null;
+          status: Database["public"]["Enums"]["place_status"];
+          tags: Json;
+          tile_id: number | null;
+          updated_at: string;
+          website: string | null;
+        };
+        Insert: {
+          address_text?: string;
+          attribution: string;
+          country?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          geom?: unknown;
+          id?: string;
+          is_public?: boolean;
+          kind: string;
+          last_seen_at?: string;
+          lat?: number | null;
+          license?: string;
+          lng?: number | null;
+          locality?: string;
+          location: unknown;
+          locked_fields?: string[];
+          merged_into?: string | null;
+          name: string;
+          opening_hours?: string | null;
+          osm_ref?: string | null;
+          rule_ids?: number[];
+          search_text?: string | null;
+          source: Database["public"]["Enums"]["place_source"];
+          source_id?: string | null;
+          status?: Database["public"]["Enums"]["place_status"];
+          tags?: Json;
+          tile_id?: number | null;
+          updated_at?: string;
+          website?: string | null;
+        };
+        Update: {
+          address_text?: string;
+          attribution?: string;
+          country?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          geom?: unknown;
+          id?: string;
+          is_public?: boolean;
+          kind?: string;
+          last_seen_at?: string;
+          lat?: number | null;
+          license?: string;
+          lng?: number | null;
+          locality?: string;
+          location?: unknown;
+          locked_fields?: string[];
+          merged_into?: string | null;
+          name?: string;
+          opening_hours?: string | null;
+          osm_ref?: string | null;
+          rule_ids?: number[];
+          search_text?: string | null;
+          source?: Database["public"]["Enums"]["place_source"];
+          source_id?: string | null;
+          status?: Database["public"]["Enums"]["place_status"];
+          tags?: Json;
+          tile_id?: number | null;
+          updated_at?: string;
+          website?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "places_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "places_kind_fkey";
+            columns: ["kind"];
+            isOneToOne: false;
+            referencedRelation: "place_kinds";
+            referencedColumns: ["slug"];
+          },
+          {
+            foreignKeyName: "places_merged_into_fkey";
+            columns: ["merged_into"];
+            isOneToOne: false;
+            referencedRelation: "places";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profile_private: {
         Row: {
           birth_date: string | null;
@@ -2166,6 +2487,7 @@ export type Database = {
           location: unknown;
           name: string;
           place_id: string | null;
+          place_ref: string | null;
           postal_code: string;
           search_text: string | null;
           state: string;
@@ -2186,6 +2508,7 @@ export type Database = {
           location?: unknown;
           name: string;
           place_id?: string | null;
+          place_ref?: string | null;
           postal_code?: string;
           search_text?: string | null;
           state?: string;
@@ -2206,6 +2529,7 @@ export type Database = {
           location?: unknown;
           name?: string;
           place_id?: string | null;
+          place_ref?: string | null;
           postal_code?: string;
           search_text?: string | null;
           state?: string;
@@ -2224,6 +2548,13 @@ export type Database = {
             columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "venues_place_ref_fkey";
+            columns: ["place_ref"];
+            isOneToOne: false;
+            referencedRelation: "places";
             referencedColumns: ["id"];
           },
         ];
@@ -2333,6 +2664,7 @@ export type Database = {
           interested_count: number;
           is_free: boolean;
           kind: Database["public"]["Enums"]["event_kind"];
+          listing_kind: string;
           location_hint: string;
           members_only: boolean;
           min_age: number;
@@ -2504,6 +2836,7 @@ export type Database = {
           interested_count: number;
           is_free: boolean;
           kind: Database["public"]["Enums"]["event_kind"];
+          listing_kind: string;
           location_hint: string;
           members_only: boolean;
           min_age: number;
@@ -2682,6 +3015,7 @@ export type Database = {
           interested_count: number;
           is_free: boolean;
           kind: Database["public"]["Enums"]["event_kind"];
+          listing_kind: string;
           location_hint: string;
           members_only: boolean;
           min_age: number;
@@ -2959,6 +3293,9 @@ export type Database = {
           title: string;
         }[];
       };
+      place_tile_bbox: { Args: { p_id: number }; Returns: unknown };
+      place_tile_id: { Args: { p_lat: number; p_lng: number }; Returns: number };
+      place_tile_id_of: { Args: { p_point: unknown }; Returns: number };
       project_url: { Args: never; Returns: string };
       purge_account_deletions: { Args: never; Returns: number };
       purge_read_notifications: { Args: never; Returns: number };
@@ -3163,6 +3500,7 @@ export type Database = {
           interested_count: number;
           is_free: boolean;
           kind: Database["public"]["Enums"]["event_kind"];
+          listing_kind: string;
           location_hint: string;
           members_only: boolean;
           min_age: number;
@@ -3250,6 +3588,7 @@ export type Database = {
           location: unknown;
           name: string;
           place_id: string | null;
+          place_ref: string | null;
           postal_code: string;
           search_text: string | null;
           state: string;
@@ -3335,6 +3674,9 @@ export type Database = {
         | "chapter_claim_update";
       org_kind: "university" | "company" | "community";
       org_role: "member" | "officer" | "admin";
+      place_source: "osm" | "geoapify" | "user" | "venue";
+      place_status: "active" | "pending" | "hidden" | "closed" | "removed";
+      place_tile_status: "wanted" | "filling" | "active" | "idle" | "retired";
       rsvp_status: "going" | "interested" | "waitlisted" | "cancelled";
     };
     CompositeTypes: {
@@ -3483,6 +3825,9 @@ export const Constants = {
       ],
       org_kind: ["university", "company", "community"],
       org_role: ["member", "officer", "admin"],
+      place_source: ["osm", "geoapify", "user", "venue"],
+      place_status: ["active", "pending", "hidden", "closed", "removed"],
+      place_tile_status: ["wanted", "filling", "active", "idle", "retired"],
       rsvp_status: ["going", "interested", "waitlisted", "cancelled"],
     },
   },
