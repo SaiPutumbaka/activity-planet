@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 34 (schema_version 2.30). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 35 (schema_version 2.31). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -1937,6 +1937,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "place_edits_place_id_fkey";
+            columns: ["place_id"];
+            isOneToOne: false;
+            referencedRelation: "places_odbl_export";
+            referencedColumns: ["cursor_id"];
+          },
+          {
             foreignKeyName: "place_edits_proposed_by_fkey";
             columns: ["proposed_by"];
             isOneToOne: false;
@@ -1988,6 +1995,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "places";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "place_hubs_place_id_fkey";
+            columns: ["place_id"];
+            isOneToOne: false;
+            referencedRelation: "places_odbl_export";
+            referencedColumns: ["cursor_id"];
           },
         ];
       };
@@ -2058,7 +2072,35 @@ export type Database = {
             referencedRelation: "places";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "place_mod_actions_place_id_fkey";
+            columns: ["place_id"];
+            isOneToOne: false;
+            referencedRelation: "places_odbl_export";
+            referencedColumns: ["cursor_id"];
+          },
         ];
+      };
+      place_ops_runs: {
+        Row: {
+          id: number;
+          job: string;
+          ran_at: string;
+          stats: Json;
+        };
+        Insert: {
+          id?: never;
+          job: string;
+          ran_at?: string;
+          stats?: Json;
+        };
+        Update: {
+          id?: never;
+          job?: string;
+          ran_at?: string;
+          stats?: Json;
+        };
+        Relationships: [];
       };
       place_reports: {
         Row: {
@@ -2101,6 +2143,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "places";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "place_reports_place_id_fkey";
+            columns: ["place_id"];
+            isOneToOne: false;
+            referencedRelation: "places_odbl_export";
+            referencedColumns: ["cursor_id"];
           },
           {
             foreignKeyName: "place_reports_reporter_id_fkey";
@@ -2210,6 +2259,8 @@ export type Database = {
           demand: number;
           geoapify_run_at: string | null;
           id: number;
+          idle_since: string | null;
+          keep: boolean;
           last_member_at: string | null;
           osm_run_at: string | null;
           row_count: number;
@@ -2222,6 +2273,8 @@ export type Database = {
           demand?: number;
           geoapify_run_at?: string | null;
           id: number;
+          idle_since?: string | null;
+          keep?: boolean;
           last_member_at?: string | null;
           osm_run_at?: string | null;
           row_count?: number;
@@ -2234,6 +2287,8 @@ export type Database = {
           demand?: number;
           geoapify_run_at?: string | null;
           id?: number;
+          idle_since?: string | null;
+          keep?: boolean;
           last_member_at?: string | null;
           osm_run_at?: string | null;
           row_count?: number;
@@ -2363,6 +2418,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "places";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "places_merged_into_fkey";
+            columns: ["merged_into"];
+            isOneToOne: false;
+            referencedRelation: "places_odbl_export";
+            referencedColumns: ["cursor_id"];
           },
         ];
       };
@@ -2774,6 +2836,13 @@ export type Database = {
             referencedRelation: "places";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "venues_place_ref_fkey";
+            columns: ["place_ref"];
+            isOneToOne: false;
+            referencedRelation: "places_odbl_export";
+            referencedColumns: ["cursor_id"];
+          },
         ];
       };
       verified_emails: {
@@ -2823,7 +2892,53 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      places_odbl_export: {
+        Row: {
+          cursor_id: string | null;
+          kind: string | null;
+          lat: number | null;
+          lng: number | null;
+          name: string | null;
+          opening_hours: string | null;
+          osm_ref: string | null;
+          source: string | null;
+          tags: Json | null;
+          website: string | null;
+        };
+        Insert: {
+          cursor_id?: string | null;
+          kind?: string | null;
+          lat?: never;
+          lng?: never;
+          name?: string | null;
+          opening_hours?: string | null;
+          osm_ref?: string | null;
+          source?: never;
+          tags?: Json | null;
+          website?: string | null;
+        };
+        Update: {
+          cursor_id?: string | null;
+          kind?: string | null;
+          lat?: never;
+          lng?: never;
+          name?: string | null;
+          opening_hours?: string | null;
+          osm_ref?: string | null;
+          source?: never;
+          tags?: Json | null;
+          website?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "places_kind_fkey";
+            columns: ["kind"];
+            isOneToOne: false;
+            referencedRelation: "place_kinds";
+            referencedColumns: ["slug"];
+          },
+        ];
+      };
     };
     Functions: {
       accept_guidelines: { Args: never; Returns: string };
@@ -3182,6 +3297,10 @@ export type Database = {
         Args: { p_event_id: string };
         Returns: number;
       };
+      event_listing_kind_sync: {
+        Args: { p_event_id: string };
+        Returns: undefined;
+      };
       event_post_rate_check: { Args: { p_series: boolean }; Returns: undefined };
       event_rules_check: {
         Args: {
@@ -3268,6 +3387,7 @@ export type Database = {
           p_hub_ids?: string[];
           p_lat?: number;
           p_limit?: number;
+          p_listing_kind?: string;
           p_lng?: number;
           p_radius_km?: number;
           p_timezone?: string;
@@ -3479,6 +3599,7 @@ export type Database = {
         Returns: undefined;
       };
       mod_place_facts: { Args: { p_id: string }; Returns: Json };
+      mod_place_health: { Args: never; Returns: Json };
       mod_place_queue: { Args: { p_limit?: number }; Returns: Json };
       mod_resolve_place: {
         Args: {
@@ -3605,6 +3726,7 @@ export type Database = {
         Returns: string;
       };
       place_raise_near: { Args: { p_why: string }; Returns: undefined };
+      place_size_status: { Args: never; Returns: Json };
       place_tile_bbox: { Args: { p_id: number }; Returns: unknown };
       place_tile_id: { Args: { p_lat: number; p_lng: number }; Returns: number };
       place_tile_id_of: { Args: { p_point: unknown }; Returns: number };
@@ -3630,6 +3752,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      places_odbl_page: {
+        Args: { p_after?: string; p_limit?: number };
+        Returns: Json;
+      };
       places_own_in_view: {
         Args: { p_env1: unknown; p_env2: unknown };
         Returns: string[];
@@ -3637,6 +3763,17 @@ export type Database = {
       project_url: { Args: never; Returns: string };
       purge_account_deletions: { Args: never; Returns: number };
       purge_read_notifications: { Args: never; Returns: number };
+      record_place_dump: {
+        Args: {
+          p_bytes: number;
+          p_counts?: Json;
+          p_month: string;
+          p_published: boolean;
+          p_rows: number;
+          p_sha256: string;
+        };
+        Returns: Json;
+      };
       refresh_hub_stats: { Args: never; Returns: number };
       refresh_meeting_spots: { Args: never; Returns: number };
       remove_chapter_member: {
@@ -3695,6 +3832,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      retire_place_tiles: { Args: never; Returns: Json };
       review_chapter_claim: {
         Args: { p_approve: boolean; p_claim_id: string; p_note?: string };
         Returns: {
@@ -3783,6 +3921,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      shows_available: { Args: never; Returns: boolean };
       submit_attendance: {
         Args: { p_attended: boolean; p_event_id: string; p_met?: string[] };
         Returns: Json;
