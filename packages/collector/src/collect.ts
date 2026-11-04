@@ -20,6 +20,7 @@ import {
   isFeedType,
   jsonLdTypes,
   looksLikeChallenge,
+  pageHints,
 } from "./diagnose.ts";
 import { type Candidate, dedupe, inAnyRegion, windowReason } from "./filter.ts";
 import type { FetchResult, PoliteFetcher } from "./net/fetcher.ts";
@@ -324,6 +325,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
         const types = jsonLdTypes(scan.jsonLd);
         if (types.length > 0) parts.push(`types=${types.join(",")}`);
         parts.push(`microdata items=${scan.microdata.length}`);
+        parts.push("hints", ...pageHints(res.body, res.url));
       } else {
         parts.push(`jsonld events=${ld.length}`, `microdata events=${micro.length}`);
       }

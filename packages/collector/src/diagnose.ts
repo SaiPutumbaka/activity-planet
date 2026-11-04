@@ -128,7 +128,7 @@ export function formatDiagnostic(e: DiagnosticEntry): string {
     }
   }
   const status = e.status === null ? "-" : `${e.status}${e.cached ? "(cached)" : ""}`;
-  const verdict = e.verdict.replace(/[^\w.:/=,() -]/g, "_").slice(0, 300);
+  const verdict = e.verdict.replace(/[^\w.:/=,() -]/g, "_").slice(0, 500);
   return [
     "[diagnose]",
     `source=${token(e.sourceKey)}`,
@@ -171,4 +171,58 @@ export function looksLikeChallenge(body: string): boolean {
   return /cf-chl|challenge-platform|cf_chl_opt|__cf_bm|_Incapsula_Resource|sucuri-firewall|g-recaptcha|h-captcha|<title>\s*(?:just a moment|attention required|access denied)/i.test(
     head,
   );
+}
+
+/**
+ * Fixed markers that say what kind of page answered when it has no event markup (BeltLine's
+ * list view in dry run 41860959049): the platform (WordPress, The Events Calendar and its REST
+ * API, a JavaScript app shell), the hosts of iframes and of scripts loaded from other sites
+ * (an embedded calendar widget), and anchor counts. Every value is a fixed word, a host name
+ * or a number; no page text is printed.
+ */
+export function pageHints(body: string, pageUrl: string): string[] {
+  const out: string[] = [];
+  const marks: [string, RegExp][] = [
+    ["wordpress", /\/wp-content\/|\/wp-includes\//i],
+    ["tec", /tribe-events|tribe_events|the-events-calendar/i],
+    ["tec-rest", /\/wp-json\/tribe\/events\/v1/i],
+    ["wp-rest", /\/wp-json\//i],
+    ["nextjs", /__NEXT_DATA__|\/_next\/static\//],
+    ["nuxt", /__NUXT__|\/_nuxt\//],
+    ["js-app-root", /<div[^>]+id=["'](?:root|app|__next|___gatsby)["'][^>]*>\s*<\/div>/i],
+    ["noscript", /<noscript\b/i],
+  ];
+  for (const [name, re] of marks) if (re.test(body)) out.push(name);
+  let own = "";
+  try {
+    own = new URL(pageUrl).host.replace(/^www\./, "");
+  } catch {
+    own = "";
+  }
+  const hosts = (re: RegExp, max: number): string[] => {
+    const set = new Set<string>();
+    for (const m of body.matchAll(re)) {
+      try {
+        const h = new URL(m[1] ?? "", pageUrl).host.toLowerCase();
+        if (h && h.replace(/^www\./, "") !== own && /^[a-z0-9.-]{1,80}$/.test(h)) set.add(h);
+      } catch {
+        // not a URL
+      }
+      if (set.size >= max) break;
+    }
+    return [...set];
+  };
+  const frames = hosts(/<iframe\b[^>]*\bsrc=["']([^"']{1,500})["']/gi, 4);
+  if (frames.length) out.push(`iframes=${frames.join(",")}`);
+  const scripts = hosts(/<script\b[^>]*\bsrc=["']([^"']{1,500})["']/gi, 8);
+  if (scripts.length) out.push(`script_hosts=${scripts.join(",")}`);
+  let anchors = 0;
+  let eventish = 0;
+  for (const m of body.matchAll(/<a\b[^>]*\bhref=["']([^"']{1,500})["']/gi)) {
+    anchors++;
+    if (/\/events?\/[^/?#]+/i.test(m[1] ?? "")) eventish++;
+    if (anchors >= 5000) break;
+  }
+  out.push(`anchors=${anchors}`, `event_path_anchors=${eventish}`);
+  return out;
 }

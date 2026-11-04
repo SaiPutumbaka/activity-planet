@@ -8,6 +8,7 @@ import {
   jsonLdTypes,
   looksLikeChallenge,
   mediaType,
+  pageHints,
   redactForLog,
 } from "../src/diagnose.ts";
 import { DryRunIngest } from "../src/ingest.ts";
@@ -246,12 +247,31 @@ describe("HTML instead of ICS", () => {
       /source=test-good-ics .* type=text\/calendar .*verdict=ics vevents=\d+ events=\d+$/,
     );
     expect(page).toMatch(
-      /source=test-page url=https:\/\/feeds\.example\.org\/calendar\/ .*verdict=html no-event-markup jsonld blocks=0 microdata items=0 feed links found=1 page links found=0$/,
+      /source=test-page url=https:\/\/feeds\.example\.org\/calendar\/ .*verdict=html no-event-markup jsonld blocks=0 microdata items=0 hints anchors=1 event_path_anchors=0 feed links found=1 page links found=0$/,
     );
     expect(discovered).toMatch(
       /source=test-page url=https:\/\/feeds\.example\.org\/calendar\/\?ical=1 .* type=text\/calendar .*verdict=not_a_feed detected=html$/,
     );
     const all = lines.join("\n");
     expect(all).not.toMatch(/Secret|Upcoming|Run Club|Weekly/);
+  });
+});
+
+describe("pageHints", () => {
+  it("names the platform, embed hosts and anchor counts, never page text", () => {
+    const html = `<!doctype html><html><head><script src="/wp-includes/js/x.js"></script>
+      <script src="https://widgets.example-cal.com/embed.js"></script></head>
+      <body><div id="root"></div><iframe src="https://calendar.example.org/embed?x=1"></iframe>
+      <a href="/events/secret-title-here/">Secret Title Here</a><a href="/about/">About</a></body></html>`;
+    const hints = pageHints(html, "https://www.beltline.org/events/list/");
+    expect(hints).toEqual([
+      "wordpress",
+      "js-app-root",
+      "iframes=calendar.example.org",
+      "script_hosts=widgets.example-cal.com",
+      "anchors=2",
+      "event_path_anchors=1",
+    ]);
+    expect(hints.join(" ")).not.toMatch(/Secret|secret-title/);
   });
 });
