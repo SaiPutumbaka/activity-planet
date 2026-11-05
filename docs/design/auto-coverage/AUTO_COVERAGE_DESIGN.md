@@ -101,6 +101,7 @@ Assumptions: 6 map sessions per user a month, about 2 tiles in view, 300 KB per 
 - **Build step** reads hidden and removed ids from the database and leaves them out of the file.
 - **Moves off Postgres:** venue matching (nearest OSM place within 60 m) becomes an Edge Function reading the tile file, or is done at build time; name search runs on loaded tiles in the client; "three public places within 150 m" on moderation cards uses the Edge Function.
 - Atlanta stays in both stores until the client merge passes tests; then OSM rows are deleted from Postgres (frees about 25 MB).
+- As built (slice 11, migration 49, `supabase/functions/place-files`): venue matching runs in the `place-files` Edge Function against the published files (pg_cron `place-match`, minutes 11 and 41; the nearest row within 60 m with the same or a close name, pg_trgm 0.45), and a match becomes a database row through `place_from_file` (refused unless the file's sha256 is the tile's current one) before `meeting_spot_refresh` links it, so the rule stays the database's. A member acting on a file-only place (report, correction, "Start a plan here") gets its row from `POST place-files/place`. Name search, the add-a-place duplicate check and the moderation card's nearby places run in the client on the files read (`place_file_at` gives a point's file). The OSM rows are not deleted yet: the files are still built from them, so the delete needs the extract to write files directly first (a later step).
 
 ---
 
