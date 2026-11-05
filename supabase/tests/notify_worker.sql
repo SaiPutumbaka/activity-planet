@@ -181,12 +181,12 @@ begin
                                       v_e, v_hub, null, null, public.notification_event_payload(v_e));
   perform set_config('test.n3', v_id::text, true);
   update public.notification_prefs set event_reminders = false where user_id = current_setting('test.r')::uuid;
-  -- n4: an update to q, who then sets quiet hours around now (UTC).
+  -- n4: an update to q, who then sets quiet hours around now (Etc/UTC; is_valid_timezone wants Area/Name).
   v_id := public.enqueue_notification(current_setting('test.q')::uuid, 'event_updated', 'nw:n4:' || v_tag,
                                       v_e, v_hub, null, null, public.notification_event_payload(v_e));
   perform set_config('test.n4', v_id::text, true);
   update public.notification_prefs
-     set timezone = 'UTC', quiet_start = v_now - interval '1 hour', quiet_end = v_now + interval '1 hour'
+     set timezone = 'Etc/UTC', quiet_start = v_now - interval '1 hour', quiet_end = v_now + interval '1 hour'
    where user_id = current_setting('test.q')::uuid;
   -- n5: to c, whose address is not confirmed.
   v_id := public.enqueue_notification(current_setting('test.c')::uuid, 'rsvp_confirmed', 'nw:n5:' || v_tag,
