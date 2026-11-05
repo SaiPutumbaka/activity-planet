@@ -147,3 +147,19 @@ verify_jwt = true
 # EVENTBRITE_CLIENT_SECRET and EVENTBRITE_REDIRECT_URI every request answers 200
 # {"skipped":"no key"}.
 verify_jwt = false
+
+[functions.recs-embed]
+# Recommendations (migration 67, D-045): the caller is the database (pg_cron job recs-embed every
+# minute, through pg_net and public.recs_embed_dispatch), not a user, so the gateway JWT check is
+# off; the function refuses any request whose x-recs-secret header does not match the vault secret
+# recs_embed_secret (checked through recs_embed_verify_secret, service_role only). The model is
+# Supabase's built-in gte-small (no key, no vendor). Logs counts only.
+verify_jwt = false
+
+[functions.weekly-scorecard]
+# The Monday counts-only scorecard email (migration 67): the caller is the database (pg_cron job
+# weekly-scorecard through pg_net and public.scorecard_dispatch) with the x-scorecard-secret
+# header (vault secret scorecard_secret, checked through scorecard_verify_secret). RESEND_API_KEY
+# and SCORECARD_TO are optional Edge Function secrets; without either the run is recorded as
+# skipped_no_key and nothing is sent.
+verify_jwt = false

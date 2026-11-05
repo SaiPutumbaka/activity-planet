@@ -48,6 +48,10 @@ jobs:
           deno-version: v2.1.4
       - run: deno test --allow-read supabase/functions/import-feed supabase/functions/collector supabase/functions/places-fill supabase/functions/place-files supabase/functions/send-notifications supabase/functions/organizer-verify supabase/functions/eventbrite-connect
       - run: deno check supabase/functions/send-notifications/index.ts
+      # Recommendations (migration 67): the recs-embed batch with a fake model, and the weekly
+      # scorecard with fake RPCs and sender (no network, no key, no model download).
+      - run: deno test --allow-read supabase/functions/recs-embed supabase/functions/weekly-scorecard
+      - run: deno check supabase/functions/recs-embed/index.ts supabase/functions/weekly-scorecard/index.ts
       # Coaching payments (migration 60): Stripe Connect, Checkout and the webhook, with a mocked
       # Stripe (no network, no key). The index files import supabase-js from npm.
       - run: deno test --allow-read supabase/functions/stripe-connect supabase/functions/stripe-checkout supabase/functions/stripe-webhook

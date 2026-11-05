@@ -1,0 +1,27 @@
+{
+  "week_start": "2026-11-02",
+  "people": { "signups": 12, "onboarded": 9, "wau": 40, "members": 210 },
+  "plans": {
+    "human_hosted_held": 7,
+    "human_hosted_next_7d": 5,
+    "four_plus_checked_in": 2,
+    "unique_attendees": 31,
+    "second_attendance_rate": 0.25
+  },
+  "chapters_active": 3,
+  "messages": { "sent": 120, "active_conversations": 18 },
+  "coaching": { "requested": 2, "confirmed": 1, "completed": 1, "gmv_minor": { "usd": 4000 } },
+  "collector": { "imported_upcoming": 1100, "sources_ok": 40, "sources_stale": 2 },
+  "recs": {
+    "tastes_with_vector": 50,
+    "embeddings": { "hub": 600, "event": 1500, "coach": 4 },
+    "queue_due": 0,
+    "failed": 1
+  },
+  "trust": { "reports_open": 1, "reports_overdue": 0, "takedowns_open": 0 },
+  "launch_gate": {
+    "week_2027_01_11": { "recurring": 3, "target": 10 },
+    "week_2027_01_18": { "recurring": 1, "target": 10 },
+    "chapters_live": { "count": 2, "target": 5 }
+  }
+}

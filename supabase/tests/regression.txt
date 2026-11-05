@@ -70,3 +70,6 @@ collector_health.sql
 discovery_tuning.sql
 collector_ui.sql
 collector_review_fixes.sql
+recommendations.sql
+recommendations_people.sql
+scorecard_landing.sql
