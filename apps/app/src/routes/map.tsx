@@ -12,6 +12,8 @@ import { ListPanel, type PanelHeight } from "@/components/map/list-panel";
 import { CellSheet, EventSheet, PlaceSheet } from "@/components/map/place-sheet";
 import { ComingSoon } from "@/components/shell/coming-soon";
 import { TabBar } from "@/components/shell/tab-bar";
+import { ChatsButton } from "@/components/shell/chats-button";
+import { InboxBell } from "@/components/shell/inbox-bell";
 import { TopBar } from "@/components/shell/top-bar";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button-variants";
@@ -588,6 +590,12 @@ function MapScreen({ userId }: { userId: string | null }) {
             {addButton}
             {toggleView}
             {signIn}
+            {userId ? (
+              <>
+                <ChatsButton userId={userId} />
+                <InboxBell userId={userId} />
+              </>
+            ) : null}
           </>
         }
       />

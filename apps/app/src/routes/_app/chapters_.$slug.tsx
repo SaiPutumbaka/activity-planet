@@ -26,6 +26,7 @@ import {
   PersonSheet,
   type SafetyPerson,
 } from "@/components/safety/person-sheet";
+import { ChatEntryButton } from "@/components/chats/chat-entry-button";
 import { ReportButton } from "@/components/safety/report-button";
 import { TopBar } from "@/components/shell/top-bar";
 import { Avatar } from "@/components/ui/avatar";
@@ -276,6 +277,14 @@ function ChapterContent({ chapter }: { chapter: ChapterDetail }) {
             Attendance dashboard
           </Link>
         </section>
+      ) : null}
+
+      {mine ? (
+        <ChatEntryButton
+          target={{ kind: "chapter", chapterId: chapter.id }}
+          label="Chapter chat"
+          className="self-start"
+        />
       ) : null}
 
       <section className="flex flex-col gap-3" aria-labelledby="chapter-upcoming">

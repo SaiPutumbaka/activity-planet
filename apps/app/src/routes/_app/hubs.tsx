@@ -16,6 +16,8 @@ import {
 } from "@/components/hubs/hub-states";
 import { RequestHubSheet } from "@/components/hubs/request-hub-sheet";
 import { useHubMembership } from "@/components/hubs/use-hub-membership";
+import { ChatsButton } from "@/components/shell/chats-button";
+import { InboxBell } from "@/components/shell/inbox-bell";
 import { TopBar } from "@/components/shell/top-bar";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -112,7 +114,15 @@ function HubsPage() {
 
   return (
     <>
-      <TopBar title="Hubs" />
+      <TopBar
+        title="Hubs"
+        actions={
+          <>
+            <ChatsButton userId={session.user.id} />
+            <InboxBell userId={session.user.id} />
+          </>
+        }
+      />
       <main className="flex flex-col gap-6 pb-8 safe-px">
         <HubSearch value={query} onChange={setQuery} total={hubCount} />
 

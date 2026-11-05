@@ -69,7 +69,7 @@ function HomePage() {
             >
               <Search className="size-5" aria-hidden="true" />
             </Link>
-            <ChatsButton />
+            <ChatsButton userId={session.user.id} />
             <InboxBell userId={session.user.id} />
           </>
         }

@@ -8,6 +8,7 @@ import { HubEvents } from "@/components/hubs/hub-events";
 import { HubHeader } from "@/components/hubs/hub-header";
 import { HubMembers } from "@/components/hubs/hub-members";
 import { HubPageSkeleton, SectionHeading } from "@/components/hubs/hub-states";
+import { ChatEntryButton } from "@/components/chats/chat-entry-button";
 import { useHubMembership } from "@/components/hubs/use-hub-membership";
 import { ReportButton } from "@/components/safety/report-button";
 import { TopBar } from "@/components/shell/top-bar";
@@ -111,6 +112,14 @@ function HubPageContent({ hub }: { hub: HubPage }) {
         onJoin={() => membership.join.mutate(hub)}
         onLeave={() => membership.leave.mutate(hub)}
       />
+
+      {joined && !isSensitive ? (
+        <ChatEntryButton
+          target={{ kind: "hub", hubId: hub.id }}
+          label="Hub chat"
+          className="self-start"
+        />
+      ) : null}
 
       <section className="flex flex-col gap-3" aria-labelledby="hub-upcoming">
         <SectionHeading

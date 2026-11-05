@@ -5,7 +5,7 @@ const TABS = [
   { to: "/", label: "Home", icon: Home, exact: true },
   { to: "/hubs", label: "Hubs", icon: Users },
   { to: "/post", label: "Post", icon: PlusSquare },
-  // Map takes the Chats slot until messaging ships; Chats is an icon in the Home top bar.
+  // Map keeps this slot; Chats is an icon beside the inbox bell in each tab's top bar (D-043).
   { to: "/map", label: "Map", icon: MapIcon },
   { to: "/you", label: "You", icon: UserRound },
 ] as const;

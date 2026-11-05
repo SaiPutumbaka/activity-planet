@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BellOff, Bell, Ellipsis, Flag, Ban } from "lucide-react";
+import { BellOff, Bell, Ellipsis, Flag, Ban, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
+import { useOpenChat } from "@/components/chats/use-open-chat";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
@@ -30,7 +31,8 @@ export interface SafetyPerson {
 type Step = "profile" | "block" | "mute" | "report";
 
 /**
- * A person's profile card with Mute, Block and Report (migration 51). Every action asks first.
+ * A person's profile card with Message (start_dm, migration 58), Mute, Block and Report
+ * (migration 51). Every action asks first.
  * A block works both ways and the other person isn't told; a mute only quiets notifications.
  *
  *   <PersonSheet person={p} viewerId={userId} onClose={() => setPerson(null)} />
@@ -55,6 +57,11 @@ export function PersonSheet({
     setStep("profile");
     onClose();
   }
+
+  const openChat = useOpenChat(() => {
+    setStep("profile");
+    onClose();
+  });
 
   const block = useMutation({
     mutationFn: (userId: string) => blockUser(userId),
@@ -126,6 +133,15 @@ export function PersonSheet({
           </div>
           {isSelf ? null : (
             <div className="flex flex-col gap-2">
+              <Button
+                variant="primary"
+                block
+                leading={<MessageCircle className="size-4" aria-hidden="true" />}
+                loading={openChat.isPending}
+                onClick={() => openChat.mutate({ kind: "dm", userId: person.user_id })}
+              >
+                Message
+              </Button>
               {muted ? (
                 <Button
                   variant="secondary"

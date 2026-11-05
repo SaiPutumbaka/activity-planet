@@ -2,6 +2,7 @@ import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 
 import { TabBar } from "@/components/shell/tab-bar";
 import { getSession } from "@/lib/auth";
+import { ChatsRealtime } from "@/lib/messaging";
 import { clearFeedLocation } from "@/lib/location";
 import { OfflineError, isOnline } from "@/lib/online";
 import { getProfile, profileQuery } from "@/lib/profile";
@@ -49,8 +50,10 @@ export const Route = createFileRoute("/_app")({
 });
 
 function AppShell() {
+  const { session } = Route.useRouteContext();
   return (
     <div className="mx-auto min-h-dvh max-w-lg pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))]">
+      <ChatsRealtime userId={session.user.id} />
       <Outlet />
       <TabBar />
     </div>

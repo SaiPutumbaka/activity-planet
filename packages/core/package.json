@@ -14,7 +14,8 @@
     "./feed": "./src/feed/index.ts",
     "./imports": "./src/imports/index.ts",
     "./places": "./src/places/index.ts",
-    "./map": "./src/map/index.ts"
+    "./map": "./src/map/index.ts",
+    "./messaging": "./src/messaging/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

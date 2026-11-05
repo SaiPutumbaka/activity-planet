@@ -36,15 +36,19 @@ import { Route as AppAdminReportsRouteImport } from './routes/_app/admin/reports
 import { Route as AppAdminTakedownsRouteImport } from './routes/_app/admin/takedowns'
 import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
 import { Route as AppChaptersSlugRouteImport } from './routes/_app/chapters_.$slug'
+import { Route as AppChatsIdRouteImport } from './routes/_app/chats_.$id'
+import { Route as AppChatsNewRouteImport } from './routes/_app/chats_.new'
 import { Route as AppEventsIdRouteImport } from './routes/_app/events_.$id'
 import { Route as AppHubsSlugRouteImport } from './routes/_app/hubs_.$slug'
 import { Route as AppYouBlockedRouteImport } from './routes/_app/you_.blocked'
 import { Route as AppYouDeleteRouteImport } from './routes/_app/you_.delete'
+import { Route as AppYouMetRouteImport } from './routes/_app/you_.met'
 import { Route as AppYouNotificationsRouteImport } from './routes/_app/you_.notifications'
 import { Route as AppYouPhotoRouteImport } from './routes/_app/you_.photo'
 import { Route as AppYouVerifyRouteImport } from './routes/_app/you_.verify'
 import { Route as AppChaptersSlugDashboardRouteImport } from './routes/_app/chapters_.$slug_.dashboard'
 import { Route as AppChaptersSlugScheduleRouteImport } from './routes/_app/chapters_.$slug_.schedule'
+import { Route as AppChatsIdInfoRouteImport } from './routes/_app/chats_.$id_.info'
 import { Route as AppEventsIdEditRouteImport } from './routes/_app/events_.$id_.edit'
 
 const AppRoute = AppRouteImport.update({
@@ -181,6 +185,16 @@ const AppChaptersSlugRoute = AppChaptersSlugRouteImport.update({
   path: '/chapters/$slug',
   getParentRoute: () => AppRoute,
 } as any)
+const AppChatsIdRoute = AppChatsIdRouteImport.update({
+  id: '/chats_/$id',
+  path: '/chats/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChatsNewRoute = AppChatsNewRouteImport.update({
+  id: '/chats_/new',
+  path: '/chats/new',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEventsIdRoute = AppEventsIdRouteImport.update({
   id: '/events_/$id',
   path: '/events/$id',
@@ -199,6 +213,11 @@ const AppYouBlockedRoute = AppYouBlockedRouteImport.update({
 const AppYouDeleteRoute = AppYouDeleteRouteImport.update({
   id: '/you_/delete',
   path: '/you/delete',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppYouMetRoute = AppYouMetRouteImport.update({
+  id: '/you_/met',
+  path: '/you/met',
   getParentRoute: () => AppRoute,
 } as any)
 const AppYouNotificationsRoute = AppYouNotificationsRouteImport.update({
@@ -225,6 +244,11 @@ const AppChaptersSlugDashboardRoute =
 const AppChaptersSlugScheduleRoute = AppChaptersSlugScheduleRouteImport.update({
   id: '/chapters_/$slug_/schedule',
   path: '/chapters/$slug/schedule',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChatsIdInfoRoute = AppChatsIdInfoRouteImport.update({
+  id: '/chats_/$id_/info',
+  path: '/chats/$id/info',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEventsIdEditRoute = AppEventsIdEditRouteImport.update({
@@ -259,16 +283,20 @@ export interface FileRoutesByFullPath {
   '/admin/takedowns': typeof AppAdminTakedownsRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/chapters/$slug': typeof AppChaptersSlugRoute
+  '/chats/$id': typeof AppChatsIdRoute
+  '/chats/new': typeof AppChatsNewRoute
   '/events/$id': typeof AppEventsIdRoute
   '/hubs/$slug': typeof AppHubsSlugRoute
   '/you/blocked': typeof AppYouBlockedRoute
   '/you/delete': typeof AppYouDeleteRoute
+  '/you/met': typeof AppYouMetRoute
   '/you/notifications': typeof AppYouNotificationsRoute
   '/you/photo': typeof AppYouPhotoRoute
   '/you/verify': typeof AppYouVerifyRoute
   '/admin/': typeof AppAdminIndexRoute
   '/chapters/$slug/dashboard': typeof AppChaptersSlugDashboardRoute
   '/chapters/$slug/schedule': typeof AppChaptersSlugScheduleRoute
+  '/chats/$id/info': typeof AppChatsIdInfoRoute
   '/events/$id/edit': typeof AppEventsIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -297,16 +325,20 @@ export interface FileRoutesByTo {
   '/admin/takedowns': typeof AppAdminTakedownsRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/chapters/$slug': typeof AppChaptersSlugRoute
+  '/chats/$id': typeof AppChatsIdRoute
+  '/chats/new': typeof AppChatsNewRoute
   '/events/$id': typeof AppEventsIdRoute
   '/hubs/$slug': typeof AppHubsSlugRoute
   '/you/blocked': typeof AppYouBlockedRoute
   '/you/delete': typeof AppYouDeleteRoute
+  '/you/met': typeof AppYouMetRoute
   '/you/notifications': typeof AppYouNotificationsRoute
   '/you/photo': typeof AppYouPhotoRoute
   '/you/verify': typeof AppYouVerifyRoute
   '/admin': typeof AppAdminIndexRoute
   '/chapters/$slug/dashboard': typeof AppChaptersSlugDashboardRoute
   '/chapters/$slug/schedule': typeof AppChaptersSlugScheduleRoute
+  '/chats/$id/info': typeof AppChatsIdInfoRoute
   '/events/$id/edit': typeof AppEventsIdEditRoute
 }
 export interface FileRoutesById {
@@ -337,16 +369,20 @@ export interface FileRoutesById {
   '/_app/admin/takedowns': typeof AppAdminTakedownsRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/chapters_/$slug': typeof AppChaptersSlugRoute
+  '/_app/chats_/$id': typeof AppChatsIdRoute
+  '/_app/chats_/new': typeof AppChatsNewRoute
   '/_app/events_/$id': typeof AppEventsIdRoute
   '/_app/hubs_/$slug': typeof AppHubsSlugRoute
   '/_app/you_/blocked': typeof AppYouBlockedRoute
   '/_app/you_/delete': typeof AppYouDeleteRoute
+  '/_app/you_/met': typeof AppYouMetRoute
   '/_app/you_/notifications': typeof AppYouNotificationsRoute
   '/_app/you_/photo': typeof AppYouPhotoRoute
   '/_app/you_/verify': typeof AppYouVerifyRoute
   '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/chapters_/$slug_/dashboard': typeof AppChaptersSlugDashboardRoute
   '/_app/chapters_/$slug_/schedule': typeof AppChaptersSlugScheduleRoute
+  '/_app/chats_/$id_/info': typeof AppChatsIdInfoRoute
   '/_app/events_/$id_/edit': typeof AppEventsIdEditRoute
 }
 export interface FileRouteTypes {
@@ -377,16 +413,20 @@ export interface FileRouteTypes {
     | '/admin/takedowns'
     | '/admin/users'
     | '/chapters/$slug'
+    | '/chats/$id'
+    | '/chats/new'
     | '/events/$id'
     | '/hubs/$slug'
     | '/you/blocked'
     | '/you/delete'
+    | '/you/met'
     | '/you/notifications'
     | '/you/photo'
     | '/you/verify'
     | '/admin/'
     | '/chapters/$slug/dashboard'
     | '/chapters/$slug/schedule'
+    | '/chats/$id/info'
     | '/events/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -415,16 +455,20 @@ export interface FileRouteTypes {
     | '/admin/takedowns'
     | '/admin/users'
     | '/chapters/$slug'
+    | '/chats/$id'
+    | '/chats/new'
     | '/events/$id'
     | '/hubs/$slug'
     | '/you/blocked'
     | '/you/delete'
+    | '/you/met'
     | '/you/notifications'
     | '/you/photo'
     | '/you/verify'
     | '/admin'
     | '/chapters/$slug/dashboard'
     | '/chapters/$slug/schedule'
+    | '/chats/$id/info'
     | '/events/$id/edit'
   id:
     | '__root__'
@@ -454,16 +498,20 @@ export interface FileRouteTypes {
     | '/_app/admin/takedowns'
     | '/_app/admin/users'
     | '/_app/chapters_/$slug'
+    | '/_app/chats_/$id'
+    | '/_app/chats_/new'
     | '/_app/events_/$id'
     | '/_app/hubs_/$slug'
     | '/_app/you_/blocked'
     | '/_app/you_/delete'
+    | '/_app/you_/met'
     | '/_app/you_/notifications'
     | '/_app/you_/photo'
     | '/_app/you_/verify'
     | '/_app/admin/'
     | '/_app/chapters_/$slug_/dashboard'
     | '/_app/chapters_/$slug_/schedule'
+    | '/_app/chats_/$id_/info'
     | '/_app/events_/$id_/edit'
   fileRoutesById: FileRoutesById
 }
@@ -665,6 +713,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppChaptersSlugRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/chats_/$id': {
+      id: '/_app/chats_/$id'
+      path: '/chats/$id'
+      fullPath: '/chats/$id'
+      preLoaderRoute: typeof AppChatsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/chats_/new': {
+      id: '/_app/chats_/new'
+      path: '/chats/new'
+      fullPath: '/chats/new'
+      preLoaderRoute: typeof AppChatsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/events_/$id': {
       id: '/_app/events_/$id'
       path: '/events/$id'
@@ -691,6 +753,13 @@ declare module '@tanstack/react-router' {
       path: '/you/delete'
       fullPath: '/you/delete'
       preLoaderRoute: typeof AppYouDeleteRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/you_/met': {
+      id: '/_app/you_/met'
+      path: '/you/met'
+      fullPath: '/you/met'
+      preLoaderRoute: typeof AppYouMetRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/you_/notifications': {
@@ -728,6 +797,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppChaptersSlugScheduleRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/chats_/$id_/info': {
+      id: '/_app/chats_/$id_/info'
+      path: '/chats/$id/info'
+      fullPath: '/chats/$id/info'
+      preLoaderRoute: typeof AppChatsIdInfoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/events_/$id_/edit': {
       id: '/_app/events_/$id_/edit'
       path: '/events/$id/edit'
@@ -754,16 +830,20 @@ interface AppRouteChildren {
   AppAdminTakedownsRoute: typeof AppAdminTakedownsRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
   AppChaptersSlugRoute: typeof AppChaptersSlugRoute
+  AppChatsIdRoute: typeof AppChatsIdRoute
+  AppChatsNewRoute: typeof AppChatsNewRoute
   AppEventsIdRoute: typeof AppEventsIdRoute
   AppHubsSlugRoute: typeof AppHubsSlugRoute
   AppYouBlockedRoute: typeof AppYouBlockedRoute
   AppYouDeleteRoute: typeof AppYouDeleteRoute
+  AppYouMetRoute: typeof AppYouMetRoute
   AppYouNotificationsRoute: typeof AppYouNotificationsRoute
   AppYouPhotoRoute: typeof AppYouPhotoRoute
   AppYouVerifyRoute: typeof AppYouVerifyRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
   AppChaptersSlugDashboardRoute: typeof AppChaptersSlugDashboardRoute
   AppChaptersSlugScheduleRoute: typeof AppChaptersSlugScheduleRoute
+  AppChatsIdInfoRoute: typeof AppChatsIdInfoRoute
   AppEventsIdEditRoute: typeof AppEventsIdEditRoute
 }
 
@@ -783,16 +863,20 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminTakedownsRoute: AppAdminTakedownsRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
   AppChaptersSlugRoute: AppChaptersSlugRoute,
+  AppChatsIdRoute: AppChatsIdRoute,
+  AppChatsNewRoute: AppChatsNewRoute,
   AppEventsIdRoute: AppEventsIdRoute,
   AppHubsSlugRoute: AppHubsSlugRoute,
   AppYouBlockedRoute: AppYouBlockedRoute,
   AppYouDeleteRoute: AppYouDeleteRoute,
+  AppYouMetRoute: AppYouMetRoute,
   AppYouNotificationsRoute: AppYouNotificationsRoute,
   AppYouPhotoRoute: AppYouPhotoRoute,
   AppYouVerifyRoute: AppYouVerifyRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,
   AppChaptersSlugDashboardRoute: AppChaptersSlugDashboardRoute,
   AppChaptersSlugScheduleRoute: AppChaptersSlugScheduleRoute,
+  AppChatsIdInfoRoute: AppChatsIdInfoRoute,
   AppEventsIdEditRoute: AppEventsIdEditRoute,
 }
 

@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { AppIcon } from "@ap/ui/brand";
 
 import { LocationSheet } from "@/components/feed/location-sheet";
+import { ChatsButton } from "@/components/shell/chats-button";
+import { InboxBell } from "@/components/shell/inbox-bell";
 import { TopBar } from "@/components/shell/top-bar";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -70,7 +72,15 @@ function YouPage() {
 
   return (
     <>
-      <TopBar title="You" />
+      <TopBar
+        title="You"
+        actions={
+          <>
+            <ChatsButton userId={session.user.id} />
+            <InboxBell userId={session.user.id} />
+          </>
+        }
+      />
       <main className="flex flex-col gap-6 pb-8 safe-px">
         <section className="flex items-center gap-4 pt-2">
           {/* key: Avatar remembers a broken image until it remounts. */}
@@ -141,6 +151,19 @@ function YouPage() {
               value="Add"
               hint="A public events calendar near you we should list"
             />
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">People</h3>
+          <div className="divide-y divide-border overflow-hidden rounded-card border border-border">
+            <LinkRow
+              to="/you/met"
+              label="People you've met"
+              hint="From your plans, when the pick is mutual"
+              value="Open"
+            />
+            <LinkRow to="/chats" label="Chats" value="Open" />
           </div>
         </section>
 

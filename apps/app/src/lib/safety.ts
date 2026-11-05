@@ -17,7 +17,7 @@ import { supabase } from "./supabase";
  *   attendeeName(row.profiles, row.user_id, blockedIds)   // "Blocked member" for a host's row
  */
 
-export type ReportKind = "profile" | "event" | "chapter" | "hub";
+export type ReportKind = "profile" | "event" | "chapter" | "hub" | "message";
 
 export const REPORT_REASONS = [
   "harassment",
@@ -95,7 +95,7 @@ const MESSAGES: Record<string, string> = {
   invalid_reason: "Pick a reason for the report.",
   invalid_kind: "That can't be reported.",
   target_not_found: "We couldn't find what you're reporting.",
-  own_item: "You can't report your own profile, plan or chapter.",
+  own_item: "You can't report your own profile, plan, chapter or message.",
   rate_limited: "You've sent a lot of reports today. Try again tomorrow.",
 };
 
@@ -127,7 +127,7 @@ export async function unmuteUser(userId: string): Promise<boolean> {
   return Boolean((data as { unmuted?: boolean } | null)?.unmuted);
 }
 
-/** Report a profile, plan, chapter or hub. Notes are trimmed to 1000 characters by the server. */
+/** Report a profile, plan, chapter, hub or chat message (migration 58). Notes are trimmed to 1000 characters by the server. */
 export async function reportContent(
   kind: ReportKind,
   id: string,
@@ -221,6 +221,7 @@ export const REPORT_SUBJECTS: Record<ReportKind, string> = {
   event: "this plan",
   chapter: "this chapter",
   hub: "this hub",
+  message: "this message",
 };
 
 export function reportTitle(kind: ReportKind, name?: string | null): string {

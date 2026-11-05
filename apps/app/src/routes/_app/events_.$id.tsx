@@ -22,6 +22,7 @@ import { eventState, rsvpState, spotsLeft } from "@/components/events/event-stat
 import { EventStateChip } from "@/components/events/event-state-chip";
 import { GuidelinesSheet } from "@/components/events/guidelines-sheet";
 import { MorningAfterSheet } from "@/components/events/morning-after-sheet";
+import { ChatEntryButton } from "@/components/chats/chat-entry-button";
 import { RsvpBar } from "@/components/events/rsvp-bar";
 import { useRsvp } from "@/components/events/use-rsvp";
 import { ImportedChips, ImportedSourceSection } from "@/components/events/imported-source";
@@ -360,6 +361,14 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
                 />
               )}
             </section>
+          ) : null}
+
+          {!imported && (canManage || myStatus === "going" || myStatus === "waitlisted") ? (
+            <ChatEntryButton
+              target={{ kind: "event", eventId: event.id }}
+              label="Plan chat"
+              className="self-start"
+            />
           ) : null}
 
           {imported ? null : (
