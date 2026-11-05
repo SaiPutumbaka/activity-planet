@@ -299,6 +299,16 @@ export default function SafetyCenterPage() {
             </a>
           </li>
           <li>
+            <a href="/coach-terms" className={linkClass}>
+              Coach Terms (draft)
+            </a>
+          </li>
+          <li>
+            <a href="/refund-policy" className={linkClass}>
+              Refund and Cancellation Policy (draft)
+            </a>
+          </li>
+          <li>
             <Link href="/account/delete" className={linkClass}>
               Delete your account
             </Link>

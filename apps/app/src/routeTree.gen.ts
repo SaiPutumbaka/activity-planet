@@ -14,7 +14,10 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppBookingsRouteImport } from './routes/_app/bookings'
 import { Route as AppChatsRouteImport } from './routes/_app/chats'
+import { Route as AppCoachRouteImport } from './routes/_app/coach'
+import { Route as AppCoachesRouteImport } from './routes/_app/coaches'
 import { Route as AppHubsRouteImport } from './routes/_app/hubs'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppPostRouteImport } from './routes/_app/post'
@@ -35,9 +38,14 @@ import { Route as AppAdminPlacesRouteImport } from './routes/_app/admin/places'
 import { Route as AppAdminReportsRouteImport } from './routes/_app/admin/reports'
 import { Route as AppAdminTakedownsRouteImport } from './routes/_app/admin/takedowns'
 import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
+import { Route as AppBookingsIdRouteImport } from './routes/_app/bookings_.$id'
 import { Route as AppChaptersSlugRouteImport } from './routes/_app/chapters_.$slug'
 import { Route as AppChatsIdRouteImport } from './routes/_app/chats_.$id'
 import { Route as AppChatsNewRouteImport } from './routes/_app/chats_.new'
+import { Route as AppCoachAvailabilityRouteImport } from './routes/_app/coach_.availability'
+import { Route as AppCoachPayoutsRouteImport } from './routes/_app/coach_.payouts'
+import { Route as AppCoachProfileRouteImport } from './routes/_app/coach_.profile'
+import { Route as AppCoachesHandleRouteImport } from './routes/_app/coaches_.$handle'
 import { Route as AppEventsIdRouteImport } from './routes/_app/events_.$id'
 import { Route as AppHubsSlugRouteImport } from './routes/_app/hubs_.$slug'
 import { Route as AppYouBlockedRouteImport } from './routes/_app/you_.blocked'
@@ -49,7 +57,9 @@ import { Route as AppYouVerifyRouteImport } from './routes/_app/you_.verify'
 import { Route as AppChaptersSlugDashboardRouteImport } from './routes/_app/chapters_.$slug_.dashboard'
 import { Route as AppChaptersSlugScheduleRouteImport } from './routes/_app/chapters_.$slug_.schedule'
 import { Route as AppChatsIdInfoRouteImport } from './routes/_app/chats_.$id_.info'
+import { Route as AppCoachListingsIdRouteImport } from './routes/_app/coach_.listings.$id'
 import { Route as AppEventsIdEditRouteImport } from './routes/_app/events_.$id_.edit'
+import { Route as AppCoachesHandleBookListingRouteImport } from './routes/_app/coaches_.$handle_.book.$listing'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -75,9 +85,24 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBookingsRoute = AppBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppChatsRoute = AppChatsRouteImport.update({
   id: '/chats',
   path: '/chats',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCoachRoute = AppCoachRouteImport.update({
+  id: '/coach',
+  path: '/coach',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCoachesRoute = AppCoachesRouteImport.update({
+  id: '/coaches',
+  path: '/coaches',
   getParentRoute: () => AppRoute,
 } as any)
 const AppHubsRoute = AppHubsRouteImport.update({
@@ -180,6 +205,11 @@ const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBookingsIdRoute = AppBookingsIdRouteImport.update({
+  id: '/bookings_/$id',
+  path: '/bookings/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppChaptersSlugRoute = AppChaptersSlugRouteImport.update({
   id: '/chapters_/$slug',
   path: '/chapters/$slug',
@@ -193,6 +223,26 @@ const AppChatsIdRoute = AppChatsIdRouteImport.update({
 const AppChatsNewRoute = AppChatsNewRouteImport.update({
   id: '/chats_/new',
   path: '/chats/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCoachAvailabilityRoute = AppCoachAvailabilityRouteImport.update({
+  id: '/coach_/availability',
+  path: '/coach/availability',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCoachPayoutsRoute = AppCoachPayoutsRouteImport.update({
+  id: '/coach_/payouts',
+  path: '/coach/payouts',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCoachProfileRoute = AppCoachProfileRouteImport.update({
+  id: '/coach_/profile',
+  path: '/coach/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCoachesHandleRoute = AppCoachesHandleRouteImport.update({
+  id: '/coaches_/$handle',
+  path: '/coaches/$handle',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEventsIdRoute = AppEventsIdRouteImport.update({
@@ -251,18 +301,32 @@ const AppChatsIdInfoRoute = AppChatsIdInfoRouteImport.update({
   path: '/chats/$id/info',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCoachListingsIdRoute = AppCoachListingsIdRouteImport.update({
+  id: '/coach_/listings/$id',
+  path: '/coach/listings/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEventsIdEditRoute = AppEventsIdEditRouteImport.update({
   id: '/events_/$id_/edit',
   path: '/events/$id/edit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCoachesHandleBookListingRoute =
+  AppCoachesHandleBookListingRouteImport.update({
+    id: '/coaches_/$handle_/book/$listing',
+    path: '/coaches/$handle/book/$listing',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
+  '/bookings': typeof AppBookingsRoute
   '/chats': typeof AppChatsRoute
+  '/coach': typeof AppCoachRoute
+  '/coaches': typeof AppCoachesRoute
   '/hubs': typeof AppHubsRoute
   '/inbox': typeof AppInboxRoute
   '/post': typeof AppPostRoute
@@ -282,9 +346,14 @@ export interface FileRoutesByFullPath {
   '/admin/reports': typeof AppAdminReportsRoute
   '/admin/takedowns': typeof AppAdminTakedownsRoute
   '/admin/users': typeof AppAdminUsersRoute
+  '/bookings/$id': typeof AppBookingsIdRoute
   '/chapters/$slug': typeof AppChaptersSlugRoute
   '/chats/$id': typeof AppChatsIdRoute
   '/chats/new': typeof AppChatsNewRoute
+  '/coach/availability': typeof AppCoachAvailabilityRoute
+  '/coach/payouts': typeof AppCoachPayoutsRoute
+  '/coach/profile': typeof AppCoachProfileRoute
+  '/coaches/$handle': typeof AppCoachesHandleRoute
   '/events/$id': typeof AppEventsIdRoute
   '/hubs/$slug': typeof AppHubsSlugRoute
   '/you/blocked': typeof AppYouBlockedRoute
@@ -297,13 +366,18 @@ export interface FileRoutesByFullPath {
   '/chapters/$slug/dashboard': typeof AppChaptersSlugDashboardRoute
   '/chapters/$slug/schedule': typeof AppChaptersSlugScheduleRoute
   '/chats/$id/info': typeof AppChatsIdInfoRoute
+  '/coach/listings/$id': typeof AppCoachListingsIdRoute
   '/events/$id/edit': typeof AppEventsIdEditRoute
+  '/coaches/$handle/book/$listing': typeof AppCoachesHandleBookListingRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
+  '/bookings': typeof AppBookingsRoute
   '/chats': typeof AppChatsRoute
+  '/coach': typeof AppCoachRoute
+  '/coaches': typeof AppCoachesRoute
   '/hubs': typeof AppHubsRoute
   '/inbox': typeof AppInboxRoute
   '/post': typeof AppPostRoute
@@ -324,9 +398,14 @@ export interface FileRoutesByTo {
   '/admin/reports': typeof AppAdminReportsRoute
   '/admin/takedowns': typeof AppAdminTakedownsRoute
   '/admin/users': typeof AppAdminUsersRoute
+  '/bookings/$id': typeof AppBookingsIdRoute
   '/chapters/$slug': typeof AppChaptersSlugRoute
   '/chats/$id': typeof AppChatsIdRoute
   '/chats/new': typeof AppChatsNewRoute
+  '/coach/availability': typeof AppCoachAvailabilityRoute
+  '/coach/payouts': typeof AppCoachPayoutsRoute
+  '/coach/profile': typeof AppCoachProfileRoute
+  '/coaches/$handle': typeof AppCoachesHandleRoute
   '/events/$id': typeof AppEventsIdRoute
   '/hubs/$slug': typeof AppHubsSlugRoute
   '/you/blocked': typeof AppYouBlockedRoute
@@ -339,7 +418,9 @@ export interface FileRoutesByTo {
   '/chapters/$slug/dashboard': typeof AppChaptersSlugDashboardRoute
   '/chapters/$slug/schedule': typeof AppChaptersSlugScheduleRoute
   '/chats/$id/info': typeof AppChatsIdInfoRoute
+  '/coach/listings/$id': typeof AppCoachListingsIdRoute
   '/events/$id/edit': typeof AppEventsIdEditRoute
+  '/coaches/$handle/book/$listing': typeof AppCoachesHandleBookListingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -347,7 +428,10 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/map': typeof MapRoute
   '/onboarding': typeof OnboardingRoute
+  '/_app/bookings': typeof AppBookingsRoute
   '/_app/chats': typeof AppChatsRoute
+  '/_app/coach': typeof AppCoachRoute
+  '/_app/coaches': typeof AppCoachesRoute
   '/_app/hubs': typeof AppHubsRoute
   '/_app/inbox': typeof AppInboxRoute
   '/_app/post': typeof AppPostRoute
@@ -368,9 +452,14 @@ export interface FileRoutesById {
   '/_app/admin/reports': typeof AppAdminReportsRoute
   '/_app/admin/takedowns': typeof AppAdminTakedownsRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
+  '/_app/bookings_/$id': typeof AppBookingsIdRoute
   '/_app/chapters_/$slug': typeof AppChaptersSlugRoute
   '/_app/chats_/$id': typeof AppChatsIdRoute
   '/_app/chats_/new': typeof AppChatsNewRoute
+  '/_app/coach_/availability': typeof AppCoachAvailabilityRoute
+  '/_app/coach_/payouts': typeof AppCoachPayoutsRoute
+  '/_app/coach_/profile': typeof AppCoachProfileRoute
+  '/_app/coaches_/$handle': typeof AppCoachesHandleRoute
   '/_app/events_/$id': typeof AppEventsIdRoute
   '/_app/hubs_/$slug': typeof AppHubsSlugRoute
   '/_app/you_/blocked': typeof AppYouBlockedRoute
@@ -383,7 +472,9 @@ export interface FileRoutesById {
   '/_app/chapters_/$slug_/dashboard': typeof AppChaptersSlugDashboardRoute
   '/_app/chapters_/$slug_/schedule': typeof AppChaptersSlugScheduleRoute
   '/_app/chats_/$id_/info': typeof AppChatsIdInfoRoute
+  '/_app/coach_/listings/$id': typeof AppCoachListingsIdRoute
   '/_app/events_/$id_/edit': typeof AppEventsIdEditRoute
+  '/_app/coaches_/$handle_/book/$listing': typeof AppCoachesHandleBookListingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -392,7 +483,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/map'
     | '/onboarding'
+    | '/bookings'
     | '/chats'
+    | '/coach'
+    | '/coaches'
     | '/hubs'
     | '/inbox'
     | '/post'
@@ -412,9 +506,14 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/takedowns'
     | '/admin/users'
+    | '/bookings/$id'
     | '/chapters/$slug'
     | '/chats/$id'
     | '/chats/new'
+    | '/coach/availability'
+    | '/coach/payouts'
+    | '/coach/profile'
+    | '/coaches/$handle'
     | '/events/$id'
     | '/hubs/$slug'
     | '/you/blocked'
@@ -427,13 +526,18 @@ export interface FileRouteTypes {
     | '/chapters/$slug/dashboard'
     | '/chapters/$slug/schedule'
     | '/chats/$id/info'
+    | '/coach/listings/$id'
     | '/events/$id/edit'
+    | '/coaches/$handle/book/$listing'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
     | '/map'
     | '/onboarding'
+    | '/bookings'
     | '/chats'
+    | '/coach'
+    | '/coaches'
     | '/hubs'
     | '/inbox'
     | '/post'
@@ -454,9 +558,14 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/takedowns'
     | '/admin/users'
+    | '/bookings/$id'
     | '/chapters/$slug'
     | '/chats/$id'
     | '/chats/new'
+    | '/coach/availability'
+    | '/coach/payouts'
+    | '/coach/profile'
+    | '/coaches/$handle'
     | '/events/$id'
     | '/hubs/$slug'
     | '/you/blocked'
@@ -469,14 +578,19 @@ export interface FileRouteTypes {
     | '/chapters/$slug/dashboard'
     | '/chapters/$slug/schedule'
     | '/chats/$id/info'
+    | '/coach/listings/$id'
     | '/events/$id/edit'
+    | '/coaches/$handle/book/$listing'
   id:
     | '__root__'
     | '/_app'
     | '/auth'
     | '/map'
     | '/onboarding'
+    | '/_app/bookings'
     | '/_app/chats'
+    | '/_app/coach'
+    | '/_app/coaches'
     | '/_app/hubs'
     | '/_app/inbox'
     | '/_app/post'
@@ -497,9 +611,14 @@ export interface FileRouteTypes {
     | '/_app/admin/reports'
     | '/_app/admin/takedowns'
     | '/_app/admin/users'
+    | '/_app/bookings_/$id'
     | '/_app/chapters_/$slug'
     | '/_app/chats_/$id'
     | '/_app/chats_/new'
+    | '/_app/coach_/availability'
+    | '/_app/coach_/payouts'
+    | '/_app/coach_/profile'
+    | '/_app/coaches_/$handle'
     | '/_app/events_/$id'
     | '/_app/hubs_/$slug'
     | '/_app/you_/blocked'
@@ -512,7 +631,9 @@ export interface FileRouteTypes {
     | '/_app/chapters_/$slug_/dashboard'
     | '/_app/chapters_/$slug_/schedule'
     | '/_app/chats_/$id_/info'
+    | '/_app/coach_/listings/$id'
     | '/_app/events_/$id_/edit'
+    | '/_app/coaches_/$handle_/book/$listing'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -559,11 +680,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/bookings': {
+      id: '/_app/bookings'
+      path: '/bookings'
+      fullPath: '/bookings'
+      preLoaderRoute: typeof AppBookingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/chats': {
       id: '/_app/chats'
       path: '/chats'
       fullPath: '/chats'
       preLoaderRoute: typeof AppChatsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/coach': {
+      id: '/_app/coach'
+      path: '/coach'
+      fullPath: '/coach'
+      preLoaderRoute: typeof AppCoachRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/coaches': {
+      id: '/_app/coaches'
+      path: '/coaches'
+      fullPath: '/coaches'
+      preLoaderRoute: typeof AppCoachesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/hubs': {
@@ -706,6 +848,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminUsersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/bookings_/$id': {
+      id: '/_app/bookings_/$id'
+      path: '/bookings/$id'
+      fullPath: '/bookings/$id'
+      preLoaderRoute: typeof AppBookingsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/chapters_/$slug': {
       id: '/_app/chapters_/$slug'
       path: '/chapters/$slug'
@@ -725,6 +874,34 @@ declare module '@tanstack/react-router' {
       path: '/chats/new'
       fullPath: '/chats/new'
       preLoaderRoute: typeof AppChatsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/coach_/availability': {
+      id: '/_app/coach_/availability'
+      path: '/coach/availability'
+      fullPath: '/coach/availability'
+      preLoaderRoute: typeof AppCoachAvailabilityRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/coach_/payouts': {
+      id: '/_app/coach_/payouts'
+      path: '/coach/payouts'
+      fullPath: '/coach/payouts'
+      preLoaderRoute: typeof AppCoachPayoutsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/coach_/profile': {
+      id: '/_app/coach_/profile'
+      path: '/coach/profile'
+      fullPath: '/coach/profile'
+      preLoaderRoute: typeof AppCoachProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/coaches_/$handle': {
+      id: '/_app/coaches_/$handle'
+      path: '/coaches/$handle'
+      fullPath: '/coaches/$handle'
+      preLoaderRoute: typeof AppCoachesHandleRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/events_/$id': {
@@ -804,6 +981,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppChatsIdInfoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/coach_/listings/$id': {
+      id: '/_app/coach_/listings/$id'
+      path: '/coach/listings/$id'
+      fullPath: '/coach/listings/$id'
+      preLoaderRoute: typeof AppCoachListingsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/events_/$id_/edit': {
       id: '/_app/events_/$id_/edit'
       path: '/events/$id/edit'
@@ -811,11 +995,21 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEventsIdEditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/coaches_/$handle_/book/$listing': {
+      id: '/_app/coaches_/$handle_/book/$listing'
+      path: '/coaches/$handle/book/$listing'
+      fullPath: '/coaches/$handle/book/$listing'
+      preLoaderRoute: typeof AppCoachesHandleBookListingRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppBookingsRoute: typeof AppBookingsRoute
   AppChatsRoute: typeof AppChatsRoute
+  AppCoachRoute: typeof AppCoachRoute
+  AppCoachesRoute: typeof AppCoachesRoute
   AppHubsRoute: typeof AppHubsRoute
   AppInboxRoute: typeof AppInboxRoute
   AppPostRoute: typeof AppPostRoute
@@ -829,9 +1023,14 @@ interface AppRouteChildren {
   AppAdminReportsRoute: typeof AppAdminReportsRoute
   AppAdminTakedownsRoute: typeof AppAdminTakedownsRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
+  AppBookingsIdRoute: typeof AppBookingsIdRoute
   AppChaptersSlugRoute: typeof AppChaptersSlugRoute
   AppChatsIdRoute: typeof AppChatsIdRoute
   AppChatsNewRoute: typeof AppChatsNewRoute
+  AppCoachAvailabilityRoute: typeof AppCoachAvailabilityRoute
+  AppCoachPayoutsRoute: typeof AppCoachPayoutsRoute
+  AppCoachProfileRoute: typeof AppCoachProfileRoute
+  AppCoachesHandleRoute: typeof AppCoachesHandleRoute
   AppEventsIdRoute: typeof AppEventsIdRoute
   AppHubsSlugRoute: typeof AppHubsSlugRoute
   AppYouBlockedRoute: typeof AppYouBlockedRoute
@@ -844,11 +1043,16 @@ interface AppRouteChildren {
   AppChaptersSlugDashboardRoute: typeof AppChaptersSlugDashboardRoute
   AppChaptersSlugScheduleRoute: typeof AppChaptersSlugScheduleRoute
   AppChatsIdInfoRoute: typeof AppChatsIdInfoRoute
+  AppCoachListingsIdRoute: typeof AppCoachListingsIdRoute
   AppEventsIdEditRoute: typeof AppEventsIdEditRoute
+  AppCoachesHandleBookListingRoute: typeof AppCoachesHandleBookListingRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppBookingsRoute: AppBookingsRoute,
   AppChatsRoute: AppChatsRoute,
+  AppCoachRoute: AppCoachRoute,
+  AppCoachesRoute: AppCoachesRoute,
   AppHubsRoute: AppHubsRoute,
   AppInboxRoute: AppInboxRoute,
   AppPostRoute: AppPostRoute,
@@ -862,9 +1066,14 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminReportsRoute: AppAdminReportsRoute,
   AppAdminTakedownsRoute: AppAdminTakedownsRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
+  AppBookingsIdRoute: AppBookingsIdRoute,
   AppChaptersSlugRoute: AppChaptersSlugRoute,
   AppChatsIdRoute: AppChatsIdRoute,
   AppChatsNewRoute: AppChatsNewRoute,
+  AppCoachAvailabilityRoute: AppCoachAvailabilityRoute,
+  AppCoachPayoutsRoute: AppCoachPayoutsRoute,
+  AppCoachProfileRoute: AppCoachProfileRoute,
+  AppCoachesHandleRoute: AppCoachesHandleRoute,
   AppEventsIdRoute: AppEventsIdRoute,
   AppHubsSlugRoute: AppHubsSlugRoute,
   AppYouBlockedRoute: AppYouBlockedRoute,
@@ -877,7 +1086,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppChaptersSlugDashboardRoute: AppChaptersSlugDashboardRoute,
   AppChaptersSlugScheduleRoute: AppChaptersSlugScheduleRoute,
   AppChatsIdInfoRoute: AppChatsIdInfoRoute,
+  AppCoachListingsIdRoute: AppCoachListingsIdRoute,
   AppEventsIdEditRoute: AppEventsIdEditRoute,
+  AppCoachesHandleBookListingRoute: AppCoachesHandleBookListingRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

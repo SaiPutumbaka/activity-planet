@@ -15,6 +15,7 @@ import { SegmentedControl } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ButtonRow, LinkRow } from "@/components/you/link-row";
 import { authErrorMessage, signOut } from "@/lib/auth";
+import { myCoachStatusQuery } from "@/lib/coaching";
 import { isModeratorQuery, myManagedChaptersQuery, roleLabel } from "@/lib/chapters";
 import { feedPrefsQuery, useFeedOrigin } from "@/lib/location";
 import { notificationPrefsQuery } from "@/lib/notifications";
@@ -54,6 +55,7 @@ function YouPage() {
   const isMod = useQuery(isModeratorQuery(session.user.id));
   const prefs = useQuery(notificationPrefsQuery(session.user.id));
   const blocks = useQuery(myBlocksQuery(session.user.id));
+  const coachStatus = useQuery(myCoachStatusQuery(session.user.id));
   const chapters = managed.data ?? [];
   const verifiedSpace = membership.data
     ? (membership.data.org_campuses?.name ?? membership.data.organizations?.name ?? "Verified")
@@ -164,6 +166,26 @@ function YouPage() {
               value="Open"
             />
             <LinkRow to="/chats" label="Chats" value="Open" />
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">
+            Coaching
+          </h3>
+          <div className="divide-y divide-border overflow-hidden rounded-card border border-border">
+            <LinkRow
+              to="/coach"
+              label={coachStatus.data ? "Coach home" : "Become a coach"}
+              hint={
+                coachStatus.data
+                  ? "Listings, availability, requests"
+                  : "Offer lessons or sessions, in person or online"
+              }
+              value={coachStatus.isPending ? <Skeleton className="h-4 w-12" /> : "Open"}
+            />
+            <LinkRow to="/bookings" label="My bookings" value="Open" />
+            <LinkRow to="/coaches" label="Find a coach" value="Browse" />
           </div>
         </section>
 

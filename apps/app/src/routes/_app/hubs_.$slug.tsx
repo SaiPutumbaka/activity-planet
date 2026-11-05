@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CircleAlert, Compass } from "lucide-react";
 
 import { HubChapters } from "@/components/hubs/hub-chapters";
+import { HubCoaches } from "@/components/hubs/hub-coaches";
 import { HubEvents } from "@/components/hubs/hub-events";
 import { HubHeader } from "@/components/hubs/hub-header";
 import { HubMembers } from "@/components/hubs/hub-members";
@@ -134,6 +135,8 @@ function HubPageContent({ hub }: { hub: HubPage }) {
         <SectionHeading id="hub-chapters" title="Chapters" />
         <HubChapters hubId={hub.id} hubName={hub.name} isSensitive={isSensitive} userId={userId} />
       </section>
+
+      {!isSensitive ? <HubCoaches hubId={hub.id} /> : null}
 
       <section className="flex flex-col gap-3" aria-labelledby="hub-members">
         <SectionHeading id="hub-members" title="Members" />

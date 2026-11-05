@@ -261,7 +261,7 @@ function Frame({ children, gsu = false }: { children: ReactNode; gsu?: boolean }
 
         <footer className="flex flex-col gap-2 px-5 py-6 text-[13px] text-text-2">
           {gsu ? <p>Not affiliated with or endorsed by Georgia State University.</p> : null}
-          <nav className="flex gap-4" aria-label="Legal">
+          <nav className="flex flex-wrap gap-x-4 gap-y-1" aria-label="Legal">
             <a href="/terms" className="underline-offset-2 hover:underline">
               Terms
             </a>
@@ -270,6 +270,12 @@ function Frame({ children, gsu = false }: { children: ReactNode; gsu?: boolean }
             </a>
             <a href="/safety" className="underline-offset-2 hover:underline">
               Safety
+            </a>
+            <a href="/coach-terms" className="underline-offset-2 hover:underline">
+              Coach Terms
+            </a>
+            <a href="/refund-policy" className="underline-offset-2 hover:underline">
+              Refund Policy
             </a>
           </nav>
         </footer>

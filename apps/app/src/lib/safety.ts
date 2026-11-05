@@ -17,7 +17,16 @@ import { supabase } from "./supabase";
  *   attendeeName(row.profiles, row.user_id, blockedIds)   // "Blocked member" for a host's row
  */
 
-export type ReportKind = "profile" | "event" | "chapter" | "hub" | "message";
+export type ReportKind =
+  | "profile"
+  | "event"
+  | "chapter"
+  | "hub"
+  | "message"
+  | "coach_listing"
+  | "coach_review"
+  | "coach_review_reply"
+  | "booking";
 
 export const REPORT_REASONS = [
   "harassment",
@@ -33,7 +42,10 @@ export const REPORT_REASONS = [
   "child_safety",
   "other",
 ] as const;
-export type ReportReason = (typeof REPORT_REASONS)[number];
+/** Booking reports also take these (migration 60): a missed session or a payment problem. */
+export const BOOKING_REPORT_REASONS = ["no_show", "payment"] as const;
+export type ReportReason =
+  (typeof REPORT_REASONS)[number] | (typeof BOOKING_REPORT_REASONS)[number];
 
 /** Labels for the report sheet. Everyone-first wording (D-035, D-040). */
 export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
@@ -49,6 +61,8 @@ export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
   ncii: "Intimate image shared without consent",
   child_safety: "Child safety",
   other: "Something else",
+  no_show: "A missed session",
+  payment: "A payment problem",
 };
 
 export interface BlockResult {
@@ -222,6 +236,10 @@ export const REPORT_SUBJECTS: Record<ReportKind, string> = {
   chapter: "this chapter",
   hub: "this hub",
   message: "this message",
+  coach_listing: "this listing",
+  coach_review: "this review",
+  coach_review_reply: "this reply",
+  booking: "a problem with this booking",
 };
 
 export function reportTitle(kind: ReportKind, name?: string | null): string {

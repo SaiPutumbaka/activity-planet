@@ -72,7 +72,7 @@ const ICONS: Record<NotificationKind, LucideIcon> = {
   // Chat notices are left out of the inbox query (migration 58); listed for the type.
   message: MessageCircle,
   message_request: MessageCircle,
-  // Coaching (migration 60); their copy and links arrive with the coaching client (slice 2).
+  // Coaching (migration 60); copy and links in lib/notifications.ts.
   booking_requested: CalendarClock,
   booking_confirmed: CircleCheck,
   booking_declined: CalendarX,

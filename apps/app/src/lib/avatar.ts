@@ -203,3 +203,27 @@ export function avatarErrorMessage(err: unknown): string {
   }
   return message || "Something went wrong. Try again.";
 }
+
+/**
+ * Uploads a prepared coach photo under avatars/<uid>/coach/ (the owner-folder policies; image
+ * guard checks it through the coach_photos reference trigger). Resolves with the public URL;
+ * set_coach_photos then points the coach profile at it.
+ */
+export async function uploadCoachPhoto(userId: string, blob: Blob): Promise<string> {
+  const path = `${userId}/coach/${crypto.randomUUID()}.jpg`;
+  const { error } = await supabase.storage.from(AVATAR_BUCKET).upload(path, blob, {
+    contentType: "image/jpeg",
+    cacheControl: "31536000",
+    upsert: false,
+  });
+  if (error) throw error;
+  return supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+/** Deletes a coach photo object the caller owns (after it left the profile). */
+export async function removeCoachPhoto(userId: string, url: string): Promise<void> {
+  const path = ownAvatarPath(url, userId);
+  if (path && path.startsWith(`${userId}/coach/`)) {
+    await supabase.storage.from(AVATAR_BUCKET).remove([path]);
+  }
+}

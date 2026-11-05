@@ -7,6 +7,7 @@ import { FormError } from "@/components/ui/field";
 import { Sheet } from "@/components/ui/sheet";
 import { FieldTextArea } from "@/components/ui/textarea";
 import {
+  BOOKING_REPORT_REASONS,
   REPORT_REASONS,
   REPORT_REASON_LABELS,
   reportContent,
@@ -64,7 +65,10 @@ export function ReportForm({
       <FormError>{error}</FormError>
       <fieldset className="flex flex-col gap-1" disabled={send.isPending}>
         <legend className="pb-1.5 text-[14px] font-semibold">What's wrong?</legend>
-        {REPORT_REASONS.map((r) => (
+        {(kind === "booking"
+          ? [...BOOKING_REPORT_REASONS, ...REPORT_REASONS]
+          : [...REPORT_REASONS]
+        ).map((r) => (
           <label key={r} className="flex min-h-11 items-center gap-3 text-[15px]">
             <input
               type="radio"

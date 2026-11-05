@@ -56,6 +56,12 @@ export interface NotificationPayload {
   hub_name?: string;
   chapter_slug?: string;
   note?: string;
+  /** Coaching (migration 60). */
+  booking_id?: string;
+  coach_handle?: string;
+  party?: string;
+  fallback?: string;
+  refund_minor?: number;
 }
 
 function str(v: unknown): string | undefined {
@@ -89,6 +95,11 @@ export function parsePayload(raw: unknown): NotificationPayload {
     hub_name: str(r.hub_name),
     chapter_slug: str(r.chapter_slug),
     note: str(r.note),
+    booking_id: str(r.booking_id),
+    coach_handle: str(r.coach_handle),
+    party: str(r.party),
+    fallback: str(r.fallback),
+    refund_minor: num(r.refund_minor),
   };
 }
 
@@ -293,6 +304,7 @@ function whenWhere(p: NotificationPayload, now: Date): string | null {
 export function notificationCopy(item: CopyInput, now: Date = new Date()): NotificationCopy {
   const p = item.payload;
   const plan = p.title ?? "a plan";
+  const session = p.title ?? "your session";
   switch (item.kind) {
     case "rsvp_confirmed":
       return p.status === "waitlisted"
@@ -357,6 +369,75 @@ export function notificationCopy(item: CopyInput, now: Date = new Date()): Notif
         title: `Someone you blocked is on ${plan}`,
         body: "You won't see each other in the attendee list. Meet in a public place.",
       };
+    // Coaching (migration 60), the same copy as the send-notifications templates.
+    case "booking_requested":
+      return {
+        title: `${item.actorName ?? "Someone"} asked to book ${session}`,
+        body: when(p, now) ? `${when(p, now)}. Confirm or decline it.` : "Confirm or decline it.",
+      };
+    case "booking_confirmed":
+      return { title: `${session} is confirmed`, body: when(p, now) };
+    case "booking_declined":
+      if (p.reason === "expired")
+        return {
+          title: `Your request for ${session} expired`,
+          body: "The coach didn't answer in time. Nothing was charged.",
+        };
+      if (p.reason === "slot_taken")
+        return { title: "That time was just taken", body: `Pick another time for ${session}.` };
+      return { title: `Your request for ${session} wasn't accepted`, body: "Nothing was charged." };
+    case "booking_cancelled": {
+      const refund = (p.refund_minor ?? 0) > 0 ? " A refund is on its way." : "";
+      const why =
+        p.reason === "coach"
+          ? "The coach cancelled."
+          : p.reason === "client"
+            ? `${item.actorName ?? "The client"} cancelled.`
+            : p.reason === "account_deleted"
+              ? "The other person closed their account."
+              : p.reason === "unpaid"
+                ? "It wasn't paid in time."
+                : p.reason === "moderator" ||
+                    p.reason === "banned" ||
+                    p.reason === "listing_removed"
+                  ? "Our moderators cancelled it."
+                  : "It was cancelled.";
+      return { title: `${session} is cancelled`, body: `${why}${refund}` };
+    }
+    case "booking_payment_due":
+      return p.fallback === "off_platform"
+        ? {
+            title: `Arrange payment for ${session} directly`,
+            body: "In-app payment isn't available for this booking. Agree on how you'll pay before you meet.",
+          }
+        : { title: `Pay for ${session}`, body: "Pay in the app to keep your booking." };
+    case "booking_reminder_day":
+      return { title: `Coming up: ${session}`, body: when(p, now) };
+    case "booking_reminder_2h":
+      return { title: `${session} starts soon`, body: when(p, now) };
+    case "booking_review_prompt":
+      return { title: `How was ${session}?`, body: "Leave a review for your coach." };
+    case "booking_no_show":
+      return p.party === "coach"
+        ? {
+            title: `${item.actorName ?? "Your client"} reported that you missed ${session}`,
+            body: "If you were there, you can contest it within 48 hours.",
+          }
+        : {
+            title: `You were marked absent from ${session}`,
+            body: "If you were there, you can contest it within 48 hours.",
+          };
+    case "review_received":
+      return { title: "You have a new review", body: p.title ?? null };
+    case "review_reply":
+      return { title: "Your coach replied to your review", body: p.title ?? null };
+    case "coach_payout_action":
+      return p.reason === "dispute"
+        ? {
+            title: `A payment for ${session} is disputed`,
+            body: "Our team reviews it. Open the booking for details.",
+          }
+        : { title: "Stripe needs a few details to pay you", body: "Open your payout settings." };
     default:
       return { title: "Update", body: null };
   }
@@ -365,12 +446,34 @@ export function notificationCopy(item: CopyInput, now: Date = new Date()): Notif
 export type NotificationLink =
   | { to: "/events/$id"; params: { id: string } }
   | { to: "/chapters/$slug"; params: { slug: string } }
-  | { to: "/hubs/$slug"; params: { slug: string } };
+  | { to: "/hubs/$slug"; params: { slug: string } }
+  | { to: "/bookings/$id"; params: { id: string } }
+  | { to: "/bookings" }
+  | { to: "/coaches/$handle"; params: { handle: string } }
+  | { to: "/coach/payouts" };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const HANDLE_RE = /^[A-Za-z0-9_]{3,24}$/;
 
 type LinkInput = Pick<InboxItem, "kind" | "event_id" | "payload" | "hub" | "chapter">;
 
 /** Where tapping a row goes: the plan, the chapter or the hub (for a claim). Null when nowhere. */
 export function notificationLink(item: LinkInput): NotificationLink | null {
+  // Migration 60: bookings and reviews (the same rules as pathFor in send-notifications).
+  if (
+    item.kind.startsWith("booking_") ||
+    (item.kind === "coach_payout_action" && item.payload.reason === "dispute")
+  ) {
+    const id = item.payload.booking_id;
+    return id && UUID_RE.test(id) ? { to: "/bookings/$id", params: { id } } : { to: "/bookings" };
+  }
+  if (item.kind === "review_received" || item.kind === "review_reply") {
+    const handle = item.payload.coach_handle;
+    return handle && HANDLE_RE.test(handle)
+      ? { to: "/coaches/$handle", params: { handle } }
+      : { to: "/bookings" };
+  }
+  if (item.kind === "coach_payout_action") return { to: "/coach/payouts" };
   if (item.kind === "chapter_claim_update") {
     const chapterSlug = item.chapter?.slug ?? item.payload.chapter_slug;
     if (item.payload.status === "approved" && chapterSlug) {

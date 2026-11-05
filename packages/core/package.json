@@ -15,7 +15,8 @@
     "./imports": "./src/imports/index.ts",
     "./places": "./src/places/index.ts",
     "./map": "./src/map/index.ts",
-    "./messaging": "./src/messaging/index.ts"
+    "./messaging": "./src/messaging/index.ts",
+    "./coaching": "./src/coaching/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

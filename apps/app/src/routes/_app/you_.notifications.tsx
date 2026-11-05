@@ -41,6 +41,7 @@ type BoolKey =
   | "event_updates"
   | "hub_activity"
   | "messages"
+  | "bookings"
   | "checkin_prompts"
   | "weekly_digest";
 
@@ -63,6 +64,11 @@ const TOPICS: { key: BoolKey; label: string; hint: string }[] = [
   },
   { key: "checkin_prompts", label: "Check-in prompts", hint: "After a plan you went to" },
   { key: "messages", label: "Messages", hint: "When chats arrive" },
+  {
+    key: "bookings",
+    label: "Coaching reminders and reviews",
+    hint: "Session reminders, review prompts and new reviews. Confirmations and cancellations always arrive.",
+  },
   { key: "weekly_digest", label: "Weekly digest", hint: "What's coming up near you" },
 ];
 

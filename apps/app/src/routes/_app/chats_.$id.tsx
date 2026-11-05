@@ -33,6 +33,7 @@ import {
 
 import { MessageBubble, PendingBubble } from "@/components/chats/message-bubble";
 import { ReportForm } from "@/components/safety/report-form";
+import { NextBookingBanner } from "@/components/coaching/next-booking-banner";
 import { TopBar } from "@/components/shell/top-bar";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -311,6 +312,7 @@ function Conversation({ info }: { info: ConversationInfo }) {
 
   return (
     <>
+      {info.kind === "dm" && other ? <NextBookingBanner userId={other.id} /> : null}
       <div
         ref={scrollerRef}
         className="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto overscroll-contain px-3"

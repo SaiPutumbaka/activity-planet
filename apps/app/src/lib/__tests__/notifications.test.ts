@@ -315,3 +315,61 @@ describe("small helpers", () => {
     expect(broadcastSentMessage(5)).toBe("Sent to 5 people.");
   });
 });
+
+describe("coaching notifications (migration 60)", () => {
+  const BOOKING = "0b9a5f3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b";
+  it("booking kinds link to the booking, reviews to the coach page", () => {
+    const b = item("booking_confirmed", {
+      event_id: null,
+      hub: null,
+      chapter: null,
+      payload: parsePayload({ booking_id: BOOKING, title: "Tennis" }),
+    });
+    expect(notificationLink(b)).toEqual({ to: "/bookings/$id", params: { id: BOOKING } });
+    expect(
+      notificationLink({
+        ...b,
+        kind: "booking_requested",
+        payload: parsePayload({ booking_id: "x" }),
+      }),
+    ).toEqual({ to: "/bookings" });
+    expect(
+      notificationLink({
+        ...b,
+        kind: "review_received",
+        payload: parsePayload({ coach_handle: "sam_c" }),
+      }),
+    ).toEqual({ to: "/coaches/$handle", params: { handle: "sam_c" } });
+    expect(notificationLink({ ...b, kind: "coach_payout_action", payload: {} })).toEqual({
+      to: "/coach/payouts",
+    });
+  });
+  it("copy names the session, never a note or an amount", () => {
+    const base = item("booking_declined", {
+      payload: parsePayload({ title: "Tennis", reason: "slot_taken" }),
+    });
+    expect(notificationCopy(base, NOW).title).toBe("That time was just taken");
+    const c = notificationCopy(
+      {
+        ...base,
+        kind: "booking_cancelled",
+        payload: parsePayload({ title: "Tennis", reason: "coach", refund_minor: 4000 }),
+      },
+      NOW,
+    );
+    expect(c.title).toBe("Tennis is cancelled");
+    expect(c.body).toBe("The coach cancelled. A refund is on its way.");
+    expect(c.body).not.toMatch(/\$|40/);
+    expect(
+      notificationCopy(
+        {
+          ...base,
+          kind: "booking_requested",
+          actorName: "Ana",
+          payload: parsePayload({ title: "Tennis" }),
+        },
+        NOW,
+      ).title,
+    ).toBe("Ana asked to book Tennis");
+  });
+});
