@@ -96,6 +96,10 @@ adds its own file and a line in `regression.txt`.
 
 Run it before each merge to `main` and once more on the release candidate after the Dec 5 freeze.
 
+Last run: Nov 5, Actions run 41971278852 on `main-r1pc3k`, all 45 files passed. The run before it failed in
+`location_anywhere`, because the browser QA account's London home had added a real collector region there. The test now
+removes that region inside its own rolled-back transaction.
+
 ### 3.3 Browser flows (Playwright, `apps/app/e2e/`)
 
 These are plain Node scripts. They are not part of `pnpm test` because they need staging accounts.
