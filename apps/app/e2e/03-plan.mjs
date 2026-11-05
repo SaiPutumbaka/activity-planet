@@ -79,7 +79,10 @@ async function acceptGuidelinesIfAsked(page) {
     await page.goto(`${env.base}/events/${eventId}`);
     await page.getByRole("heading", { name: title }).waitFor({ timeout: 20000 });
     const add = page.getByRole("button", { name: "Add to calendar" });
-    if ((await add.count()) === 0) throw new Error("host has no Add to calendar");
+    // Shown once the viewer's own RSVP has loaded.
+    await add.waitFor({ timeout: 15000 }).catch(() => {
+      throw new Error("host has no Add to calendar");
+    });
     const [download] = await Promise.all([page.waitForEvent("download"), add.click()]);
     if (!download.suggestedFilename().endsWith(".ics"))
       throw new Error(`calendar file is ${download.suggestedFilename()}`);
