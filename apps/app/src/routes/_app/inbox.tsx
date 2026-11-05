@@ -7,6 +7,7 @@ import {
   CalendarX,
   CircleCheck,
   Megaphone,
+  MessageCircle,
   Settings,
   ShieldAlert,
   ShieldCheck,
@@ -68,6 +69,9 @@ const ICONS: Record<NotificationKind, LucideIcon> = {
   broadcast: Megaphone,
   chapter_claim_update: ShieldCheck,
   blocked_attendee: ShieldAlert,
+  // Chat notices are left out of the inbox query (migration 58); listed for the type.
+  message: MessageCircle,
+  message_request: MessageCircle,
 };
 
 function InboxPage() {

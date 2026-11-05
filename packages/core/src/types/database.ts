@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 57 (schema_version 2.53). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 58 (schema_version 2.54). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -422,6 +422,32 @@ export type Database = {
           },
         ];
       };
+      chat_filter_strikes: {
+        Row: {
+          created_at: string;
+          id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "chat_filter_strikes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       collector_budget: {
         Row: {
           day: string;
@@ -514,6 +540,144 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [];
+      };
+      conversation_members: {
+        Row: {
+          conversation_id: string;
+          joined_at: string;
+          last_read_at: string | null;
+          last_read_seq: number;
+          left_at: string | null;
+          muted_until: string | null;
+          notify: boolean | null;
+          removed_at: string | null;
+          removed_by: string | null;
+          role: Database["public"]["Enums"]["conversation_role"];
+          user_id: string;
+        };
+        Insert: {
+          conversation_id: string;
+          joined_at?: string;
+          last_read_at?: string | null;
+          last_read_seq?: number;
+          left_at?: string | null;
+          muted_until?: string | null;
+          notify?: boolean | null;
+          removed_at?: string | null;
+          removed_by?: string | null;
+          role?: Database["public"]["Enums"]["conversation_role"];
+          user_id: string;
+        };
+        Update: {
+          conversation_id?: string;
+          joined_at?: string;
+          last_read_at?: string | null;
+          last_read_seq?: number;
+          left_at?: string | null;
+          muted_until?: string | null;
+          notify?: boolean | null;
+          removed_at?: string | null;
+          removed_by?: string | null;
+          role?: Database["public"]["Enums"]["conversation_role"];
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversation_members_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversation_members_removed_by_fkey";
+            columns: ["removed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversation_members_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      conversations: {
+        Row: {
+          chapter_id: string | null;
+          closed_at: string | null;
+          created_at: string;
+          created_by: string | null;
+          dm_key: string | null;
+          event_id: string | null;
+          hub_id: string | null;
+          id: string;
+          kind: Database["public"]["Enums"]["conversation_kind"];
+          last_message_at: string | null;
+          last_seq: number;
+          title: string | null;
+        };
+        Insert: {
+          chapter_id?: string | null;
+          closed_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          dm_key?: string | null;
+          event_id?: string | null;
+          hub_id?: string | null;
+          id?: string;
+          kind: Database["public"]["Enums"]["conversation_kind"];
+          last_message_at?: string | null;
+          last_seq?: number;
+          title?: string | null;
+        };
+        Update: {
+          chapter_id?: string | null;
+          closed_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          dm_key?: string | null;
+          event_id?: string | null;
+          hub_id?: string | null;
+          id?: string;
+          kind?: Database["public"]["Enums"]["conversation_kind"];
+          last_message_at?: string | null;
+          last_seq?: number;
+          title?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversations_chapter_id_fkey";
+            columns: ["chapter_id"];
+            isOneToOne: false;
+            referencedRelation: "hub_chapters";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversations_hub_id_fkey";
+            columns: ["hub_id"];
+            isOneToOne: false;
+            referencedRelation: "hubs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       email_verification_codes: {
         Row: {
@@ -1810,6 +1974,181 @@ export type Database = {
             columns: ["source_id"];
             isOneToOne: false;
             referencedRelation: "feed_sources";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      message_report_evidence: {
+        Row: {
+          author_id: string | null;
+          body: string;
+          context: Json;
+          conversation_id: string | null;
+          conversation_kind: Database["public"]["Enums"]["conversation_kind"];
+          created_at: string;
+          image_evidence_path: string | null;
+          message_id: string | null;
+          report_id: string;
+          retain_until: string | null;
+        };
+        Insert: {
+          author_id?: string | null;
+          body: string;
+          context: Json;
+          conversation_id?: string | null;
+          conversation_kind: Database["public"]["Enums"]["conversation_kind"];
+          created_at?: string;
+          image_evidence_path?: string | null;
+          message_id?: string | null;
+          report_id: string;
+          retain_until?: string | null;
+        };
+        Update: {
+          author_id?: string | null;
+          body?: string;
+          context?: Json;
+          conversation_id?: string | null;
+          conversation_kind?: Database["public"]["Enums"]["conversation_kind"];
+          created_at?: string;
+          image_evidence_path?: string | null;
+          message_id?: string | null;
+          report_id?: string;
+          retain_until?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "message_report_evidence_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "message_report_evidence_report_id_fkey";
+            columns: ["report_id"];
+            isOneToOne: true;
+            referencedRelation: "reports";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      message_requests: {
+        Row: {
+          conversation_id: string;
+          created_at: string;
+          decided_at: string | null;
+          from_user: string;
+          status: string;
+          to_user: string;
+        };
+        Insert: {
+          conversation_id: string;
+          created_at?: string;
+          decided_at?: string | null;
+          from_user: string;
+          status?: string;
+          to_user: string;
+        };
+        Update: {
+          conversation_id?: string;
+          created_at?: string;
+          decided_at?: string | null;
+          from_user?: string;
+          status?: string;
+          to_user?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "message_requests_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: true;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "message_requests_from_user_fkey";
+            columns: ["from_user"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "message_requests_to_user_fkey";
+            columns: ["to_user"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      messages: {
+        Row: {
+          author_id: string | null;
+          body: string;
+          client_id: string | null;
+          conversation_id: string;
+          created_at: string;
+          deleted_at: string | null;
+          deleted_body: string | null;
+          deleted_by: string | null;
+          has_link: boolean;
+          id: string;
+          image_path: string | null;
+          image_state: string | null;
+          kind: string;
+          moderated_at: string | null;
+          moderation_state: string | null;
+          seq: number;
+        };
+        Insert: {
+          author_id?: string | null;
+          body?: string;
+          client_id?: string | null;
+          conversation_id: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          deleted_body?: string | null;
+          deleted_by?: string | null;
+          has_link?: boolean;
+          id?: string;
+          image_path?: string | null;
+          image_state?: string | null;
+          kind?: string;
+          moderated_at?: string | null;
+          moderation_state?: string | null;
+          seq: number;
+        };
+        Update: {
+          author_id?: string | null;
+          body?: string;
+          client_id?: string | null;
+          conversation_id?: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          deleted_body?: string | null;
+          deleted_by?: string | null;
+          has_link?: boolean;
+          id?: string;
+          image_path?: string | null;
+          image_state?: string | null;
+          kind?: string;
+          moderated_at?: string | null;
+          moderation_state?: string | null;
+          seq?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "messages_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "messages_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
             referencedColumns: ["id"];
           },
         ];
@@ -3795,6 +4134,10 @@ export type Database = {
     };
     Functions: {
       accept_guidelines: { Args: never; Returns: string };
+      add_group_members: {
+        Args: { p_conversation: string; p_users: string[] };
+        Returns: Json;
+      };
       add_place: { Args: { p_args: Json }; Returns: Json };
       admin_set_moderator: {
         Args: { p_grant: boolean; p_note?: string; p_user: string };
@@ -3934,6 +4277,32 @@ export type Database = {
       };
       chapter_public_card: { Args: { p_chapter: string }; Returns: Json };
       chapter_slug_for: { Args: { p_name: string }; Returns: string };
+      chat_image_classified: {
+        Args: {
+          p_bucket: string;
+          p_path: string;
+          p_scores?: Json;
+          p_verdict: string;
+        };
+        Returns: number;
+      };
+      chat_list: {
+        Args: { p_before?: string; p_limit?: number; p_tab?: string };
+        Returns: {
+          activity_at: string;
+          closed: boolean;
+          context: Json;
+          conversation_id: string;
+          kind: Database["public"]["Enums"]["conversation_kind"];
+          last_message: Json;
+          muted: boolean;
+          other: Json;
+          request: string;
+          title: string;
+          unread: number;
+        }[];
+      };
+      chat_unread_total: { Args: never; Returns: Json };
       check_in: {
         Args: { p_event_id: string };
         Returns: {
@@ -4043,6 +4412,7 @@ export type Database = {
         Args: { p_code: string; p_email?: string };
         Returns: Json;
       };
+      conversation_info: { Args: { p_conversation: string }; Returns: Json };
       create_event: {
         Args: { p_args: Json };
         Returns: {
@@ -4141,6 +4511,10 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      create_group: {
+        Args: { p_title: string; p_users: string[] };
+        Returns: Json;
+      };
       create_verification_code: {
         Args: { p_email: string; p_user_id: string };
         Returns: Json;
@@ -4149,6 +4523,7 @@ export type Database = {
         Args: { p_venue_id: string };
         Returns: Database["public"]["Enums"]["address_visibility"];
       };
+      delete_message: { Args: { p_message: string }; Returns: undefined };
       delete_my_place: { Args: { p_place: string }; Returns: undefined };
       dismiss_attendance_prompt: {
         Args: { p_event_id: string };
@@ -4350,6 +4725,27 @@ export type Database = {
         Returns: Json;
       };
       generate_handle: { Args: { p_email: string }; Returns: string };
+      get_messages: {
+        Args: {
+          p_after_seq?: number;
+          p_before_seq?: number;
+          p_conversation: string;
+          p_limit?: number;
+        };
+        Returns: {
+          author: Json;
+          body: string;
+          client_id: string;
+          created_at: string;
+          deleted: string;
+          hidden: boolean;
+          id: string;
+          image: Json;
+          kind: string;
+          mine: boolean;
+          seq: number;
+        }[];
+      };
       handle_available: { Args: { p_handle: string }; Returns: boolean };
       has_org_role: {
         Args: { p_org: string; p_role: Database["public"]["Enums"]["org_role"] };
@@ -4516,6 +4912,10 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      leave_conversation: {
+        Args: { p_conversation: string };
+        Returns: undefined;
+      };
       map_in_view: {
         Args: {
           p_east: number;
@@ -4542,6 +4942,10 @@ export type Database = {
         Returns: Record<string, unknown>;
       };
       map_view_hubs: { Args: { p_hub_ids: string[] }; Returns: string[] };
+      mark_conversation_read: {
+        Args: { p_conversation: string; p_seq: number };
+        Returns: undefined;
+      };
       mark_notifications_read: { Args: { p_ids?: string[] }; Returns: number };
       materialize_all_event_series: {
         Args: { p_weeks?: number };
@@ -4558,6 +4962,7 @@ export type Database = {
       };
       mod_ban_user: { Args: { p_note?: string; p_user: string }; Returns: Json };
       mod_lookup_log: { Args: { p_limit?: number }; Returns: Json };
+      mod_message_evidence: { Args: { p_report: string }; Returns: Json };
       mod_moderate: {
         Args: {
           p_action: string;
@@ -4618,6 +5023,10 @@ export type Database = {
       moderation_set_state: {
         Args: { p_id: string; p_kind: string; p_state: string };
         Returns: string;
+      };
+      mute_conversation: {
+        Args: { p_conversation: string; p_until: string };
+        Returns: undefined;
       };
       mute_user: { Args: { p_user: string }; Returns: Json };
       my_blocks: {
@@ -4708,6 +5117,9 @@ export type Database = {
         Args: { p_secret: string };
         Returns: boolean;
       };
+      open_chapter_chat: { Args: { p_chapter: string }; Returns: Json };
+      open_event_chat: { Args: { p_event: string }; Returns: Json };
+      open_hub_chat: { Args: { p_hub: string }; Returns: Json };
       pending_attendance_prompts: {
         Args: never;
         Returns: {
@@ -4727,6 +5139,17 @@ export type Database = {
           starts_at: string;
           timezone: string;
           title: string;
+        }[];
+      };
+      people_you_met: {
+        Args: { p_before?: string; p_limit?: number };
+        Returns: {
+          avatar_url: string;
+          can_message: boolean;
+          first_name: string;
+          handle: string;
+          last_plan: Json;
+          user_id: string;
         }[];
       };
       place_apply_changes: {
@@ -4846,6 +5269,7 @@ export type Database = {
       project_url: { Args: never; Returns: string };
       purge_account_deletions: { Args: never; Returns: number };
       purge_admin_lookups: { Args: never; Returns: number };
+      purge_messaging: { Args: never; Returns: Json };
       purge_read_notifications: { Args: never; Returns: number };
       purge_takedown_contacts: { Args: never; Returns: number };
       push_endpoint_allowed: { Args: { p_endpoint: string }; Returns: boolean };
@@ -4874,6 +5298,10 @@ export type Database = {
         Args: { p_chapter: string; p_user: string };
         Returns: undefined;
       };
+      remove_conversation_member: {
+        Args: { p_conversation: string; p_user: string };
+        Returns: undefined;
+      };
       remove_rsvp: {
         Args: { p_event_id: string; p_reason?: string; p_user_id: string };
         Returns: {
@@ -4897,6 +5325,10 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      rename_group: {
+        Args: { p_conversation: string; p_title: string };
+        Returns: undefined;
       };
       report_content: {
         Args: {
@@ -4935,6 +5367,10 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      respond_message_request: {
+        Args: { p_action: string; p_conversation: string };
+        Returns: undefined;
+      };
       retire_place_tiles: { Args: never; Returns: Json };
       review_chapter_claim: {
         Args: { p_approve: boolean; p_claim_id: string; p_note?: string };
@@ -4970,10 +5406,31 @@ export type Database = {
         };
       };
       rsvp_promote_waitlist: { Args: { p_event_id: string }; Returns: number };
+      send_message: {
+        Args: {
+          p_body: string;
+          p_client_id: string;
+          p_conversation: string;
+          p_image_path?: string;
+        };
+        Returns: Json;
+      };
       set_chapter_role: {
         Args: {
           p_chapter: string;
           p_role: Database["public"]["Enums"]["chapter_role"];
+          p_user: string;
+        };
+        Returns: undefined;
+      };
+      set_conversation_notify: {
+        Args: { p_conversation: string; p_notify: boolean };
+        Returns: undefined;
+      };
+      set_conversation_role: {
+        Args: {
+          p_conversation: string;
+          p_role: Database["public"]["Enums"]["conversation_role"];
           p_user: string;
         };
         Returns: undefined;
@@ -5068,6 +5525,7 @@ export type Database = {
       };
       source_url_check: { Args: { p_url: string }; Returns: Json };
       source_url_host: { Args: { p_url: string }; Returns: string };
+      start_dm: { Args: { p_user: string }; Returns: Json };
       storage_object_from_url: {
         Args: { p_url: string };
         Returns: Record<string, unknown>;
@@ -5347,6 +5805,8 @@ export type Database = {
       app_role: "moderator" | "admin";
       chapter_claim_status: "pending" | "approved" | "rejected" | "withdrawn";
       chapter_role: "member" | "captain" | "organizer";
+      conversation_kind: "dm" | "group" | "event" | "hub" | "chapter";
+      conversation_role: "owner" | "admin" | "member";
       device_platform: "web" | "ios" | "android";
       event_kind: "member" | "chapter" | "imported";
       event_status: "published" | "cancelled";
@@ -5365,7 +5825,9 @@ export type Database = {
         | "hub_new_event"
         | "broadcast"
         | "chapter_claim_update"
-        | "blocked_attendee";
+        | "blocked_attendee"
+        | "message"
+        | "message_request";
       org_kind: "university" | "company" | "community";
       org_role: "member" | "officer" | "admin";
       place_source: "osm" | "geoapify" | "user" | "venue";
@@ -5498,6 +5960,8 @@ export const Constants = {
       app_role: ["moderator", "admin"],
       chapter_claim_status: ["pending", "approved", "rejected", "withdrawn"],
       chapter_role: ["member", "captain", "organizer"],
+      conversation_kind: ["dm", "group", "event", "hub", "chapter"],
+      conversation_role: ["owner", "admin", "member"],
       device_platform: ["web", "ios", "android"],
       event_kind: ["member", "chapter", "imported"],
       event_status: ["published", "cancelled"],
@@ -5517,6 +5981,8 @@ export const Constants = {
         "broadcast",
         "chapter_claim_update",
         "blocked_attendee",
+        "message",
+        "message_request",
       ],
       org_kind: ["university", "company", "community"],
       org_role: ["member", "officer", "admin"],
