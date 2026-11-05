@@ -122,6 +122,8 @@ export const inboxQuery = (userId: string) =>
         .from("notifications")
         .select(INBOX_SELECT)
         .eq("user_id", userId)
+        // Chat notices live in Chats (migration 58), not in the inbox.
+        .not("kind", "in", "(message,message_request)")
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;

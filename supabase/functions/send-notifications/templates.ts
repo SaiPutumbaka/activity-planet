@@ -168,6 +168,27 @@ export function copyFor(
         title: `Someone you blocked is on ${plan}`,
         body: "You won't see each other in the attendee list. Meet in a public place.",
       };
+    // Migration 58: chat notices never carry the message text.
+    case "message": {
+      const count = num(p.count) ?? 1;
+      const room = str(p.title);
+      const who = n.actor_name ?? "someone";
+      if (room) {
+        return {
+          title: count <= 1 ? `New message in ${room}` : `${count} new messages in ${room}`,
+          body: null,
+        };
+      }
+      return {
+        title: count <= 1 ? `New message from ${who}` : `${count} new messages from ${who}`,
+        body: null,
+      };
+    }
+    case "message_request":
+      return {
+        title: n.actor_name ? `${n.actor_name} wants to message you` : "New message request",
+        body: "Open Requests in Chats to accept or decline.",
+      };
     default:
       return { title: "You have an update on Activity Planet", body: null };
   }
@@ -180,6 +201,11 @@ const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,80}$/;
 export function pathFor(
   n: Pick<ClaimedNotification, "kind" | "event_id" | "payload" | "hub" | "chapter">,
 ): string {
+  if (n.kind === "message" || n.kind === "message_request") {
+    const conv = str(n.payload?.conversation_id);
+    if (n.kind === "message" && conv && UUID_RE.test(conv)) return `/chats/${conv}`;
+    return n.kind === "message_request" ? "/chats?tab=requests" : "/chats";
+  }
   if (n.kind === "chapter_claim_update") {
     const slug = n.chapter?.slug ?? str(n.payload?.chapter_slug);
     if (n.payload?.status === "approved" && slug && SLUG_RE.test(slug)) return `/chapters/${slug}`;
@@ -198,6 +224,13 @@ export function unsubscribeUrl(siteUrl: string, token: string): string {
 
 export function unsubscribePostUrl(siteUrl: string, token: string): string {
   return `${siteUrl}/api/unsubscribe?t=${encodeURIComponent(token)}`;
+}
+
+/** One push per conversation on the lock screen: a newer one replaces the older. */
+function chatTag(n: Pick<ClaimedNotification, "kind" | "payload">): string | null {
+  if (n.kind !== "message" && n.kind !== "message_request") return null;
+  const conv = str(n.payload?.conversation_id);
+  return conv && UUID_RE.test(conv) ? `${n.kind}:${conv}`.slice(0, 64) : null;
 }
 
 export function render(n: ClaimedNotification, links: Links): Rendered {
@@ -245,7 +278,7 @@ ${bodyHtml}<p style="margin:0 0 24px"><a href="${escapeHtml(url)}" style="displa
       title: oneLine(title, 120),
       body: body ? oneLine(body, 180) : "",
       url: pathFor(n),
-      tag: n.event_id ? `${n.kind}:${n.event_id}`.slice(0, 64) : n.id,
+      tag: chatTag(n) ?? (n.event_id ? `${n.kind}:${n.event_id}`.slice(0, 64) : n.id),
     },
     headers,
   };

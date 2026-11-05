@@ -113,9 +113,43 @@ Deno.test("copy names no audience or city (D-040)", () => {
     "broadcast",
     "chapter_claim_update",
     "blocked_attendee",
+    "message",
+    "message_request",
   ];
   for (const kind of kinds) {
     const r = render(n({ kind, payload: {} }), links);
     assert(!/student|campus|atlanta|georgia|gsu/i.test(r.text), kind);
   }
+});
+
+Deno.test("chat notices name the sender or room, never the text, and open the chat", () => {
+  const conv = "00000000-0000-4000-8000-000000000001";
+  const dm = render(
+    n({
+      kind: "message",
+      event_id: null,
+      actor_name: "Sam",
+      payload: { conversation_id: conv, count: 1, seq: 4 },
+    }),
+    links,
+  );
+  assertEquals(dm.subject, "New message from Sam");
+  assertEquals(dm.push.url, `/chats/${conv}`);
+  assertEquals(dm.push.tag, `message:${conv}`);
+  const group = render(
+    n({
+      kind: "message",
+      event_id: null,
+      actor_name: "Sam",
+      payload: { conversation_id: conv, count: 3, title: "Thursday climbers", body: "secret" },
+    }),
+    links,
+  );
+  assertEquals(group.subject, "3 new messages in Thursday climbers");
+  assert(!group.text.includes("secret"));
+  const req = render(
+    n({ kind: "message_request", event_id: null, actor_name: null, payload: {} }),
+    links,
+  );
+  assertEquals(req.push.url, "/chats?tab=requests");
 });

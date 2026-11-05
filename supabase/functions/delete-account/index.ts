@@ -3,7 +3,8 @@
 // The app calls the RPC first (one transaction: ledger row, tombstone profile, private data
 // and memberships removed, auth user banned), then invokes this function with the same user
 // JWT. With the service role it:
-//   1. removes the person's avatar files from the avatars bucket;
+//   1. removes the person's avatar files from the avatars bucket, and their chat images from
+//      chat-images (<user id>/<conversation id>/<file>; migration 58);
 //   2. drops provider tokens (Apple revocation is a TODO until Capacitor ships);
 //   3. fans out to processors (TODO: none hold personal data yet);
 //   4. soft-deletes the auth user, which frees the email address and the OAuth identities
@@ -78,6 +79,33 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (removeError) return json({ error: "avatar_remove_failed" }, 500);
   }
 
+  // 1b. Chat images (migration 58). The RPC kept the messages others received under the
+  //     tombstone and set their images to removed; the files go here. Reported images were
+  //     copied to chat-evidence when the report was filed, so the originals can always go.
+  const chatPaths: string[] = [];
+  const { data: chatFolders, error: chatListError } = await admin.storage
+    .from("chat-images")
+    .list(userId, { limit: 1000 });
+  if (chatListError) return json({ error: "chat_images_list_failed" }, 500);
+  for (const entry of chatFolders ?? []) {
+    // Folders (one per conversation) come back without an id.
+    if (entry.id) {
+      chatPaths.push(`${userId}/${entry.name}`);
+      continue;
+    }
+    const { data: inner, error: innerError } = await admin.storage
+      .from("chat-images")
+      .list(`${userId}/${entry.name}`, { limit: 1000 });
+    if (innerError) return json({ error: "chat_images_list_failed" }, 500);
+    for (const file of inner ?? []) chatPaths.push(`${userId}/${entry.name}/${file.name}`);
+  }
+  for (let i = 0; i < chatPaths.length; i += 500) {
+    const { error: chatRemoveError } = await admin.storage
+      .from("chat-images")
+      .remove(chatPaths.slice(i, i + 500));
+    if (chatRemoveError) return json({ error: "chat_images_remove_failed" }, 500);
+  }
+
   // 2. Provider tokens.
   // TODO(apple): when Sign in with Apple ships (Capacitor), read auth_provider_secrets for
   // provider 'apple', POST to https://appleid.apple.com/auth/revoke with a client secret
@@ -95,8 +123,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // the outcome in processors_notified: Resend (suppress the address), PostHog (person
   // deletion), Sentry (nothing stored per user), Stripe (customer records stay while payment
   // records must, per the retention policy), Sightengine (stateless).
-  // TODO(messages): when the messages table exists, anonymize messages other people
-  // received (author becomes the tombstone, content kept) rather than deleting them.
+  // Messages (migration 58) are anonymized by request_account_deletion: what others received
+  // stays under "Deleted user"; chat images were removed in step 1b.
   const processorsNotified: Record<string, string> = {};
 
   // 4. Auth user. Soft delete keeps the row as an anonymous stub (the ban holds and the

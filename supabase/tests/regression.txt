@@ -55,3 +55,5 @@ notify_worker.sql
 notify_worker_fixes.sql
 skip: notify_worker_smoke.sql  # calls the deployed send-notifications function, not rolled back
 feed_distance.sql
+messaging.sql
+messaging_safety.sql
