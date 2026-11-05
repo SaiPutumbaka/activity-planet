@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 58 (schema_version 2.54). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 59 (schema_version 2.55). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -4287,7 +4287,12 @@ export type Database = {
         Returns: number;
       };
       chat_list: {
-        Args: { p_before?: string; p_limit?: number; p_tab?: string };
+        Args: {
+          p_before?: string;
+          p_before_id?: string;
+          p_limit?: number;
+          p_tab?: string;
+        };
         Returns: {
           activity_at: string;
           closed: boolean;
@@ -4302,6 +4307,7 @@ export type Database = {
           unread: number;
         }[];
       };
+      chat_typing: { Args: { p_conversation: string }; Returns: undefined };
       chat_unread_total: { Args: never; Returns: Json };
       check_in: {
         Args: { p_event_id: string };
@@ -5142,7 +5148,7 @@ export type Database = {
         }[];
       };
       people_you_met: {
-        Args: { p_before?: string; p_limit?: number };
+        Args: { p_before?: string; p_before_id?: string; p_limit?: number };
         Returns: {
           avatar_url: string;
           can_message: boolean;

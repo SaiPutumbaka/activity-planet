@@ -4,7 +4,7 @@
  *
  *   matchText(s)      private.chat_match_text: NFKC, lower case, no zero-width, single spaces
  *   foldText(s)       private.chat_fold: look-alikes and leetspeak folded, long runs cut to two
- *   hasLink(s)        private.chat_has_link: a scheme, www. or a bare label.tld
+ *   hasLink(s)        private.chat_has_link (migration 59): a scheme, www. or a bare label.tld
  *   linkShortened(s)  private.chat_link_shortened against LINK_DENYLIST
  *   cleanBody(s)      send_message's control-character strip and trim
  */
@@ -57,8 +57,10 @@ export function foldText(text: string | null | undefined): string {
   return out.replace(/(.)\1{2,}/g, "$1$1");
 }
 
+// Migration 59: www. counts after anything but a letter, digit, "@" or "_" (so "-www." and
+// ".www." are links, as the renderer below would show them).
 const LINK_RE =
-  /(https?:\/\/|(^|[^a-z0-9@._-])www\.|(^|[^a-z0-9@._-])([a-z0-9-]+\.)+(com|net|org|app|xyz|info|biz|link|site|online|[a-z]{2})([^a-z0-9-]|$))/;
+  /(https?:\/\/|(^|[^a-z0-9@_])www\.|(^|[^a-z0-9@._-])([a-z0-9-]+\.)+(com|net|org|app|xyz|info|biz|link|site|online|[a-z]{2})([^a-z0-9-]|$))/;
 
 /** A link by the server's rule. Email addresses and phone numbers are not links. */
 export function hasLink(text: string | null | undefined): boolean {
@@ -104,13 +106,17 @@ export interface TextPart {
 }
 
 const RENDER_LINK_RE =
-  /\b((?:https?:\/\/|www\.)[^\s<>"]+|[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|io|co|app|me|ly|gg|xyz|info|biz|tv|link|site|online)(?:\/[^\s<>"]*)?)/gi;
+  /\b((?:https?:\/\/|www\.)[^\s<>"]+|[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|io|co|app|me|ly|gg|xyz|info|biz|tv|link|site|online)(?![a-z0-9-])(?:\/[^\s<>"]*)?)/gi;
 
 /**
  * Splits a message into plain text and links for rendering (no previews, never fetched). Links
  * get an https:// scheme when they have none; trailing punctuation stays outside the link.
+ *
+ * Only a message the server's rule (hasLink) calls a link gets any link at all, so the bubble
+ * never makes something tappable that got past the request and new-account link checks.
  */
 export function splitLinks(text: string): TextPart[] {
+  if (!hasLink(text)) return [{ text, href: null }];
   const parts: TextPart[] = [];
   let last = 0;
   for (const m of text.matchAll(RENDER_LINK_RE)) {

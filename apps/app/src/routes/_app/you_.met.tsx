@@ -1,5 +1,5 @@
 import { createFileRoute, getRouteApi } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { MessageCircle, UsersRound } from "lucide-react";
 
 import { useOpenChat } from "@/components/chats/use-open-chat";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FormError } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
-import { peopleYouMetQuery } from "@/lib/messaging";
+import { peopleYouMetPagesQuery } from "@/lib/messaging";
 
 const appRoute = getRouteApi("/_app");
 
@@ -19,16 +19,16 @@ const appRoute = getRouteApi("/_app");
  */
 export const Route = createFileRoute("/_app/you_/met")({
   loader: ({ context: { queryClient, session } }) => {
-    void queryClient.prefetchQuery(peopleYouMetQuery(session.user.id));
+    void queryClient.prefetchInfiniteQuery(peopleYouMetPagesQuery(session.user.id));
   },
   component: MetPage,
 });
 
 function MetPage() {
   const { session } = appRoute.useRouteContext();
-  const met = useQuery(peopleYouMetQuery(session.user.id));
+  const met = useInfiniteQuery(peopleYouMetPagesQuery(session.user.id));
   const openChat = useOpenChat();
-  const rows = met.data ?? [];
+  const rows = met.data?.pages.flat() ?? [];
   return (
     <>
       <TopBar title="People you've met" back />
@@ -84,6 +84,15 @@ function MetPage() {
             ))}
           </ul>
         )}
+        {met.hasNextPage ? (
+          <Button
+            variant="secondary"
+            disabled={met.isFetchingNextPage}
+            onClick={() => void met.fetchNextPage()}
+          >
+            {met.isFetchingNextPage ? "Loading…" : "Show more"}
+          </Button>
+        ) : null}
       </main>
     </>
   );

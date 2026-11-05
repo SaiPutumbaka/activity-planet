@@ -76,11 +76,21 @@ export function createMessagingApi(client: AppSupabaseClient) {
   }
 
   return {
-    async chatList(tab: ChatTab = "chats", before?: string | null, limit = 30) {
+    /**
+     * Newest activity first. To page, pass the last row's activity_at as `before` and its
+     * conversation_id as `beforeId` (rows with the same time are not skipped; migration 59).
+     */
+    async chatList(
+      tab: ChatTab = "chats",
+      before?: string | null,
+      limit = 30,
+      beforeId?: string | null,
+    ) {
       const data = await rpcJson("chat_list", {
         p_tab: tab,
         p_limit: limit,
         ...(before ? { p_before: before } : {}),
+        ...(before && beforeId ? { p_before_id: beforeId } : {}),
       });
       return parseRows(chatListRowSchema, data) satisfies ChatListRow[];
     },
@@ -177,10 +187,16 @@ export function createMessagingApi(client: AppSupabaseClient) {
       await rpcJson("leave_conversation", { p_conversation: conversationId });
     },
 
-    async peopleYouMet(before?: string | null, limit = 30): Promise<PersonMet[]> {
+    /** Newest shared plan first. To page, pass the last row's last_plan.starts_at and user_id. */
+    async peopleYouMet(
+      before?: string | null,
+      limit = 30,
+      beforeId?: string | null,
+    ): Promise<PersonMet[]> {
       const data = await rpcJson("people_you_met", {
         p_limit: limit,
         ...(before ? { p_before: before } : {}),
+        ...(before && beforeId ? { p_before_id: beforeId } : {}),
       });
       return parseRows(personMetSchema, data);
     },

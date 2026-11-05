@@ -131,7 +131,7 @@ function ConversationPage() {
 }
 
 function Conversation({ info }: { info: ConversationInfo }) {
-  const { session, profile } = appRoute.useRouteContext();
+  const { session } = appRoute.useRouteContext();
   const userId = session.user.id;
   const id = info.conversation_id;
   const queryClient = useQueryClient();
@@ -159,7 +159,6 @@ function Conversation({ info }: { info: ConversationInfo }) {
 
   const { typing, notifyTyping } = useConversationLive(id, {
     userId,
-    firstName: profile.first_name,
     typingEnabled: info.kind === "dm" || info.kind === "group",
     members: members.ids,
     names: members.names,

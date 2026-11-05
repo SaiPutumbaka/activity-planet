@@ -80,4 +80,18 @@ describe("splitLinks", () => {
     ]);
     expect(splitLinks("sam@example.com")).toEqual([{ text: "sam@example.com", href: null }]);
   });
+
+  it("links only what the server's link rule counts (migration 59)", () => {
+    for (const s of ["-www.evil.dev/x", ".www.evil.dev", "x -www.paypa1-login.dev"]) {
+      expect(hasLink(s)).toBe(true);
+    }
+    // Text the server does not call a link is never made tappable.
+    expect(hasLink(".evil.com")).toBe(false);
+    expect(splitLinks(".evil.com")).toEqual([{ text: ".evil.com", href: null }]);
+    // A bare domain must end at its top-level domain.
+    expect(splitLinks("see evil.company now")).toEqual([
+      { text: "see evil.company now", href: null },
+    ]);
+    expect(hasLink("mail sam@www.example.com")).toBe(false);
+  });
 });

@@ -21,6 +21,7 @@ function fakeClient() {
     channel: vi.fn(() => channel),
     removeChannel: vi.fn().mockResolvedValue("ok"),
     realtime: { setAuth: vi.fn().mockResolvedValue(undefined) },
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
   };
   return { client, channel, handlers };
 }
@@ -57,16 +58,14 @@ describe("subscribeConversation", () => {
     expect(onUpdate).toHaveBeenCalledTimes(1);
     expect(onTyping).toHaveBeenCalledWith({ user_id: "u2", first_name: "Sam" });
 
-    sub.sendTyping({ user_id: "me", first_name: "Me" });
-    expect(channel.send).toHaveBeenCalledWith({
-      type: "broadcast",
-      event: "typing",
-      payload: { user_id: "me", first_name: "Me" },
-    });
+    // Typing goes through the database (chat_typing), never a client broadcast.
+    sub.sendTyping();
+    expect(client.rpc).toHaveBeenCalledWith("chat_typing", { p_conversation: "c1" });
+    expect(channel.send).not.toHaveBeenCalled();
     sub.unsubscribe();
     expect(client.removeChannel).toHaveBeenCalledWith(channel);
-    sub.sendTyping({ user_id: "me" });
-    expect(channel.send).toHaveBeenCalledTimes(1);
+    sub.sendTyping();
+    expect(client.rpc).toHaveBeenCalledTimes(1);
   });
 
   it("does not subscribe when left before authorization finished", async () => {

@@ -13,10 +13,11 @@ import {
 /**
  * Realtime Broadcast on private channels (design section 5). The database sends thin signals
  * (ids and seq, never a body); the client then reads through get_messages, which applies every
- * rule at read time. Clients send only `typing`, and only on conv: topics they can post in.
+ * rule at read time. Clients send nothing on these topics: typing goes through the chat_typing
+ * RPC (migration 59), which sends {user_id} for the caller, so nobody can type as someone else.
  *
  *   const sub = subscribeConversation(supabase, id, { onMessage, onUpdate, onTyping, onStatus });
- *   sub.sendTyping({ user_id, first_name });
+ *   sub.sendTyping();
  *   sub.unsubscribe();
  */
 
@@ -56,7 +57,8 @@ export interface Subscription {
 }
 
 export interface ConversationSubscription extends Subscription {
-  sendTyping: (signal: TypingSignal) => void;
+  /** Tells the room the caller is typing (chat_typing; best effort, errors ignored). */
+  sendTyping: () => void;
 }
 
 /** A broadcast's payload, validated; null for anything that does not fit. */
@@ -112,9 +114,11 @@ export function subscribeConversation(
   });
   return {
     channel,
-    sendTyping(signal) {
+    sendTyping() {
       if (closed) return;
-      void channel.send({ type: "broadcast", event: "typing", payload: signal }).catch(() => {});
+      void Promise.resolve(client.rpc("chat_typing", { p_conversation: conversationId })).catch(
+        () => {},
+      );
     },
     unsubscribe() {
       closed = true;

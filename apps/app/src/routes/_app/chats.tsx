@@ -1,5 +1,5 @@
 import { Link, createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Inbox, MessageCircle, SquarePen } from "lucide-react";
 import { z } from "zod";
 
@@ -27,7 +27,7 @@ const searchSchema = z.object({ tab: z.enum(["chats", "requests"]).optional() })
 export const Route = createFileRoute("/_app/chats")({
   validateSearch: searchSchema,
   loader: ({ context: { queryClient, session } }) => {
-    void queryClient.prefetchQuery(chatListQuery(session.user.id, "chats"));
+    void queryClient.prefetchInfiniteQuery(chatListQuery(session.user.id, "chats"));
   },
   component: ChatsPage,
 });
@@ -39,13 +39,16 @@ function ChatsPage() {
   const navigate = useNavigate({ from: "/chats" });
   const unread = useUnreadChats(userId);
   const live = useChatsLiveStatus();
-  const list = useQuery({
+  const list = useInfiniteQuery({
     ...chatListQuery(userId, tab),
     // Event, hub and chapter rooms send no personal signal: poll while the list is open.
     refetchInterval: live ? 60_000 : 30_000,
     refetchIntervalInBackground: false,
   });
-  const rows = list.data ?? [];
+  // A chat that moved between pages while paging shows once.
+  const rows = (list.data?.pages.flat() ?? []).filter(
+    (r, i, all) => all.findIndex((x) => x.conversation_id === r.conversation_id) === i,
+  );
   const now = new Date();
 
   return (
@@ -133,6 +136,15 @@ function ChatsPage() {
             ))}
           </ul>
         )}
+        {list.hasNextPage ? (
+          <Button
+            variant="secondary"
+            disabled={list.isFetchingNextPage}
+            onClick={() => void list.fetchNextPage()}
+          >
+            {list.isFetchingNextPage ? "Loading…" : "Show older chats"}
+          </Button>
+        ) : null}
       </main>
     </>
   );

@@ -22,6 +22,7 @@ import {
   type ChatMessage,
   type ChatTab,
   type ConversationSubscription,
+  type PersonMet,
   type UnreadTotal,
 } from "@ap/core/messaging";
 
@@ -31,7 +32,7 @@ import { supabase } from "./supabase";
  * Messaging in the app (D-043, design section 14). The typed RPC calls, schemas, topics and the
  * outbox reducer are in @ap/core/messaging; this file holds the query options and the hooks.
  *
- *   useQuery(chatListQuery(userId, "chats"))          // the Chats list (or "requests")
+ *   useInfiniteQuery(chatListQuery(userId, "chats"))  // the Chats list (or "requests"), pages of 50
  *   useUnreadChats(userId)                            // { chats, requests } for the top-bar badge
  *   useInfiniteQuery(messagesQuery(conversationId))   // newest first, pages of 50 going back
  *   useConversationLive(conversationId, ...)          // conv:<id> signals, typing, poll fallback
@@ -50,10 +51,24 @@ export const chatKeys = {
   search: (q: string) => ["chats", "search", q] as const,
 };
 
+/** Rows per page of the Chats list and People you've met. */
+export const LIST_PAGE = 50;
+
+type ListCursor = { at: string; id: string } | null;
+
+/** Pages newest first; the cursor is the (activity_at, conversation_id) of the last row. */
 export const chatListQuery = (userId: string, tab: ChatTab) =>
-  queryOptions({
+  infiniteQueryOptions({
     queryKey: chatKeys.list(userId, tab),
-    queryFn: () => chat.chatList(tab, null, 50),
+    queryFn: ({ pageParam }) =>
+      chat.chatList(tab, pageParam?.at ?? null, LIST_PAGE, pageParam?.id ?? null),
+    initialPageParam: null as ListCursor,
+    getNextPageParam: (last: ChatListRow[]): ListCursor => {
+      const row = last[last.length - 1];
+      return last.length < LIST_PAGE || !row
+        ? null
+        : { at: row.activity_at, id: row.conversation_id };
+    },
     staleTime: 10_000,
   });
 
@@ -86,10 +101,26 @@ export const messagesQuery = (conversationId: string) =>
     refetchOnWindowFocus: false,
   });
 
+/** The newest people you've met (the New message picker; search finds the rest). */
 export const peopleYouMetQuery = (userId: string) =>
   queryOptions({
     queryKey: chatKeys.met(userId),
-    queryFn: () => chat.peopleYouMet(null, 50),
+    queryFn: () => chat.peopleYouMet(null, LIST_PAGE),
+    staleTime: 60_000,
+  });
+
+/** Every person you've met, a page at a time; the cursor is (last_plan.starts_at, user_id). */
+export const peopleYouMetPagesQuery = (userId: string) =>
+  infiniteQueryOptions({
+    queryKey: [...chatKeys.met(userId), "pages"] as const,
+    queryFn: ({ pageParam }) =>
+      chat.peopleYouMet(pageParam?.at ?? null, LIST_PAGE, pageParam?.id ?? null),
+    initialPageParam: null as ListCursor,
+    getNextPageParam: (last: PersonMet[]): ListCursor => {
+      const row = last[last.length - 1];
+      const at = row?.last_plan?.starts_at;
+      return last.length < LIST_PAGE || !row || !at ? null : { at, id: row.user_id };
+    },
     staleTime: 60_000,
   });
 
@@ -251,7 +282,6 @@ export function useConversationLive(
   conversationId: string,
   opts: {
     userId: string;
-    firstName: string;
     typingEnabled: boolean;
     /** Member ids whose typing may be shown. */
     members: ReadonlySet<string>;
@@ -265,7 +295,7 @@ export function useConversationLive(
   const [now, setNow] = useState(() => Date.now());
   const subRef = useRef<ConversationSubscription | null>(null);
   const lastTypingRef = useRef(0);
-  const { userId, firstName, typingEnabled, canPost } = opts;
+  const { userId, typingEnabled, canPost } = opts;
 
   useEffect(() => {
     const sub = subscribeConversation(supabase, conversationId, {
@@ -321,8 +351,8 @@ export function useConversationLive(
     const t = Date.now();
     if (t - lastTypingRef.current < TYPING_SEND_MS) return;
     lastTypingRef.current = t;
-    subRef.current?.sendTyping({ user_id: userId, first_name: firstName });
-  }, [canPost, firstName, typingEnabled, userId]);
+    subRef.current?.sendTyping();
+  }, [canPost, typingEnabled]);
 
   // Names come from the member list, not from the payload (a forged name shows nothing new).
   const named = new Map(
