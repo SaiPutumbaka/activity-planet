@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 60 (schema_version 2.56). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 61 (schema_version 2.57). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -5269,6 +5269,10 @@ export type Database = {
           seats_left: number;
           starts_at: string;
         }[];
+      };
+      coach_stripe_close_blocked: {
+        Args: { p_coach: string };
+        Returns: boolean;
       };
       coaching_config: { Args: never; Returns: Json };
       coaching_tick: { Args: never; Returns: Json };
