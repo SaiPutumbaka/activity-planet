@@ -68,3 +68,4 @@ organizer_feeds.sql
 venue_geocoding.sql
 collector_health.sql
 discovery_tuning.sql
+collector_ui.sql
