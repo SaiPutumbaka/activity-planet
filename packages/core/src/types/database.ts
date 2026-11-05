@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 52 (schema_version 2.48). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 53 (schema_version 2.49). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -44,6 +44,51 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [];
+      };
+      admin_lookups: {
+        Row: {
+          created_at: string;
+          id: string;
+          moderator_id: string | null;
+          query: string | null;
+          result_count: number;
+          target_user_id: string | null;
+          via: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          moderator_id?: string | null;
+          query?: string | null;
+          result_count?: number;
+          target_user_id?: string | null;
+          via: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          moderator_id?: string | null;
+          query?: string | null;
+          result_count?: number;
+          target_user_id?: string | null;
+          via?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "admin_lookups_moderator_id_fkey";
+            columns: ["moderator_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "admin_lookups_target_user_id_fkey";
+            columns: ["target_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       area_waitlist: {
         Row: {
@@ -4486,6 +4531,7 @@ export type Database = {
         Returns: undefined;
       };
       mod_ban_user: { Args: { p_note?: string; p_user: string }; Returns: Json };
+      mod_lookup_log: { Args: { p_limit?: number }; Returns: Json };
       mod_moderate: {
         Args: {
           p_action: string;
@@ -4498,6 +4544,7 @@ export type Database = {
       mod_place_facts: { Args: { p_id: string }; Returns: Json };
       mod_place_health: { Args: never; Returns: Json };
       mod_place_queue: { Args: { p_limit?: number }; Returns: Json };
+      mod_queue: { Args: { p_limit?: number }; Returns: Json };
       mod_report_queue: { Args: { p_limit?: number }; Returns: Json };
       mod_resolve_place: {
         Args: {
@@ -4512,6 +4559,8 @@ export type Database = {
         Args: { p_approve: boolean; p_id: string; p_reason?: string };
         Returns: Json;
       };
+      mod_scorecard: { Args: never; Returns: Json };
+      mod_sla_hours: { Args: { p_source: string }; Returns: number };
       mod_takedown_block_image: {
         Args: { p_image_url: string; p_request: string };
         Returns: Json;
@@ -4534,6 +4583,8 @@ export type Database = {
         Args: { p_note?: string; p_user: string };
         Returns: Json;
       };
+      mod_user_lookup: { Args: { p_user: string }; Returns: Json };
+      mod_user_search: { Args: { p_query: string }; Returns: Json };
       moderation_is_own: {
         Args: { p_id: string; p_kind: string; p_target_user: string };
         Returns: boolean;
@@ -4754,6 +4805,7 @@ export type Database = {
       };
       project_url: { Args: never; Returns: string };
       purge_account_deletions: { Args: never; Returns: number };
+      purge_admin_lookups: { Args: never; Returns: number };
       purge_read_notifications: { Args: never; Returns: number };
       purge_takedown_contacts: { Args: never; Returns: number };
       record_place_dump: {
