@@ -65,3 +65,6 @@ coaching_review_fixes.sql
 listing_removal.sql
 organizer_claims.sql
 organizer_feeds.sql
+venue_geocoding.sql
+collector_health.sql
+discovery_tuning.sql
