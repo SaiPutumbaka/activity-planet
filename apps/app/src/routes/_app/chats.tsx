@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_app/chats")({
       <ComingSoon
         icon={MessageCircle}
         title="Every plan gets a chat"
-        body="Event threads, hub chats and direct messages, with block, report and mute from day one. Arrives in week 5."
+        body="Event threads, hub chats and direct messages, with block, report and mute from day one. Coming soon."
       />
     </>
   ),
