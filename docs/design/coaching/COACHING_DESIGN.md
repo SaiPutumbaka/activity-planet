@@ -196,7 +196,7 @@ create table if not exists public.coach_sessions (
   listing_id  uuid not null references public.coach_listings (id) on delete cascade,
   starts_at   timestamptz not null,
   ends_at     timestamptz not null,
-  busy        extensions.tstzrange not null,   -- [starts_at, ends_at + listing buffer), set by a before trigger
+  busy        tstzrange not null,              -- [starts_at, ends_at + listing buffer), set by a before trigger (tstzrange is pg_catalog's)
   capacity    smallint not null,
   status      public.coach_session_status not null default 'scheduled',
   created_at  timestamptz not null default now(),
@@ -390,10 +390,11 @@ create table if not exists public.coach_fee_minimums (
   min_fee_minor integer not null check (min_fee_minor > 0)
 );                                                    -- seeded ('usd', 300)
 
-create table if not exists public.stripe_jobs (       -- outbound work the database asks for (refund, expire)
+create table if not exists public.stripe_jobs (       -- outbound work the database asks for (refund, expire, close)
   id          bigserial primary key,
-  booking_id  uuid not null references public.bookings (id) on delete restrict,
-  op          text not null check (op in ('refund', 'expire_checkout')),
+  booking_id  uuid references public.bookings (id) on delete restrict,   -- null only for close_account
+  stripe_account_id text,                             -- close_account
+  op          text not null check (op in ('refund', 'expire_checkout', 'close_account')),
   amount_minor integer,
   idempotency_key text not null unique,               -- 'refund:<booking>:<reason>'
   status      text not null default 'pending' check (status in ('pending', 'sent', 'done', 'failed')),
@@ -420,7 +421,7 @@ None of these are granted to `authenticated`; the parties read payment state thr
 
 ## 5. Search and browse
 
-`public.search_coaches(p_lat double precision default null, p_lng double precision default null, p_radius_km integer default null, p_hub_id uuid default null, p_delivery public.listing_delivery default null, p_query text default null, p_max_price_minor integer default null, p_currency char(3) default null, p_before jsonb default null, p_limit integer default 20)`.
+`public.search_coaches(p_lat double precision default null, p_lng double precision default null, p_radius_km integer default null, p_hub_id uuid default null, p_delivery public.listing_delivery default null, p_query text default null, p_max_price_minor integer default null, p_currency text default null, p_before jsonb default null, p_limit integer default 20)`.
 
 - **Origin:** the feed's chain (migration 57): the device point sent (rounded to 0.01 degree, never stored), else `profile_private.home_point`, else the home area centre, else Atlanta. Radius: the 10, 25, 50 km ladder, capped at 50.
 - **In person:** a coach matches when the origin is within the coach's own `service_radius_km` of `service_point` **and** the coach is within the viewer's radius. Returns `distance_band` exactly as the feed does (`'<1 mi'`, `'1-5 mi'`, `'5-10 mi'`, `'10-25 mi'`, `'25+ mi'`; kilometres when the client's locale uses them), never a distance or a coordinate.
@@ -520,7 +521,7 @@ Moderators (`is_moderator()` inside): `mod_set_coach_status(p_user, 'suspended' 
 | **Requests only** | default; `meta.coach_payments = 'off'`, or the function secrets are missing                                                                   | Prices on listings and bookings. Under every price on a booking screen: "Payment is arranged directly with Sam. Activity Planet doesn't process payments for this booking. Agree on the amount and how you'll pay before you meet." No Pay button, no payout settings, no fee line, no Stripe link anywhere. `payment_mode = 'off_platform'` (or `'none'` for a free listing). |
 | **Payments on**   | an operator sets `meta.coach_payments = 'on'` only after `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` exist on that project (FOUNDER-TODO) | Coaches see "Get paid in the app" (Stripe onboarding). Payable listings take card, Apple Pay and Google Pay through Stripe Checkout after the coach confirms; the rest stay requests only with the note above.                                                                                                                                                                 |
 
-Two gates, both needed: the database flag (what the app shows, read through `coaching_config()`) and the secrets (what the functions can do). If the flag is on but a function has no key, it answers `503 {error: "payments_disabled"}`; `request_booking` then still works, and the booking falls back to off-platform once `pay_by` passes (`coaching_tick` turns an unpaid booking whose checkout could never open into `off_platform` with a notice to both sides instead of cancelling it). No Stripe call is made from SQL; the database only queues `stripe_jobs` and dispatches to `stripe-checkout` through pg_net with a vault secret, like image-guard.
+Two gates, both needed: the database flag (what the app shows, read through `coaching_config()`) and the secrets (what the functions can do). If the flag is on but a function has no key, it answers `503 {error: "payments_off"}`; `request_booking` then still works, and the booking falls back to off-platform once `pay_by` passes (`coaching_tick` turns an unpaid booking whose checkout could never open into `off_platform` with a notice to both sides instead of cancelling it). "Could never open" is decided by `meta.stripe_checkout_seen_at`, which `stripe-checkout` stamps (`stripe_checkout_heartbeat`) whenever it runs with its key: with no stamp and no `booking_payments` row the booking falls back; otherwise an unpaid booking is cancelled (`unpaid`). No Stripe call is made from SQL; the database only queues `stripe_jobs` and dispatches to `stripe-checkout` through pg_net with a vault secret, like image-guard.
 
 ### 9.2 Onboarding (`stripe-connect`, `verify_jwt = true`)
 
@@ -562,7 +563,7 @@ New `notification_kind` values (`alter type ... add value if not exists`): `book
 - **Transactional, not social.** These are not dropped by a person mute (a mute does not cancel a session). A block cancels the bookings, so there is nothing left to notify.
 - **Channels.** In-app and push for all; **email** for `booking_requested`, `booking_confirmed`, `booking_cancelled` and `booking_payment_due` (logistics, the same class as RSVP confirmations; Resend's free cap is kept for these and plan logistics). Payloads carry ids, the title, the time and the other person's first name; never the client's note.
 - **Prefs.** `notification_prefs.bookings` switches off reminders, review prompts and review notices; confirmations, declines, cancellations and payment due always arrive in-app. Quiet hours hold pushes through `push_after` as for every kind.
-- **Calendar.** `booking_confirmed` email carries an `.ics` file like RSVP confirmations (the existing calendar helper in `packages/core/src/calendar`).
+- **Calendar.** The send-notifications worker attaches no `.ics` to any email today (RSVP confirmations included; `packages/core/src/calendar` serves the site's `.ics` route). The `booking_confirmed` email links to the booking; an `.ics` attachment for both is a later item.
 - Producers are the RPCs in section 7 (same transaction) and `coaching_tick` for reminders, prompts and expiries. The send-notifications worker's `pathFor` maps booking kinds to `/bookings/<id>` and review kinds to `/coaches/<handle>`.
 
 ## 12. Blocks, bans and moderation
@@ -604,11 +605,11 @@ Migration 60, `supabase/migrations/20261224000100_coaching.sql` (sorts after `20
    - `supabase/functions/stripe-checkout/` (`index.ts`, `checkout.ts`, `fees.ts`, `checkout_test.ts`, `fees_test.ts`), `verify_jwt = false` with its own checks: user calls carry the user JWT, verified against the project's JWKS exactly as `delete-account` does; database calls carry `x-stripe-dispatch-secret`.
    - `supabase/functions/stripe-webhook/` (`index.ts`, `signature.ts`, `events.ts`, `signature_test.ts`, `events_test.ts`), `verify_jwt = false`.
    - `supabase/functions/_shared/stripe.ts`: a 30-line form-encoded `fetch` client (`Authorization: Bearer`, `Idempotency-Key`, `Stripe-Version` pinned), injected so tests pass a mock.
-   - **Key gate:** each `index.ts` reads `STRIPE_SECRET_KEY` (and the webhook secrets) first and answers `503 {error: "payments_disabled"}` without them, before parsing anything. Tests cover the gate, signature success, bad signature, stale timestamp, duplicate event, the fee fixtures, refund amounts per policy row, and every Stripe request's form body against a mocked `fetch`; no network.
+   - **Key gate:** each `index.ts` reads `STRIPE_SECRET_KEY` (and the webhook secrets) first and answers `503 {error: "payments_off"}` without them, before parsing anything (`keyGate` in `supabase/functions/_shared/stripe.ts`; `stripe-connect` also answers it while `meta.coach_payments` is off). Tests cover the gate, signature success, bad signature, stale timestamp, duplicate event, the fee fixtures, refund amounts per policy row, and every Stripe request's form body against a mocked `fetch`; no network.
    - `delete-account`: the Stripe account deletion step, skipped without the key.
    - `supabase/config.toml` entries; `.github/workflows/ci.yml` runs `deno test` and `deno check` for the three functions.
 
-Tests: `supabase/tests/coaching.sql` (profile and listing rules, the online + group refusal, slots across a DST change in a non-US zone, exceptions, min notice, request idempotency, confirm declining overlaps, the exclusion constraint refusing an overlapping session, client overlap, state transitions and stamps, expiry and auto-complete through `coaching_tick`, reviews only after completion and once, coach reply once, search near / online / by hub with bands and no coordinates, 18+ and 21+, blocks in search, slots, booking and reviews, the booking arm of shared context opening a DM without a request) and `supabase/tests/coaching_payments.sql` (requests-only default: `payment_mode = 'off_platform'`, no `stripe_jobs`; with the flag on and a fake connected account row: payable shapes, fee min and percent, `pay_by`, cancellation refund amounts per window, block and ban refunds, `stripe_event_begin` idempotency, webhook handlers' state changes, report kinds, account deletion coverage of every new table). Both one transaction, `set local role authenticated` and `request.jwt.claims` per actor, pass/fail only, `ROLLBACK`; added to `supabase/tests/regression.txt`. Then regenerate `packages/core/src/types/database.ts` from the staging run's "Staging, print generated Database types" section and deploy the three functions to staging with `staging_functions` (they answer `payments_disabled` there until test keys are added).
+Tests (implemented as three files: `coaching.sql`, `coaching_rules.sql` for slots, daylight saving, exceptions, group sessions and client limits, and `coaching_payments.sql`): `supabase/tests/coaching.sql` (profile and listing rules, the online + group refusal, slots across a DST change in a non-US zone, exceptions, min notice, request idempotency, confirm declining overlaps, the exclusion constraint refusing an overlapping session, client overlap, state transitions and stamps, expiry and auto-complete through `coaching_tick`, reviews only after completion and once, coach reply once, search near / online / by hub with bands and no coordinates, 18+ and 21+, blocks in search, slots, booking and reviews, the booking arm of shared context opening a DM without a request) and `supabase/tests/coaching_payments.sql` (requests-only default: `payment_mode = 'off_platform'`, no `stripe_jobs`; with the flag on and a fake connected account row: payable shapes, fee min and percent, `pay_by`, cancellation refund amounts per window, block and ban refunds, `stripe_event_begin` idempotency, webhook handlers' state changes, report kinds, account deletion coverage of every new table). Both one transaction, `set local role authenticated` and `request.jwt.claims` per actor, pass/fail only, `ROLLBACK`; added to `supabase/tests/regression.txt`. Then regenerate `packages/core/src/types/database.ts` from the staging run's "Staging, print generated Database types" section and deploy the three functions to staging with `staging_functions` (they answer `payments_off` there until test keys are added).
 
 ### Slice 2: client
 
