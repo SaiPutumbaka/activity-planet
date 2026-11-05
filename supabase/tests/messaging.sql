@@ -9,8 +9,8 @@
 --     evidence or strikes; private helpers out of anon's reach; chat images
 --     off; the chat buckets are private.
 --   2 membership: shared context opens a DM; a non-member reads nothing
---     (table, RPC, realtime.messages with realtime.topic set) and cannot
---     send typing; the owner's user topic only; a removed RSVP and a room
+--     (table, RPC, realtime.messages with realtime.topic set) and nobody
+--     sends on conv: topics directly (migration 59); the owner's user topic only; a removed RSVP and a room
 --     admin's removal lose the event chat; a sensitive hub has no chat; an
 --     imported plan has no chat.
 --   3 requests: no context gives a request; one text message only (second
@@ -86,7 +86,7 @@ begin
      or has_table_privilege('authenticated', 'public.conversation_members', 'update')
      or has_table_privilege('anon', 'public.conversations', 'select')
      or has_column_privilege('authenticated', 'public.message_requests', 'status', 'select')
-     or not has_table_privilege('authenticated', 'public.conversation_members', 'select') then
+     or not has_column_privilege('authenticated', 'public.conversation_members', 'user_id', 'select') then
     raise exception 'FAIL 1 message table grants';
   end if;
   if has_function_privilege('anon', 'public.send_message(uuid,uuid,text,text)', 'execute')
@@ -260,9 +260,10 @@ begin
   if exists (select 1 from realtime.messages where topic = 'conv:' || v_ev and payload ? 'body') then
     raise exception 'FAIL 2 a signal carries a body';
   end if;
+  -- Migration 59: members do not send on conv: topics either; typing goes through chat_typing.
   if pg_temp.err(format($q$insert into realtime.messages (topic, extension, event, payload, private)
-                          values (%L, 'broadcast', 'typing', '{}', true)$q$, 'conv:' || v_ev)) <> 'ok' then
-    raise exception 'FAIL 2 a member cannot send typing';
+                          values (%L, 'broadcast', 'typing', '{}', true)$q$, 'conv:' || v_ev)) = 'ok' then
+    raise exception 'FAIL 2 a member sent on the conversation topic directly';
   end if;
   perform set_config('realtime.topic', 'user:' || current_setting('test.b') || ':chats', true);
   if not exists (select 1 from realtime.messages where topic = 'user:' || current_setting('test.b') || ':chats') then
@@ -660,8 +661,7 @@ begin
   end if;
   -- Never lowered.
   perform public.mark_conversation_read(v_dm, 1);
-  if (select cm.last_read_seq from public.conversation_members cm
-       where cm.conversation_id = v_dm and cm.user_id = pg_temp.uid('b')) <> v_seq then
+  if (public.conversation_info(v_dm) ->> 'last_read_seq')::bigint <> v_seq then
     raise exception 'FAIL 7 mark read lowered last_read_seq';
   end if;
 

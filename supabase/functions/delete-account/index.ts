@@ -67,15 +67,32 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
   if (ledgerResult.data.completed_at) return json({ ok: true, alreadyCompleted: true });
 
+  // Every entry under a folder: storage.list returns at most `limit` rows, so page by offset
+  // until a short page (migration 59 review: more than 1000 entries were left behind).
+  const LIST_PAGE = 1000;
+  async function listAll(
+    bucket: string,
+    prefix: string,
+  ): Promise<{ data: { id: string | null; name: string }[] | null; error: unknown }> {
+    const out: { id: string | null; name: string }[] = [];
+    for (let offset = 0; ; offset += LIST_PAGE) {
+      const { data, error } = await admin.storage
+        .from(bucket)
+        .list(prefix, { limit: LIST_PAGE, offset, sortBy: { column: "name", order: "asc" } });
+      if (error) return { data: null, error };
+      out.push(...(data ?? []));
+      if (!data || data.length < LIST_PAGE) return { data: out, error: null };
+    }
+  }
+
   // 1. Avatar files. The RPC cleared avatar_url; objects live under <user id>/ in the bucket.
-  const { data: files, error: listError } = await admin.storage
-    .from("avatars")
-    .list(userId, { limit: 1000 });
+  const { data: files, error: listError } = await listAll("avatars", userId);
   if (listError) return json({ error: "avatar_list_failed" }, 500);
-  if (files && files.length > 0) {
+  const avatarPaths = (files ?? []).map((file) => `${userId}/${file.name}`);
+  for (let i = 0; i < avatarPaths.length; i += 500) {
     const { error: removeError } = await admin.storage
       .from("avatars")
-      .remove(files.map((file) => `${userId}/${file.name}`));
+      .remove(avatarPaths.slice(i, i + 500));
     if (removeError) return json({ error: "avatar_remove_failed" }, 500);
   }
 
@@ -83,9 +100,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   //     tombstone and set their images to removed; the files go here. Reported images were
   //     copied to chat-evidence when the report was filed, so the originals can always go.
   const chatPaths: string[] = [];
-  const { data: chatFolders, error: chatListError } = await admin.storage
-    .from("chat-images")
-    .list(userId, { limit: 1000 });
+  const { data: chatFolders, error: chatListError } = await listAll("chat-images", userId);
   if (chatListError) return json({ error: "chat_images_list_failed" }, 500);
   for (const entry of chatFolders ?? []) {
     // Folders (one per conversation) come back without an id.
@@ -93,9 +108,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       chatPaths.push(`${userId}/${entry.name}`);
       continue;
     }
-    const { data: inner, error: innerError } = await admin.storage
-      .from("chat-images")
-      .list(`${userId}/${entry.name}`, { limit: 1000 });
+    const { data: inner, error: innerError } = await listAll(
+      "chat-images",
+      `${userId}/${entry.name}`,
+    );
     if (innerError) return json({ error: "chat_images_list_failed" }, 500);
     for (const file of inner ?? []) chatPaths.push(`${userId}/${entry.name}/${file.name}`);
   }
