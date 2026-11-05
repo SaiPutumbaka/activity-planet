@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 53 (schema_version 2.49). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 54 (schema_version 2.50). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -3455,6 +3455,7 @@ export type Database = {
       };
       takedown_requests: {
         Row: {
+          client_hash: string | null;
           contact_cleared_at: string | null;
           created_at: string;
           description: string;
@@ -3480,6 +3481,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          client_hash?: string | null;
           contact_cleared_at?: string | null;
           created_at?: string;
           description?: string;
@@ -3505,6 +3507,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          client_hash?: string | null;
           contact_cleared_at?: string | null;
           created_at?: string;
           description?: string;
@@ -4465,7 +4468,6 @@ export type Database = {
         };
         Returns: Json;
       };
-      is_blocked_with: { Args: { p_other: string }; Returns: boolean };
       is_campus_org_member: { Args: { p_campus: string }; Returns: boolean };
       is_chapter_captain: { Args: { p_chapter: string }; Returns: boolean };
       is_moderator: { Args: never; Returns: boolean };
@@ -5062,6 +5064,7 @@ export type Database = {
       };
       submit_takedown_request: {
         Args: {
+          p_client_hash?: string;
           p_description?: string;
           p_email: string;
           p_good_faith: boolean;
