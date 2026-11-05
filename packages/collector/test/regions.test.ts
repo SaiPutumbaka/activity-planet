@@ -281,6 +281,19 @@ describe("collector regions (D-042 slice 6)", () => {
       { candidate_id: C4, outcome: "no_feed", items: 0, in_region: 0, errors: 2, complete: false },
     ]);
     expect(sourceResults({}, [collectorAtl], [])).toEqual([]);
+    // A site that answers 401/403 or a login page is blocked; robots.txt that cannot be read is
+    // a refusal (review fix: a live source must not stay on as a plain error forever).
+    const one = (errors: Record<string, number>) =>
+      sourceResults(
+        { sources: [entry(C1, "disc-a")] },
+        [collectorAtl],
+        [batch("disc-a", [], errors)],
+      )[0]?.outcome;
+    expect(one({ "auth_required:403": 1 })).toBe("blocked");
+    expect(one({ auth_required: 2 })).toBe("blocked");
+    expect(one({ login_page: 1 })).toBe("blocked");
+    expect(one({ robots_unavailable: 1 })).toBe("robots");
+    expect(one({ http_error: 1 })).toBe("error");
     // A sample of listing views is a whole read for the lifecycle unless a fetch left a gap.
     const sampled = (gap: boolean) =>
       ({

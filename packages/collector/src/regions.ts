@@ -325,9 +325,11 @@ export function sourceResults(
     let outcome: SourceResult["outcome"];
     if (inRegion > 0) outcome = "ok";
     else if (has("denylisted")) outcome = "denylisted";
-    else if (has("robots_disallowed")) outcome = "robots";
+    // robots.txt that cannot be read is treated as a refusal, like a disallow.
+    else if (has("robots_disallowed") || has("robots_unavailable")) outcome = "robots";
     else if (has("noindex")) outcome = "noindex";
-    else if (has("login_page")) outcome = "blocked";
+    // 401/403 or a login page: the site does not want us; the lifecycle rejects it at once.
+    else if (has("login_page") || has("auth_required")) outcome = "blocked";
     else if (keys.length === 0) outcome = "empty";
     else if (keys.every((k) => k.startsWith("not_a_feed"))) outcome = "no_feed";
     else outcome = "error";

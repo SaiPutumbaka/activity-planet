@@ -88,9 +88,11 @@ export interface ProbeContext {
   eventPages?: number;
 }
 
-/** Calendar platforms whose pages are read from another host than the candidate's own. */
-const PLATFORM_HOSTS =
-  /(?:^|\.)(?:trumba\.com|libcal\.com|libnet\.info|localist\.com|calendar\.google\.com)$/i;
+/**
+ * Calendar platforms whose pages are read from another host than the candidate's own. Localist is
+ * not one: its calendars are never read automatically (needs_permission).
+ */
+const PLATFORM_HOSTS = /(?:^|\.)(?:trumba\.com|libcal\.com|libnet\.info|calendar\.google\.com)$/i;
 
 const MARKS: [string, RegExp][] = [
   ["tec", /tribe-events|the-events-calendar|tec-api-version|\/wp-json\/tribe\/events\//i],
@@ -378,6 +380,15 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
     notes.push("home_noindex");
     return result("noindex");
   }
+  // Localist: never automatic. When the homepage itself carries its mark, nothing else is read.
+  if (platforms.has("localist")) {
+    notes.push("localist", "localist_home");
+    return result("needs_permission", {
+      platform: "localist",
+      url: `${new URL(home.url).origin}/`,
+      kind: "page",
+    });
+  }
   const homeSite = siteOf(hostOf(home.url));
   const sameSite = (u: string) => siteOf(hostOf(u)) === homeSite || PLATFORM_HOSTS.test(hostOf(u));
 
@@ -441,6 +452,8 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
       if (r.noindex) noindexPages++;
       else seen.push(r);
     }
+    // A page that shows Localist's mark ends the reading: no further pages of a Localist site.
+    if (platforms.has("localist")) break;
   }
 
   // 4. Localist: never automatic.

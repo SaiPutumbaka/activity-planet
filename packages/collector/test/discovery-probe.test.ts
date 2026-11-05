@@ -15,7 +15,7 @@ import {
 } from "../src/discovery/candidates.ts";
 import { loadDiscoveryConfig, parseDiscoveryConfig } from "../src/discovery/config.ts";
 import { foundCalendar, gateReport, probeAll } from "../src/discovery/discover.ts";
-import { euGated, zoneCountry } from "../src/discovery/eu.ts";
+import { candidateGate, euGated, zoneCountry } from "../src/discovery/eu.ts";
 import { guessedPaths, keywordsFor, keywordStrength } from "../src/discovery/keywords.ts";
 import {
   googleEmbedFeeds,
@@ -123,6 +123,31 @@ describe("EU gate by time zone", () => {
     expect(euGated("Europe/Berlin", { ...gate, enabled: false })).toBe(false);
     expect(zoneCountry("Europe/Berlin")).toBe("DE");
     expect(zoneCountry("America/New_York")).toBeNull();
+  });
+  it("judges each candidate by its own place when a region's circle crosses a border", () => {
+    const gate = cfg.euGate;
+    // A Basel region (Europe/Zurich): Basel itself is Swiss, Weil am Rhein German, Saint-Louis French.
+    expect(candidateGate({ lat: 47.5596, lng: 7.5886 }, "Europe/Zurich", gate)).toEqual({
+      gated: false,
+      country: "CH",
+    });
+    expect(candidateGate({ lat: 47.5944, lng: 7.6206 }, "Europe/Zurich", gate).gated).toBe(true);
+    expect(candidateGate({ lat: 47.59, lng: 7.5568 }, "Europe/Zurich", gate).gated).toBe(true);
+    // Zurich centre is far enough from any border.
+    expect(candidateGate({ lat: 47.3769, lng: 8.5417 }, "Europe/Zurich", gate).gated).toBe(false);
+    // No point: fine outside Europe, gated in a European or unknown region.
+    expect(candidateGate({}, "America/New_York", gate).gated).toBe(false);
+    expect(candidateGate({}, "Europe/Zurich", gate).gated).toBe(true);
+    expect(candidateGate({}, null, gate).gated).toBe(true);
+    // Its own (Wikidata) country is gated.
+    expect(candidateGate({ country: "FR" }, "Europe/Zurich", gate).gated).toBe(true);
+    // Atlanta stays open and keeps its own country.
+    expect(
+      candidateGate({ lat: 33.75, lng: -84.39, country: "US" }, "America/New_York", gate),
+    ).toEqual({ gated: false, country: "US" });
+    expect(
+      candidateGate({ lat: 47.59, lng: 7.5568 }, "Europe/Zurich", { ...gate, enabled: false }),
+    ).toEqual({ gated: false, country: null });
   });
 });
 
@@ -406,6 +431,31 @@ describe("probe", () => {
     expect(r.items).toBe(0);
     expect(log.some((l) => l.url.includes("/api/2/"))).toBe(false);
     expect(foundCalendar(r)).toBe(true);
+  });
+
+  it("stops at the homepage when it already shows the Localist mark", async () => {
+    const { fetcher, log } = fetcherWith({
+      "https://www.example.edu/robots.txt": { body: "" },
+      "https://www.example.edu/": {
+        body: html(
+          '<a href="/events/">Events</a><a href="https://example.localist.com/calendar">Calendar</a>',
+          '<script src="https://cdn.localist.com/widget.js"></script>',
+        ),
+      },
+      "https://www.example.edu/events/": { body: html(eventLd("Talk")) },
+    });
+    const r = await probe(
+      { url: "https://www.example.edu/", host: "example.edu", origin: "osm", place_kind: "school" },
+      { fetcher, region: ATL, now: NOW },
+    );
+    expect(r.outcome).toBe("needs_permission");
+    expect(r.platform).toBe("localist");
+    expect(r.url).toBe("https://www.example.edu/");
+    expect(r.notes).toContain("localist_home");
+    expect(log.map((l) => l.url).sort()).toEqual([
+      "https://www.example.edu/",
+      "https://www.example.edu/robots.txt",
+    ]);
   });
 
   it("guesses /events/ only when no link names an event page", async () => {

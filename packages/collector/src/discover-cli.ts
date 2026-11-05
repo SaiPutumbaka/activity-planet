@@ -16,11 +16,14 @@
 //
 //   pnpm --filter collector discover status --from <base>
 //       Exit 0 when this probe code passed the gate on that project within 30 days, else 3.
+//       With --record, gate first asks the same endpoint how many gate runs were recorded in the
+//       last 24 hours and exits 4 without fetching anything once the database's 2 are spent.
 //
 //   pnpm --filter collector discover candidates --from <base> [--limit 10]
 //       Builds candidates for the collector regions due (GET /collector/discovery/regions: never
-//       built or built 30 days ago, 10 a night), skipping regions in the EU gate's countries and
-//       the sites of hand-written seeds, posts them (POST /collector/candidates) and stamps the
+//       built or built 30 days ago, 10 a night), skipping regions in the EU gate's countries,
+//       candidates whose own place is in or near one (eu.ts candidateGate; a region's circle can
+//       cross a border) and the sites of hand-written seeds, posts them (POST /collector/candidates) and stamps the
 //       regions (POST /collector/discovery/regions/record).
 //
 //   pnpm --filter collector discover probe --from <base> --run-id <id> [--per-region 150]
@@ -39,7 +42,7 @@ import {
   gateReport,
   probeAll,
 } from "./discovery/discover.ts";
-import { euGated, zoneCountry } from "./discovery/eu.ts";
+import { candidateGate, euGated, zoneCountry } from "./discovery/eu.ts";
 import { probeHostAllowance, type ProbeInput, type ProbeResult } from "./discovery/probe.ts";
 import { probeHash } from "./discovery/version.ts";
 import { MemoryHttpCache } from "./net/cache.ts";
@@ -121,6 +124,21 @@ async function main(argv: string[]): Promise<number> {
       throw new Error("bad --max-hosts");
     if (values.record && !RUN_ID.test(values["run-id"] ?? ""))
       throw new Error("--record needs --run-id");
+    // A recorded gate reads about 150 Atlanta hosts: the database takes at most 2 runs in 24
+    // hours, so stop before sending anything when that is spent (migration 50).
+    if (values.record) {
+      const st = await call(svc, `/discovery/gate?hash=${hash}`);
+      if (st.status !== 200) throw new Error(`GET /discovery/gate failed: ${st.status}`);
+      const b = (st.body ?? {}) as { runs_24h?: unknown; max_runs_24h?: unknown };
+      const runs = typeof b.runs_24h === "number" ? b.runs_24h : 0;
+      const max = typeof b.max_runs_24h === "number" ? b.max_runs_24h : 2;
+      if (runs >= max) {
+        console.log(
+          `[gate] refused: ${runs} gate runs in the last 24 hours (at most ${max}); nothing was fetched. Run it again later.`,
+        );
+        return 4;
+      }
+    }
     const started = Date.now();
     const fetcher = fetcherFor(caps.probeRunMinutes, denylist, caps.requestsPerHostPerProbe);
     const tiles = await fetchTileRows(svc, region);
@@ -241,6 +259,7 @@ async function main(argv: string[]): Promise<number> {
     const sum: Record<string, number> = {
       regions: rows.length,
       eu_gated: 0,
+      eu_gated_candidates: 0,
       added: 0,
       known: 0,
       denied: 0,
@@ -263,8 +282,16 @@ async function main(argv: string[]): Promise<number> {
         country: zoneCountry(region.timezone),
         skipSites: skip,
       });
-      for (let i = 0; i < built.candidates.length; i += 500) {
-        const chunk = built.candidates.slice(i, i + 500).map((c) => ({
+      // The region's circle can cross into a gated country: each candidate is judged by its own
+      // place, and carries the country of its point (the database needs one in European regions).
+      const kept: typeof built.candidates = [];
+      for (const c of built.candidates) {
+        const g = candidateGate(c, region.timezone, cfg.euGate);
+        if (g.gated) sum.eu_gated_candidates = (sum.eu_gated_candidates ?? 0) + 1;
+        else kept.push(g.country ? { ...c, country: g.country } : c);
+      }
+      for (let i = 0; i < kept.length; i += 500) {
+        const chunk = kept.slice(i, i + 500).map((c) => ({
           url: c.url,
           origin: c.origin,
           region_id: region.id,
@@ -345,6 +372,16 @@ async function main(argv: string[]): Promise<number> {
       }
       // Second layer of the EU gate: the database already leaves these out.
       if (euGated(region.timezone, cfg.euGate) && e.origin !== "member") {
+        skipped++;
+        continue;
+      }
+      // Third layer: an automatic candidate whose own country is gated.
+      if (
+        e.origin !== "member" &&
+        cfg.euGate.enabled &&
+        typeof e.country === "string" &&
+        cfg.euGate.countries.includes(e.country)
+      ) {
         skipped++;
         continue;
       }

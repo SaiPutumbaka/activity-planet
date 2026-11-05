@@ -20,8 +20,15 @@ name: Source discovery
 #
 # Where it runs:
 #   * STAGING for a push to a branch other than main that changes the collector's code or data
-#     (gate), a push of packages/collector/discovery_request.json (its mode), a pull request that
-#     changes them (gate), a workflow_dispatch, and the nightly schedule.
+#     (gate), a push of packages/collector/discovery_request.json (its mode), a workflow_dispatch,
+#     and the nightly schedule. No pull_request trigger: the branch push already ran the gate for
+#     that commit, and a second copy would read the same Atlanta sites again in parallel.
+#
+# Politeness of the gate (it reads about 150 Atlanta hosts): every run waits for any other run of
+# this workflow (one concurrency group), gate mode first asks the database whether this probe
+# code already passed (discover status) and skips the gate when it did, and the database records
+# at most 2 gate runs in 24 hours (migration 50): discover gate --record stops before fetching
+# anything once they are spent (exit 4).
 #   * PRODUCTION only from main (schedule or dispatch) when the repository variable
 #     DISCOVERY_PRODUCTION is "true" (default off).
 #
@@ -47,11 +54,6 @@ on:
       - "packages/collector/data/**"
       - "packages/collector/discovery_request.json"
       - ".github/workflows/discovery.yml"
-  pull_request:
-    paths:
-      - "packages/collector/src/**"
-      - "packages/collector/data/**"
-      - ".github/workflows/discovery.yml"
   # Nightly, before the collector run (05:41 UTC) and outside the busy US morning hours.
   schedule:
     - cron: "19 2 * * *"
@@ -59,8 +61,9 @@ on:
 permissions:
   contents: read
 
+# One group for every ref and event, so two runs never probe the same sites at once.
 concurrency:
-  group: discovery-${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
+  group: discovery
   cancel-in-progress: false
 
 env:
@@ -85,7 +88,6 @@ jobs:
         run: |
           mode="${IN_MODE:-nightly}"
           hosts="${IN_HOSTS:-}"
-          if [ "$EVENT" = "pull_request" ]; then mode=gate; fi
           if [ "$EVENT" = "schedule" ]; then mode=nightly; fi
           if [ "$EVENT" = "push" ]; then
             if [ "$REF" = "refs/heads/main" ]; then echo "never on main pushes"; exit 1; fi
@@ -100,7 +102,7 @@ jobs:
           case "$mode" in gate|nightly) ;; *) echo "Refusing mode: $mode"; exit 1 ;; esac
           case "$hosts" in ""|[0-9]|[0-9][0-9]|[0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]) ;; *) echo "Refusing max_hosts: $hosts"; exit 1 ;; esac
           production=false
-          if [ "$mode" = "nightly" ] && [ "$EVENT" != "push" ] && [ "$EVENT" != "pull_request" ] && [ "$REF" = "refs/heads/main" ] && [ "$PROD_VAR" = "true" ]; then production=true; fi
+          if [ "$mode" = "nightly" ] && [ "$EVENT" != "push" ] && [ "$REF" = "refs/heads/main" ] && [ "$PROD_VAR" = "true" ]; then production=true; fi
           echo "event=$EVENT mode=$mode production=$production max_hosts=${hosts:-default}"
           {
             echo "mode=$mode"
@@ -145,6 +147,10 @@ jobs:
           RUN_ID: ${{ steps.mode.outputs.run_id }}
           HOSTS: ${{ steps.mode.outputs.hosts }}
         run: |
+          if pnpm --silent --filter collector discover status --from "$COLLECTOR_BASE"; then
+            echo "Gate already passed for this probe code within 30 days; not run again."
+            exit 0
+          fi
           set -- --from "$COLLECTOR_BASE" --record --run-id "$RUN_ID-gate" --out "$RUNNER_TEMP/gate.json"
           if [ -n "$HOSTS" ]; then set -- "$@" --max-hosts "$HOSTS"; fi
           pnpm --silent --filter collector discover gate "$@"

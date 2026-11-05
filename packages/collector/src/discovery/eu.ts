@@ -4,6 +4,14 @@
 // IANA time zone: every zone used in those countries (and their outermost regions) is listed
 // below. A zone under Europe/ that is not listed counts as gated (fail closed), so a renamed or
 // new European zone never opens the gate by accident.
+//
+// A region's circle can cross a border (a Basel or Geneva region in Europe/Zurich holds German and
+// French towns), so each automatic candidate is also judged by its own point: the zone at that
+// point and at four points 2 km around it (tz-lookup, offline). Any gated zone there gates the
+// candidate. The database keeps a second layer: in a European region an automatic candidate
+// without a country of its own is never probed (source_discovery_allowed, migration 50).
+
+import tzlookup from "tz-lookup";
 
 /** IANA zones used in the EU, the EEA and the UK, with their country (tzdata zone1970/zone.tab). */
 const ZONE_COUNTRY: Record<string, string> = {
@@ -119,4 +127,54 @@ export function euGated(
 /** Every zone this table assigns to a country, for tests. */
 export function listedZones(): Record<string, string> {
   return { ...ZONE_COUNTRY, ...EUROPE_OPEN };
+}
+
+function zoneOf(lat: number, lng: number): string | null {
+  try {
+    const z = tzlookup(lat, lng);
+    return typeof z === "string" && z !== "" ? z : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Whether a zone is on the gate's side: a gated country, or an unlisted European zone. */
+function zoneGated(zone: string, gate: { countries: string[] }): boolean {
+  const cc = zoneCountry(zone);
+  if (cc) return gate.countries.includes(cc);
+  return zone.startsWith("Europe/");
+}
+
+/**
+ * The EU gate for one automatic candidate, from its own place. Gated when the zone at its point,
+ * or at any of four points 2 km north, east, south and west of it, is gated; when it has no point
+ * and its region's zone needs one (European or unknown); or when its own country (Wikidata) is a
+ * gated one. Otherwise `country` is the country of its point when the table knows it (else the
+ * candidate's own), which the database needs for candidates in European regions.
+ */
+export function candidateGate(
+  c: { lat?: number; lng?: number; country?: string | null },
+  regionZone: string | null | undefined,
+  gate: { enabled: boolean; countries: string[] },
+): { gated: boolean; country: string | null } {
+  const own = c.country && /^[A-Z]{2}$/.test(c.country) ? c.country : null;
+  if (!gate.enabled) return { gated: false, country: own };
+  if (own && gate.countries.includes(own)) return { gated: true, country: own };
+  if (typeof c.lat !== "number" || typeof c.lng !== "number") {
+    const needs = !regionZone || euGated(regionZone, gate) || regionZone.startsWith("Europe/");
+    return { gated: needs, country: own };
+  }
+  const dLat = 2 / 111.32;
+  const dLng = 2 / (111.32 * Math.max(0.05, Math.cos((c.lat * Math.PI) / 180)));
+  const points: [number, number][] = [
+    [c.lat, c.lng],
+    [Math.min(90, c.lat + dLat), c.lng],
+    [Math.max(-90, c.lat - dLat), c.lng],
+    [c.lat, c.lng + dLng],
+    [c.lat, c.lng - dLng],
+  ];
+  const zones = points.map(([la, ln]) => zoneOf(la, ((((ln + 180) % 360) + 360) % 360) - 180));
+  if (zones[0] === null || zones.some((z) => z !== null && zoneGated(z, gate)))
+    return { gated: true, country: own };
+  return { gated: false, country: zoneCountry(zones[0]) ?? own };
 }
