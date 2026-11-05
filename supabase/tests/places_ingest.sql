@@ -168,7 +168,7 @@ begin
     raise exception 'FAIL run columns are client-readable';
   end if;
   foreach f in array array['public.ingest_places(integer,text,jsonb,text,integer)',
-                           'public.finish_place_tile(integer,text,integer,text)',
+                           'public.finish_place_tile(integer,text,integer,text,boolean)',
                            'public.place_tiles_queue(text[],integer)',
                            'public.collector_verify_secret(text)'] loop
     if has_function_privilege('anon', f, 'execute') or has_function_privilege('authenticated', f, 'execute') then

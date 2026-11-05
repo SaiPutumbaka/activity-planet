@@ -12,13 +12,13 @@ begin;
 -- ---------------------------------------------------------------------------
 do $$
 declare
-  v_a   uuid := gen_random_uuid();   -- Leipzig tile centre, then its NE corner, then Lyon
-  v_b   uuid := gen_random_uuid();   -- Leipzig tile centre
+  v_a   uuid := gen_random_uuid();   -- central Mongolia tile centre, then its NE corner, then Lyon
+  v_b   uuid := gen_random_uuid();   -- central Mongolia tile centre
   v_c   uuid := gen_random_uuid();   -- Porto (a retired tile)
   v_d   uuid := gen_random_uuid();   -- Krakow (an idle tile with no OSM run)
   v_e   uuid := gen_random_uuid();   -- Reykjavik after both daily caps are reached
   v_hub uuid;
-  t1    integer := public.place_tile_id(51.25, 12.25);
+  t1    integer := public.place_tile_id(46.25, 102.25);
   v_ids integer[];
   v_p   extensions.geography;
 begin
@@ -117,7 +117,7 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
--- A: onboarding at the Leipzig tile centre, then the NE corner of the same
+-- A: onboarding at the central Mongolia tile centre, then the NE corner of the same
 -- tile, then Lyon (within 24 hours).
 -- ---------------------------------------------------------------------------
 set local role authenticated;
@@ -131,9 +131,9 @@ begin
     p_first_name => 'Tester',
     p_birth_date => date '1993-03-03',
     p_hub_ids    => array[current_setting('test.hub')::uuid],
-    p_lat        => 51.25,
-    p_lng        => 12.25,
-    p_label      => 'Leipzig');
+    p_lat        => 46.25,
+    p_lng        => 102.25,
+    p_label      => 'Steppe');
   if (select count(*) from public.place_tiles) <> 0 then
     raise exception 'FAIL a member can read place_tiles';
   end if;
@@ -171,7 +171,7 @@ select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('test.a'), 'role', 'authenticated')::text, true);
 do $$
 begin
-  perform public.set_home_location(51.49, 12.49, 'Leipzig north-east');
+  perform public.set_home_location(46.49, 102.49, 'Steppe north-east');
 end $$;
 reset role;
 
@@ -211,7 +211,7 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
--- B: a second member in the Leipzig tile bumps its demand.
+-- B: a second member in the central Mongolia tile bumps its demand.
 -- C: Porto's retired tile becomes wanted. D: Krakow's idle tile wakes.
 -- ---------------------------------------------------------------------------
 set local role authenticated;
@@ -224,8 +224,8 @@ begin
     p_first_name => 'Tester',
     p_birth_date => date '1990-01-01',
     p_hub_ids    => array[current_setting('test.hub')::uuid],
-    p_lat        => 51.25,
-    p_lng        => 12.25);
+    p_lat        => 46.25,
+    p_lng        => 102.25);
 end $$;
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('test.c'), 'role', 'authenticated')::text, true);

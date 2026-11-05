@@ -68,6 +68,8 @@ declare
   r    public.rsvps;
   e    public.events;
 begin
+  -- Migration 22: events are read through RLS for a signed-in adult, so read as the host.
+  perform set_config('request.jwt.claims', json_build_object('sub', current_setting('test.h'), 'role', 'authenticated')::text, true);
   select starts_at into v_t1 from public.events where id = v_e;
   perform set_config('request.jwt.claims', json_build_object('sub', current_setting('test.a'), 'role', 'authenticated')::text, true);
   r := public.set_rsvp(v_e, 'going');

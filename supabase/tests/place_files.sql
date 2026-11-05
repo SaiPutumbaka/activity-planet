@@ -282,7 +282,9 @@ declare
 begin
   v := public.map_in_view(p_west => -22.0, p_south => 64.1, p_east => -21.85, p_north => 64.2,
                           p_hub_ids => array[hub], p_layers => array['places'], p_files => true);
-  if v -> 'place_files' -> 'hidden' <> '["n9000000002"]'::jsonb then
+  -- Migration 44: every row changed after the build is hidden (the hidden B and the corrected C).
+  if not (v -> 'place_files' -> 'hidden') @> '["n9000000002", "w9000000003"]'::jsonb
+     or jsonb_array_length(v -> 'place_files' -> 'hidden') <> 2 then
     raise exception 'FAIL hidden refs after the build';
   end if;
   if (select count(*) from jsonb_array_elements(v -> 'places') e where e ->> 8 like '_900000000_') <> 1

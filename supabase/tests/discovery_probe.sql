@@ -97,6 +97,9 @@ declare
 begin
   perform set_config('t.tag', v_tag, true);
   perform set_config('t.hash', v_hash, true);
+  -- Migration 50: at most 2 gate runs in 24 hours. Staging's own recent runs are removed for
+  -- this transaction only (rolled back), so the two runs below are not refused.
+  delete from public.source_discovery_gates where created_at > now() - interval '24 hours';
   select count(*) into v_n from public.source_discovery_gates;
   if pg_temp.try($q$select public.source_discovery_gate_record('[]'::jsonb)$q$) not like '%gate_invalid%'
      or pg_temp.try(format($q$select public.source_discovery_gate_record(%L::jsonb)$q$,

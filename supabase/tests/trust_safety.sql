@@ -45,8 +45,8 @@ begin
      or not has_column_privilege('authenticated', 'public.reports', 'status', 'select') then
     raise exception 'FAIL 1 reports column grants';
   end if;
-  if has_function_privilege('anon', 'public.is_blocked_with(uuid)', 'execute')
-     or not has_function_privilege('authenticated', 'public.is_blocked_with(uuid)', 'execute')
+  if has_function_privilege('anon', 'private.is_blocked_with(uuid)', 'execute')
+     or not has_function_privilege('authenticated', 'private.is_blocked_with(uuid)', 'execute')
      or has_function_privilege('authenticated', 'public.users_blocked(uuid,uuid)', 'execute')
      or has_function_privilege('authenticated', 'public.moderation_set_state(text,uuid,text)', 'execute')
      or has_function_privilege('authenticated', 'public.moderation_is_own(text,uuid,uuid)', 'execute')
@@ -200,7 +200,7 @@ begin
      or exists (select 1 from public.chapter_members where user_id = v_b) then
     raise exception 'FAIL 2 a still sees b';
   end if;
-  if not public.is_blocked_with(v_b) then raise exception 'FAIL 2 is_blocked_with for a'; end if;
+  if not private.is_blocked_with(v_b) then raise exception 'FAIL 2 is_blocked_with for a'; end if;
   if (select count(*) from public.my_blocks() where user_id = v_b) <> 1 then raise exception 'FAIL 2 my_blocks'; end if;
   if public.event_block_warning(v_e1) <> 1 then raise exception 'FAIL 2 event_block_warning for a'; end if;
   if (select count(*) from public.blocks) <> 1 then raise exception 'FAIL 2 a reads own block'; end if;
@@ -216,7 +216,7 @@ begin
   if not exists (select 1 from public.rsvps where event_id = v_e1 and user_id = current_setting('test.h')::uuid) then
     raise exception 'FAIL 2 b lost an unrelated RSVP row';
   end if;
-  if not public.is_blocked_with(v_a) then raise exception 'FAIL 2 is_blocked_with for b'; end if;
+  if not private.is_blocked_with(v_a) then raise exception 'FAIL 2 is_blocked_with for b'; end if;
   if exists (select 1 from public.blocks) then raise exception 'FAIL 2 b reads the block row'; end if;
   if public.event_block_warning(v_e1) <> 0 then raise exception 'FAIL 2 event_block_warning for b'; end if;
   if (select count(*) from public.my_blocks()) <> 0 then raise exception 'FAIL 2 my_blocks for b'; end if;

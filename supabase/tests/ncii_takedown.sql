@@ -8,9 +8,9 @@
 -- Run as the staging_file of a staging_only migrate.yml run.
 --
 --   1 static: schema_version 2.48 or later, grants, the match rule, cron jobs.
---   2 the public request: anon files one without an account; validation;
+--   2 the public request: the site route (service role) files one without an account; validation;
 --     3 a day per email; 48 hours, 4 hours and priority 0 for a minor;
---     anon cannot read requests.
+--     anon cannot call it or read requests (migration 54).
 --   3 the moderator queue: forbidden to members, most urgent first.
 --   4 the upload path: a new photo is recorded pending; hashes recorded.
 --   5 a moderator blocks an image: it and its stored copy are cleared and
@@ -44,8 +44,10 @@ begin
      or not has_table_privilege('service_role', 'public.image_hashes', 'select') then
     raise exception 'FAIL 1 table grants';
   end if;
-  if not has_function_privilege('anon', 'public.submit_takedown_request(text,text,text,text,boolean,text,text,boolean)', 'execute')
-     or not has_function_privilege('authenticated', 'public.submit_takedown_request(text,text,text,text,boolean,text,text,boolean)', 'execute')
+  -- Migration 54: the public form goes through the site's route with the service role.
+  if has_function_privilege('anon', 'public.submit_takedown_request(text,text,text,text,boolean,text,text,boolean,text)', 'execute')
+     or has_function_privilege('authenticated', 'public.submit_takedown_request(text,text,text,text,boolean,text,text,boolean,text)', 'execute')
+     or not has_function_privilege('service_role', 'public.submit_takedown_request(text,text,text,text,boolean,text,text,boolean,text)', 'execute')
      or has_function_privilege('anon', 'public.mod_takedown_queue(integer,boolean)', 'execute')
      or not has_function_privilege('authenticated', 'public.mod_takedown_queue(integer,boolean)', 'execute')
      or has_function_privilege('anon', 'public.mod_takedown_block_image(uuid,text)', 'execute')
@@ -133,14 +135,15 @@ end $$;
 -- ---------------------------------------------------------------------------
 -- 2. The public request (anon, no account)
 -- ---------------------------------------------------------------------------
-set local role anon;
+-- Migration 54: submitted by the site's route as the service role; anon still reads nothing.
+set local role service_role;
 do $$
 declare
   v_email text := 'requester-' || current_setting('test.tag') || '@example.com';
   j       jsonb;
   v_err   text;
 begin
-  perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
   j := public.submit_takedown_request('Pat Requester', v_email, 'self',
          'https://activityplanet.app/u/someone (profile photo)', true, 'Pat Requester', 'It was shared without my consent.');
   if j ->> 'reference' !~ '^NCII-[0-9A-F]{8}$'
@@ -189,6 +192,13 @@ begin
     if sqlerrm <> 'rate_limited' then raise exception 'FAIL 2 rate limit: %', sqlerrm; end if;
   end;
 
+  execute 'set local role anon';
+  perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
+  begin
+    perform public.submit_takedown_request('Pat', v_email, 'self', 'somewhere', true, 'Pat');
+    raise exception 'FAIL 2 anon called submit_takedown_request';
+  exception when insufficient_privilege then null;
+  end;
   begin
     perform 1 from public.takedown_requests limit 1;
     raise exception 'FAIL 2 anon reads takedown_requests';

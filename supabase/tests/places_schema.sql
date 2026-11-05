@@ -298,13 +298,12 @@ begin
   returning id into v_id;
   perform set_config('test.pven', v_id::text, true);
 
-  -- place_ref only on a public venue.
-  begin
-    update public.venues set place_ref = current_setting('test.o1')::uuid where id = current_setting('test.va')::uuid;
+  -- place_ref only on a public venue. Migration 33 (venues_place_ref_guard): a private venue's
+  -- place_ref is cleared on write instead of refused.
+  update public.venues set place_ref = current_setting('test.o1')::uuid where id = current_setting('test.va')::uuid;
+  if (select place_ref from public.venues where id = current_setting('test.va')::uuid) is not null then
     raise exception 'FAIL a private venue got a place_ref';
-  exception when check_violation then
-    if sqlerrm !~ 'venues_place_ref_public' then raise exception 'FAIL private place_ref gave %', sqlerrm; end if;
-  end;
+  end if;
   update public.venues set place_ref = v_id where id = current_setting('test.vb')::uuid;
 
   -- A hidden public member place of B (for the RLS checks).

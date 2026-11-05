@@ -85,14 +85,14 @@ begin
     raise exception 'FAIL feed_events_v2 does not have exactly one overload';
   end if;
   if (select p.prosecdef from pg_proc p
-       where p.oid = 'public.feed_events_v2(timestamptz, timestamptz, double precision, double precision, integer, uuid[], boolean, integer, text)'::regprocedure) then
+       where p.oid = 'public.feed_events_v2(timestamptz, timestamptz, double precision, double precision, integer, uuid[], boolean, integer, text, text)'::regprocedure) then
     raise exception 'FAIL feed_events_v2 became security definer';
   end if;
   if has_function_privilege('anon',
-       'public.feed_events_v2(timestamptz, timestamptz, double precision, double precision, integer, uuid[], boolean, integer, text)', 'execute')
+       'public.feed_events_v2(timestamptz, timestamptz, double precision, double precision, integer, uuid[], boolean, integer, text, text)', 'execute')
      or has_function_privilege('anon', 'public.set_my_timezone(text)', 'execute')
      or not has_function_privilege('authenticated',
-       'public.feed_events_v2(timestamptz, timestamptz, double precision, double precision, integer, uuid[], boolean, integer, text)', 'execute')
+       'public.feed_events_v2(timestamptz, timestamptz, double precision, double precision, integer, uuid[], boolean, integer, text, text)', 'execute')
      or not has_function_privilege('authenticated', 'public.set_my_timezone(text)', 'execute') then
     raise exception 'FAIL feed_events_v2 or set_my_timezone grants are wrong';
   end if;

@@ -33,6 +33,11 @@ begin
   update public.profile_private
      set birth_date = (current_date - interval '20 years 1 month')::date
    where user_id = v_young;
+  -- Migration 22: the 18+ gate (viewer_is_adult) needs an onboarded profile with a birth date.
+  update public.profiles set onboarding_completed_at = now(), guidelines_accepted_at = now()
+   where id in (v_viewer, v_host, v_young);
+  update public.profile_private set birth_date = date '1990-01-01'
+   where user_id in (v_viewer, v_host) and birth_date is null;
 
   select id into v_hub_a from public.hubs
    where is_active and min_age = 18 and scope = 'general' order by slug limit 1;
@@ -323,7 +328,7 @@ begin
     from (
       select unnest(p.proargnames) as n, unnest(p.proargmodes) as m
         from pg_proc p
-       where p.oid = 'public.feed_events_v2(timestamptz, timestamptz, double precision, double precision, integer, uuid[], boolean, integer)'::regprocedure
+       where p.oid = 'public.feed_events_v2(timestamptz, timestamptz, double precision, double precision, integer, uuid[], boolean, integer, text, text)'::regprocedure
     ) a
    where m = 't'
      and (n ~ '(^|_)(lat|lng|latitude|longitude|point|origin)($|_)' or (n like '%distance%' and n <> 'distance_band'));

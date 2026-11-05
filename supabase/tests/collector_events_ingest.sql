@@ -39,9 +39,9 @@ begin
            where n.nspname = 'public' and p.proname = 'collector_ingest_events') then
     raise exception 'FAIL collector_ingest_events is not security definer';
   end if;
-  if has_function_privilege('authenticated', 'public.collector_ingest_events(jsonb, jsonb, boolean, boolean)', 'execute')
-     or has_function_privilege('anon', 'public.collector_ingest_events(jsonb, jsonb, boolean, boolean)', 'execute')
-     or not has_function_privilege('service_role', 'public.collector_ingest_events(jsonb, jsonb, boolean, boolean)', 'execute') then
+  if has_function_privilege('authenticated', 'public.collector_ingest_events(jsonb, jsonb, boolean, boolean, text, jsonb)', 'execute')
+     or has_function_privilege('anon', 'public.collector_ingest_events(jsonb, jsonb, boolean, boolean, text, jsonb)', 'execute')
+     or not has_function_privilege('service_role', 'public.collector_ingest_events(jsonb, jsonb, boolean, boolean, text, jsonb)', 'execute') then
     raise exception 'FAIL collector_ingest_events grants';
   end if;
   if has_function_privilege('authenticated', 'public.import_upsert_batch(text, jsonb)', 'execute') then

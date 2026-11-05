@@ -274,10 +274,10 @@ begin
     raise exception 'FAIL 2 no coordinates returned another user''s venue';
   end if;
 
-  -- c: within about 55 m shares o's row.
+  -- c: within about 55 m shares o's row (migration 23: only with the same name and address).
   perform set_config('request.jwt.claims', json_build_object('sub', current_setting('test.c'), 'role', 'authenticated')::text, true);
   v := public.upsert_venue(jsonb_build_object('name', 'Security Place', 'place_id', v_pid, 'is_public', true,
-         'city', 'Atlanta', 'lat', 33.7805, 'lng', -84.3800));
+         'address_line1', '1 Real St', 'city', 'Atlanta', 'postal_code', '30309', 'lat', 33.7805, 'lng', -84.3800));
   if v.id is distinct from v_o.id then raise exception 'FAIL 2 nearby request did not share the public venue'; end if;
 end $$;
 reset role;

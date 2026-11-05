@@ -240,8 +240,9 @@ begin
     raise exception 'FAIL import_verify_secret rejects the real secret';
   end if;
   if (select count(*) from cron.job where jobname like 'import-feed-%')
-     <> (select count(*) from public.feed_sources where enabled) then
-    raise exception 'FAIL one cron job per enabled source';
+     <> (select count(*) from public.feed_sources where enabled and not collector) then
+    -- Migration 37: collector sources are posted by the collector, not scheduled here.
+    raise exception 'FAIL one cron job per enabled import-feed source';
   end if;
   if exists (select 1 from public.feed_sources where slug in ('gsu-localist', 'gsu-pin') and url !~ '^https://') then
     raise exception 'FAIL seeded sources';
