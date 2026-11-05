@@ -26,7 +26,7 @@ In scope (Release A):
 | Chapters            | Claim (area or organization), moderator review, chapter page, schedule, captain dashboard, message everyone                                                                                |
 | Notifications       | Inbox, unread badge, settings, web push opt-in (only once VAPID keys exist)                                                                                                                |
 | Trust and safety    | Mute, block, report (people, plans, chapters, hubs, places), Blocked accounts, the NCII takedown form, image checks                                                                        |
-| Admin panel         | Overview, Reports, Image requests, Users lookup, Claims, Places, Calendars, Takedowns, Health                                                                                              |
+| Admin panel         | Overview, Reports, Image requests, Users lookup, Claims, Places, Calendars, Health                                                                                                         |
 | Account deletion    | `/you/delete` and the deletion job                                                                                                                                                         |
 | Installable web app | Install to the Home Screen, service worker, offline screen, updates                                                                                                                        |
 
@@ -124,7 +124,7 @@ Playwright are missing, a script exits 0 with `SKIP:`.
 
 Last results (Nov 5): every flow passes except posting as a chapter, which was not scripted. The
 demo walkthrough below covers chapter plans instead. Where the OpenFreeMap tile host is
-unreachable, the map canvas does not render, so the map is checked through its list panel in CI.
+unreachable, the map canvas does not render, so the map is checked through its list panel in the browser flows.
 Real tiles are checked by hand (section 4).
 
 ### 3.4 Demo data for the walkthrough (staging)
@@ -191,7 +191,7 @@ your own account. Tick each line, and file anything else in Discord with a scree
       account on this phone.
 - [ ] The in-app inbox badge and list update either way.
 
-**Map with real tiles** (cannot be checked in CI)
+**Map with real tiles** (cannot be checked in the test container)
 
 - [ ] The Map tab draws streets and labels within a few seconds on Wi-Fi and on cellular.
 - [ ] It opens at your saved home, or at your current position if you allowed it, not at the whole
@@ -258,7 +258,7 @@ Release A ships on Dec 8 only when all of these hold on the release candidate, t
   member's hubs, so a member in Freiburg or London sees Atlanta plans under This week, next to "Not
   much close by, so this goes a little further out". Fixing it needs a migration and a product call
   on the radius. It is open, and the demo data shows it.
-- **Map tiles were not verified in CI.** The tile host is blocked in the test container, so the map
+- **Map tiles were not verified in the test container.** The tile host is blocked there, so the map
   canvas has only been checked by hand (section 4).
 - **Web push and email are off until keys exist.** VAPID keys and `RESEND_API_KEY` are FOUNDER-TODO
   16a. Until then every email and push is marked skipped, and the inbox works on its own.
