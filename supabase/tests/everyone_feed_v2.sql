@@ -179,7 +179,9 @@ declare
   i          integer := 0;
 begin
   for r in
-    select * from public.feed_events_v2(now() - interval '1 day', now() + interval '7 days')
+    -- p_limit 200: staging's importer can hold more than the default 60 imported rows near
+    -- Atlanta that start before the test's imported row (imported rows sort by start time).
+    select * from public.feed_events_v2(now() - interval '1 day', now() + interval '7 days', p_limit => 200)
   loop
     i := i + 1;
     v_ids := v_ids || r.id;
@@ -238,7 +240,7 @@ begin
 
   -- A device point 40 km north brings the far event in and drops the near one.
   v_ids := array(select f.id from public.feed_events_v2(now() - interval '1 day', now() + interval '7 days',
-                                                        34.1100, -84.3880) f);
+                                                        34.1100, -84.3880, p_limit => 200) f);
   if not current_setting('test.e_far')::uuid = any (v_ids) or current_setting('test.e_near')::uuid = any (v_ids) then
     raise exception 'FAIL device point origin not applied';
   end if;
