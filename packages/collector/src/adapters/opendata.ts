@@ -14,21 +14,76 @@ function sodaTime(d: Date): string {
   return d.toISOString().slice(0, 19);
 }
 
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+/**
+ * A start (and end) written as text, the way some city calendars publish it: "November 7 2026
+ * 9 - 10 a.m.", "Nov 14, 2026 10 - 11:30 a.m.", "Saturday, Nov 14 2026 7:30 p.m.", "Nov 14 2026"
+ * (all day). The first date of the text is read (a list of dates starts with the next one).
+ * Floating local times ("YYYY-MM-DDTHH:mm:00"), read in the dataset's zone; null when unreadable.
+ */
+export function parseTextDateRange(
+  text: string,
+): { start: string; end: string | null; allDay: boolean } | null {
+  const m =
+    /(?:^|[\s,>])([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})(?:,?\s+(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?|noon)?(?:\s*(?:-|–|to)\s*(\d{1,2})(?::(\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?|noon)?)?)?/i.exec(
+      text,
+    );
+  if (!m) return null;
+  const month = MONTHS.indexOf(m[1]!.slice(0, 3).toLowerCase());
+  if (month < 0) return null;
+  const day = Number(m[2]);
+  const year = Number(m[3]);
+  if (day < 1 || day > 31) return null;
+  const date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  if (m[4] === undefined) return { start: date, end: null, allDay: true };
+  type Mer = "am" | "pm" | null;
+  const mer = (v: string | undefined): Mer => (v ? (/^p|noon/i.test(v) ? "pm" : "am") : null);
+  const to24 = (h: number, mm: number, md: Mer) => {
+    if (md === "pm" && h < 12) h += 12;
+    if (md === "am" && h === 12) h = 0;
+    return h * 60 + mm;
+  };
+  const endMer = mer(m[9]);
+  let startMer: Mer = mer(m[6]) ?? endMer;
+  const sh = Number(m[4]);
+  const sm = Number(m[5] ?? "0");
+  let start = to24(sh, sm, startMer);
+  let end: number | null = null;
+  if (m[7] !== undefined) {
+    end = to24(Number(m[7]), Number(m[8] ?? "0"), endMer);
+    // "11 - 1 p.m.": the start is in the morning.
+    if (!m[6] && endMer === "pm" && start > end) {
+      startMer = "am";
+      start = to24(sh, sm, startMer);
+    }
+  }
+  if (start >= 24 * 60 || (end !== null && end >= 24 * 60)) return null;
+  const t = (mins: number) =>
+    `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}:00`;
+  return {
+    start: `${date}T${t(start)}`,
+    end: end !== null && end > start ? `${date}T${t(end)}` : null,
+    allDay: false,
+  };
+}
+
 export function socrataUrl(seed: Seed, region: Region, window: ApiWindow, limit = 1000): string {
   const f = seed.fields;
   if (!f) throw new Error(`seed ${seed.id}: socrata needs fields`);
   const u = new URL(seed.url);
-  const where = [
-    `${f.start} >= '${sodaTime(window.start)}'`,
-    `${f.start} < '${sodaTime(window.end)}'`,
-  ];
+  // A text start column cannot be compared server-side; the window is applied after parsing.
+  const where =
+    f.startFormat === "text_range"
+      ? []
+      : [`${f.start} >= '${sodaTime(window.start)}'`, `${f.start} < '${sodaTime(window.end)}'`];
   if (f.where) where.push(`(${f.where})`);
   if (seed.geoColumn) {
     where.push(
       `within_circle(${seed.geoColumn}, ${region.lat}, ${region.lng}, ${Math.round(region.radiusKm * 1000)})`,
     );
   }
-  u.searchParams.set("$where", where.join(" AND "));
+  if (where.length > 0) u.searchParams.set("$where", where.join(" AND "));
   u.searchParams.set("$order", f.start);
   u.searchParams.set("$limit", String(limit));
   return u.toString();
@@ -65,7 +120,15 @@ function rowToRaw(
   sourceUrl: string,
   point?: { x?: unknown; y?: unknown },
 ): RawEvent | null {
-  const start = timeValue(pick(row, f.start));
+  let start = timeValue(pick(row, f.start));
+  let textEnd: string | null = null;
+  let allDay = false;
+  if (f.startFormat === "text_range") {
+    const r = start ? parseTextDateRange(start) : null;
+    start = r?.start ?? null;
+    textEnd = r?.end ?? null;
+    allDay = r?.allDay ?? false;
+  }
   if (!start) return null;
   const urlValue = f.url ? pick(row, f.url) : undefined;
   const url =
@@ -93,7 +156,8 @@ function rowToRaw(
     description: htmlToText(f.description ? (str(pick(row, f.description)) ?? "") : ""),
     url,
     start,
-    end: f.end ? timeValue(pick(row, f.end)) : null,
+    end: f.startFormat === "text_range" ? textEnd : f.end ? timeValue(pick(row, f.end)) : null,
+    ...(allDay ? { allDay: true } : {}),
     location: f.location ? (str(pick(row, f.location)) ?? "") : "",
     lat,
     lng,

@@ -306,42 +306,6 @@
       "maxPages": 10,
       "verified": false,
       "note": "Off. County parks calendar (concerts, clubs, art shows, special events). diagnose dry run 41856949627: the listing page has no schema.org Event JSON-LD or microdata and links no feed (ICS/RSS). Off until the owner publishes a feed or event markup."
-    },
-    {
-      "id": "atl-open-data-arcgis",
-      "kind": "arcgis",
-      "enabled": false,
-      "url": "https://dpcd-coaplangis.opendata.arcgis.com/",
-      "name": "City of Atlanta open data (ArcGIS Hub)",
-      "attribution": "Listed from City of Atlanta open data (dpcd-coaplangis.opendata.arcgis.com).",
-      "fields": {
-        "title": "NAME",
-        "start": "START_DATE",
-        "end": "END_DATE",
-        "location": "LOCATION",
-        "url": "URL"
-      },
-      "verified": false,
-      "note": "Off until a person finds an event layer: replace url with its FeatureServer/<n> endpoint and fields with its column names."
-    },
-    {
-      "id": "atl-open-data-socrata",
-      "kind": "socrata",
-      "enabled": false,
-      "url": "https://data.example-atlanta-portal.invalid/resource/xxxx-xxxx.json",
-      "name": "Atlanta-area Socrata event dataset",
-      "attribution": "Listed from a public open-data portal (placeholder).",
-      "fields": {
-        "id": "id",
-        "title": "event_name",
-        "start": "start_date",
-        "end": "end_date",
-        "location": "location_name",
-        "url": "event_url"
-      },
-      "geoColumn": "location",
-      "verified": false,
-      "note": "Template only, off: no Atlanta-area Socrata event dataset is known yet. Copy this shape for any city on Socrata."
     }
   ]
 }

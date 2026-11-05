@@ -56,6 +56,11 @@ export interface FieldMap {
    * marks public, so a permit register never lists a private event.
    */
   where?: string;
+  /**
+   * text_range: the start column is text such as "November 7 2026 9 - 10 a.m." (start and end in
+   * one), read by parseTextDateRange; no server-side window filter.
+   */
+  startFormat?: "text_range";
 }
 
 export interface Seed {

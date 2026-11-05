@@ -60,6 +60,8 @@ export function validateDataset(d: unknown, where: string): Dataset {
     (typeof f.where !== "string" || f.where.length > 500 || /;|--/.test(f.where))
   )
     fail("fields.where must be one filter expression of at most 500 characters");
+  if (f?.startFormat !== undefined && f.startFormat !== "text_range")
+    fail("fields.startFormat must be text_range");
   if (typeof o.verified !== "boolean") fail("verified must be true or false");
   if (typeof o.note !== "string" || o.note.length < 10) fail("a note is required");
   return o as unknown as Dataset;
@@ -93,6 +95,24 @@ export function circleOverlapsBbox(r: Pick<Region, "lat" | "lng" | "radiusKm">, 
   const lat = Math.min(Math.max(r.lat, b[1]), b[3]);
   const lng = Math.min(Math.max(r.lng, b[0]), b[2]);
   return haversineKm(r.lat, r.lng, lat, lng) <= r.radiusKm;
+}
+
+/**
+ * A region that covers a dataset's box (its centre, the radius to the farthest corner), for a
+ * diagnostic run of one dataset (`collect --dataset <id> --dry-run --diagnose`).
+ */
+export function datasetRegion(d: Dataset): Region {
+  const lat = (d.bbox[1] + d.bbox[3]) / 2;
+  const lng = (d.bbox[0] + d.bbox[2]) / 2;
+  const radiusKm = Math.min(300, Math.ceil(haversineKm(lat, lng, d.bbox[3], d.bbox[2])));
+  return {
+    id: d.id.slice(0, 40),
+    label: d.name,
+    lat,
+    lng,
+    radiusKm,
+    ...(d.timezone ? { timezone: d.timezone } : {}),
+  };
 }
 
 /** A dataset as a seed: registry-only fields dropped, the licence kept in the note. */

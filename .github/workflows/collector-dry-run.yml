@@ -12,6 +12,10 @@ on:
         description: "City seed file under packages/collector/data/cities (for example atl)"
         type: string
         default: atl
+      dataset:
+        description: "Instead of a city: one open-data dataset id under packages/collector/data/opendata, alone, on or off (a live check)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -31,7 +35,15 @@ jobs:
       - name: Collect (dry run)
         env:
           REGION: ${{ inputs.region }}
+          DATASET: ${{ inputs.dataset }}
+          SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
         run: |
+          if [ -n "$SOCRATA_APP_TOKEN" ]; then echo "::add-mask::$SOCRATA_APP_TOKEN"; fi
+          if [ -n "$DATASET" ]; then
+            case "$DATASET" in *[!a-z0-9-]*) echo "Refusing dataset: $DATASET"; exit 1 ;; esac
+            pnpm --filter collector collect --dataset "$DATASET" --dry-run --diagnose
+            exit 0
+          fi
           case "$REGION" in
             *[!a-z0-9-]*|"") echo "Refusing region: $REGION"; exit 1 ;;
           esac

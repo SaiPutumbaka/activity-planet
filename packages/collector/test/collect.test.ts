@@ -372,7 +372,6 @@ describe("city seed files", () => {
       "kennesaw",
       "marietta",
       "decatur",
-      "open-data",
     ]) {
       expect(
         ids.some((id) => id.includes(want)),
@@ -386,6 +385,8 @@ describe("city seed files", () => {
       expect(typeof s.verified, s.id).toBe("boolean");
       if (s.enabled === false) expect(s.note?.length ?? 0, s.id).toBeGreaterThan(20);
     }
+    // Open data comes from the registry (data/opendata), not from city files (COLLECTOR_COMPLETION 2.7).
+    expect(atl!.seeds.some((s) => s.kind === "socrata" || s.kind === "arcgis")).toBe(false);
     // The documented Localist API is used for Kennesaw State rather than crawling its pages.
     expect(atl!.seeds.find((s) => s.id === "atl-kennesaw-state")?.kind).toBe("localist");
     // Hubs beyond campus: outdoors, arts, volunteering (Atlanta Tech Village is off: no event

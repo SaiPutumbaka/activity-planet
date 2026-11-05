@@ -5,6 +5,7 @@ import { PoliteFetcher } from "../src/net/fetcher.ts";
 import { Denylist } from "../src/policy/denylist.ts";
 import {
   circleOverlapsBbox,
+  datasetRegion,
   type Dataset,
   loadRegistry,
   registrySeeds,
@@ -12,7 +13,13 @@ import {
 } from "../src/opendata-registry.ts";
 import { fakeClock } from "./helpers.ts";
 import { enabledAdapters, redactUrl, seatgeek, ticketmaster } from "../src/adapters/api.ts";
-import { arcgisUrl, parseArcgis, parseSocrata, socrataUrl } from "../src/adapters/opendata.ts";
+import {
+  arcgisUrl,
+  parseArcgis,
+  parseSocrata,
+  parseTextDateRange,
+  socrataUrl,
+} from "../src/adapters/opendata.ts";
 import type { Seed } from "../src/types.ts";
 import { geohash } from "../src/util/geo.ts";
 import { ATL, fixture, NOW, WINDOW_END } from "./helpers.ts";
@@ -277,5 +284,70 @@ describe("open-data registry", () => {
     const item = res.batches[0]?.items.find((i) => i.title === "Tree Planting Day");
     // 09:00 floating in America/New_York (the dataset's zone) is 14:00Z in November.
     expect(item?.starts_at).toBe("2026-11-14T14:00:00.000Z");
+  });
+});
+
+describe("text dates (startFormat text_range)", () => {
+  it.each([
+    ["November 7 2026 9 - 10 a.m.", "2026-11-07T09:00:00", "2026-11-07T10:00:00"],
+    ["Nov 14 2026 10 - 11:30 a.m.", "2026-11-14T10:00:00", "2026-11-14T11:30:00"],
+    ["Nov 14 2026 11 - 1 p.m.", "2026-11-14T11:00:00", "2026-11-14T13:00:00"],
+    ["Saturday, Nov 14 2026 7:30 p.m.", "2026-11-14T19:30:00", null],
+    [
+      "Nov 14 2026 9 a.m. - 4 p.m.<br>Nov 15 2026 9 - 10 a.m.",
+      "2026-11-14T09:00:00",
+      "2026-11-14T16:00:00",
+    ],
+  ])("%s", (text, start, end) => {
+    expect(parseTextDateRange(text)).toEqual({ start, end, allDay: false });
+  });
+  it("reads a date alone as all day and refuses junk", () => {
+    expect(parseTextDateRange("Nov 14 2026")).toEqual({
+      start: "2026-11-14",
+      end: null,
+      allDay: true,
+    });
+    expect(parseTextDateRange("Smarch 40 2026")).toBeNull();
+    expect(parseTextDateRange("soon")).toBeNull();
+  });
+  it("maps rows and leaves the window to the client for a text start", () => {
+    const seed = {
+      id: "t",
+      kind: "socrata" as const,
+      url: "https://data.example.gov/resource/abcd-1234.json",
+      name: "T",
+      attribution: "Listed from test open data.",
+      fields: {
+        title: "title",
+        start: "next_date_times",
+        startFormat: "text_range" as const,
+        location: "address",
+      },
+      geoColumn: "point",
+    };
+    expect(new URL(socrataUrl(seed, ATL, window)).searchParams.get("$where")).toBe(
+      "within_circle(point, 33.749, -84.388, 60000)",
+    );
+    const rows = parseSocrata(
+      JSON.stringify([
+        { title: "Skating", next_date_times: "Nov 14 2026 9 - 10 a.m.", address: "1 Main St" },
+        { title: "Bad", next_date_times: "tbd" },
+      ]),
+      seed,
+    );
+    expect(rows).toEqual([
+      expect.objectContaining({
+        title: "Skating",
+        start: "2026-11-14T09:00:00",
+        end: "2026-11-14T10:00:00",
+      }),
+    ]);
+  });
+  it("the registry's Calgary dataset covers Calgary", () => {
+    const cal = loadRegistry().find((d) => d.id === "calgary-city-events")!;
+    const r = datasetRegion(cal);
+    expect(circleOverlapsBbox({ lat: 51.05, lng: -114.07, radiusKm: 25 }, cal.bbox)).toBe(true);
+    expect(r.radiusKm).toBeGreaterThan(15);
+    expect(r.timezone).toBe("America/Edmonton");
   });
 });
