@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 48 (schema_version 2.44). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 49 (schema_version 2.45). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -2423,6 +2423,32 @@ export type Database = {
         };
         Relationships: [];
       };
+      place_venue_file_checks: {
+        Row: {
+          checked_on: string;
+          files_key: string;
+          venue_id: string;
+        };
+        Insert: {
+          checked_on?: string;
+          files_key: string;
+          venue_id: string;
+        };
+        Update: {
+          checked_on?: string;
+          files_key?: string;
+          venue_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "place_venue_file_checks_venue_id_fkey";
+            columns: ["venue_id"];
+            isOneToOne: true;
+            referencedRelation: "venues";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       places: {
         Row: {
           address_text: string;
@@ -4095,6 +4121,8 @@ export type Database = {
         };
         Returns: Json;
       };
+      place_file_at: { Args: { p_lat: number; p_lng: number }; Returns: Json };
+      place_file_of_tile: { Args: { p_tile: number }; Returns: Json };
       place_files_in_view: {
         Args: { p_env1: unknown; p_env2: unknown };
         Returns: Json;
@@ -4104,8 +4132,15 @@ export type Database = {
         Returns: Json;
       };
       place_files_record: { Args: { p: Json }; Returns: Json };
+      place_from_file: {
+        Args: { p_row: Json; p_sha256: string; p_tile: number };
+        Returns: string;
+      };
       place_id_by_osm_ref: { Args: { p_osm_ref: string }; Returns: string };
       place_is_mine: { Args: { p_id: string }; Returns: boolean };
+      place_match_dispatch: { Args: { p_force?: boolean }; Returns: number };
+      place_match_queue: { Args: { p_limit?: number }; Returns: Json };
+      place_match_record: { Args: { p_results: Json }; Returns: Json };
       place_near_private: {
         Args: { p_point: unknown; p_uid: string };
         Returns: string;
