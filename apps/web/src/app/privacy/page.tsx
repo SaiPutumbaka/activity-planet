@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 /** The version this page shows. Bump it when the text changes. */
-const VERSION = "privacy 2026-11";
+const VERSION = "privacy 2026-11.1";
 
 const SUPPORT_EMAIL = "support@activityplanet.app";
 
@@ -89,6 +89,14 @@ const PROCESSORS: [string, React.ReactNode][] = [
     "Where it is switched on, a bot check on the public request forms (intimate image removal and listing removal).",
   ],
   [
+    "Eventbrite",
+    "Only if you connect your own Eventbrite account to list your events: you sign in on Eventbrite, which tells us an access token for your account. We keep that token encrypted in Supabase Vault and use it to read your live events from Eventbrite's API, so Eventbrite receives it with each request. It is deleted with your account; you can also remove Activity Planet in your Eventbrite account settings.",
+  ],
+  [
+    "Cloudflare DNS",
+    "Only if you prove you own a website with a DNS record: our servers ask Cloudflare's public DNS for that record on the website's domain. No member data is sent.",
+  ],
+  [
     "Stripe",
     "Only when in-app payments are available: Stripe handles card payments and coach payouts, under its own privacy policy. We never see or store card numbers; we keep payment ids, amounts and dates.",
   ],
@@ -108,19 +116,34 @@ const RETENTION: [string, string, string][] = [
     "Messages and plans other people received keep an author, and a ban still holds.",
   ],
   [
+    "Past plans you hosted (title, description, time and rough area; never the exact address)",
+    "As long as the plans are kept",
+    "They are part of the history of the people who went. They show under “Deleted user”. Future plans you hosted are cancelled.",
+  ],
+  [
     "Messages you sent to others",
     "Until the conversation is deleted or expires (plan chats 90 days after the plan)",
     "They are part of the other people's history. They show under “Deleted user”.",
   ],
   [
     "Reports and moderation records",
-    "As long as needed for safety, at least one year for child-safety reports",
+    "As long as needed for safety",
     "Legal duties and safety. Reports you filed lose your name.",
   ],
   [
+    "Copies of reported messages (with a few messages around them)",
+    "90 days after the report is closed; one year for child-safety, intimate-image and underage reports",
+    "So moderators can review the report and any appeal.",
+  ],
+  [
+    "Fingerprints (hashes) of images that were blocked for abuse",
+    "While the block applies",
+    "So the same image can't be uploaded again. Your other image fingerprints are deleted.",
+  ],
+  [
     "Booking and payment records (times, amounts, payment ids; never card data)",
-    "7 years",
-    "Tax and accounting law. They show under “Deleted user”.",
+    "Not deleted automatically",
+    "Tax and accounting records. They show under “Deleted user”.",
   ],
   [
     "Public places you added that moderators reviewed",
@@ -184,6 +207,10 @@ export default function PrivacyPage() {
               "If you coach: your coach profile, listings, credentials (shown as self-reported), photos, availability and the rough point and radius you coach in. If you book: your bookings, times, notes and the reviews you write.",
             ],
             [
+              "Organizer tools",
+              "If you claim an organization's event listings: the website or calendar you claimed, how you proved it, the check results and dates. If you connect an Eventbrite account: an access token for it, kept encrypted, and the events it lists. Moderators can see your claims, never the token.",
+            ],
+            [
               "Devices",
               "If you turn on notifications, the push address your browser gives us for that device. We also keep the time zone your device reports and when you last opened the app.",
             ],
@@ -198,10 +225,12 @@ export default function PrivacyPage() {
       <Section id="location" title="Location">
         <p>
           We ask for your device&rsquo;s location only when you tap &ldquo;Use my location&rdquo;,
-          and never in the background. It is rounded to about 1 km before it leaves your device,
-          used for that request and not stored. If you save a home area, we keep it as a point
-          rounded to about 1 km and a label; it is private to you and never shown on your profile.
-          Other members see distances only as bands (&ldquo;1 to 5 mi&rdquo;), never your location.
+          and never in the background. It is rounded to about 1 km on your device. On Home it is
+          used for that visit only and not stored. When you are choosing your home area (when you
+          sign up or change it), the rounded point becomes your saved home area. We keep a home area
+          as a point rounded to about 1 km and a label; it is private to you and never shown on your
+          profile. Other members see distances only as bands (&ldquo;1 to 5 mi&rdquo;), never your
+          location.
         </p>
         <p>
           Plan addresses are kept with the plan. A host can keep the exact address to the people
@@ -269,8 +298,9 @@ export default function PrivacyPage() {
         </p>
         <p>
           When you delete your account, your profile details, photo, private details, memberships,
-          devices, verified emails and roles are removed at once, and your sign-in is closed. What
-          we keep afterwards:
+          devices, verified emails, organizer claims, your Eventbrite connection and roles are
+          removed at once, calendars you connected stop, and your sign-in is closed. What we keep
+          afterwards:
         </p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[32rem] border-collapse text-left text-sm">
@@ -332,8 +362,8 @@ export default function PrivacyPage() {
         <p>
           Data is encrypted in transit, and access to it is limited by row-level rules in the
           database, so each person reads only what they are allowed to. No system is perfectly
-          secure. If a breach affects your personal data, we will tell you as the law requires,
-          including under Georgia&rsquo;s breach-notification law.
+          secure. If a breach affects your personal data, we will tell you, and the authorities, as
+          the law where you live requires.
         </p>
       </Section>
 

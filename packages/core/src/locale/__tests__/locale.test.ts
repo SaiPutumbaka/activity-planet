@@ -150,6 +150,33 @@ describe("formatAddressLine", () => {
       }),
     ).toBe("Werthmannstraße 4, 79098 Freiburg im Breisgau");
   });
+  it("adds the town when the street only happens to share a word with it", () => {
+    expect(
+      formatAddressLine({
+        address_line1: "100 Atlanta Ave SE",
+        city: "Atlanta",
+        state: "GA",
+        postal_code: "30315",
+        country: "US",
+      }),
+    ).toBe("100 Atlanta Ave SE, Atlanta, GA 30315");
+    expect(
+      formatAddressLine({
+        address_line1: "Hauptstr. 1",
+        city: "Au",
+        postal_code: "79280",
+        country: "DE",
+      }),
+    ).toBe("Hauptstr. 1, 79280 Au");
+    expect(
+      formatAddressLine({
+        address_line1: "12 Main St, Newark",
+        city: "New",
+        state: "NY",
+        country: "US",
+      }),
+    ).toBe("12 Main St, Newark, New, NY");
+  });
   it("is empty with no parts", () => {
     expect(formatAddressLine({})).toBe("");
   });

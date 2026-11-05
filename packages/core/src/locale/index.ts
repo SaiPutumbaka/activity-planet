@@ -307,6 +307,31 @@ export interface AddressParts {
   country?: string | null;
 }
 
+/** Words of a string, lower-cased, letters and digits only. */
+function addressWords(v: string): string[] {
+  return v.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+}
+
+/**
+ * True when a part after the first comma of the street line has the town as whole words
+ * ("Werthmannstraße 4, 79098 Freiburg im Breisgau"). The first part is the street itself, so
+ * "100 Atlanta Ave SE" in Atlanta or "Hauptstr. 1" in Au still get their town added.
+ */
+function streetHoldsTown(street: string, city: string): boolean {
+  const town = addressWords(city);
+  if (town.length === 0) return false;
+  return street
+    .split(",")
+    .slice(1)
+    .some((part) => {
+      const words = addressWords(part);
+      for (let i = 0; i + town.length <= words.length; i++) {
+        if (town.every((w, j) => words[i + j] === w)) return true;
+      }
+      return false;
+    });
+}
+
 /**
  * One line of address. When the street line already holds the town (a source's own formatted
  * address, such as an OpenStreetMap place's), it is used as it is. Otherwise the parts are joined
@@ -321,7 +346,7 @@ export function formatAddressLine(a: AddressParts): string {
   const state = clean(a.state);
   const postal = clean(a.postal_code);
   const street = [line1, line2].filter(Boolean).join(", ");
-  if (street && city && street.toLowerCase().includes(city.toLowerCase())) return street;
+  if (street && city && streetHoldsTown(street, city)) return street;
   const country = clean(a.country).toUpperCase();
   const town = POSTCODE_FIRST.has(country)
     ? [[postal, city].filter(Boolean).join(" "), state].filter(Boolean).join(", ")

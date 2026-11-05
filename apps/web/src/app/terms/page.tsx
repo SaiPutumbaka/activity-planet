@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 /** The version this page shows. Bump it when the text changes. */
-const VERSION = "terms 2026-11";
+const VERSION = "terms 2026-11.1";
 
 const SUPPORT_EMAIL = "support@activityplanet.app";
 
@@ -206,8 +206,7 @@ export default function TermsPage() {
       <Section title="Not affiliated">
         <p>
           Activity Planet is independent. Unless a page says otherwise, it is not affiliated with or
-          endorsed by any school, university, venue, league or event organizer named on it,
-          including Georgia State University.
+          endorsed by any school, university, venue, league or event organizer named on it.
         </p>
       </Section>
 
