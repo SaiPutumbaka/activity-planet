@@ -1,0 +1,15 @@
+{
+  "_about": "Region trials (D-042 slice 12, AUTO_COVERAGE_DESIGN.md 10): one place a member could live, run end to end on STAGING by .github/workflows/region-trial.yml. home: the point a test member saves (collector_note_home_point, so tile demand and the event region come exactly as from a real home save, with no user id). views: map views [west, south, east, north] the report reads as a signed-out visitor, from Postgres and from the static files. hubs: hub chips (slugs) each view is also read with. searches: place name searches run on the files the app read.",
+  "trials": {
+    "leipzig": {
+      "label": "Leipzig, Saxony, Germany",
+      "home": [51.34, 12.37],
+      "views": {
+        "centre": [12.33, 51.32, 12.41, 51.36],
+        "city": [12.22, 51.25, 12.56, 51.43]
+      },
+      "hubs": ["basketball", "board-game-night", "bouldering", "rock-climbing"],
+      "searches": ["Basketball", "Kletter", "Bibliothek", "Spiel", "Park"]
+    }
+  }
+}

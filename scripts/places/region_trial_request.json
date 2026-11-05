@@ -1,0 +1,7 @@
+{
+  "_about": "Push trigger for region-trial.yml on branches other than main (workflow_dispatch only works once the workflow is on main). A push that changes this file runs step (home or report) of trial against STAGING; files_run is a places-files run id whose files the app check reads. Bump nonce to run again.",
+  "step": "report",
+  "trial": "leipzig",
+  "files_run": "",
+  "nonce": 1
+}

@@ -1,0 +1,156 @@
+name: Region trial
+
+# One region end to end on STAGING (D-042 slice 12, docs/design/auto-coverage/
+# AUTO_COVERAGE_DESIGN.md 10): a place a member could live, from scripts/places/region_trial.json.
+#
+# Steps (input step):
+#   * home: saves the trial's home point the way a member's home save does
+#     (collector_note_home_point: the home tile as wanted with demand 1, edge neighbours within
+#     10 km, the 25 km event region), with no user id. The rest of the chain is the ordinary jobs:
+#     places-extract.yml (the tiles), places-files.yml (their files), collector-ingest.yml (the
+#     region's events and shows), discovery.yml (event discovery, gated in the EU).
+#   * report: one rolled-back transaction (scripts/places/region_trial.py report-sql) reads the
+#     region, its tiles (rows, bytes in Postgres, file sizes, the last OSM run), discovery and shows
+#     state, events near the home, and map_in_view as a signed-out visitor for each view and hub
+#     chip, from Postgres and with the static files (the built files count as published only
+#     inside the transaction). With files_run (a places-files run id) the job downloads that run's
+#     files and the app's own map code (apps/app/src/lib/__tests__/region-trial.test.ts) reads
+#     them as it reads them from GitHub Pages; the places must be the ones Postgres gives.
+#
+# STAGING only: refuses on main. Secrets: SUPABASE_ACCESS_TOKEN and the staging database password
+# to link, as migrate.yml does. Logs hold counts, sizes, tile ids and the region id; no point, no
+# place names, no member data (the map answers are written to files and never printed).
+
+on:
+  workflow_dispatch:
+    inputs:
+      step:
+        description: "home (save the trial's home point) or report"
+        type: string
+        default: report
+      trial:
+        description: "Trial from scripts/places/region_trial.json"
+        type: string
+        default: leipzig
+      files_run:
+        description: "report: a places-files run id whose files the app check reads (empty: no app check)"
+        type: string
+        default: ""
+  # A branch can run it before this file reaches main (workflow_dispatch only works for workflows
+  # on the default branch): a push that changes scripts/places/region_trial_request.json runs that
+  # file's step, trial and files_run against STAGING.
+  push:
+    branches-ignore: [main, gh-pages]
+    paths:
+      - "scripts/places/region_trial_request.json"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: region-trial
+  cancel-in-progress: false
+
+env:
+  STAGING_PROJECT_REF: gzrscndzzggxmcwnvvcq
+
+jobs:
+  trial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check inputs
+        id: in
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          IN_STEP: ${{ inputs.step }}
+          IN_TRIAL: ${{ steps.in.outputs.trial }}
+          IN_FILES_RUN: ${{ inputs.files_run }}
+        run: |
+          if [ "$EVENT" = "push" ]; then
+            req=scripts/places/region_trial_request.json
+            STEP=$(python3 -I -c 'import json,sys;print(json.load(open(sys.argv[1])).get("step", "report"))' "$req")
+            TRIAL=$(python3 -I -c 'import json,sys;print(json.load(open(sys.argv[1])).get("trial", "leipzig"))' "$req")
+            FILES_RUN=$(python3 -I -c 'import json,sys;print(json.load(open(sys.argv[1])).get("files_run", ""))' "$req")
+          else
+            STEP="$IN_STEP"; TRIAL="$IN_TRIAL"; FILES_RUN="$IN_FILES_RUN"
+          fi
+          if [ "$REF" = "refs/heads/main" ]; then echo "Region trials run on staging from a branch, never from main."; exit 1; fi
+          case "$STEP" in home|report) ;; *) echo "Refusing step: $STEP"; exit 1 ;; esac
+          case "$TRIAL" in ''|*[!a-z0-9_]*) echo "Refusing trial: $TRIAL"; exit 1 ;; esac
+          case "$FILES_RUN" in *[!0-9]*) echo "Refusing files_run: $FILES_RUN"; exit 1 ;; esac
+          python3 -I scripts/places/region_trial.py tiles --trial "$TRIAL" > /dev/null
+          echo "step=$STEP trial=$TRIAL tiles=$(python3 -I scripts/places/region_trial.py tiles --trial "$TRIAL") files_run=${FILES_RUN:-none}"
+          { echo "step=$STEP"; echo "trial=$TRIAL"; echo "files_run=$FILES_RUN"; } >> "$GITHUB_OUTPUT"
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.0
+
+      - name: Link staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+        run: supabase link --project-ref "$STAGING_PROJECT_REF" > /dev/null
+
+      - name: Save the home point
+        if: steps.in.outputs.step == 'home'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          TRIAL: ${{ steps.in.outputs.trial }}
+        run: |
+          python3 -I scripts/places/region_trial.py home-sql --trial "$TRIAL" > home.sql
+          supabase db query --linked --file home.sql > home.out
+          python3 -I scripts/places/region_trial.py decode --input home.out --out home
+          python3 -I -c 'import json;print("home:", json.dumps(json.load(open("home/report.json"))["home"], sort_keys=True))'
+
+      - name: Report
+        if: steps.in.outputs.step == 'report'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          TRIAL: ${{ steps.in.outputs.trial }}
+        run: |
+          mkdir -p trial
+          python3 -I scripts/places/region_trial.py report-sql --trial "$TRIAL" > trial/report.sql
+          # The answers hold public place names: written to a file, never printed.
+          supabase db query --linked --file trial/report.sql > trial/report.out 2> trial/report.err || {
+            echo "report query failed:"; head -c 2000 trial/report.err; exit 1; }
+          echo "report output: $(stat -c %s trial/report.out) bytes"
+          python3 -I scripts/places/region_trial.py decode --input trial/report.out --out trial
+          python3 -I -c 'import json,sys; t=json.load(open("scripts/places/region_trial.json"))["trials"][sys.argv[1]]; json.dump(t, open("trial/trial.json","w"))' "$TRIAL"
+
+      - uses: actions/download-artifact@v4
+        if: steps.in.outputs.step == 'report' && steps.in.outputs.files_run != ''
+        with:
+          name: places-files-staging
+          path: trial/site
+          run-id: ${{ steps.in.outputs.files_run }}
+          github-token: ${{ github.token }}
+
+      - uses: pnpm/action-setup@v4
+        if: steps.in.outputs.step == 'report' && steps.in.outputs.files_run != ''
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        if: steps.in.outputs.step == 'report' && steps.in.outputs.files_run != ''
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: The app reads the files
+        if: steps.in.outputs.step == 'report' && steps.in.outputs.files_run != ''
+        run: |
+          pnpm install --frozen-lockfile > /dev/null
+          echo "files: $(find trial/site -name '*.json.gz' | wc -l) gzip files, $(du -sb trial/site | cut -f1) bytes"
+          REGION_TRIAL_DIR="$PWD/trial" pnpm --filter @ap/app exec vitest run src/lib/__tests__/region-trial.test.ts
+
+      - name: Summary
+        if: always() && steps.in.outputs.step == 'report'
+        run: |
+          [ -f trial/report.json ] || exit 0
+          python3 -I scripts/places/region_trial.py summary --dir trial | tee trial/summary.txt
+          { echo '### Region trial'; echo '```'; cat trial/summary.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
