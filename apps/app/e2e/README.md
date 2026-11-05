@@ -14,7 +14,13 @@ node apps/app/e2e/03-plan.mjs         # post a plan, Add to calendar, Share, RSV
 node apps/app/e2e/04-safety-you.mjs   # mute, report, block, Blocked accounts, inbox, settings, delete page
 node apps/app/e2e/05-sweep.mjs        # every route at 390x844 and 1280x800
 node apps/app/e2e/06-offline.mjs      # "You're offline" with the service worker, recovery when back
+node apps/app/e2e/07-messaging.mjs    # photo gate, a request A to B, realtime both ways, typing,
+                                      # delete, report, the Chats badge, block stops delivery
 ```
+
+`07-messaging.mjs` sends a message request, which needs account A to be a day old: on staging,
+run `supabase/staging/qa_account_age.sql` as the `staging_file` of a staging-only `migrate.yml`
+run first. Once B has accepted, later runs find an open DM and say so instead of a request.
 
 Use test accounts on staging only, never production. Screenshots go to `E2E_QA_DIR`
 (default `./e2e-output`, git-ignored). Output names flows and steps only, never user rows.

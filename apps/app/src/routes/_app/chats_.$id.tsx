@@ -147,7 +147,6 @@ function Conversation({ info }: { info: ConversationInfo }) {
   const topRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const isRoom = info.kind === "event" || info.kind === "hub" || info.kind === "chapter";
   const members = useMemo(() => {
     const ids = new Set<string>();
     const names = new Map<string, string>();
@@ -242,6 +241,10 @@ function Conversation({ info }: { info: ConversationInfo }) {
         setSendError(chatErrorMessage(err));
         const { code } = chatError(err);
         if (code && code !== "rate_limited" && code !== "slow_mode") refreshInfo();
+        // Closed (a block or a deleted account): what this reader may see changed too.
+        if (code === "conversation_closed" || code === "forbidden") {
+          void queryClient.invalidateQueries({ queryKey: chatKeys.messages(id) });
+        }
         return;
       }
     }
@@ -381,7 +384,7 @@ function Conversation({ info }: { info: ConversationInfo }) {
               rows={1}
               value={draft}
               maxLength={MESSAGE_MAX + 200}
-              placeholder={isRoom ? `Message ${conversationTitle(info)}` : "Message"}
+              placeholder="Message"
               onChange={(e) => {
                 setDraft(e.target.value);
                 if (sendError) setSendError(null);
