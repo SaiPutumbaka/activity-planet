@@ -97,3 +97,28 @@ describe("ticketSeller (D-042 slice 10)", () => {
     expect(ticketSeller("toString")).toBeNull();
   });
 });
+
+describe("removalHref, locationCredit and sourceLine (collector Slice 2)", () => {
+  it("links to the site's removal form with the event id", async () => {
+    const { removalHref } = await import("../index");
+    expect(removalHref({ id: "e1", title: "T", siteUrl: "https://site.example/" })).toBe(
+      "https://site.example/bot/remove?event=e1",
+    );
+    expect(removalHref({ id: "e1", title: "T", siteUrl: "" }).startsWith("mailto:")).toBe(true);
+  });
+  it("credits OpenStreetMap or Geoapify by provider", async () => {
+    const { locationCredit } = await import("../index");
+    expect(locationCredit("nominatim")?.text).toBe("Location © OpenStreetMap contributors");
+    expect(locationCredit("photon")?.text).toBe("Location © OpenStreetMap contributors");
+    expect(locationCredit("geoapify")?.text).toBe("Powered by Geoapify");
+    expect(locationCredit(null)).toBeNull();
+  });
+  it("says Listed by the organizer once claimed", async () => {
+    const { sourceLine } = await import("../index");
+    expect(sourceLine({ organizer_listed: true, attribution: "Listed from X." })).toBe(
+      "Listed by the organizer.",
+    );
+    expect(sourceLine({ attribution: "Listed from X." })).toBe("Listed from X.");
+    expect(sourceLine({ source_name: "Y" })).toBe("Listed from Y.");
+  });
+});

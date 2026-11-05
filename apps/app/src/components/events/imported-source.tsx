@@ -1,19 +1,24 @@
+import { Link } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
 import {
   importChips,
   listedByLine,
+  locationCredit,
   notAffiliatedLine,
-  removalMailto,
+  removalHref,
+  sourceLine,
   ticketSeller,
 } from "@ap/core/imports";
 
 import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/cn";
 import { appEventUrl, type ImportLabel } from "@/lib/imports";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * What an imported listing carries instead of an RSVP (D-004, D-014, D-022, D-037): where it came
- * from, a "Register at source" link out, a "Request removal" email for organizers, the source's
+ * from, a "Register at source" link out, a "Request removal" link to the site's removal form
+ * (collector Slice 2; the support email when no site URL is set), "Are you the organizer?", the source's
  * chip and "Open to the public" where the source says so, and the not-affiliated line only on
  * items from a source that belongs to an organization (the Georgia State sources). Shows from a
  * ticketing API (D-042 slice 10) link out as "Tickets on <seller>" to the seller's own event page
@@ -82,20 +87,51 @@ export function RequestRemovalLink({
   event: { id: string; title: string; external_url: string | null };
   className?: string;
 }) {
+  const href = removalHref({
+    id: event.id,
+    title: event.title,
+    externalUrl: event.external_url,
+    appUrl: appEventUrl(event.id),
+    siteUrl: SITE_URL,
+  });
+  const web = href.startsWith("http");
   return (
     <a
-      href={removalMailto({
-        id: event.id,
-        title: event.title,
-        externalUrl: event.external_url,
-        appUrl: appEventUrl(event.id),
-      })}
+      href={href}
+      target={web ? "_blank" : undefined}
+      rel={web ? "noopener noreferrer" : undefined}
       className={cn(
         "inline-flex min-h-11 items-center text-[13px] font-semibold text-text-2 underline underline-offset-2 hover:text-text",
         className,
       )}
     >
       Request removal
+    </a>
+  );
+}
+
+/** The geocoder's credit for a geocoded item (OpenStreetMap's ODbL notice, or Geoapify's). */
+export function LocationCredit({
+  provider,
+  className,
+}: {
+  provider: string | null | undefined;
+  className?: string;
+}) {
+  const credit = locationCredit(provider);
+  if (!credit) return null;
+  return (
+    <a
+      href={credit.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "inline-flex min-h-11 items-center self-start text-[12px] font-semibold text-text-2 underline underline-offset-2 hover:text-text",
+        className,
+      )}
+    >
+      {credit.text}
+      <span className="sr-only"> (opens in a new tab)</span>
     </a>
   );
 }
@@ -174,16 +210,17 @@ export function ImportedSourceSection({
         {listedByLine(source, label?.host_org)}
       </h3>
       <p className="text-[14px] text-text-2">
-        {label?.attribution || `Listed from ${source}.`}{" "}
+        {sourceLine({ ...label, source_name: source })}{" "}
         {seller
           ? `Activity Planet doesn't sell tickets: details can change, so check them and buy on ${seller.name}.`
           : "Activity Planet isn't the organizer: details can change, so check and sign up on the source's page."}
       </p>
-      {label?.approximate_location ? (
+      {label?.approximate_location && !label.geocode_provider ? (
         <p className="text-[13px] text-text-2">
           The distance is approximate: the source doesn't give an exact spot.
         </p>
       ) : null}
+      <LocationCredit provider={label?.geocode_provider} />
       {event.external_url ? (
         <RegisterAtSource
           url={event.external_url}
@@ -198,6 +235,17 @@ export function ImportedSourceSection({
       <p className="text-[13px] text-text-2">
         Organize this and want it taken down? <RequestRemovalLink event={event} />
       </p>
+      {label?.organizer_listed ? null : (
+        <p className="text-[13px] text-text-2">
+          <Link
+            to="/organizer/claim"
+            search={{ event: event.id }}
+            className="inline-flex min-h-11 items-center font-semibold text-text-2 underline underline-offset-2 hover:text-text"
+          >
+            Are you the organizer?
+          </Link>
+        </p>
+      )}
       {line ? <p className="text-[12px] text-text-3">{line}</p> : null}
     </section>
   );

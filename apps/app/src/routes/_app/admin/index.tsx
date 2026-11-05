@@ -20,6 +20,7 @@ import {
   modQueueQuery,
   queueItemDetail,
   queueItemLink,
+  queueItemTab,
   scorecardQuery,
   totalBreaches,
   totalOpen,
@@ -247,9 +248,11 @@ function QueueSection() {
 
 function QueueRow({ item }: { item: QueueItem }) {
   const detail = queueItemDetail(item);
+  const tab = queueItemTab(item);
   return (
     <Link
       to={queueItemLink(item)}
+      search={tab ? ({ tab } as never) : undefined}
       className="flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2"
     >
       <span className="min-w-0 flex-1">

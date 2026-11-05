@@ -20,6 +20,7 @@ import { Route as AppCoachRouteImport } from './routes/_app/coach'
 import { Route as AppCoachesRouteImport } from './routes/_app/coaches'
 import { Route as AppHubsRouteImport } from './routes/_app/hubs'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
+import { Route as AppOrganizerRouteImport } from './routes/_app/organizer'
 import { Route as AppPostRouteImport } from './routes/_app/post'
 import { Route as AppSuggestCalendarRouteImport } from './routes/_app/suggest-calendar'
 import { Route as AppYouRouteImport } from './routes/_app/you'
@@ -48,6 +49,8 @@ import { Route as AppCoachProfileRouteImport } from './routes/_app/coach_.profil
 import { Route as AppCoachesHandleRouteImport } from './routes/_app/coaches_.$handle'
 import { Route as AppEventsIdRouteImport } from './routes/_app/events_.$id'
 import { Route as AppHubsSlugRouteImport } from './routes/_app/hubs_.$slug'
+import { Route as AppOrganizerClaimRouteImport } from './routes/_app/organizer_.claim'
+import { Route as AppOrganizerEventbriteRouteImport } from './routes/_app/organizer_.eventbrite'
 import { Route as AppYouBlockedRouteImport } from './routes/_app/you_.blocked'
 import { Route as AppYouDeleteRouteImport } from './routes/_app/you_.delete'
 import { Route as AppYouMetRouteImport } from './routes/_app/you_.met'
@@ -59,6 +62,7 @@ import { Route as AppChaptersSlugScheduleRouteImport } from './routes/_app/chapt
 import { Route as AppChatsIdInfoRouteImport } from './routes/_app/chats_.$id_.info'
 import { Route as AppCoachListingsIdRouteImport } from './routes/_app/coach_.listings.$id'
 import { Route as AppEventsIdEditRouteImport } from './routes/_app/events_.$id_.edit'
+import { Route as AppOrganizerSourcesIdRouteImport } from './routes/_app/organizer_.sources.$id'
 import { Route as AppCoachesHandleBookListingRouteImport } from './routes/_app/coaches_.$handle_.book.$listing'
 
 const AppRoute = AppRouteImport.update({
@@ -113,6 +117,11 @@ const AppHubsRoute = AppHubsRouteImport.update({
 const AppInboxRoute = AppInboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOrganizerRoute = AppOrganizerRouteImport.update({
+  id: '/organizer',
+  path: '/organizer',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPostRoute = AppPostRouteImport.update({
@@ -255,6 +264,16 @@ const AppHubsSlugRoute = AppHubsSlugRouteImport.update({
   path: '/hubs/$slug',
   getParentRoute: () => AppRoute,
 } as any)
+const AppOrganizerClaimRoute = AppOrganizerClaimRouteImport.update({
+  id: '/organizer_/claim',
+  path: '/organizer/claim',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOrganizerEventbriteRoute = AppOrganizerEventbriteRouteImport.update({
+  id: '/organizer_/eventbrite',
+  path: '/organizer/eventbrite',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppYouBlockedRoute = AppYouBlockedRouteImport.update({
   id: '/you_/blocked',
   path: '/you/blocked',
@@ -311,6 +330,11 @@ const AppEventsIdEditRoute = AppEventsIdEditRouteImport.update({
   path: '/events/$id/edit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppOrganizerSourcesIdRoute = AppOrganizerSourcesIdRouteImport.update({
+  id: '/organizer_/sources/$id',
+  path: '/organizer/sources/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCoachesHandleBookListingRoute =
   AppCoachesHandleBookListingRouteImport.update({
     id: '/coaches_/$handle_/book/$listing',
@@ -329,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/coaches': typeof AppCoachesRoute
   '/hubs': typeof AppHubsRoute
   '/inbox': typeof AppInboxRoute
+  '/organizer': typeof AppOrganizerRoute
   '/post': typeof AppPostRoute
   '/suggest-calendar': typeof AppSuggestCalendarRoute
   '/you': typeof AppYouRoute
@@ -356,6 +381,8 @@ export interface FileRoutesByFullPath {
   '/coaches/$handle': typeof AppCoachesHandleRoute
   '/events/$id': typeof AppEventsIdRoute
   '/hubs/$slug': typeof AppHubsSlugRoute
+  '/organizer/claim': typeof AppOrganizerClaimRoute
+  '/organizer/eventbrite': typeof AppOrganizerEventbriteRoute
   '/you/blocked': typeof AppYouBlockedRoute
   '/you/delete': typeof AppYouDeleteRoute
   '/you/met': typeof AppYouMetRoute
@@ -368,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/chats/$id/info': typeof AppChatsIdInfoRoute
   '/coach/listings/$id': typeof AppCoachListingsIdRoute
   '/events/$id/edit': typeof AppEventsIdEditRoute
+  '/organizer/sources/$id': typeof AppOrganizerSourcesIdRoute
   '/coaches/$handle/book/$listing': typeof AppCoachesHandleBookListingRoute
 }
 export interface FileRoutesByTo {
@@ -380,6 +408,7 @@ export interface FileRoutesByTo {
   '/coaches': typeof AppCoachesRoute
   '/hubs': typeof AppHubsRoute
   '/inbox': typeof AppInboxRoute
+  '/organizer': typeof AppOrganizerRoute
   '/post': typeof AppPostRoute
   '/suggest-calendar': typeof AppSuggestCalendarRoute
   '/you': typeof AppYouRoute
@@ -408,6 +437,8 @@ export interface FileRoutesByTo {
   '/coaches/$handle': typeof AppCoachesHandleRoute
   '/events/$id': typeof AppEventsIdRoute
   '/hubs/$slug': typeof AppHubsSlugRoute
+  '/organizer/claim': typeof AppOrganizerClaimRoute
+  '/organizer/eventbrite': typeof AppOrganizerEventbriteRoute
   '/you/blocked': typeof AppYouBlockedRoute
   '/you/delete': typeof AppYouDeleteRoute
   '/you/met': typeof AppYouMetRoute
@@ -420,6 +451,7 @@ export interface FileRoutesByTo {
   '/chats/$id/info': typeof AppChatsIdInfoRoute
   '/coach/listings/$id': typeof AppCoachListingsIdRoute
   '/events/$id/edit': typeof AppEventsIdEditRoute
+  '/organizer/sources/$id': typeof AppOrganizerSourcesIdRoute
   '/coaches/$handle/book/$listing': typeof AppCoachesHandleBookListingRoute
 }
 export interface FileRoutesById {
@@ -434,6 +466,7 @@ export interface FileRoutesById {
   '/_app/coaches': typeof AppCoachesRoute
   '/_app/hubs': typeof AppHubsRoute
   '/_app/inbox': typeof AppInboxRoute
+  '/_app/organizer': typeof AppOrganizerRoute
   '/_app/post': typeof AppPostRoute
   '/_app/suggest-calendar': typeof AppSuggestCalendarRoute
   '/_app/you': typeof AppYouRoute
@@ -462,6 +495,8 @@ export interface FileRoutesById {
   '/_app/coaches_/$handle': typeof AppCoachesHandleRoute
   '/_app/events_/$id': typeof AppEventsIdRoute
   '/_app/hubs_/$slug': typeof AppHubsSlugRoute
+  '/_app/organizer_/claim': typeof AppOrganizerClaimRoute
+  '/_app/organizer_/eventbrite': typeof AppOrganizerEventbriteRoute
   '/_app/you_/blocked': typeof AppYouBlockedRoute
   '/_app/you_/delete': typeof AppYouDeleteRoute
   '/_app/you_/met': typeof AppYouMetRoute
@@ -474,6 +509,7 @@ export interface FileRoutesById {
   '/_app/chats_/$id_/info': typeof AppChatsIdInfoRoute
   '/_app/coach_/listings/$id': typeof AppCoachListingsIdRoute
   '/_app/events_/$id_/edit': typeof AppEventsIdEditRoute
+  '/_app/organizer_/sources/$id': typeof AppOrganizerSourcesIdRoute
   '/_app/coaches_/$handle_/book/$listing': typeof AppCoachesHandleBookListingRoute
 }
 export interface FileRouteTypes {
@@ -489,6 +525,7 @@ export interface FileRouteTypes {
     | '/coaches'
     | '/hubs'
     | '/inbox'
+    | '/organizer'
     | '/post'
     | '/suggest-calendar'
     | '/you'
@@ -516,6 +553,8 @@ export interface FileRouteTypes {
     | '/coaches/$handle'
     | '/events/$id'
     | '/hubs/$slug'
+    | '/organizer/claim'
+    | '/organizer/eventbrite'
     | '/you/blocked'
     | '/you/delete'
     | '/you/met'
@@ -528,6 +567,7 @@ export interface FileRouteTypes {
     | '/chats/$id/info'
     | '/coach/listings/$id'
     | '/events/$id/edit'
+    | '/organizer/sources/$id'
     | '/coaches/$handle/book/$listing'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -540,6 +580,7 @@ export interface FileRouteTypes {
     | '/coaches'
     | '/hubs'
     | '/inbox'
+    | '/organizer'
     | '/post'
     | '/suggest-calendar'
     | '/you'
@@ -568,6 +609,8 @@ export interface FileRouteTypes {
     | '/coaches/$handle'
     | '/events/$id'
     | '/hubs/$slug'
+    | '/organizer/claim'
+    | '/organizer/eventbrite'
     | '/you/blocked'
     | '/you/delete'
     | '/you/met'
@@ -580,6 +623,7 @@ export interface FileRouteTypes {
     | '/chats/$id/info'
     | '/coach/listings/$id'
     | '/events/$id/edit'
+    | '/organizer/sources/$id'
     | '/coaches/$handle/book/$listing'
   id:
     | '__root__'
@@ -593,6 +637,7 @@ export interface FileRouteTypes {
     | '/_app/coaches'
     | '/_app/hubs'
     | '/_app/inbox'
+    | '/_app/organizer'
     | '/_app/post'
     | '/_app/suggest-calendar'
     | '/_app/you'
@@ -621,6 +666,8 @@ export interface FileRouteTypes {
     | '/_app/coaches_/$handle'
     | '/_app/events_/$id'
     | '/_app/hubs_/$slug'
+    | '/_app/organizer_/claim'
+    | '/_app/organizer_/eventbrite'
     | '/_app/you_/blocked'
     | '/_app/you_/delete'
     | '/_app/you_/met'
@@ -633,6 +680,7 @@ export interface FileRouteTypes {
     | '/_app/chats_/$id_/info'
     | '/_app/coach_/listings/$id'
     | '/_app/events_/$id_/edit'
+    | '/_app/organizer_/sources/$id'
     | '/_app/coaches_/$handle_/book/$listing'
   fileRoutesById: FileRoutesById
 }
@@ -720,6 +768,13 @@ declare module '@tanstack/react-router' {
       path: '/inbox'
       fullPath: '/inbox'
       preLoaderRoute: typeof AppInboxRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/organizer': {
+      id: '/_app/organizer'
+      path: '/organizer'
+      fullPath: '/organizer'
+      preLoaderRoute: typeof AppOrganizerRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/post': {
@@ -918,6 +973,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppHubsSlugRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/organizer_/claim': {
+      id: '/_app/organizer_/claim'
+      path: '/organizer/claim'
+      fullPath: '/organizer/claim'
+      preLoaderRoute: typeof AppOrganizerClaimRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/organizer_/eventbrite': {
+      id: '/_app/organizer_/eventbrite'
+      path: '/organizer/eventbrite'
+      fullPath: '/organizer/eventbrite'
+      preLoaderRoute: typeof AppOrganizerEventbriteRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/you_/blocked': {
       id: '/_app/you_/blocked'
       path: '/you/blocked'
@@ -995,6 +1064,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEventsIdEditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/organizer_/sources/$id': {
+      id: '/_app/organizer_/sources/$id'
+      path: '/organizer/sources/$id'
+      fullPath: '/organizer/sources/$id'
+      preLoaderRoute: typeof AppOrganizerSourcesIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/coaches_/$handle_/book/$listing': {
       id: '/_app/coaches_/$handle_/book/$listing'
       path: '/coaches/$handle/book/$listing'
@@ -1012,6 +1088,7 @@ interface AppRouteChildren {
   AppCoachesRoute: typeof AppCoachesRoute
   AppHubsRoute: typeof AppHubsRoute
   AppInboxRoute: typeof AppInboxRoute
+  AppOrganizerRoute: typeof AppOrganizerRoute
   AppPostRoute: typeof AppPostRoute
   AppSuggestCalendarRoute: typeof AppSuggestCalendarRoute
   AppYouRoute: typeof AppYouRoute
@@ -1033,6 +1110,8 @@ interface AppRouteChildren {
   AppCoachesHandleRoute: typeof AppCoachesHandleRoute
   AppEventsIdRoute: typeof AppEventsIdRoute
   AppHubsSlugRoute: typeof AppHubsSlugRoute
+  AppOrganizerClaimRoute: typeof AppOrganizerClaimRoute
+  AppOrganizerEventbriteRoute: typeof AppOrganizerEventbriteRoute
   AppYouBlockedRoute: typeof AppYouBlockedRoute
   AppYouDeleteRoute: typeof AppYouDeleteRoute
   AppYouMetRoute: typeof AppYouMetRoute
@@ -1045,6 +1124,7 @@ interface AppRouteChildren {
   AppChatsIdInfoRoute: typeof AppChatsIdInfoRoute
   AppCoachListingsIdRoute: typeof AppCoachListingsIdRoute
   AppEventsIdEditRoute: typeof AppEventsIdEditRoute
+  AppOrganizerSourcesIdRoute: typeof AppOrganizerSourcesIdRoute
   AppCoachesHandleBookListingRoute: typeof AppCoachesHandleBookListingRoute
 }
 
@@ -1055,6 +1135,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCoachesRoute: AppCoachesRoute,
   AppHubsRoute: AppHubsRoute,
   AppInboxRoute: AppInboxRoute,
+  AppOrganizerRoute: AppOrganizerRoute,
   AppPostRoute: AppPostRoute,
   AppSuggestCalendarRoute: AppSuggestCalendarRoute,
   AppYouRoute: AppYouRoute,
@@ -1076,6 +1157,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppCoachesHandleRoute: AppCoachesHandleRoute,
   AppEventsIdRoute: AppEventsIdRoute,
   AppHubsSlugRoute: AppHubsSlugRoute,
+  AppOrganizerClaimRoute: AppOrganizerClaimRoute,
+  AppOrganizerEventbriteRoute: AppOrganizerEventbriteRoute,
   AppYouBlockedRoute: AppYouBlockedRoute,
   AppYouDeleteRoute: AppYouDeleteRoute,
   AppYouMetRoute: AppYouMetRoute,
@@ -1088,6 +1171,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppChatsIdInfoRoute: AppChatsIdInfoRoute,
   AppCoachListingsIdRoute: AppCoachListingsIdRoute,
   AppEventsIdEditRoute: AppEventsIdEditRoute,
+  AppOrganizerSourcesIdRoute: AppOrganizerSourcesIdRoute,
   AppCoachesHandleBookListingRoute: AppCoachesHandleBookListingRoute,
 }
 

@@ -23,6 +23,10 @@ export interface ImportLabel {
   open_to_public: boolean | null;
   approximate_location: boolean;
   affiliated_org_name: string | null;
+  /** Migration 65: the source has a verified owner ("Listed by the organizer"). */
+  organizer_listed?: boolean | null;
+  /** Migration 65: who placed a geocoded item (place, nominatim, photon, geoapify), else null. */
+  geocode_provider?: string | null;
 }
 
 export const importLabelsQuery = (eventIds: readonly string[]) => {

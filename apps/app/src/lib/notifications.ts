@@ -467,7 +467,7 @@ export type NotificationLink =
   | { to: "/bookings" }
   | { to: "/coaches/$handle"; params: { handle: string } }
   | { to: "/coach/payouts" }
-  | { to: "/admin/health" };
+  | { to: "/admin/health"; search: { tab: "events" } };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HANDLE_RE = /^[A-Za-z0-9_]{3,24}$/;
@@ -491,7 +491,7 @@ export function notificationLink(item: LinkInput): NotificationLink | null {
       : { to: "/bookings" };
   }
   if (item.kind === "coach_payout_action") return { to: "/coach/payouts" };
-  if (item.kind === "collector_alert") return { to: "/admin/health" };
+  if (item.kind === "collector_alert") return { to: "/admin/health", search: { tab: "events" } };
   if (item.kind === "chapter_claim_update") {
     const chapterSlug = item.chapter?.slug ?? item.payload.chapter_slug;
     if (item.payload.status === "approved" && chapterSlug) {

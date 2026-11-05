@@ -155,6 +155,13 @@ export function queueItemLink(
   }
 }
 
+/** The tab of that page an item opens on (listing removals and organizer claims). */
+export function queueItemTab(item: Pick<QueueItem, "source">): "listings" | "organizers" | null {
+  if (item.source === "listing_removal") return "listings";
+  if (item.source === "organizer_claim") return "organizers";
+  return null;
+}
+
 function hoursAndMinutes(totalMinutes: number): string {
   const m = Math.max(0, Math.round(totalMinutes));
   if (m < 60) return `${m} min`;
@@ -452,6 +459,9 @@ const MESSAGES: Record<string, string> = {
   note_required: "Add a note for the log first.",
   not_found: "We couldn't find that request.",
   invalid_action: "That action isn't available.",
+  no_listing: "The listing is gone already, so there's nothing to remove.",
+  no_source: "The source is gone already, so there's nothing to remove.",
+  claim_closed: "This claim is already closed.",
 };
 
 export function adminErrorCode(err: unknown): string {

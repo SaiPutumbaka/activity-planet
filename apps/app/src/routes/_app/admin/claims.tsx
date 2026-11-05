@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, createFileRoute, getRouteApi } from "@tanstack/react-router";
+import { Link, createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CircleAlert, Inbox, ShieldX } from "lucide-react";
 import { toast } from "sonner";
@@ -10,7 +10,10 @@ import { TopBar } from "@/components/shell/top-bar";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SegmentedControl } from "@/components/ui/segmented";
 import { FieldTextArea } from "@/components/ui/textarea";
+import { z } from "zod";
+import { OrganizerClaims } from "@/components/admin/organizer-claims";
 import {
   chapterErrorMessage,
   chapterKeys,
@@ -24,17 +27,26 @@ import { formatRelativeDay } from "@/lib/datetime";
 const appRoute = getRouteApi("/_app");
 
 /**
- * The moderator queue for chapter claims (review_chapter_claim). Minimal on purpose: each
+ * Claims. Chapters: the moderator queue for chapter claims (review_chapter_claim). Minimal on purpose: each
  * pending claim with what the claimant told us, a note, Approve and Reject. Everyone else sees
  * a dead end; the RPC refuses non-moderators and a moderator's own claim regardless.
+ * Organizers (collector Slice 2): organizer claims, verified automatically, with revoke.
  */
+const searchSchema = z.object({
+  tab: z.enum(["chapters", "organizers"]).optional(),
+  closed: z.boolean().optional(),
+});
+
 export const Route = createFileRoute("/_app/admin/claims")({
+  validateSearch: searchSchema,
   component: ClaimsQueuePage,
 });
 
 function ClaimsQueuePage() {
   const { session } = appRoute.useRouteContext();
   const isMod = useQuery(isModeratorQuery(session.user.id));
+  const { tab = "chapters", closed = false } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
 
   return (
     <>
@@ -66,7 +78,38 @@ function ClaimsQueuePage() {
             }
           />
         ) : (
-          <Queue viewerId={session.user.id} />
+          <>
+            <SegmentedControl
+              label="Claims"
+              value={tab}
+              onChange={(t) => void navigate({ search: { tab: t }, replace: true })}
+              options={[
+                { value: "chapters", label: "Chapters" },
+                { value: "organizers", label: "Organizers" },
+              ]}
+            />
+            {tab === "organizers" ? (
+              <>
+                <SegmentedControl
+                  label="Organizer claims"
+                  value={closed ? "closed" : "open"}
+                  onChange={(v) =>
+                    void navigate({
+                      search: { tab, closed: v === "closed" || undefined },
+                      replace: true,
+                    })
+                  }
+                  options={[
+                    { value: "open", label: "Open" },
+                    { value: "closed", label: "Closed" },
+                  ]}
+                />
+                <OrganizerClaims closed={closed} />
+              </>
+            ) : (
+              <Queue viewerId={session.user.id} />
+            )}
+          </>
         )}
       </main>
     </>

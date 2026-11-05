@@ -109,3 +109,61 @@ const SELLERS: Record<string, TicketSeller> = {
 export function ticketSeller(sourceKind: string | null | undefined): TicketSeller | null {
   return sourceKind && Object.hasOwn(SELLERS, sourceKind) ? SELLERS[sourceKind]! : null;
 }
+
+/**
+ * Where "Request removal" goes (collector completion Slice 2): the site's removal form with the
+ * event id filled in, or the support email when no site URL is configured.
+ */
+export function removalHref(e: {
+  id: string;
+  title: string;
+  externalUrl?: string | null;
+  appUrl?: string | null;
+  siteUrl?: string | null;
+}): string {
+  const site = e.siteUrl?.trim().replace(/\/+$/, "");
+  if (site && /^https?:\/\//i.test(site)) {
+    return `${site}/bot/remove?event=${encodeURIComponent(e.id)}`;
+  }
+  return removalMailto(e);
+}
+
+/** The credit a geocoded imported item carries (imported_event_labels geocode_provider). */
+export interface LocationCredit {
+  text: string;
+  href: string;
+}
+
+const OSM_CREDIT: LocationCredit = {
+  text: "Location © OpenStreetMap contributors",
+  href: "https://www.openstreetmap.org/copyright",
+};
+
+/**
+ * "Location © OpenStreetMap contributors" for points found in our OpenStreetMap places, by
+ * Nominatim or by Photon (ODbL attribution), "Powered by Geoapify" for Geoapify points, else null.
+ */
+export function locationCredit(provider: string | null | undefined): LocationCredit | null {
+  switch (provider) {
+    case "place":
+    case "nominatim":
+    case "photon":
+      return OSM_CREDIT;
+    case "geoapify":
+      return { text: "Powered by Geoapify", href: "https://www.geoapify.com/" };
+    default:
+      return null;
+  }
+}
+
+/** The line under the source block: who listed it ("Listed by the organizer" once claimed). */
+export function sourceLine(label: {
+  organizer_listed?: boolean | null;
+  attribution?: string | null;
+  source_name?: string | null;
+}): string {
+  if (label.organizer_listed) return "Listed by the organizer.";
+  const own = label.attribution?.trim();
+  if (own) return own;
+  return `Listed from ${label.source_name?.trim() || "a public calendar"}.`;
+}

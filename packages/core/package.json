@@ -16,7 +16,8 @@
     "./places": "./src/places/index.ts",
     "./map": "./src/map/index.ts",
     "./messaging": "./src/messaging/index.ts",
-    "./coaching": "./src/coaching/index.ts"
+    "./coaching": "./src/coaching/index.ts",
+    "./organizer": "./src/organizer/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

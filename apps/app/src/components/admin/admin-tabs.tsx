@@ -5,20 +5,21 @@ import { cn } from "@/lib/cn";
 const TABS = [
   { to: "/admin", label: "Overview" },
   { to: "/admin/reports", label: "Reports" },
-  { to: "/admin/takedowns", label: "Image requests" },
+  { to: "/admin/takedowns", label: "Takedowns" },
   { to: "/admin/users", label: "Users" },
-  { to: "/admin/claims", label: "Chapter claims" },
+  { to: "/admin/claims", label: "Claims" },
   { to: "/admin/places", label: "Places" },
   { to: "/admin/calendars", label: "Calendars" },
-  { to: "/admin/health", label: "Map health" },
+  { to: "/admin/health", label: "Health" },
 ] as const;
 
 export type AdminTab = (typeof TABS)[number]["to"];
 
 /**
  * The moderator pages side by side (admin panel v1, migration 53): the overview (scorecard and
- * the one queue), reports, intimate-image requests, user lookup, chapter claims, places (hub map
- * slice 12), member calendar suggestions (D-042 slice 7) and map health (slice 15). Scrolls
+ * the one queue), reports, takedowns (intimate-image requests and listing removals), user lookup,
+ * claims (chapters and organizers), places (hub map slice 12), member calendar suggestions (D-042
+ * slice 7) and health (the map and the event collector). Scrolls
  * sideways on a phone instead of squeezing eight labels into one row.
  */
 export function AdminTabs({ current }: { current: AdminTab }) {

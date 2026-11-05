@@ -16,5 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${site}/coach-terms`, changeFrequency: "monthly", priority: 0.3 },
     { url: `${site}/refund-policy`, changeFrequency: "monthly", priority: 0.3 },
     { url: `${site}/safety/intimate-images`, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${site}/bot`, changeFrequency: "monthly", priority: 0.3 },
+    { url: `${site}/bot/remove`, changeFrequency: "yearly", priority: 0.3 },
   ];
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CircleAlert, Inbox, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
@@ -13,6 +13,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { FieldTextArea } from "@/components/ui/textarea";
+import { z } from "zod";
+import { ListingRemovals } from "@/components/admin/listing-removals";
 import {
   TAKEDOWN_STATE_LABELS,
   adminErrorMessage,
@@ -28,17 +30,24 @@ import {
 } from "@/lib/admin";
 
 /**
- * Intimate-image removal requests (Take It Down Act; mod_takedown_queue, mod_takedown_block_image
+ * Takedowns. Images: intimate-image removal requests (Take It Down Act; mod_takedown_queue, mod_takedown_block_image
  * and mod_takedown_resolve, migration 52). Most urgent first with the 48-hour timer (4 hours
  * when someone may be under 18). Paste the Activity Planet link of each image to block it and
  * its copies; then mark the request done. For suspected child sexual abuse material follow
  * docs/ops/ncmec-runbook.md before blocking: hide first, keep a legal-hold copy, then block.
+ * Listings (collector Slice 2): requests to take down an imported listing or its whole source,
+ * from the site's /bot/remove form (mod_listing_removal_queue and mod_listing_removal_resolve).
  */
+const searchSchema = z.object({ tab: z.enum(["images", "listings"]).optional() });
+
 export const Route = createFileRoute("/_app/admin/takedowns")({
+  validateSearch: searchSchema,
   component: TakedownsPage,
 });
 
 function TakedownsPage() {
+  const { tab = "images" } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const [view, setView] = useState<"open" | "closed">("open");
   return (
     <>
@@ -46,6 +55,15 @@ function TakedownsPage() {
       <main className="flex flex-col gap-4 pt-2 pb-8 safe-px">
         <AdminTabs current="/admin/takedowns" />
         <ModeratorGate>
+          <SegmentedControl
+            label="Kind"
+            value={tab}
+            onChange={(t) => void navigate({ search: { tab: t }, replace: true })}
+            options={[
+              { value: "images", label: "Images" },
+              { value: "listings", label: "Listings" },
+            ]}
+          />
           <SegmentedControl
             label="Requests"
             value={view}
@@ -55,7 +73,11 @@ function TakedownsPage() {
               { value: "closed", label: "Closed" },
             ]}
           />
-          <Queue closed={view === "closed"} />
+          {tab === "listings" ? (
+            <ListingRemovals closed={view === "closed"} />
+          ) : (
+            <Queue closed={view === "closed"} />
+          )}
         </ModeratorGate>
       </main>
     </>

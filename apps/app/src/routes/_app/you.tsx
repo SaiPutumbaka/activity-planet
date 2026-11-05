@@ -153,6 +153,12 @@ function YouPage() {
               value="Add"
               hint="A public events calendar near you we should list"
             />
+            <LinkRow
+              to="/organizer"
+              label="Organizer"
+              value="Open"
+              hint="Claim your listings or connect your calendar"
+            />
           </div>
         </section>
 

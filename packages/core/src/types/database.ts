@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 64 (schema_version 2.60). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 65 (schema_version 2.61). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -6188,10 +6188,12 @@ export type Database = {
           approximate_location: boolean;
           attribution: string;
           event_id: string;
+          geocode_provider: string;
           homepage_url: string;
           host_org: string;
           item_label: string;
           open_to_public: boolean;
+          organizer_listed: boolean;
           source_kind: string;
           source_name: string;
           source_slug: string;
@@ -6308,6 +6310,10 @@ export type Database = {
       };
       mod_organizer_claim_review: {
         Args: { p_action: string; p_claim: string; p_note?: string };
+        Returns: Json;
+      };
+      mod_organizer_claims: {
+        Args: { p_closed?: boolean; p_limit?: number };
         Returns: Json;
       };
       mod_place_facts: { Args: { p_id: string }; Returns: Json };
@@ -6479,6 +6485,7 @@ export type Database = {
         Args: { p_host: string; p_token: string };
         Returns: Json;
       };
+      organizer_claim_target: { Args: { p_event: string }; Returns: Json };
       organizer_eventbrite_sources: {
         Args: { p_limit?: number };
         Returns: Json;
@@ -6496,6 +6503,7 @@ export type Database = {
         Returns: boolean;
       };
       organizer_region_for: { Args: { p_point: unknown }; Returns: string };
+      organizer_source_detail: { Args: { p_source: string }; Returns: Json };
       organizer_source_update: {
         Args: { p_args: Json; p_source: string };
         Returns: Json;

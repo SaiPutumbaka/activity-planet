@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
-import { Link, createFileRoute, getRouteApi } from "@tanstack/react-router";
+import { Link, createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { CircleAlert, ShieldX, TriangleAlert } from "lucide-react";
 
 import { AdminTabs } from "@/components/admin/admin-tabs";
+import { CollectorHealthSection } from "@/components/admin/collector-health";
+import { SegmentedControl } from "@/components/ui/segmented";
+import { z } from "zod";
 import { ListSkeleton } from "@/components/hubs/hub-states";
 import { TopBar } from "@/components/shell/top-bar";
 import { Button } from "@/components/ui/button";
@@ -26,15 +29,21 @@ const appRoute = getRouteApi("/_app");
 /**
  * The hub map health panel (HUB_MAP_DESIGN slice 15; mod_place_health, migration 35): tiles,
  * rows, sizes against the 120 MB alarm and 150 MB cap, the last runs and today's budget.
- * Moderators only; the RPC refuses everyone else whatever this page shows.
+ * Moderators only; the RPC refuses everyone else whatever this page shows. The Events tab
+ * (collector Slice 2) is the event collector's health from mod_collector_health.
  */
+const searchSchema = z.object({ tab: z.enum(["map", "events"]).optional() });
+
 export const Route = createFileRoute("/_app/admin/health")({
+  validateSearch: searchSchema,
   component: HealthPage,
 });
 
 function HealthPage() {
   const { session } = appRoute.useRouteContext();
   const isMod = useQuery(isModeratorQuery(session.user.id));
+  const { tab = "map" } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   return (
     <>
       <TopBar title="Moderation" back />
@@ -65,7 +74,18 @@ function HealthPage() {
             }
           />
         ) : (
-          <Panel />
+          <>
+            <SegmentedControl
+              label="Health"
+              value={tab}
+              onChange={(t) => void navigate({ search: { tab: t }, replace: true })}
+              options={[
+                { value: "map", label: "Map" },
+                { value: "events", label: "Events" },
+              ]}
+            />
+            {tab === "events" ? <CollectorHealthSection /> : <Panel />}
+          </>
         )}
       </main>
     </>
