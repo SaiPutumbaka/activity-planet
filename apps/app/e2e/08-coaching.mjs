@@ -151,7 +151,7 @@ if (phase === "book" || phase === "all") {
     await shot(pa, "coach-03-listing");
   });
 
-  await r.step("A sets weekly availability and sees the two-week preview", async () => {
+  await r.step("A sets weekly availability", async () => {
     await pa.goto(`${env.base}/coach/availability`);
     await pa.getByRole("button", { name: "Add a window" }).waitFor({ timeout: 20000 });
     // Start from none so reruns don't pile up windows.
@@ -169,12 +169,10 @@ if (phase === "book" || phase === "all") {
     }
     await pa.getByRole("button", { name: "Save weekly times" }).click();
     await pa.getByText("Availability saved.").waitFor({ timeout: 20000 });
-    await pa.getByRole("list", { name: "Open times" }).waitFor({ timeout: 20000 });
     await noSideways(pa, "availability");
-    await shot(pa, "coach-04-availability");
   });
 
-  await r.step("A publishes the coach page", async () => {
+  await r.step("A publishes the coach page and sees the two-week preview", async () => {
     await pa.goto(`${env.base}/coach`);
     const publish = pa.getByRole("button", { name: "Publish" });
     if (await visible(publish, 15000)) await publish.click();
@@ -187,6 +185,11 @@ if (phase === "book" || phase === "all") {
         .catch(() => false)
     )
       throw new Error("payout entry shown while payments are off");
+    // The two-week preview reads coach_slots, which answers only for a live page (a rerun starts
+    // from the paused page the last cleanup left), so it is checked once the page is published.
+    await pa.goto(`${env.base}/coach/availability`);
+    await pa.getByRole("list", { name: "Open times" }).waitFor({ timeout: 20000 });
+    await shot(pa, "coach-04-availability");
   });
 
   await r.step("B browses coaches (near you, online) at 390px", async () => {
@@ -257,7 +260,9 @@ if (phase === "book" || phase === "all") {
     await pb.getByRole("button", { name: "Message" }).click();
     await pb.waitForURL((u) => /^\/chats\/[0-9a-f-]{36}$/.test(u.pathname), { timeout: 30000 });
     await pb.getByRole("textbox", { name: "Message" }).waitFor({ timeout: 20000 });
-    await pb.getByRole("link", { name: new RegExp(title) }).waitFor({ timeout: 20000 });
+    // The DM's banner links the pair's next booking: this one, or an earlier run's that is still
+    // to come (a run stopped before its finish phase leaves one).
+    await pb.getByRole("link", { name: /E2E tennis / }).first().waitFor({ timeout: 20000 });
     await shot(pb, "coach-09-dm");
   });
 
@@ -313,6 +318,9 @@ if (phase === "finish" || phase === "all") {
       await pb.getByRole("radio", { name: "5 stars" }).click();
       await pb.getByLabel(/Tell others how it went/).fill(`Great session ${stamp}`);
       await pb.getByRole("button", { name: "Post review" }).click();
+      // The text is already in the box; wait for the save itself (the form turns into Edit review)
+      // so the coach page below is not read before the review is written.
+      await pb.getByRole("button", { name: "Edit review" }).waitFor({ timeout: 20000 });
       await pb.getByText(`Great session ${stamp}`).waitFor({ timeout: 20000 });
       await noSideways(pb, "review");
       await shot(pb, "coach-10-review");

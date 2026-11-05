@@ -7,13 +7,23 @@
 -- client are both test accounts, and their sessions; prints counts, never a
 -- row. Run as the staging_file of a staging_only migrate.yml run between the
 -- flow's "book" and "finish" phases (never on production). Idempotent: a
--- booking already in the past is left alone.
+-- booking already in the past is left alone. The booking the last "book" run
+-- made (the latest-starting one) is the one that ends five minutes ago.
 -- ============================================================================
 with qa as (
   select u.id from auth.users u where u.email like 'qa-e2e-%@example.com'
 ), moved as (
+  -- Several bookings (a run stopped before its finish phase leaves one) end a day apart, the
+  -- latest-starting one five minutes ago, or just before an earlier run's session that is still
+  -- scheduled in the last day, so no two scheduled sessions overlap (coach_sessions_no_overlap).
   select b.id, b.session_id, b.ends_at - b.starts_at as len,
-         now() - interval '5 minutes' - (b.ends_at - b.starts_at) as new_start
+         least(now() - interval '5 minutes',
+               coalesce((select min(s.starts_at) from public.coach_sessions s
+                          where s.coach_id = b.coach_id and s.status = 'scheduled'
+                            and s.starts_at <= now() and s.ends_at > now() - interval '1 day'),
+                        now() - interval '5 minutes'))
+           - (b.ends_at - b.starts_at)
+           - (row_number() over (order by b.starts_at desc) - 1) * interval '1 day' as new_start
     from public.bookings b
    where b.status = 'confirmed'
      and b.starts_at > now()
