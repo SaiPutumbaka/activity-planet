@@ -2,6 +2,7 @@ import type { Session } from "@supabase/supabase-js";
 import { queryOptions, type QueryClient } from "@tanstack/react-query";
 
 import { clearFeedLocation } from "./location";
+import { disablePush } from "./push";
 import { supabase } from "./supabase";
 
 /**
@@ -33,6 +34,8 @@ export const authRedirect = {
 export const googleEnabled = import.meta.env.VITE_AUTH_GOOGLE === "1";
 
 export async function signOut(): Promise<void> {
+  // This browser stops getting this person's pushes (migration 55); needs the session, so first.
+  await disablePush();
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
   // The device point and a remembered location denial belong to this person, not the browser.

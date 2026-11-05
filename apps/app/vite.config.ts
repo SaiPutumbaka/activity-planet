@@ -76,50 +76,18 @@ export default defineConfig(({ mode }) => ({
           },
         ],
       },
-      workbox: {
-        navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api\//],
+      // injectManifest (migration 55): src/sw/sw.ts is the worker. It keeps the precache, the SPA
+      // navigation fallback and the runtime caches that the generated worker had (map bundle,
+      // place tile files, fonts), and adds the web push handlers.
+      strategies: "injectManifest",
+      srcDir: "src/sw",
+      filename: "sw.ts",
+      injectManifest: {
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
         // MapLibre (about 270 KB gzip) is lazy-loaded on the Map tab only (D-038). Keep it out of
-        // the install-time precache so people who never open the map never download it; it is
-        // cached on first use instead (hashed file names, so cache-first is safe).
+        // the install-time precache so people who never open the map never download it; the
+        // worker caches it on first use instead (hashed file names, so cache-first is safe).
         globIgnores: ["**/map-canvas-*.{js,css}"],
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) =>
-              url.origin === self.location.origin && /\/assets\/map-canvas-/.test(url.pathname),
-            handler: "CacheFirst",
-            options: { cacheName: "map-canvas", expiration: { maxEntries: 4 } },
-          },
-          // Static place tile files (D-042 slice 5, lib/place-files.ts): the names carry a content
-          // hash, so a cached file is never stale. GitHub Pages sends max-age=600 and cannot be
-          // told otherwise; this keeps them cache-first on the device for 60 days instead.
-          {
-            urlPattern: ({ url }) =>
-              /\/places\/v\d+\/\d+\.[0-9a-f]{16}\.json\.gz$|\/rules\/v\d+\.[0-9a-f]{16}\.json\.gz$/.test(
-                url.pathname,
-              ),
-            handler: "CacheFirst",
-            options: {
-              cacheName: "place-files",
-              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 60 },
-              cacheableResponse: { statuses: [200] },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: "StaleWhileRevalidate",
-            options: { cacheName: "google-fonts-stylesheets" },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "google-fonts-webfonts",
-              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 365 },
-            },
-          },
-        ],
       },
     }),
   ],

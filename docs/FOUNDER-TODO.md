@@ -40,6 +40,7 @@ Claude cannot create accounts, enter payment details, or sign anything. Everythi
 
 15. **Postal address** for emails and the Play listing: a P.O. box or virtual mailbox, not your home.
 16. **Support mailbox**: create `support@activityplanet.app` (a forwarder on the domain is enough) as soon as the domain exists. It is the email path on the public account-deletion page (`/account/delete`) and will be the address in the Privacy Policy; until it exists, deletion requests sent by email go nowhere.
+    16a. **Email and push delivery keys** (five minutes; migration 55, `send-notifications`). Until these exist every email and push is marked skipped, never sent, and the inbox works as before. (1) Web push: run `npx web-push generate-vapid-keys` once on your laptop and set, in Supabase, Edge Functions, Secrets, on both projects: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (`mailto:support@activityplanet.app`); then set the same public key as `VITE_VAPID_PUBLIC_KEY` in the `activity-planet-app` Vercel project and redeploy, which shows the "Turn on notifications" button under You, Notifications. The private key goes nowhere else. (2) Email: once the Resend domain is verified (item 1), set `RESEND_API_KEY` on the same Secrets page. The worker sends at most 90 emails a day (Resend's free tier is 100). (3) The unsubscribe links point at `https://activityplanet.app/unsubscribe`; they work once the domain is attached to the site project and reachable without Vercel Authentication (item 3).
 
 ## By week 6 (Nov 30)
 

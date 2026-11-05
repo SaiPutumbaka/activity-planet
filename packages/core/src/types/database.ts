@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 54 (schema_version 2.50). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 55 (schema_version 2.51). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -1919,6 +1919,21 @@ export type Database = {
           },
         ];
       };
+      notification_email_days: {
+        Row: {
+          day: string;
+          reserved: number;
+        };
+        Insert: {
+          day: string;
+          reserved?: number;
+        };
+        Update: {
+          day?: string;
+          reserved?: number;
+        };
+        Relationships: [];
+      };
       notification_prefs: {
         Row: {
           checkin_prompts: boolean;
@@ -1983,6 +1998,7 @@ export type Database = {
           actor_id: string | null;
           attempts: number;
           chapter_id: string | null;
+          claimed_at: string | null;
           created_at: string;
           dedupe_key: string;
           email_sent_at: string | null;
@@ -2004,6 +2020,7 @@ export type Database = {
           actor_id?: string | null;
           attempts?: number;
           chapter_id?: string | null;
+          claimed_at?: string | null;
           created_at?: string;
           dedupe_key: string;
           email_sent_at?: string | null;
@@ -2025,6 +2042,7 @@ export type Database = {
           actor_id?: string | null;
           attempts?: number;
           chapter_id?: string | null;
+          claimed_at?: string | null;
           created_at?: string;
           dedupe_key?: string;
           email_sent_at?: string | null;
@@ -3940,6 +3958,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      claim_pending_notifications: { Args: { p_limit?: number }; Returns: Json };
       clear_foreign_image_urls: { Args: never; Returns: Json };
       collector_api_budget_cap: { Args: { p_api: string }; Returns: number };
       collector_api_budget_return: {
@@ -3977,6 +3996,10 @@ export type Database = {
         Returns: Json;
       };
       collector_verify_secret: { Args: { p_secret: string }; Returns: boolean };
+      complete_notification_delivery: {
+        Args: { p_devices?: Json; p_results: Json };
+        Returns: number;
+      };
       complete_onboarding: {
         Args: {
           p_area_id?: string;
@@ -4651,6 +4674,14 @@ export type Database = {
         Args: { p_event_id: string };
         Returns: Json;
       };
+      notification_quiet_until: {
+        Args: { p_at?: string; p_user_id: string };
+        Returns: string;
+      };
+      notification_unsubscribe_token: {
+        Args: { p_user_id: string };
+        Returns: string;
+      };
       notify_chapter_claim_reviewed: {
         Args: { p_claim: Database["public"]["Tables"]["chapter_claims"]["Row"] };
         Returns: string;
@@ -4669,6 +4700,12 @@ export type Database = {
       notify_event_managers_joined: {
         Args: { p_event_id: string; p_joiner: string };
         Returns: number;
+      };
+      notify_vault_secret: { Args: { p_name: string }; Returns: string };
+      notify_worker_dispatch: { Args: { p_force?: boolean }; Returns: number };
+      notify_worker_verify_secret: {
+        Args: { p_secret: string };
+        Returns: boolean;
       };
       pending_attendance_prompts: {
         Args: never;
@@ -4810,6 +4847,7 @@ export type Database = {
       purge_admin_lookups: { Args: never; Returns: number };
       purge_read_notifications: { Args: never; Returns: number };
       purge_takedown_contacts: { Args: never; Returns: number };
+      push_endpoint_allowed: { Args: { p_endpoint: string }; Returns: boolean };
       record_place_dump: {
         Args: {
           p_bytes: number;
@@ -4823,6 +4861,14 @@ export type Database = {
       };
       refresh_hub_stats: { Args: never; Returns: number };
       refresh_meeting_spots: { Args: never; Returns: number };
+      register_push_device: {
+        Args: {
+          p_app_version?: string;
+          p_subscription: Json;
+          p_user_agent?: string;
+        };
+        Returns: string;
+      };
       remove_chapter_member: {
         Args: { p_chapter: string; p_user: string };
         Returns: undefined;
@@ -5085,6 +5131,8 @@ export type Database = {
       unblock_user: { Args: { p_user: string }; Returns: Json };
       unmute_user: { Args: { p_user: string }; Returns: Json };
       unread_notification_count: { Args: never; Returns: number };
+      unregister_push_device: { Args: { p_endpoint: string }; Returns: boolean };
+      unsubscribe_email_with_token: { Args: { p_token: string }; Returns: Json };
       update_event: {
         Args: { p_args: Json; p_event_id: string };
         Returns: {

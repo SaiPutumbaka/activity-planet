@@ -17,13 +17,15 @@ import {
   type NotificationPrefs,
   type PrefsPatch,
 } from "@/lib/notifications";
+import { disablePush, enablePush, pushErrorMessage, pushState, type PushState } from "@/lib/push";
 
 const appRoute = getRouteApi("/_app");
 
 /**
  * Notification settings at /you/notifications (a sibling of the You tab, like you_.photo.tsx).
  * Each switch writes one column of the viewer's notification_prefs row. The inbox always keeps
- * a copy; these choose what also goes out by email and push once that delivery starts.
+ * a copy; these choose what also goes out by email and push (send-notifications, migration 55).
+ * "This device" turns web push on for this browser, asking for permission only on that tap.
  */
 export const Route = createFileRoute("/_app/you_/notifications")({
   loader: ({ context: { queryClient, session } }) => {
@@ -125,9 +127,10 @@ function PrefsForm({
   return (
     <>
       <p className="text-[14px] text-text-2">
-        Your inbox always keeps a copy. These choose what also reaches you by email and push. Email
-        and push are on their way; what you set here applies as soon as they start.
+        Your inbox always keeps a copy. These choose what also reaches you by email and push.
       </p>
+
+      <ThisDevice />
 
       <section className="flex flex-col gap-2">
         <h3 className="text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">
@@ -274,6 +277,75 @@ function QuietHours({
             ) : null}
           </div>
         ) : null}
+      </div>
+    </section>
+  );
+}
+
+const DEVICE_COPY: Record<PushState, { hint: string; action: "on" | "off" | null }> = {
+  on: { hint: "Push is on for this browser.", action: "off" },
+  off: { hint: "Get reminders and plan changes here, even when the app is closed.", action: "on" },
+  denied: {
+    hint: "Notifications are blocked for this site. Allow them in your browser settings to turn push on.",
+    action: null,
+  },
+  needs_install: {
+    hint: "On iPhone and iPad, add Activity Planet to your Home Screen (Share, then Add to Home Screen) and open it from there to turn on push.",
+    action: null,
+  },
+  unsupported: {
+    hint: "This browser can't show push notifications. Email still works.",
+    action: null,
+  },
+  unconfigured: { hint: "Push isn't available yet. Email and the inbox still work.", action: null },
+};
+
+function ThisDevice() {
+  const { session } = appRoute.useRouteContext();
+  const userId = session.user.id;
+  const queryClient = useQueryClient();
+  const key = ["push-state", userId] as const;
+  const state = useQuery({ queryKey: key, queryFn: () => pushState(userId), staleTime: 30_000 });
+  const toggle = useMutation({
+    mutationFn: async (on: boolean) => (on ? enablePush() : disablePush()),
+    onError: (err) => toast.error(pushErrorMessage(err)),
+    onSuccess: (_d, on) =>
+      toast.success(on ? "Push is on for this browser." : "Push is off for this browser."),
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: key }),
+  });
+
+  const copy = state.data ? DEVICE_COPY[state.data] : null;
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">This device</h3>
+      <div className="flex flex-col gap-3 rounded-card border border-border px-4 py-3">
+        {state.isPending ? (
+          <Skeleton className="h-10 rounded-card" />
+        ) : state.isError || !copy ? (
+          <p className="text-[14px] text-text-2">Couldn't check this browser. Try again later.</p>
+        ) : (
+          <>
+            <p className="text-[14px] text-text-2">{copy.hint}</p>
+            {copy.action === "on" ? (
+              <Button
+                className="self-start"
+                loading={toggle.isPending}
+                onClick={() => toggle.mutate(true)}
+              >
+                Turn on notifications
+              </Button>
+            ) : copy.action === "off" ? (
+              <Button
+                variant="secondary"
+                className="self-start"
+                loading={toggle.isPending}
+                onClick={() => toggle.mutate(false)}
+              >
+                Turn off on this device
+              </Button>
+            ) : null}
+          </>
+        )}
       </div>
     </section>
   );
