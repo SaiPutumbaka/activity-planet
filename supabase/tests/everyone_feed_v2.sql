@@ -359,8 +359,8 @@ begin
     raise exception 'FAIL an onboarded profile has no home area';
   end if;
 
-  if (select value from public.meta where key = 'schema_version') <> '2.10' then
-    raise exception 'FAIL schema_version is not 2.10';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 10] then
+    raise exception 'FAIL schema_version is older than 2.10';
   end if;
 end $$;
 

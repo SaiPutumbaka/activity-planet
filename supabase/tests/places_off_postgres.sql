@@ -5,7 +5,7 @@
 -- names, ids or points (the repo and its Action logs are public). The fixture
 -- sits in the Southern Ocean, where no real data is; the "published file" is
 -- recorded with invented hashes (nothing is fetched).
---   1 Static: schema_version 2.45; grants and security of the new functions;
+--   1 Static: schema_version 2.45 or later; grants and security of the new functions;
 --     the checks table has RLS and no client privileges; the job exists.
 --   2 Files: place_file_of_tile and place_file_at (anon) answer for the
 --     published tile, null with the switch off, null for an unpublished tile.
@@ -48,8 +48,8 @@ do $$
 declare
   f text;
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.45' then
-    raise exception 'FAIL schema_version is not 2.45';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 45] then
+    raise exception 'FAIL schema_version is older than 2.45';
   end if;
   if coalesce((select value from public.meta where key = 'places_base_url'), '') !~ '^https://' then
     raise exception 'FAIL places_base_url is not set';

@@ -7,7 +7,7 @@
 -- fixtures in supabase/functions/image-guard/fixtures).
 -- Run as the staging_file of a staging_only migrate.yml run.
 --
---   1 static: schema_version 2.48, grants, the match rule, cron jobs.
+--   1 static: schema_version 2.48 or later, grants, the match rule, cron jobs.
 --   2 the public request: anon files one without an account; validation;
 --     3 a day per email; 48 hours, 4 hours and priority 0 for a minor;
 --     anon cannot read requests.
@@ -32,8 +32,8 @@ begin;
 -- ---------------------------------------------------------------------------
 do $$
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.48' then
-    raise exception 'FAIL 1 schema_version is not 2.48';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 48] then
+    raise exception 'FAIL 1 schema_version is older than 2.48';
   end if;
   if has_table_privilege('anon', 'public.takedown_requests', 'select')
      or has_table_privilege('anon', 'public.takedown_requests', 'insert')

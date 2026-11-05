@@ -4,7 +4,7 @@
 -- users, venues and places, asserts with DO blocks that raise on failure,
 -- then rolls everything back. Prints pass/fail only, never rows.
 -- Run as the staging_file of a staging_only migrate.yml run (after the seed).
---   1 Static: schema_version 2.23, RLS on the seven tables, no user id in
+--   1 Static: schema_version 2.23 or later, RLS on the seven tables, no user id in
 --     place_tiles / collector_budget / place_hubs, created_by unreadable by
 --     clients, no client writes on places, tile helpers, account deletion
 --     covers places.
@@ -88,8 +88,8 @@ do $$
 declare
   t text;
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.23' then
-    raise exception 'FAIL schema_version is not 2.23';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 23] then
+    raise exception 'FAIL schema_version is older than 2.23';
   end if;
   foreach t in array array['place_kinds', 'place_rules', 'hub_place_rules', 'places', 'place_hubs',
                            'place_tiles', 'collector_budget'] loop

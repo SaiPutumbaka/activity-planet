@@ -9,7 +9,7 @@
 --   3 Once another host's event uses a venue, its creator can no longer fill
 --     its empty fields (address_line2) through upsert_venue; before that the
 --     creator still can.
---   4 schema_version 2.19.
+--   4 schema_version 2.19 or later.
 -- ============================================================================
 begin;
 
@@ -125,8 +125,8 @@ reset role;
 
 do $$
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.19' then
-    raise exception 'FAIL 4 schema_version';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 19] then
+    raise exception 'FAIL 4 schema_version is too old';
   end if;
 end $$;
 

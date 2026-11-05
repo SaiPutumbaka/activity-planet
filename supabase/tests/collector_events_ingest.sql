@@ -4,7 +4,7 @@
 -- raise on failure, rolled back at the end. Prints pass/fail only, never
 -- titles, ids or points (the repo and its Action logs are public). Run as the
 -- staging_file of a staging_only migrate.yml run.
---   1 Static: schema_version 2.33; collector_ingest_events is definer,
+--   1 Static: schema_version 2.33 or later; collector_ingest_events is definer,
 --     service_role only; arcgis is a feed_sources kind.
 --   2 Sources from the seed shape: rows created with collector, lane, region,
 --     timezone, hub tags and default hub; enabled with p_enable; no pg_cron
@@ -32,8 +32,8 @@ grant usage on sequence cei_lines_n_seq to authenticated;
 -- ---------------------------------------------------------------------------
 do $$
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.33' then
-    raise exception 'FAIL schema_version is not 2.33';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 33] then
+    raise exception 'FAIL schema_version is older than 2.33';
   end if;
   if not (select p.prosecdef from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'public' and p.proname = 'collector_ingest_events') then

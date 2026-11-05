@@ -9,7 +9,7 @@
 --     holds no raw user id.
 --   3 reminders: an RSVP made long ago and approved by the host inside the
 --     window still gets the day-before reminder; a fresh join does not.
---   4 pg_cron job purge-cron-run-details exists; schema_version 2.15.
+--   4 pg_cron job purge-cron-run-details exists; schema_version 2.15 or later.
 -- ============================================================================
 begin;
 
@@ -129,8 +129,8 @@ begin
      and not exists (select 1 from cron.job where jobname = 'purge-cron-run-details') then
     raise exception 'FAIL 4 purge-cron-run-details not scheduled';
   end if;
-  if (select value from public.meta where key = 'schema_version') <> '2.15' then
-    raise exception 'FAIL 4 schema_version';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 15] then
+    raise exception 'FAIL 4 schema_version is too old';
   end if;
 end $$;
 

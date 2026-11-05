@@ -61,8 +61,8 @@ do $$
 declare
   f text;
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.42' then
-    raise exception 'FAIL schema_version is not 2.42';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 42] then
+    raise exception 'FAIL schema_version is older than 2.42';
   end if;
   if coalesce((select value from public.meta where key = 'eu_discovery'), '') not in ('off', 'on') then
     raise exception 'FAIL meta.eu_discovery missing';

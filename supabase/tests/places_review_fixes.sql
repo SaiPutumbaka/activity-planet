@@ -65,8 +65,8 @@ do $$
 declare
   f text;
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.32' then
-    raise exception 'FAIL schema_version is not 2.32';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 32] then
+    raise exception 'FAIL schema_version is older than 2.32';
   end if;
   if has_table_privilege('anon', 'public.place_rate_log', 'select')
      or has_table_privilege('authenticated', 'public.place_rate_log', 'select')

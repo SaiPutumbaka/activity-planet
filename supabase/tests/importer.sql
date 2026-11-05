@@ -246,8 +246,8 @@ begin
   if exists (select 1 from public.feed_sources where slug in ('gsu-localist', 'gsu-pin') and url !~ '^https://') then
     raise exception 'FAIL seeded sources';
   end if;
-  if (select value from public.meta where key = 'schema_version') <> '2.11' then
-    raise exception 'FAIL schema_version is not 2.11';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 11] then
+    raise exception 'FAIL schema_version is older than 2.11';
   end if;
 end $$;
 

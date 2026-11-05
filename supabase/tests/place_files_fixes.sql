@@ -22,8 +22,8 @@ $$;
 -- ---------------------------------------------------------------------------
 do $$
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.40' then
-    raise exception 'FAIL schema_version is not 2.40';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 40] then
+    raise exception 'FAIL schema_version is older than 2.40';
   end if;
   if not has_function_privilege('anon', 'public.place_files_in_view(extensions.geometry,extensions.geometry)', 'execute')
      or not has_function_privilege('authenticated', 'public.place_files_in_view(extensions.geometry,extensions.geometry)', 'execute')

@@ -59,8 +59,8 @@ declare
   f text;
   r text;
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.39' then
-    raise exception 'FAIL schema_version is not 2.39';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 39] then
+    raise exception 'FAIL schema_version is older than 2.39';
   end if;
   if not exists (select 1 from information_schema.columns where table_schema = 'public'
                     and table_name = 'place_tiles' and column_name = 'geoapify_claimed_at') then

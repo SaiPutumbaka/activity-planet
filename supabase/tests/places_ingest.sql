@@ -4,7 +4,7 @@
 -- Southern Ocean (no real places there), asserts with DO blocks that raise on
 -- failure, then rolls everything back. Prints pass/fail only, never rows.
 -- Run as the staging_file of a staging_only migrate.yml run.
---   1 Static: schema_version 2.24, place_tile_runs RLS and no user column,
+--   1 Static: schema_version 2.24 or later, place_tile_runs RLS and no user column,
 --     the four RPCs callable by service_role only (and refused when an
 --     authenticated user calls them), run columns not client-readable, the
 --     collector secret exists and verifies.
@@ -147,8 +147,8 @@ do $$
 declare
   f text;
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.24' then
-    raise exception 'FAIL schema_version is not 2.24';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 24] then
+    raise exception 'FAIL schema_version is older than 2.24';
   end if;
   if not (select c.relrowsecurity from pg_class c where c.oid = 'public.place_tile_runs'::regclass) then
     raise exception 'FAIL RLS is off on place_tile_runs';

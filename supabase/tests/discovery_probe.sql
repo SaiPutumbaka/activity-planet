@@ -38,8 +38,8 @@ do $$
 declare
   f text;
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.43' then
-    raise exception 'FAIL schema_version is not 2.43';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 43] then
+    raise exception 'FAIL schema_version is older than 2.43';
   end if;
   foreach f in array array['public.source_discovery_gate_record(jsonb)', 'public.source_discovery_gate_open(text)',
                            'public.source_discovery_gate_status(text)',

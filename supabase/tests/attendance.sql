@@ -14,7 +14,7 @@
 --   5 another user cannot read the caller's reports or meets; no client writes.
 --   6 chapter_dashboard: refused for a non-manager; counts for a captain.
 --   7 account deletion removes the user's reports and meets, both directions.
---   8 schema_version 2.17.
+--   8 schema_version 2.17 or later.
 --   9 migration 21: after an event ends, a going attendee (c) cancelling does
 --     not promote the waitlist; the waitlisted person (x) stays waitlisted and
 --     submit_attendance refuses them (not_going).
@@ -376,8 +376,8 @@ begin
                   where user_id = current_setting('test.b')::uuid and met_user_id = current_setting('test.c')::uuid) then
     raise exception 'FAIL 7 deletion removed an unrelated meet';
   end if;
-  if (select value from public.meta where key = 'schema_version') <> '2.17' then
-    raise exception 'FAIL 8 schema_version';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 17] then
+    raise exception 'FAIL 8 schema_version is too old';
   end if;
 end $$;
 

@@ -5,7 +5,7 @@
 -- pass/fail only (no user rows; the test accounts are invented).
 -- Run as the staging_file of a staging_only migrate.yml run.
 --
---   1 static: schema_version 2.47, grants on tables and functions.
+--   1 static: schema_version 2.47 or later, grants on tables and functions.
 --   2 blocks are symmetric across profiles, rsvps, hub_members and
 --     chapter_members; my_blocks, event_block_warning, is_blocked_with.
 --   3 co-attendance warning both ways; attendee_joined dropped for a mute.
@@ -28,8 +28,8 @@ begin;
 -- ---------------------------------------------------------------------------
 do $$
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.47' then
-    raise exception 'FAIL 1 schema_version is not 2.47';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 47] then
+    raise exception 'FAIL 1 schema_version is older than 2.47';
   end if;
   if has_table_privilege('authenticated', 'public.blocks', 'insert')
      or has_table_privilege('authenticated', 'public.mutes', 'insert')

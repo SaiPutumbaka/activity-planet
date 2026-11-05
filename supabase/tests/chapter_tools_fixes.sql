@@ -211,8 +211,8 @@ end $$;
 reset role;
 do $$
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.13' then
-    raise exception 'FAIL schema_version is not 2.13';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 13] then
+    raise exception 'FAIL schema_version is older than 2.13';
   end if;
 end $$;
 

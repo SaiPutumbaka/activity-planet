@@ -1,0 +1,53 @@
+# Regression suite for staging (migrate.yml, staging_tests). One test file per line, run in
+# this order with `supabase db query --file`; the run stops at the first failure. Every file
+# here is one transaction that rolls back and prints pass/fail only. Every *.sql in this
+# folder must appear here, either as a test or on a `skip:` line with the reason (the workflow
+# checks), so a new test file cannot be left out by accident.
+
+everyone_feed_v2.sql
+importer.sql
+skip: importer_staging_check.sql  # live import data check (needs a recent GSU import run)
+importer_campus_from_item.sql
+skip: importer_staging_counts.sql  # prints aggregates only, asserts nothing
+importer_review_fixes.sql
+chapter_tools.sql
+chapter_tools_fixes.sql
+notifications.sql
+notifications_review_fixes.sql
+attendance.sql
+security_fixes.sql
+security_recheck.sql
+venue_content_match.sql
+location_anywhere.sql
+location_region_limits.sql
+viewer_timezone.sql
+places_schema.sql
+skip: collector_smoke.sql  # commits pg_net requests to the deployed collector function
+places_ingest.sql
+places_read.sql
+places_read_perf.sql
+places_guards.sql
+map_ui_fields.sql
+meeting_spots.sql
+place_contributions.sql
+places_lifecycle.sql
+places_review_fixes.sql
+collector_events_ingest.sql
+collector_ingest_counts.sql
+collector_ingest_fixes.sql
+place_tile_demand.sql
+places_nightly.sql
+place_files.sql
+places_fill.sql
+place_files_fixes.sql
+collector_regions_nightly.sql
+source_discovery.sql
+discovery_probe.sql
+lane1_shows.sql
+places_off_postgres.sql
+discovery_review_fixes.sql
+trust_safety.sql
+ncii_takedown.sql
+skip: image_guard_smoke.sql  # asks the deployed image-guard function for a sweep, not rolled back
+admin_panel.sql
+safety_review_fixes.sql

@@ -6,7 +6,7 @@
 -- repo and its Action logs are public). Run as the staging_file of a
 -- staging_only migrate.yml run. The fixture sits in the Southern Ocean,
 -- where no real data is.
---   1 Static: schema_version 2.29; the triggers exist; venue_for_place is
+--   1 Static: schema_version 2.29 or later; the triggers exist; venue_for_place is
 --     definer and executable by authenticated only (not anon); the internal
 --     functions are not executable by anon or authenticated; the weekly
 --     cron job exists when pg_cron does.
@@ -166,8 +166,8 @@ do $$
 declare
   f text;
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.29' then
-    raise exception 'FAIL schema_version is not 2.29';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 29] then
+    raise exception 'FAIL schema_version is older than 2.29';
   end if;
   if (select count(*) from pg_trigger
        where not tgisinternal and tgname in ('event_addresses_meeting_spot', 'events_meeting_spot',

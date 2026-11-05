@@ -204,8 +204,8 @@ do $$
 declare
   f text;
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.30' then
-    raise exception 'FAIL schema_version is %', (select value from public.meta where key = 'schema_version');
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 30] then
+    raise exception 'FAIL schema_version is older than 2.30';
   end if;
   foreach f in array array['public.add_place(jsonb)', 'public.suggest_place_edit(uuid,jsonb,text)',
                            'public.report_place(uuid,text,text)', 'public.set_my_place_visibility(uuid,boolean,boolean)',

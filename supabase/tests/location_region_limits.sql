@@ -48,8 +48,8 @@ end $$;
 -- Static checks (as the owner)
 do $$
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.21' then
-    raise exception 'FAIL schema_version is not 2.21';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 21] then
+    raise exception 'FAIL schema_version is older than 2.21';
   end if;
   if (select count(*) from information_schema.columns
        where table_schema = 'public' and table_name = 'profile_private'

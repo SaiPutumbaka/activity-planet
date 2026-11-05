@@ -63,8 +63,8 @@ do $$
 declare
   f text;
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.31' then
-    raise exception 'FAIL schema_version is not 2.31';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 31] then
+    raise exception 'FAIL schema_version is older than 2.31';
   end if;
   foreach f in array array[
       'public.retire_place_tiles()', 'public.place_size_status()',

@@ -6,7 +6,7 @@
 -- and counts only (row counts, payload bytes), never names, ids or points
 -- (the repo and its Action logs are public). Run as the staging_file of a
 -- staging_only migrate.yml run.
---   1 Static: schema_version 2.28; place_tiles_mapping_in_view is definer
+--   1 Static: schema_version 2.28 or later; place_tiles_mapping_in_view is definer
 --     and STABLE, map_in_view still invoker and STABLE; anon and
 --     authenticated execute both; one version of each.
 --   2 Fixture (Southern Ocean, no real data there), signed out: a cell
@@ -233,8 +233,8 @@ do $$
 declare
   r record;
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.28' then
-    raise exception 'FAIL schema_version is not 2.28';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 28] then
+    raise exception 'FAIL schema_version is older than 2.28';
   end if;
   for r in
     select p.oid::regprocedure as sig, p.proname, p.prosecdef, p.provolatile

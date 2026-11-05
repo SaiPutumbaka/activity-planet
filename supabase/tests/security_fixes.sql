@@ -22,7 +22,7 @@
 --     onboarding still works and opens the reads.
 --   7 event_updated: two moves in one hour give one row (with the latest
 --     time); title changes count toward the 3-a-day broadcast cap.
---   8 schema_version 2.18.
+--   8 schema_version 2.18 or later.
 -- ============================================================================
 begin;
 
@@ -495,8 +495,8 @@ begin
     raise exception 'FAIL 7 title changes not counted toward the broadcast cap';
   end if;
 
-  if (select value from public.meta where key = 'schema_version') <> '2.18' then
-    raise exception 'FAIL 8 schema_version';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 18] then
+    raise exception 'FAIL 8 schema_version is too old';
   end if;
 end $$;
 

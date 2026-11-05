@@ -4,7 +4,7 @@
 -- raise on failure, rolled back at the end. Prints pass/fail only, never
 -- titles, ids or points (the repo and its Action logs are public). Run as the
 -- staging_file of a staging_only migrate.yml run.
---   1 Static: schema_version 2.35; one collector_ingest_events (6 arguments),
+--   1 Static: schema_version 2.35 or later; one collector_ingest_events (6 arguments),
 --     definer, service_role only; import_title_key and import_is_21_plus;
 --     the wine rule is gone and the drawing and kayaking rules are narrow.
 --   2 D-040 item rules: descriptions clipped to 300 characters, cover_url
@@ -33,8 +33,8 @@ do $$
 declare
   v_sig text := 'public.collector_ingest_events(jsonb, jsonb, boolean, boolean, text, jsonb)';
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.35' then
-    raise exception 'FAIL schema_version is not 2.35';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 35] then
+    raise exception 'FAIL schema_version is older than 2.35';
   end if;
   if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'public' and p.proname = 'collector_ingest_events') <> 1 then

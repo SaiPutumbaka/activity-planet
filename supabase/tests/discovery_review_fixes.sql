@@ -87,8 +87,8 @@ do $$
 declare
   f text;
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.46' then
-    raise exception 'FAIL schema_version is not 2.46';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 46] then
+    raise exception 'FAIL schema_version is older than 2.46';
   end if;
   foreach f in array array['public.place_rate_log_prune()', 'public.source_discovery_gate_min_required()',
                            'public.source_discovery_allowed(text,text,uuid)', 'public.place_file_request_take(uuid)',

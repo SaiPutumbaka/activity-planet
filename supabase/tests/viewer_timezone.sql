@@ -3,7 +3,7 @@
 -- One transaction: sets up throwaway users and events, asserts with DO blocks
 -- that raise on failure, then rolls everything back. Prints pass/fail only.
 -- Run as the staging_file of a staging_only migrate.yml run.
---   1 Static: schema_version 2.22, profile_private.timezone owner-only, one
+--   1 Static: schema_version 2.22 or later, profile_private.timezone owner-only, one
 --     feed_events_v2 overload (invoker, authenticated only), set_my_timezone
 --     granted to authenticated only, venues.country nullable without default,
 --     account deletion still removes profile_private whole.
@@ -69,8 +69,8 @@ end $$;
 -- Static checks (as the owner)
 do $$
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.22' then
-    raise exception 'FAIL schema_version is not 2.22';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 22] then
+    raise exception 'FAIL schema_version is older than 2.22';
   end if;
   if not exists (select 1 from information_schema.columns
                   where table_schema = 'public' and table_name = 'profile_private' and column_name = 'timezone') then

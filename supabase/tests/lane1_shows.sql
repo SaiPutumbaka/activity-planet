@@ -4,7 +4,7 @@
 -- failure, rolled back at the end. Prints pass/fail only, never titles, ids,
 -- points or real budget rows (the repo and its Action logs are public). Run
 -- as the staging_file of a staging_only migrate.yml run.
---   1 Static: schema_version 2.44; the three functions are definer and
+--   1 Static: schema_version 2.44 or later; the three functions are definer and
 --     service_role only; the api-shows-sweep pg_cron job exists.
 --   2 Budget: take grants within the daily cap and records it; a spent day
 --     grants 0; return gives back, never below 0; bad names, counts and days
@@ -33,8 +33,8 @@ do $$
 declare
   f text;
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.44' then
-    raise exception 'FAIL schema_version is not 2.44';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 44] then
+    raise exception 'FAIL schema_version is older than 2.44';
   end if;
   foreach f in array array['public.collector_api_budget_take(text,integer)',
                            'public.collector_api_budget_return(text,date,integer)',

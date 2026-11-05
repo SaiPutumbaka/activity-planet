@@ -87,6 +87,14 @@ on:
         description: "Staging only: after the file, ask every enabled feed source to import once and print the run status"
         type: boolean
         default: false
+      staging_tests:
+        description: "Staging only: run every test in supabase/tests/regression.txt in order; fail on the first failure"
+        type: boolean
+        default: false
+      staging_tests_keep_going:
+        description: "Staging only, with staging_tests: run every test even after a failure, then fail if any failed"
+        type: boolean
+        default: false
 
 concurrency:
   group: migrate-main
@@ -210,6 +218,41 @@ jobs:
           STAGING_FILE: ${{ inputs.staging_file }}
         run: |
           supabase db query --linked --file "$STAGING_FILE"
+
+      # Staging only: the regression suite. Each file in supabase/tests/regression.txt is one
+      # transaction that rolls back and prints pass/fail only (the logs are public). The manifest
+      # must name every *.sql in supabase/tests, as a test or on a skip: line, so a new file is
+      # never left out silently. Stops at the first failure unless staging_tests_keep_going.
+      - name: Staging, run the regression suite
+        if: inputs.staging_only == true && inputs.staging_tests == true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+          KEEP_GOING: ${{ inputs.staging_tests_keep_going == true && '1' || '' }}
+        run: |
+          manifest=supabase/tests/regression.txt
+          listed=$(sed -e 's/#.*//' -e 's/^skip:[[:space:]]*//' -e 's/[[:space:]]*$//' "$manifest" | grep -v '^$' | sort)
+          present=$(cd supabase/tests && ls *.sql | sort)
+          if [ "$listed" != "$present" ]; then
+            echo "regression.txt does not match supabase/tests/*.sql:"
+            diff <(echo "$listed") <(echo "$present") || true
+            exit 1
+          fi
+          tests=$(sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$manifest" | grep -v '^$' | grep -v '^skip:')
+          total=$(echo "$tests" | wc -l); n=0; failed=""
+          for t in $tests; do
+            n=$((n + 1))
+            echo "::group::[$n/$total] $t"
+            if supabase db query --linked --file "supabase/tests/$t"; then
+              echo "::endgroup::"; echo "PASS $t"
+            else
+              echo "::endgroup::"; echo "FAIL $t"
+              failed="$failed $t"
+              [ -n "$KEEP_GOING" ] || { echo "Stopped at the first failure ($n of $total)."; exit 1; }
+            fi
+          done
+          if [ -n "$failed" ]; then echo "Failed:$failed"; exit 1; fi
+          echo "All $total regression tests passed."
 
       # Staging only: one import run per enabled source through the same path pg_cron uses
       # (pg_net to the function), then the run status. Prints counts and errors, never secrets.

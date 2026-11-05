@@ -71,8 +71,8 @@ end $$;
 do $$
 declare v_def text;
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.20' then
-    raise exception 'FAIL schema_version is not 2.20';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 20] then
+    raise exception 'FAIL schema_version is older than 2.20';
   end if;
   if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'public' and p.proname = 'complete_onboarding') <> 1 then

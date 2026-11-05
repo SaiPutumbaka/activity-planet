@@ -13,8 +13,8 @@ begin;
 -- ---------------------------------------------------------------------------
 do $$
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.41' then
-    raise exception 'FAIL schema_version is not 2.41';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 41] then
+    raise exception 'FAIL schema_version is older than 2.41';
   end if;
   if has_function_privilege('anon', 'public.collector_regions_due(integer,boolean)', 'execute')
      or has_function_privilege('authenticated', 'public.collector_regions_due(integer,boolean)', 'execute')

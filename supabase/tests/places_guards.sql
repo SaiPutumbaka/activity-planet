@@ -4,7 +4,7 @@
 -- Ocean (no real places there), asserts with DO blocks that raise on failure,
 -- then rolls everything back. Prints pass/fail only, never rows.
 -- Run as the staging_file of a staging_only migrate.yml run.
---   1 Static: schema_version 2.27; finish_place_tile has only the
+--   1 Static: schema_version 2.27 or later; finish_place_tile has only the
 --     five-argument signature, service_role only (authenticated is refused);
 --     the place_rules_forget_deleted trigger exists and no client can call
 --     its function.
@@ -99,8 +99,8 @@ $$;
 -- ---------------------------------------------------------------------------
 do $$
 begin
-  if (select value from public.meta where key = 'schema_version') <> '2.27' then
-    raise exception 'FAIL schema_version is not 2.27';
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 27] then
+    raise exception 'FAIL schema_version is older than 2.27';
   end if;
   if to_regprocedure('public.finish_place_tile(integer,text,integer,text)') is not null then
     raise exception 'FAIL the four-argument finish_place_tile still exists';
