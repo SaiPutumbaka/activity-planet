@@ -45,7 +45,8 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.1.4
-      - run: deno test --allow-read supabase/functions/import-feed supabase/functions/collector supabase/functions/places-fill supabase/functions/place-files
+      - run: deno test --allow-read supabase/functions/import-feed supabase/functions/collector supabase/functions/places-fill supabase/functions/place-files supabase/functions/send-notifications
+      - run: deno check supabase/functions/send-notifications/index.ts
       # image-guard decodes JPEG and PNG with npm packages (jpeg-js, fast-png); without a
       # node_modules folder Deno must fetch them itself, hence --node-modules-dir=none.
       - run: deno test --allow-read --node-modules-dir=none supabase/functions/image-guard

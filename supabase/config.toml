@@ -99,3 +99,12 @@ verify_jwt = false
 # image_guard_verify_secret, service_role only). The secret is generated inside the database and
 # is in no file. The function stores hashes only, never an image.
 verify_jwt = false
+
+[functions.send-notifications]
+# The caller is the database (migration 55: the pg_cron job send-notifications every 2 minutes,
+# through pg_net and public.notify_worker_dispatch), not a user, so the gateway JWT check is off;
+# the function refuses any request whose x-notify-secret header does not match the vault secret
+# notify_worker_secret (checked through notify_worker_verify_secret, service_role only). The
+# secret is generated inside the database and is in no file. RESEND_API_KEY and the VAPID keys
+# are optional Edge Function secrets; without them email and push are marked skipped.
+verify_jwt = false

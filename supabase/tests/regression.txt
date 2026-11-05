@@ -51,3 +51,4 @@ ncii_takedown.sql
 skip: image_guard_smoke.sql  # asks the deployed image-guard function for a sweep, not rolled back
 admin_panel.sql
 safety_review_fixes.sql
+notify_worker.sql
