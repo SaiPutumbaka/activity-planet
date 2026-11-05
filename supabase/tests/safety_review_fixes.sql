@@ -136,15 +136,15 @@ begin
   values (current_setting('test.m')::uuid, v_ch2, 'captain');
 
   -- e_live: c hosts a plan under way in ch; r1 going.
-  insert into public.events (hub_id, chapter_id, host_id, title, starts_at, ends_at, location_hint)
-  values (v_hub, v_ch, current_setting('test.c')::uuid, 'Review live run', now() - interval '1 hour',
+  insert into public.events (kind, hub_id, chapter_id, host_id, title, starts_at, ends_at, location_hint)
+  values ('chapter', v_hub, v_ch, current_setting('test.c')::uuid, 'Review live run', now() - interval '1 hour',
           now() + interval '1 hour', 'Park')
   returning id into v_e;
   perform set_config('test.e_live', v_e::text, true);
   insert into public.rsvps (event_id, user_id, status) values (v_e, current_setting('test.r1')::uuid, 'going');
   -- e_m: h hosts a plan in ch2 (m captains it).
-  insert into public.events (hub_id, chapter_id, host_id, title, starts_at, ends_at, location_hint)
-  values (v_hub, v_ch2, current_setting('test.h')::uuid, 'Review captained run', now() + interval '2 days',
+  insert into public.events (kind, hub_id, chapter_id, host_id, title, starts_at, ends_at, location_hint)
+  values ('chapter', v_hub, v_ch2, current_setting('test.h')::uuid, 'Review captained run', now() + interval '2 days',
           now() + interval '2 days 2 hours', 'Park')
   returning id into v_e;
   perform set_config('test.e_m', v_e::text, true);
