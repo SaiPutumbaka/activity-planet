@@ -1,6 +1,8 @@
 -- ============================================================================
 -- Staging check for migrations 20261111000100_everyone_feed_v2.sql and
--- 20261111000200_feed_v2_review_fixes.sql.
+-- 20261111000200_feed_v2_review_fixes.sql (updated for migration 57,
+-- 20261221000100_feed_distance.sql: a plan with no point stands at its host's
+-- home area, so the hub plans below have an Atlanta host).
 -- One transaction: sets up throwaway users, events, a venue and a chapter,
 -- asserts with DO blocks that raise on failure, then rolls everything back.
 -- Run as the staging_file of a staging_only migrate.yml run.
@@ -14,6 +16,7 @@ do $$
 declare
   v_viewer uuid := gen_random_uuid();
   v_host   uuid := gen_random_uuid();
+  v_host2  uuid := gen_random_uuid();
   v_young  uuid := gen_random_uuid();
   v_hub_21 uuid;
   v_hub_a  uuid;
@@ -26,6 +29,8 @@ begin
           'feedv2-viewer-' || substr(v_viewer::text, 1, 8) || '@example.com', now(), now()),
          (v_host, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
           'feedv2-host-' || substr(v_host::text, 1, 8) || '@example.com', now(), now()),
+         (v_host2, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+          'feedv2-host2-' || substr(v_host2::text, 1, 8) || '@example.com', now(), now()),
          (v_young, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
           'feedv2-young-' || substr(v_young::text, 1, 8) || '@example.com', now(), now());
 
@@ -37,6 +42,12 @@ begin
   -- (The viewer onboards through complete_onboarding below.)
   update public.profile_private set home_area_id = (select id from public.areas where slug = 'atlanta')
    where user_id = v_young;
+  -- Migration 57: v_host2 lives in Atlanta (no-point plans stand at the host's home area);
+  -- v_host has no home, so its no-point plans have no place.
+  update public.profile_private set home_area_id = (select id from public.areas where slug = 'atlanta'),
+                                    home_point = null
+   where user_id = v_host2;
+  update public.profile_private set home_area_id = null, home_point = null where user_id = v_host;
   update public.profiles set onboarding_completed_at = now(), guidelines_accepted_at = now()
    where id = v_young;
 
@@ -66,7 +77,7 @@ begin
 
   -- In the viewer's hub, five days out: a nearby event tomorrow must sort above it.
   insert into public.events (hub_id, host_id, title, starts_at, ends_at, approx_point)
-  values (v_hub_a, v_host, 'Feed v2 hub later', v_t + interval '5 days', v_t + interval '5 days 2 hours', null)
+  values (v_hub_a, v_host2, 'Feed v2 hub later', v_t + interval '5 days', v_t + interval '5 days 2 hours', null)
   returning id into v_id;
   perform set_config('test.e_hub_later', v_id::text, true);
 
@@ -86,11 +97,11 @@ begin
 
   -- No point at all, in the viewer's hub: only the hub arm can bring it in.
   insert into public.events (hub_id, host_id, title, starts_at, ends_at, approx_point)
-  values (v_hub_a, v_host, 'Feed v2 no point', v_t + interval '3 hours', v_t + interval '4 hours', null)
+  values (v_hub_a, v_host2, 'Feed v2 no point', v_t + interval '3 hours', v_t + interval '4 hours', null)
   returning id into v_id;
   perform set_config('test.e_nullpt', v_id::text, true);
 
-  -- No point and not in the viewer's hubs: must not appear.
+  -- No point, not in the viewer's hubs, and a host with no home: must not appear.
   insert into public.events (hub_id, host_id, title, starts_at, ends_at, approx_point)
   values (v_hub_b, v_host, 'Feed v2 no point other hub', v_t, v_t + interval '1 hour', null)
   returning id into v_id;
@@ -200,7 +211,7 @@ begin
     end if;
     if r.id = current_setting('test.e_nullpt')::uuid then
       if r.matched_by <> 'hub' then raise exception 'FAIL null-point event matched_by %', r.matched_by; end if;
-      if r.distance_band is not null then raise exception 'FAIL null-point event has a band'; end if;
+      if r.distance_band is distinct from 'approximate' then raise exception 'FAIL null-point event band %', r.distance_band; end if;
     end if;
     if r.id = current_setting('test.e_approx')::uuid and r.distance_band is distinct from 'approximate' then
       raise exception 'FAIL approved-only event band %', r.distance_band;
@@ -217,7 +228,7 @@ begin
     raise exception 'FAIL hub-member event with no point is missing';
   end if;
   if current_setting('test.e_nullpt_other')::uuid = any (v_ids) then
-    raise exception 'FAIL no-point event outside my hubs is included';
+    raise exception 'FAIL no-point event with no host area is included';
   end if;
   if not current_setting('test.e_approx')::uuid = any (v_ids) then
     raise exception 'FAIL approved-only event within radius + slack is missing';

@@ -36,6 +36,11 @@ begin
          'vtz-' || substr(u::text, 1, 8) || '-' || v_tag || '@example.com', now(), now()
     from unnest(array[v_t, v_o]) as u;
   update public.profile_private set birth_date = date '1992-04-04' where user_id in (v_t, v_o);
+  -- Migration 57 (20261221000100_feed_distance.sql): the test plans have no point, so they
+  -- stand at the host's home area; host and viewer both live in Atlanta.
+  update public.profile_private
+     set home_area_id = (select id from public.areas where slug = 'atlanta'), home_point = null
+   where user_id in (v_t, v_o);
   update public.profiles
      set onboarding_completed_at = now(), guidelines_accepted_at = now(), first_name = 'Tester'
    where id in (v_t, v_o);
