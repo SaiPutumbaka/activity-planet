@@ -38,6 +38,12 @@ const signedIn = [
   "/you/photo",
   "/you/verify",
   "/suggest-calendar",
+  "/coaches",
+  "/coach",
+  "/coach/profile",
+  "/coach/availability",
+  "/coach/listings/new",
+  "/bookings",
   "/no-such-page",
   ...(eventId ? [`/events/${eventId}`, `/events/${eventId}/edit`] : []),
 ];

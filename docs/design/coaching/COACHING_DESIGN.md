@@ -613,6 +613,8 @@ Tests (implemented as three files: `coaching.sql`, `coaching_rules.sql` for slot
 
 ### Slice 2: client
 
+Built on branch main-r1pc3k: `packages/core/src/coaching`, `apps/app/src/lib/coaching.ts`, the routes below, the DRAFT pages in `apps/web`, `apps/app/e2e/08-coaching.mjs` (with `supabase/staging/qa_coaching_past.sql` between its phases). Not built: analytics (the app has no analytics module yet) and cancelling a group session from the app (`coach_sessions` has no client read, so the listing page shows scheduled sessions from `coach_slots` without their ids).
+
 - `packages/core/src/coaching/`: Zod schemas for every RPC result; `fees.ts` mirroring `private.coach_fee` (same fixtures); refund preview by policy row; slot grouping by day in the viewer's zone with the coach-zone label; state and payment-state labels; the error-code to copy map; the requests-only note. Unit tests.
 - `apps/app/src/lib/coaching.ts`: Supabase calls and TanStack Query options, following `lib/notifications.ts` and `lib/messaging.ts`.
 - `apps/app` routes (`src/routes/_app/`):

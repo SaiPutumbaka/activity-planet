@@ -16,11 +16,20 @@ node apps/app/e2e/05-sweep.mjs        # every route at 390x844 and 1280x800
 node apps/app/e2e/06-offline.mjs      # "You're offline" with the service worker, recovery when back
 node apps/app/e2e/07-messaging.mjs    # photo gate, a request A to B, realtime both ways, typing,
                                       # delete, report, the Chats badge, block stops delivery
+E2E_PHASE=book node apps/app/e2e/08-coaching.mjs    # A coaches (profile, listing, availability,
+                                                    # publish), B requests a time, A confirms, DM
+E2E_PHASE=finish node apps/app/e2e/08-coaching.mjs  # A marks it done, B reviews, cleanup
 ```
 
 `07-messaging.mjs` sends a message request, which needs account A to be a day old: on staging,
 run `supabase/staging/qa_account_age.sql` as the `staging_file` of a staging-only `migrate.yml`
 run first. Once B has accepted, later runs find an open DM and say so instead of a request.
+
+`08-coaching.mjs` books a slot at least an hour ahead, so it cannot complete in real time: between
+`E2E_PHASE=book` and `E2E_PHASE=finish`, run `supabase/staging/qa_coaching_past.sql` as the
+`staging_file` of a staging-only `migrate.yml` run; it moves the test accounts' confirmed bookings
+into the past. Run 07 before 08, not between its phases: 07 blocks and unblocks the pair, and a
+block cancels their open bookings.
 
 Use test accounts on staging only, never production. Screenshots go to `E2E_QA_DIR`
 (default `./e2e-output`, git-ignored). Output names flows and steps only, never user rows.
