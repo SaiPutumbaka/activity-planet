@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 50 (schema_version 2.46). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 51 (schema_version 2.47). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -139,6 +139,39 @@ export type Database = {
           {
             foreignKeyName: "auth_provider_secrets_user_id_fkey";
             columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      blocks: {
+        Row: {
+          blocked_id: string;
+          blocker_id: string;
+          created_at: string;
+        };
+        Insert: {
+          blocked_id: string;
+          blocker_id: string;
+          created_at?: string;
+        };
+        Update: {
+          blocked_id?: string;
+          blocker_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "blocks_blocked_id_fkey";
+            columns: ["blocked_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "blocks_blocker_id_fkey";
+            columns: ["blocker_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -863,6 +896,8 @@ export type Database = {
           members_only: boolean;
           min_age: number;
           min_headcount: number | null;
+          moderated_at: string | null;
+          moderation_state: string | null;
           occurrence_date: string | null;
           price_text: string | null;
           search_text: string | null;
@@ -905,6 +940,8 @@ export type Database = {
           members_only?: boolean;
           min_age?: number;
           min_headcount?: number | null;
+          moderated_at?: string | null;
+          moderation_state?: string | null;
           occurrence_date?: string | null;
           price_text?: string | null;
           search_text?: string | null;
@@ -947,6 +984,8 @@ export type Database = {
           members_only?: boolean;
           min_age?: number;
           min_headcount?: number | null;
+          moderated_at?: string | null;
+          moderation_state?: string | null;
           occurrence_date?: string | null;
           price_text?: string | null;
           search_text?: string | null;
@@ -1213,6 +1252,8 @@ export type Database = {
           hub_id: string;
           id: string;
           is_active: boolean;
+          moderated_at: string | null;
+          moderation_state: string | null;
           name: string;
           org_id: string | null;
           pin_url: string | null;
@@ -1233,6 +1274,8 @@ export type Database = {
           hub_id: string;
           id?: string;
           is_active?: boolean;
+          moderated_at?: string | null;
+          moderation_state?: string | null;
           name: string;
           org_id?: string | null;
           pin_url?: string | null;
@@ -1253,6 +1296,8 @@ export type Database = {
           hub_id?: string;
           id?: string;
           is_active?: boolean;
+          moderated_at?: string | null;
+          moderation_state?: string | null;
           name?: string;
           org_id?: string | null;
           pin_url?: string | null;
@@ -1495,6 +1540,8 @@ export type Database = {
           is_active: boolean;
           is_featured: boolean;
           min_age: number;
+          moderated_at: string | null;
+          moderation_state: string | null;
           name: string;
           place_mode: string;
           scope: string;
@@ -1515,6 +1562,8 @@ export type Database = {
           is_active?: boolean;
           is_featured?: boolean;
           min_age?: number;
+          moderated_at?: string | null;
+          moderation_state?: string | null;
           name: string;
           place_mode?: string;
           scope?: string;
@@ -1535,6 +1584,8 @@ export type Database = {
           is_active?: boolean;
           is_featured?: boolean;
           min_age?: number;
+          moderated_at?: string | null;
+          moderation_state?: string | null;
           name?: string;
           place_mode?: string;
           scope?: string;
@@ -1621,6 +1672,93 @@ export type Database = {
           value?: string;
         };
         Relationships: [];
+      };
+      moderation_actions: {
+        Row: {
+          action: string;
+          created_at: string;
+          id: string;
+          moderator_id: string | null;
+          note: string | null;
+          report_count: number;
+          snapshot: Json | null;
+          target_id: string;
+          target_kind: string;
+          target_user_id: string | null;
+        };
+        Insert: {
+          action: string;
+          created_at?: string;
+          id?: string;
+          moderator_id?: string | null;
+          note?: string | null;
+          report_count?: number;
+          snapshot?: Json | null;
+          target_id: string;
+          target_kind: string;
+          target_user_id?: string | null;
+        };
+        Update: {
+          action?: string;
+          created_at?: string;
+          id?: string;
+          moderator_id?: string | null;
+          note?: string | null;
+          report_count?: number;
+          snapshot?: Json | null;
+          target_id?: string;
+          target_kind?: string;
+          target_user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "moderation_actions_moderator_id_fkey";
+            columns: ["moderator_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "moderation_actions_target_user_id_fkey";
+            columns: ["target_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      mutes: {
+        Row: {
+          created_at: string;
+          muted_id: string;
+          muter_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          muted_id: string;
+          muter_id: string;
+        };
+        Update: {
+          created_at?: string;
+          muted_id?: string;
+          muter_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "mutes_muted_id_fkey";
+            columns: ["muted_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "mutes_muter_id_fkey";
+            columns: ["muter_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       notification_prefs: {
         Row: {
@@ -2672,6 +2810,8 @@ export type Database = {
           home_campus_id: string | null;
           home_org_id: string | null;
           id: string;
+          moderated_at: string | null;
+          moderation_state: string | null;
           onboarding_completed_at: string | null;
           status: Database["public"]["Enums"]["account_status"];
           updated_at: string;
@@ -2689,6 +2829,8 @@ export type Database = {
           home_campus_id?: string | null;
           home_org_id?: string | null;
           id: string;
+          moderated_at?: string | null;
+          moderation_state?: string | null;
           onboarding_completed_at?: string | null;
           status?: Database["public"]["Enums"]["account_status"];
           updated_at?: string;
@@ -2706,6 +2848,8 @@ export type Database = {
           home_campus_id?: string | null;
           home_org_id?: string | null;
           id?: string;
+          moderated_at?: string | null;
+          moderation_state?: string | null;
           onboarding_completed_at?: string | null;
           status?: Database["public"]["Enums"]["account_status"];
           updated_at?: string;
@@ -2774,6 +2918,76 @@ export type Database = {
           {
             foreignKeyName: "push_devices_user_id_fkey";
             columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      reports: {
+        Row: {
+          created_at: string;
+          due_at: string;
+          id: string;
+          note: string;
+          priority: number;
+          reason: string;
+          reporter_id: string | null;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          status: string;
+          target_id: string;
+          target_kind: string;
+          target_user_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          due_at?: string;
+          id?: string;
+          note?: string;
+          priority?: number;
+          reason: string;
+          reporter_id?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: string;
+          target_id: string;
+          target_kind: string;
+          target_user_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          due_at?: string;
+          id?: string;
+          note?: string;
+          priority?: number;
+          reason?: string;
+          reporter_id?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: string;
+          target_id?: string;
+          target_kind?: string;
+          target_user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reports_reporter_id_fkey";
+            columns: ["reporter_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reports_resolved_by_fkey";
+            columns: ["resolved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reports_target_user_id_fkey";
+            columns: ["target_user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -3309,6 +3523,10 @@ export type Database = {
     Functions: {
       accept_guidelines: { Args: never; Returns: string };
       add_place: { Args: { p_args: Json }; Returns: Json };
+      admin_set_moderator: {
+        Args: { p_grant: boolean; p_note?: string; p_user: string };
+        Returns: Json;
+      };
       approve_rsvp: {
         Args: { p_approved?: boolean; p_event_id: string; p_user_id: string };
         Returns: {
@@ -3333,6 +3551,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      block_user: { Args: { p_user: string }; Returns: Json };
       broadcast_to_event: {
         Args: { p_body: string; p_event_id: string };
         Returns: Json;
@@ -3368,6 +3587,8 @@ export type Database = {
           members_only: boolean;
           min_age: number;
           min_headcount: number | null;
+          moderated_at: string | null;
+          moderation_state: string | null;
           occurrence_date: string | null;
           price_text: string | null;
           search_text: string | null;
@@ -3527,6 +3748,8 @@ export type Database = {
           home_campus_id: string | null;
           home_org_id: string | null;
           id: string;
+          moderated_at: string | null;
+          moderation_state: string | null;
           onboarding_completed_at: string | null;
           status: Database["public"]["Enums"]["account_status"];
           updated_at: string;
@@ -3572,6 +3795,8 @@ export type Database = {
           members_only: boolean;
           min_age: number;
           min_headcount: number | null;
+          moderated_at: string | null;
+          moderation_state: string | null;
           occurrence_date: string | null;
           price_text: string | null;
           search_text: string | null;
@@ -3690,6 +3915,7 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      event_block_warning: { Args: { p_event: string }; Returns: number };
       event_drop_ineligible_rsvps: {
         Args: { p_event_id: string };
         Returns: number;
@@ -3756,6 +3982,8 @@ export type Database = {
           members_only: boolean;
           min_age: number;
           min_headcount: number | null;
+          moderated_at: string | null;
+          moderation_state: string | null;
           occurrence_date: string | null;
           price_text: string | null;
           search_text: string | null;
@@ -3934,6 +4162,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      is_blocked_with: { Args: { p_other: string }; Returns: boolean };
       is_campus_org_member: { Args: { p_campus: string }; Returns: boolean };
       is_chapter_captain: { Args: { p_chapter: string }; Returns: boolean };
       is_moderator: { Args: never; Returns: boolean };
@@ -3998,9 +4227,20 @@ export type Database = {
         Args: { p_place_id: string };
         Returns: undefined;
       };
+      mod_ban_user: { Args: { p_note?: string; p_user: string }; Returns: Json };
+      mod_moderate: {
+        Args: {
+          p_action: string;
+          p_id: string;
+          p_kind: string;
+          p_note?: string;
+        };
+        Returns: Json;
+      };
       mod_place_facts: { Args: { p_id: string }; Returns: Json };
       mod_place_health: { Args: never; Returns: Json };
       mod_place_queue: { Args: { p_limit?: number }; Returns: Json };
+      mod_report_queue: { Args: { p_limit?: number }; Returns: Json };
       mod_resolve_place: {
         Args: {
           p_action: string;
@@ -4013,6 +4253,30 @@ export type Database = {
       mod_review_source_candidate: {
         Args: { p_approve: boolean; p_id: string; p_reason?: string };
         Returns: Json;
+      };
+      mod_team: { Args: never; Returns: Json };
+      mod_unban_user: {
+        Args: { p_note?: string; p_user: string };
+        Returns: Json;
+      };
+      moderation_is_own: {
+        Args: { p_id: string; p_kind: string; p_target_user: string };
+        Returns: boolean;
+      };
+      moderation_set_state: {
+        Args: { p_id: string; p_kind: string; p_state: string };
+        Returns: string;
+      };
+      mute_user: { Args: { p_user: string }; Returns: Json };
+      my_blocks: {
+        Args: never;
+        Returns: {
+          avatar_url: string;
+          blocked_at: string;
+          first_name: string;
+          handle: string;
+          user_id: string;
+        }[];
       };
       my_chapter_claims: {
         Args: never;
@@ -4257,6 +4521,15 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      report_content: {
+        Args: {
+          p_id: string;
+          p_kind: string;
+          p_note?: string;
+          p_reason: string;
+        };
+        Returns: Json;
+      };
       report_place: {
         Args: { p_note?: string; p_place: string; p_reason: string };
         Returns: Json;
@@ -4461,6 +4734,8 @@ export type Database = {
         Returns: Json;
       };
       touch_last_seen: { Args: never; Returns: undefined };
+      unblock_user: { Args: { p_user: string }; Returns: Json };
+      unmute_user: { Args: { p_user: string }; Returns: Json };
       unread_notification_count: { Args: never; Returns: number };
       update_event: {
         Args: { p_args: Json; p_event_id: string };
@@ -4492,6 +4767,8 @@ export type Database = {
           members_only: boolean;
           min_age: number;
           min_headcount: number | null;
+          moderated_at: string | null;
+          moderation_state: string | null;
           occurrence_date: string | null;
           price_text: string | null;
           search_text: string | null;
@@ -4588,6 +4865,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      users_blocked: { Args: { p_a: string; p_b: string }; Returns: boolean };
       venue_for_place: {
         Args: { p_place_id: string };
         Returns: {
@@ -4689,7 +4967,8 @@ export type Database = {
         | "checkin_prompt"
         | "hub_new_event"
         | "broadcast"
-        | "chapter_claim_update";
+        | "chapter_claim_update"
+        | "blocked_attendee";
       org_kind: "university" | "company" | "community";
       org_role: "member" | "officer" | "admin";
       place_source: "osm" | "geoapify" | "user" | "venue";
@@ -4840,6 +5119,7 @@ export const Constants = {
         "hub_new_event",
         "broadcast",
         "chapter_claim_update",
+        "blocked_attendee",
       ],
       org_kind: ["university", "company", "community"],
       org_role: ["member", "officer", "admin"],
