@@ -10,14 +10,14 @@
  *   distanceBandLabel("approximate")              // "Approximate area"
  */
 
-/**
- * The zone used for Today / This week / Later only when the viewer's own is unknown (feed_events_v2
- * falls back to the event's zone first, then this one).
- */
 import { bandText, type DistanceUnit } from "./distance";
 
 export * from "./distance";
 
+/**
+ * The zone used for Today / This week / Later only when the viewer's own is unknown (feed_events_v2
+ * falls back to the event's zone first, then this one).
+ */
 export const FEED_TIMEZONE = "America/New_York";
 
 /** Zone names that mean UTC but have no "/", which the database refuses; sent as Etc/UTC. */
@@ -205,7 +205,7 @@ export function distanceBandLabel(
   unit: DistanceUnit = "mi",
 ): string | null {
   if (band === "approximate") return "Approximate area";
-  if (!band || !(band in BAND_KEYS)) return null;
+  if (!band || !Object.hasOwn(BAND_KEYS, band)) return null;
   return bandText(band, unit);
 }
 

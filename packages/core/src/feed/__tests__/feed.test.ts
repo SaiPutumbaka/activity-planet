@@ -140,6 +140,8 @@ describe("distanceBandLabel", () => {
     expect(distanceBandLabel("25+ mi")).toBe("25+ mi");
     expect(distanceBandLabel(null)).toBeNull();
     expect(distanceBandLabel("weird")).toBeNull();
+    expect(distanceBandLabel("toString")).toBeNull();
+    expect(distanceBandLabel("constructor")).toBeNull();
   });
 });
 

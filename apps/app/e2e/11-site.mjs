@@ -1,6 +1,7 @@
 // The public site (apps/web, `next build` + `next start`) at 390x844 and 1280x800: the landing
 // page, /bot and its removal form, the Safety Center and intimate-image page, the policy pages
-// (Community Guidelines, Coach Terms, Refund Policy, map data), /account/delete and /unsubscribe.
+// (Community Guidelines, Coach Terms, Refund Policy, map data), /account/delete, /unsubscribe and
+// /support (the app's sign-in footer links it as Help).
 // Each must answer 200, fit without a sideways scroll, give every image alt text and link only
 // to pages that exist on the site. The site's 404 must offer a way home. No account is needed.
 // /terms and /privacy are reported (NOTE), not failed, until the attorney-reviewed texts exist
@@ -34,6 +35,7 @@ const PAGES = [
   "/map-data",
   "/account/delete",
   "/unsubscribe",
+  "/support",
 ];
 const PENDING = new Set(["/terms", "/privacy"]);
 

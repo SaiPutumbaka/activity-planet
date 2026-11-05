@@ -12,10 +12,7 @@ const VERSION = "guidelines 2026-11";
 
 /** The five rules members accept at their first RSVP (apps/app guidelines-sheet.tsx). */
 const RULES: [string, string][] = [
-  [
-    "Be real",
-    "Your name, your face, your plans. No fake accounts and no pretending to be someone else.",
-  ],
+  ["Be real", "Your name, your face, your plans. No fake accounts."],
   ["Show up, or cancel early", "A spot you hold is a spot someone else wanted."],
   ["Respect the host and the space", "Their rules, their room. Leave it as you found it."],
   ["No harassment", "No threats, slurs or unwanted contact. Report it and we act."],
@@ -55,7 +52,7 @@ const MORE: [string, string][] = [
 
 /**
  * Community Guidelines, DRAFT (TRUST-SAFETY-LEGAL section 6). Static. Linked from the app's
- * guidelines sheet (accepted at the first RSVP), the Safety Center and the sign-up footer.
+ * guidelines sheet (accepted at the first RSVP), the Safety Center and the Help page.
  */
 export default function GuidelinesPage() {
   return (

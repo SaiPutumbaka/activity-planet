@@ -25,7 +25,7 @@ New in Release B (release A's scope table still applies):
 | Recommendations      | For you on Home with up to two reason chips, Not interested and Undo, Why am I seeing this, Similar plans, Hubs you may like, Coaches for you, People you might click with, the privacy switches in You                          |
 | Landing page v2      | This week near you (Atlanta by default, a city picker, location only after a tap), How it works, the trust section, "On your phone" notes                                                                                        |
 | PWA polish           | Install card (Chromium prompt, iPhone instructions, hidden when installed), "A new version is ready" toast, app badge, the full manifest and iOS splash screens                                                                  |
-| Site pages           | `/bot`, `/bot/remove`, `/guidelines` (draft), `/coach-terms` (draft), `/refund-policy` (draft), `/safety`, `/safety/intimate-images`, `/map-data`, `/account/delete`, the 404 page                                               |
+| Site pages           | `/bot`, `/bot/remove`, `/support`, `/guidelines` (draft), `/coach-terms` (draft), `/refund-policy` (draft), `/safety`, `/safety/intimate-images`, `/map-data`, `/account/delete`, the 404 page                                   |
 
 Out of scope: chat images (off until the classifier exists, section 6), live payments, the
 assistant, store apps, and email or push delivery before the keys exist (FOUNDER-TODO, top).
@@ -108,8 +108,8 @@ Results of the Nov 5 QA pass (fresh builds of both apps against staging):
 | 08-coaching finish | 390, two accounts | 6 passed, 0 failed       | After `qa_coaching_past.sql` (run 42054036121)                                                           |
 | 09-collector       | 390 and 1280      | 20 passed, 0 failed      | The removal form answers 503 locally because the site has no service key; on Vercel it needs the key too |
 | 10-recs            | 390 and 1280      | 22 passed, 0 failed      | Coaches for you and People you might click with show 0 cards for the QA account (reported, not failed)   |
-| 11-site (new)      | 390 and 1280      | 26 passed, 0 failed      | `/terms` and `/privacy` are linked and not live yet (NOTE lines, section 6)                              |
-| **Total**          |                   | **214 passed, 0 failed** | After the fixes below, 02, 03, 05, 10 and 11 were run again on the new builds and still pass             |
+| 11-site (new)      | 390 and 1280      | 28 passed, 0 failed      | `/terms` and `/privacy` are linked and not live yet (NOTE lines, section 6)                              |
+| **Total**          |                   | **216 passed, 0 failed** | After the fixes below, 02, 03, 05, 10 and 11 were run again on the new builds and still pass             |
 
 The only console noise is `ERR_TUNNEL_CONNECTION_FAILED` from the map tile host and imported image
 hosts, which the test container cannot reach.
@@ -137,9 +137,10 @@ Bugs found and fixed in this pass (each verified in the browser on a fresh build
 2. **The site's 404 was Next's bare default** with no way back. It now names the likely reasons and
    links Home, the app and the Safety Center.
 3. **Distances were always in miles** on plan cards, recommendation chips, "Why am I seeing this?"
-   and coach rows, while the radius, the map and everything else use kilometres. They now follow
-   the browser's locale (COACHING_DESIGN section 6): a `de-DE` browser in Freiburg reads "Under 2 km"
-   and "2 to 8 km", an `en-US` browser still reads "Under 1 mi".
+   and coach rows. They now follow the browser's locale (COACHING_DESIGN section 6): a `de-DE`
+   browser in Freiburg reads "Under 2 km" and "2 to 8 km", an `en-US` browser still reads "Under 1
+   mi". The radius and the map still always use kilometres, and the landing page's week cards still
+   always use miles (section 6).
 4. **A broken-image icon** showed on For you when an imported listing's cover image failed to load.
    Plan covers now fall back to the drawn default cover on the card, the For you card, the hub page
    and the plan page.
@@ -150,6 +151,9 @@ Bugs found and fixed in this pass (each verified in the browser on a fresh build
    "Every plan you join has a chat". The copy now says to open one and tap Chat.
 7. **08-coaching left the QA coach page live**: its cleanup closed the browser right after tapping
    "Pause my page". It now waits for the confirmation.
+8. **The app's sign-in and sign-up footer linked Help to `/support`, a 404.** The site now has a
+   Help page there (the support address, Report in the app, and links to the Safety Center,
+   Guidelines, Refund Policy and account deletion), and 11-site checks it.
 
 ### 3.5 Demo data
 
@@ -233,8 +237,8 @@ second address or a friend's phone) on production unless a line says staging.
 
 - [ ] The landing page shows This week near you for Atlanta, and the city picker swaps the cards
       without a reload. No location prompt until you tap "Use my location".
-- [ ] `/safety`, `/guidelines`, `/coach-terms`, `/refund-policy`, `/bot`, `/map-data` and
-      `/account/delete` read well with no sideways scroll. A wrong address shows the 404 with a
+- [ ] `/safety`, `/support`, `/guidelines`, `/coach-terms`, `/refund-policy`, `/bot`, `/map-data`
+      and `/account/delete` read well with no sideways scroll. A wrong address shows the 404 with a
       way home.
 
 ## 5. Release criteria (go or no-go on Jan 3)
