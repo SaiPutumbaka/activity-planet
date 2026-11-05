@@ -18,3 +18,17 @@ export function createAnonServerClient(): ServerSupabaseClient {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
 }
+
+/**
+ * Service-role client for the few server routes that file on someone's behalf (the NCII request,
+ * migration 54). Server only: SUPABASE_SERVICE_ROLE_KEY is never exposed to the browser (no
+ * NEXT_PUBLIC_ prefix). Null when the key is not configured.
+ */
+export function createServiceServerClient(): ServerSupabaseClient | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createClient<Database>(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+}

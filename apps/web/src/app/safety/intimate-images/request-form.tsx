@@ -1,9 +1,19 @@
 "use client";
 
+import Script from "next/script";
 import { useState, type FormEvent } from "react";
 import { parseTakedownRequest, takedownErrorMessage, TAKEDOWN_LIMITS } from "@ap/core/validation";
 
 type Sent = { reference: string; dueAt: string | null };
+
+/** Cloudflare Turnstile (migration 54): shown when the site key is configured; the route checks it. */
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+
+declare global {
+  interface Window {
+    turnstile?: { reset: (widget?: string) => void };
+  }
+}
 
 const field =
   "w-full rounded-xl border border-border bg-surface px-4 py-3 text-base text-text placeholder:text-text-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
@@ -38,7 +48,10 @@ export function RequestForm({ supportEmail }: { supportEmail: string }) {
       const res = await fetch("/api/takedown", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(checked.value),
+        body: JSON.stringify({
+          ...checked.value,
+          turnstileToken: String(f.get("cf-turnstile-response") ?? ""),
+        }),
       });
       const body = (await res.json().catch(() => ({}))) as {
         reference?: string;
@@ -47,6 +60,7 @@ export function RequestForm({ supportEmail }: { supportEmail: string }) {
       };
       if (!res.ok || !body.reference) {
         setError(takedownErrorMessage(body.error ?? "unavailable"));
+        window.turnstile?.reset();
         return;
       }
       setSent({ reference: body.reference, dueAt: body.due_at ?? null });
@@ -194,6 +208,13 @@ export function RequestForm({ supportEmail }: { supportEmail: string }) {
           className={field}
         />
       </div>
+
+      {TURNSTILE_SITE_KEY ? (
+        <>
+          <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
+          <div className="cf-turnstile" data-sitekey={TURNSTILE_SITE_KEY} />
+        </>
+      ) : null}
 
       {error ? (
         <p role="alert" className="rounded-xl bg-danger-tint p-4 text-text">

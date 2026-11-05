@@ -59,6 +59,7 @@ export interface BlockResult {
 export interface ReportResult {
   id: string;
   already: boolean;
+  /** True only when this report hid the item (migration 54); never the item's state. */
   hidden: boolean;
 }
 

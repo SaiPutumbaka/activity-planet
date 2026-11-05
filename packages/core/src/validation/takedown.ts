@@ -26,6 +26,7 @@ export type TakedownError =
   | "good_faith_required"
   | "signature_required"
   | "rate_limited"
+  | "verification_failed"
   | "bad_request"
   | "unavailable";
 
@@ -122,7 +123,9 @@ const MESSAGES: Record<TakedownError, string> = {
   good_faith_required: "Tick the statement to confirm the image was shared without consent.",
   signature_required: "Type your full name as your signature.",
   rate_limited:
-    "We have already received several requests from this address today. We will reply to those; you can also email us.",
+    "We have already received several requests from you today. We will reply to those; you can also email us.",
+  verification_failed:
+    "We could not confirm the form was sent by a person. Reload the page and try again, or email us.",
   bad_request: "Something in the form did not come through. Please try again.",
   unavailable: "We could not send your request just now. Please try again, or email us.",
 };

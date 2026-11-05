@@ -429,6 +429,7 @@ const MESSAGES: Record<string, string> = {
   user_not_found: "We couldn't find that account.",
   cannot_ban_admin: "Admins can't be banned.",
   invalid_query: "Type a handle (2 or more characters), an account email or a user id.",
+  rate_limited: "That's 200 searches today. Searching opens again tomorrow.",
   invalid_image_url: "Paste the image's full Activity Planet link.",
   request_closed: "This request is already closed.",
   request_open: "This request is still open.",
