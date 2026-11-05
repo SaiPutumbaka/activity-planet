@@ -38,6 +38,7 @@ import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
 import { Route as AppChaptersSlugRouteImport } from './routes/_app/chapters_.$slug'
 import { Route as AppEventsIdRouteImport } from './routes/_app/events_.$id'
 import { Route as AppHubsSlugRouteImport } from './routes/_app/hubs_.$slug'
+import { Route as AppYouBlockedRouteImport } from './routes/_app/you_.blocked'
 import { Route as AppYouDeleteRouteImport } from './routes/_app/you_.delete'
 import { Route as AppYouNotificationsRouteImport } from './routes/_app/you_.notifications'
 import { Route as AppYouPhotoRouteImport } from './routes/_app/you_.photo'
@@ -190,6 +191,11 @@ const AppHubsSlugRoute = AppHubsSlugRouteImport.update({
   path: '/hubs/$slug',
   getParentRoute: () => AppRoute,
 } as any)
+const AppYouBlockedRoute = AppYouBlockedRouteImport.update({
+  id: '/you_/blocked',
+  path: '/you/blocked',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppYouDeleteRoute = AppYouDeleteRouteImport.update({
   id: '/you_/delete',
   path: '/you/delete',
@@ -255,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/chapters/$slug': typeof AppChaptersSlugRoute
   '/events/$id': typeof AppEventsIdRoute
   '/hubs/$slug': typeof AppHubsSlugRoute
+  '/you/blocked': typeof AppYouBlockedRoute
   '/you/delete': typeof AppYouDeleteRoute
   '/you/notifications': typeof AppYouNotificationsRoute
   '/you/photo': typeof AppYouPhotoRoute
@@ -292,6 +299,7 @@ export interface FileRoutesByTo {
   '/chapters/$slug': typeof AppChaptersSlugRoute
   '/events/$id': typeof AppEventsIdRoute
   '/hubs/$slug': typeof AppHubsSlugRoute
+  '/you/blocked': typeof AppYouBlockedRoute
   '/you/delete': typeof AppYouDeleteRoute
   '/you/notifications': typeof AppYouNotificationsRoute
   '/you/photo': typeof AppYouPhotoRoute
@@ -331,6 +339,7 @@ export interface FileRoutesById {
   '/_app/chapters_/$slug': typeof AppChaptersSlugRoute
   '/_app/events_/$id': typeof AppEventsIdRoute
   '/_app/hubs_/$slug': typeof AppHubsSlugRoute
+  '/_app/you_/blocked': typeof AppYouBlockedRoute
   '/_app/you_/delete': typeof AppYouDeleteRoute
   '/_app/you_/notifications': typeof AppYouNotificationsRoute
   '/_app/you_/photo': typeof AppYouPhotoRoute
@@ -370,6 +379,7 @@ export interface FileRouteTypes {
     | '/chapters/$slug'
     | '/events/$id'
     | '/hubs/$slug'
+    | '/you/blocked'
     | '/you/delete'
     | '/you/notifications'
     | '/you/photo'
@@ -407,6 +417,7 @@ export interface FileRouteTypes {
     | '/chapters/$slug'
     | '/events/$id'
     | '/hubs/$slug'
+    | '/you/blocked'
     | '/you/delete'
     | '/you/notifications'
     | '/you/photo'
@@ -445,6 +456,7 @@ export interface FileRouteTypes {
     | '/_app/chapters_/$slug'
     | '/_app/events_/$id'
     | '/_app/hubs_/$slug'
+    | '/_app/you_/blocked'
     | '/_app/you_/delete'
     | '/_app/you_/notifications'
     | '/_app/you_/photo'
@@ -667,6 +679,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppHubsSlugRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/you_/blocked': {
+      id: '/_app/you_/blocked'
+      path: '/you/blocked'
+      fullPath: '/you/blocked'
+      preLoaderRoute: typeof AppYouBlockedRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/you_/delete': {
       id: '/_app/you_/delete'
       path: '/you/delete'
@@ -737,6 +756,7 @@ interface AppRouteChildren {
   AppChaptersSlugRoute: typeof AppChaptersSlugRoute
   AppEventsIdRoute: typeof AppEventsIdRoute
   AppHubsSlugRoute: typeof AppHubsSlugRoute
+  AppYouBlockedRoute: typeof AppYouBlockedRoute
   AppYouDeleteRoute: typeof AppYouDeleteRoute
   AppYouNotificationsRoute: typeof AppYouNotificationsRoute
   AppYouPhotoRoute: typeof AppYouPhotoRoute
@@ -765,6 +785,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppChaptersSlugRoute: AppChaptersSlugRoute,
   AppEventsIdRoute: AppEventsIdRoute,
   AppHubsSlugRoute: AppHubsSlugRoute,
+  AppYouBlockedRoute: AppYouBlockedRoute,
   AppYouDeleteRoute: AppYouDeleteRoute,
   AppYouNotificationsRoute: AppYouNotificationsRoute,
   AppYouPhotoRoute: AppYouPhotoRoute,

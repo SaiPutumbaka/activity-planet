@@ -1,8 +1,13 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, CircleCheck, Megaphone, UserX } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  PersonActionsButton,
+  PersonSheet,
+  type SafetyPerson,
+} from "@/components/safety/person-sheet";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
@@ -24,6 +29,7 @@ import {
   broadcastSentMessage,
   broadcastToEvent,
 } from "@/lib/notifications";
+import { attendeeName, blockedIdSet, myBlocksQuery } from "@/lib/safety";
 import { inHostCheckInWindow } from "./event-state";
 
 /**
@@ -33,6 +39,8 @@ import { inHostCheckInWindow } from "./event-state";
  * before the start to a day after the end); Remove cancels their RSVP and keeps them out until a
  * moderator steps in. "Message everyone going" sends one note to the going and waitlisted
  * people (broadcast_to_event, up to 3 per plan per day) until a day after the end.
+ * Each other person's row opens their profile card (Mute, Block, Report); a row for someone the
+ * viewer blocked has no profile (RLS) and reads "Blocked member".
  */
 export function AttendeesSection({
   event,
@@ -44,14 +52,17 @@ export function AttendeesSection({
   attendees: Attendee[];
   /** The viewer is the host (copy only; captains see "the host" where the host sees "you"). */
   isHost?: boolean;
-  /** The signed-in viewer; left out of the broadcast recipient count. */
-  viewerId?: string;
+  /** The signed-in viewer; left out of the broadcast recipient count, and owns the block list. */
+  viewerId: string;
 }) {
   const queryClient = useQueryClient();
   const [removing, setRemoving] = useState<Attendee | null>(null);
   const [reason, setReason] = useState("");
   const [composing, setComposing] = useState(false);
   const [message, setMessage] = useState("");
+  const [person, setPerson] = useState<SafetyPerson | null>(null);
+  const blocks = useQuery(myBlocksQuery(viewerId));
+  const blockedIds = blockedIdSet(blocks.data);
   const needsApproval = event.address_visibility === "approved_only";
   const checkInOpen = event.status !== "cancelled" && inHostCheckInWindow(event);
 
@@ -114,7 +125,8 @@ export function AttendeesSection({
 
   function row(a: Attendee) {
     const isHostRow = a.user_id === event.host_id;
-    const name = a.profiles?.first_name ?? "Deleted user";
+    const name = attendeeName(a.profiles, a.user_id, blockedIds);
+    const profile = a.profiles;
     const detail = isHostRow
       ? "Host"
       : a.status === "waitlisted"
@@ -164,6 +176,12 @@ export function AttendeesSection({
           >
             {a.approved_by_host ? "Approved" : "Approve"}
           </Button>
+        ) : null}
+        {profile && a.user_id !== viewerId ? (
+          <PersonActionsButton
+            name={name}
+            onClick={() => setPerson({ user_id: a.user_id, ...profile })}
+          />
         ) : null}
         {!isHostRow ? (
           <Button
@@ -266,7 +284,11 @@ export function AttendeesSection({
       <Sheet
         open={removing !== null}
         onClose={() => setRemoving(null)}
-        title={removing ? `Remove ${removing.profiles?.first_name ?? "this person"}?` : "Remove"}
+        title={
+          removing
+            ? `Remove ${removing.profiles?.first_name ?? (blockedIds.has(removing.user_id) ? "this blocked member" : "this person")}?`
+            : "Remove"
+        }
         footer={
           <Button
             variant="danger"
@@ -292,6 +314,7 @@ export function AttendeesSection({
           disabled={remove.isPending}
         />
       </Sheet>
+      <PersonSheet person={person} viewerId={viewerId} onClose={() => setPerson(null)} />
     </section>
   );
 }

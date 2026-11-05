@@ -21,6 +21,12 @@ import {
   ListSkeleton,
   SectionHeading,
 } from "@/components/hubs/hub-states";
+import {
+  PersonActionsButton,
+  PersonSheet,
+  type SafetyPerson,
+} from "@/components/safety/person-sheet";
+import { ReportButton } from "@/components/safety/report-button";
 import { TopBar } from "@/components/shell/top-bar";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -301,6 +307,10 @@ function ChapterContent({ chapter }: { chapter: ChapterDetail }) {
         </section>
       ) : null}
 
+      {viewerRole === "organizer" || viewerRole === "captain" ? null : (
+        <ReportButton kind="chapter" targetId={chapter.id} />
+      )}
+
       {chapter.hubs ? (
         <ClaimChapterSheet
           open={claimOpen}
@@ -355,6 +365,7 @@ function MembersPanel({
   onChanged: () => void;
 }) {
   const [removing, setRemoving] = useState<ChapterMember | null>(null);
+  const [person, setPerson] = useState<SafetyPerson | null>(null);
   const organizerCount = members.filter((m) => m.role === "organizer").length;
 
   const role = useMutation({
@@ -391,6 +402,7 @@ function MembersPanel({
             organizerCount,
           });
           const busy = role.isPending && role.variables?.userId === m.user_id;
+          const profile = m.profiles;
           return (
             <li key={m.user_id} className="flex min-h-14 items-center gap-3 px-4 py-2">
               <Avatar src={m.profiles?.avatar_url} name={name} size={36} />
@@ -424,6 +436,12 @@ function MembersPanel({
               ) : (
                 <span className="text-[13px] font-semibold text-text-2">{roleLabel(m.role)}</span>
               )}
+              {profile && m.user_id !== viewerId ? (
+                <PersonActionsButton
+                  name={name}
+                  onClick={() => setPerson({ user_id: m.user_id, ...profile })}
+                />
+              ) : null}
               {actions.canRemove ? (
                 <Button
                   variant="ghost"
@@ -459,6 +477,7 @@ function MembersPanel({
           They leave the chapter and lose any role in it. They can join again later.
         </p>
       </Sheet>
+      <PersonSheet person={person} viewerId={viewerId} onClose={() => setPerson(null)} />
     </>
   );
 }

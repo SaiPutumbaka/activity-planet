@@ -13,6 +13,8 @@ import { supabase } from "./supabase";
  *   await reportContent("event", id, "scam", note)
  *   useQuery(myBlocksQuery(userId))
  *   useQuery(eventBlockWarningQuery(eventId, userId))   // >0: someone you blocked is on this plan
+ *   useQuery(myMutesQuery(userId))   // ids the viewer muted (mutes RLS: own rows only)
+ *   attendeeName(row.profiles, row.user_id, blockedIds)   // "Blocked member" for a host's row
  */
 
 export type ReportKind = "profile" | "event" | "chapter" | "hub";
@@ -148,6 +150,7 @@ export { reportPlace };
 export const safetyKeys = {
   blocks: (userId: string) => ["safety", "blocks", userId] as const,
   warning: (eventId: string, userId: string) => ["safety", "warning", eventId, userId] as const,
+  mutes: (userId: string) => ["safety", "mutes", userId] as const,
 };
 
 export const myBlocksQuery = (userId: string) =>
@@ -178,4 +181,78 @@ export function blockWarningText(count: number): string | null {
   return count === 1
     ? "Someone you blocked is on this plan. You won't see each other's RSVPs."
     : `${count} people you blocked are on this plan. You won't see each other's RSVPs.`;
+}
+
+export const myMutesQuery = (userId: string) =>
+  queryOptions({
+    queryKey: safetyKeys.mutes(userId),
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await supabase
+        .from("mutes")
+        .select("muted_id")
+        .eq("muter_id", userId);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.muted_id);
+    },
+    staleTime: 60_000,
+  });
+
+/** The user ids in a block list, for lookups on attendee rows. */
+export function blockedIdSet(list: readonly Pick<BlockedPerson, "user_id">[] | undefined) {
+  return new Set((list ?? []).map((b) => b.user_id));
+}
+
+/**
+ * The name on an attendee row. Profiles RLS hides people across a block, so a host's row for
+ * someone they blocked comes back without a profile: say "Blocked member", not "Deleted user".
+ */
+export function attendeeName(
+  profile: { first_name: string } | null | undefined,
+  userId: string,
+  blockedIds: ReadonlySet<string>,
+): string {
+  if (profile?.first_name) return profile.first_name;
+  return blockedIds.has(userId) ? "Blocked member" : "Deleted user";
+}
+
+/** What a report is about, for titles and buttons ("Report this plan"). */
+export const REPORT_SUBJECTS: Record<ReportKind, string> = {
+  profile: "this profile",
+  event: "this plan",
+  chapter: "this chapter",
+  hub: "this hub",
+};
+
+export function reportTitle(kind: ReportKind, name?: string | null): string {
+  if (kind === "profile" && name) return `Report ${name}`;
+  return `Report ${REPORT_SUBJECTS[kind]}`;
+}
+
+/** The toast after report_content. Never says whether the item is hidden unless this report hid it. */
+export function reportSentText(result: Pick<ReportResult, "already" | "hidden">): string {
+  if (result.already) return "You already reported this. A moderator will look at it.";
+  if (result.hidden) return "Thanks. It's hidden until a moderator looks at it.";
+  return "Thanks. A moderator will look at it.";
+}
+
+/** The toast after block_user, with the shared-plans heads-up when there are any. */
+export function blockedText(name: string, result: Pick<BlockResult, "shared_upcoming">): string {
+  const n = result.shared_upcoming;
+  if (n <= 0) return `You blocked ${name}.`;
+  return n === 1
+    ? `You blocked ${name}. You're both on 1 upcoming plan; they aren't told.`
+    : `You blocked ${name}. You're both on ${n} upcoming plans; they aren't told.`;
+}
+
+/** "Blocked Nov 5, 2026" under a name in the Blocked accounts list. */
+export function blockedOnText(iso: string, timeZone?: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "Blocked";
+  const day = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    ...(timeZone ? { timeZone } : {}),
+  }).format(d);
+  return `Blocked ${day}`;
 }

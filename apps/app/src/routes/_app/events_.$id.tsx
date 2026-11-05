@@ -26,6 +26,13 @@ import { RsvpBar } from "@/components/events/rsvp-bar";
 import { useRsvp } from "@/components/events/use-rsvp";
 import { ImportedChips, ImportedSourceSection } from "@/components/events/imported-source";
 import { HubBadges } from "@/components/hubs/hub-badges";
+import { BlockWarning } from "@/components/safety/block-warning";
+import {
+  PersonActionsButton,
+  PersonSheet,
+  type SafetyPerson,
+} from "@/components/safety/person-sheet";
+import { ReportButton } from "@/components/safety/report-button";
 import { TopBar } from "@/components/shell/top-bar";
 import { Avatar, AvatarStack } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -140,6 +147,7 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [attendanceOpen, setAttendanceOpen] = useState(false);
+  const [person, setPerson] = useState<SafetyPerson | null>(null);
 
   const isHost = event.host_id === userId;
   // Host, a captain or organizer of the event's chapter, or a moderator (viewer_can_manage_event).
@@ -258,6 +266,8 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
             ) : null}
           </section>
 
+          <BlockWarning eventId={event.id} userId={userId} />
+
           <section className="flex flex-col gap-4 rounded-card border border-border p-4">
             <Row icon={Clock}>
               <p className="font-semibold tabular">
@@ -339,10 +349,16 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
           {host ? (
             <section className="flex items-center gap-3">
               <Avatar src={host.avatar_url} name={host.first_name} size={44} />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-[15px] font-semibold">{host.first_name}</p>
                 <p className="truncate text-[13px] text-text-2">Hosting · @{host.handle}</p>
               </div>
+              {isHost ? null : (
+                <PersonActionsButton
+                  name={host.first_name}
+                  onClick={() => setPerson({ ...host, user_id: host.id })}
+                />
+              )}
             </section>
           ) : null}
 
@@ -400,6 +416,7 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
               Safety tips
             </a>
           </p>
+          {isHost ? null : <ReportButton kind="event" targetId={event.id} />}
         </div>
       </main>
 
@@ -427,6 +444,7 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
         />
       ) : null}
       <GuidelinesSheet {...rsvp.guidelines} />
+      <PersonSheet person={person} viewerId={userId} onClose={() => setPerson(null)} />
 
       <Sheet
         open={cancelOpen}

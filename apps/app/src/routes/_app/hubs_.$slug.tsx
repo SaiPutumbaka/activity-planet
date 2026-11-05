@@ -9,6 +9,7 @@ import { HubHeader } from "@/components/hubs/hub-header";
 import { HubMembers } from "@/components/hubs/hub-members";
 import { HubPageSkeleton, SectionHeading } from "@/components/hubs/hub-states";
 import { useHubMembership } from "@/components/hubs/use-hub-membership";
+import { ReportButton } from "@/components/safety/report-button";
 import { TopBar } from "@/components/shell/top-bar";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button-variants";
@@ -129,6 +130,8 @@ function HubPageContent({ hub }: { hub: HubPage }) {
         <SectionHeading id="hub-members" title="Members" />
         <HubMembers hubId={hub.id} count={count} isSensitive={isSensitive} />
       </section>
+
+      <ReportButton kind="hub" targetId={hub.id} />
     </>
   );
 }

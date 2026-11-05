@@ -17,6 +17,7 @@ import { isModeratorQuery, myManagedChaptersQuery, roleLabel } from "@/lib/chapt
 import { feedPrefsQuery, useFeedOrigin } from "@/lib/location";
 import { notificationPrefsQuery } from "@/lib/notifications";
 import { profileQuery } from "@/lib/profile";
+import { myBlocksQuery } from "@/lib/safety";
 import { SITE_URL } from "@/lib/site";
 import { setThemePreference, useThemePreference, type ThemePreference } from "@/lib/theme";
 import { membershipQuery } from "@/lib/verification";
@@ -50,6 +51,7 @@ function YouPage() {
   const managed = useQuery(myManagedChaptersQuery(session.user.id));
   const isMod = useQuery(isModeratorQuery(session.user.id));
   const prefs = useQuery(notificationPrefsQuery(session.user.id));
+  const blocks = useQuery(myBlocksQuery(session.user.id));
   const chapters = managed.data ?? [];
   const verifiedSpace = membership.data
     ? (membership.data.org_campuses?.name ?? membership.data.organizations?.name ?? "Verified")
@@ -138,6 +140,28 @@ function YouPage() {
               label="Suggest a calendar"
               value="Add"
               hint="A public events calendar near you we should list"
+            />
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">
+            Privacy and safety
+          </h3>
+          <div className="divide-y divide-border overflow-hidden rounded-card border border-border">
+            <LinkRow
+              to="/you/blocked"
+              label="Blocked accounts"
+              hint="People you blocked, and unblock"
+              value={
+                blocks.isPending ? (
+                  <Skeleton className="h-4 w-8" />
+                ) : blocks.isError ? (
+                  "Open"
+                ) : (
+                  String(blocks.data.length)
+                )
+              }
             />
           </div>
         </section>
