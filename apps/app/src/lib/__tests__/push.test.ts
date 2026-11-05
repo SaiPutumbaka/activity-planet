@@ -2,7 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../supabase", () => ({ supabase: {} }));
 
-import { basePushState, pushErrorMessage, PushError, urlBase64ToUint8Array } from "../push";
+import {
+  basePushState,
+  pushErrorMessage,
+  PushError,
+  pushSyncAction,
+  urlBase64ToUint8Array,
+} from "../push";
 import { parsePushPayload, safeAppPath } from "../../sw/push-payload";
 
 const env = {
@@ -68,5 +74,20 @@ describe("copy", () => {
     for (const code of ["denied", "unsupported", "unconfigured", "failed"] as const) {
       expect(pushErrorMessage(new PushError(code))).not.toMatch(/student|campus|atlanta|gsu/i);
     }
+  });
+});
+
+describe("pushSyncAction", () => {
+  it("saves a renewed subscription again for the person who turned push on", () => {
+    expect(pushSyncAction("u1", "u1", false)).toBe("register");
+    expect(pushSyncAction("u1", "u1", true)).toBe("none");
+  });
+  it("never registers someone else's browser for the person signed in now", () => {
+    expect(pushSyncAction("u1", "u2", false)).toBe("none");
+    expect(pushSyncAction("u1", "u2", true)).toBe("none");
+    expect(pushSyncAction(null, "u2", false)).toBe("none");
+  });
+  it("adopts a live row from before the owner was remembered", () => {
+    expect(pushSyncAction(null, "u1", true)).toBe("adopt");
   });
 });

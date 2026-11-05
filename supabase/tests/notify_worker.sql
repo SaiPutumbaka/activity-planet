@@ -3,8 +3,10 @@
 -- One transaction: sets up throwaway accounts, a plan and notifications,
 -- asserts with DO blocks that raise on failure, then rolls everything back.
 -- Prints pass/fail only (no user rows; the test accounts are invented).
--- Every other pending row on staging is leased inside the transaction so the
--- claims below see only the test rows (rolled back with the rest).
+-- Every other pending row on staging is leased inside the transaction, at
+-- setup and again right before each claim (rows queued for real members
+-- during the test, or more than 100 due rows, cannot crowd out the test
+-- rows), so the claims see only the test rows (rolled back with the rest).
 --
 --   1 static: schema_version 2.51 or later, grants, the cron job.
 --   2 register_push_device: allowed hosts only, upsert, the endpoint moves
@@ -64,6 +66,7 @@ do $$
 declare
   v_names text[] := array['a', 'b', 'h', 'r', 'q', 'c', 'k'];
   v_id    uuid;
+  v_ids   uuid[] := '{}';
   v_hub   uuid;
   v_e     uuid;
   v_tag   text := substr(replace(gen_random_uuid()::text, '-', ''), 1, 10);
@@ -84,7 +87,9 @@ begin
            created_at = now() - interval '3 days'
      where id = v_id;
     perform set_config('test.' || v_names[i], v_id::text, true);
+    v_ids := v_ids || v_id;
   end loop;
+  perform set_config('test.ids', array_to_string(v_ids, ','), true);
   perform set_config('test.tag', v_tag, true);
 
   select h.id into v_hub from public.hubs h
@@ -209,6 +214,9 @@ declare
   v_n4  jsonb;
   n     public.notifications%rowtype;
 begin
+  update public.notifications set claimed_at = now()
+   where (email_status = 'pending' or push_status = 'pending')
+     and user_id <> all (string_to_array(current_setting('test.ids'), ',')::uuid[]);
   v_out := public.claim_pending_notifications(100);
   select x into v_n1 from jsonb_array_elements(v_out) x where x ->> 'id' = current_setting('test.n1');
   select x into v_n4 from jsonb_array_elements(v_out) x where x ->> 'id' = current_setting('test.n4');
@@ -255,6 +263,9 @@ begin
   end if;
 
   -- 4. An overlapping run gets nothing already claimed.
+  update public.notifications set claimed_at = now()
+   where (email_status = 'pending' or push_status = 'pending')
+     and user_id <> all (string_to_array(current_setting('test.ids'), ',')::uuid[]);
   v_out := public.claim_pending_notifications(100);
   if exists (select 1 from jsonb_array_elements(v_out) x
               where x ->> 'id' in (current_setting('test.n1'), current_setting('test.n4'))) then
@@ -284,6 +295,9 @@ begin
     raise exception 'FAIL 5 a gone device stayed live';
   end if;
   -- Push is due again, but a has no live device now.
+  update public.notifications set claimed_at = now()
+   where (email_status = 'pending' or push_status = 'pending')
+     and user_id <> all (string_to_array(current_setting('test.ids'), ',')::uuid[]);
   v_out := public.claim_pending_notifications(100);
   select * into n from public.notifications where id = current_setting('test.n1')::uuid;
   if n.push_status <> 'skipped' or n.email_status <> 'sent' then
@@ -307,6 +321,9 @@ begin
   on conflict (key) do update set value = excluded.value;
   v_id := public.enqueue_notification(current_setting('test.k')::uuid, 'rsvp_confirmed', 'nw:n7:' || current_setting('test.tag'),
                                       v_e, null, null, null, public.notification_event_payload(v_e));
+  update public.notifications set claimed_at = now()
+   where (email_status = 'pending' or push_status = 'pending')
+     and user_id <> all (string_to_array(current_setting('test.ids'), ',')::uuid[]);
   v_out := public.claim_pending_notifications(100);
   select * into n from public.notifications where id = v_id;
   if n.email_status <> 'skipped' or n.last_error <> 'daily_cap' then

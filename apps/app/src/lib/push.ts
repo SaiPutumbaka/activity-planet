@@ -13,6 +13,7 @@ import { supabase } from "./supabase";
  *   pushState()               // "unsupported" | "needs_install" | "unconfigured" | "denied" | "off" | "on"
  *   await enablePush()        // on a tap only
  *   await disablePush()
+ *   await syncPushSubscription(userId) // on start with a session: saves a renewed subscription
  */
 
 export type PushState = "unsupported" | "needs_install" | "unconfigured" | "denied" | "off" | "on";
@@ -80,6 +81,18 @@ async function currentSubscription(): Promise<PushSubscription | null> {
   return (await reg?.pushManager.getSubscription()) ?? null;
 }
 
+async function hasLiveRow(userId: string, endpoint: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("push_devices")
+    .select("id")
+    .eq("user_id", userId)
+    .is("revoked_at", null)
+    .eq("subscription->>endpoint", endpoint)
+    .limit(1);
+  if (error) throw error;
+  return data.length > 0;
+}
+
 /** The device's state for this person: "on" when this browser has a live row for them. */
 export async function pushState(userId: string): Promise<PushState> {
   const base = basePushState(readEnv());
@@ -87,15 +100,75 @@ export async function pushState(userId: string): Promise<PushState> {
   if (Notification.permission !== "granted") return "off";
   const sub = await currentSubscription();
   if (!sub) return "off";
-  const { data, error } = await supabase
-    .from("push_devices")
-    .select("id")
-    .eq("user_id", userId)
-    .is("revoked_at", null)
-    .eq("subscription->>endpoint", sub.endpoint)
-    .limit(1);
-  if (error) throw error;
-  return data.length > 0 ? "on" : "off";
+  return (await hasLiveRow(userId, sub.endpoint)) ? "on" : "off";
+}
+
+/**
+ * Who turned push on in this browser (a user id). Kept so a renewed subscription is saved again
+ * only for that person: someone else signing in on the same browser never gets pushes they did
+ * not turn on. Per browser, best effort (storage can be unavailable).
+ */
+const OWNER_KEY = "ap.push.owner";
+
+function readOwner(): string | null {
+  try {
+    return localStorage.getItem(OWNER_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeOwner(userId: string | null): void {
+  try {
+    if (userId) localStorage.setItem(OWNER_KEY, userId);
+    else localStorage.removeItem(OWNER_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/**
+ * What syncPushSubscription does with this browser's current subscription: "register" it again
+ * for its owner when it has no live row; "adopt" a live row turned on before the owner was
+ * remembered; else nothing (another person's browser, or already saved).
+ */
+export function pushSyncAction(
+  owner: string | null,
+  userId: string,
+  live: boolean,
+): "register" | "adopt" | "none" {
+  if (owner !== null && owner !== userId) return "none";
+  if (live) return owner === null ? "adopt" : "none";
+  return owner === userId ? "register" : "none";
+}
+
+/**
+ * The browser can renew a push subscription on its own (the service worker's
+ * pushsubscriptionchange); the old endpoint then answers 410 and the worker revokes it. On start
+ * with a session (and when the service worker says the subscription changed), this saves the
+ * current subscription again with register_push_device when permission is granted, this person
+ * turned push on in this browser, and the subscription has no live row for them. Never asks for
+ * permission; errors are swallowed (the next start tries again).
+ */
+export async function syncPushSubscription(userId: string): Promise<boolean> {
+  try {
+    if (basePushState(readEnv())) return false;
+    if (Notification.permission !== "granted") return false;
+    const owner = readOwner();
+    if (owner !== null && owner !== userId) return false;
+    const sub = await currentSubscription();
+    if (!sub) return false;
+    const action = pushSyncAction(owner, userId, await hasLiveRow(userId, sub.endpoint));
+    if (action === "adopt") writeOwner(userId);
+    if (action !== "register") return false;
+    const { error } = await supabase.rpc("register_push_device", {
+      p_subscription: sub.toJSON() as Json,
+      p_user_agent: navigator.userAgent.slice(0, 300),
+    });
+    return !error;
+  } catch {
+    return false;
+  }
 }
 
 export class PushError extends Error {
@@ -127,11 +200,14 @@ export async function enablePush(): Promise<void> {
     p_user_agent: navigator.userAgent.slice(0, 300),
   });
   if (error) throw new PushError("failed");
+  const { data } = await supabase.auth.getSession();
+  writeOwner(data.session?.user.id ?? null);
 }
 
 /** Stops pushes to this browser for the signed-in person. Safe to call when nothing is set up. */
 export async function disablePush(): Promise<void> {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+  writeOwner(null);
   const sub = await currentSubscription().catch(() => null);
   if (!sub) return;
   await supabase.rpc("unregister_push_device", { p_endpoint: sub.endpoint }).then(

@@ -113,6 +113,27 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
-// The browser rotated the subscription: the page re-registers it on its next start
-// (lib/push.ts syncPushSubscription), since the worker holds no session.
-self.addEventListener("pushsubscriptionchange", () => undefined);
+// The browser rotated (or dropped) the subscription. The worker holds no session, so it only
+// makes sure a new subscription exists (same options) and tells open pages; lib/push.ts
+// syncPushSubscription saves it with register_push_device then, or on the app's next start.
+interface PushSubscriptionChange extends ExtendableEvent {
+  readonly oldSubscription?: PushSubscription | null;
+  readonly newSubscription?: PushSubscription | null;
+}
+self.addEventListener("pushsubscriptionchange", (event) => {
+  const change = event as PushSubscriptionChange;
+  change.waitUntil(
+    (async () => {
+      let sub = change.newSubscription ?? (await self.registration.pushManager.getSubscription());
+      const options = change.oldSubscription?.options;
+      if (!sub && options?.applicationServerKey) {
+        sub = await self.registration.pushManager
+          .subscribe({ userVisibleOnly: true, applicationServerKey: options.applicationServerKey })
+          .catch(() => null);
+      }
+      if (!sub) return;
+      const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const w of windows) w.postMessage({ type: "push-subscription-changed" });
+    })(),
+  );
+});

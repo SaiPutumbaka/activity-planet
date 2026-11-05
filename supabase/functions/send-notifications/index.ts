@@ -17,7 +17,7 @@
 //                                        https://activityplanet.app)
 //   NOTIFY_EMAIL_FROM                    sender (default notifications@activityplanet.app)
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are injected by Supabase.
-import { FROM, sendResendBatch } from "./resend.ts";
+import { FROM, sendResendEmails } from "./resend.ts";
 import { buildPushRequest, importVapidKeys, type VapidKeys } from "./webpush.ts";
 import { runWorker, type WorkerDeps } from "./worker.ts";
 
@@ -93,7 +93,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const deps: WorkerDeps = {
     rpc,
-    sendEmails: resendKey ? (messages) => sendResendBatch(resendKey, messages, fetch, from) : null,
+    sendEmails: resendKey ? (messages) => sendResendEmails(resendKey, messages, fetch, from) : null,
     sendPush: vapid
       ? async (m) => {
           const { url, init } = await buildPushRequest(

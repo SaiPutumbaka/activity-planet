@@ -8,6 +8,7 @@ import { queryClient } from "./lib/query";
 import { supabase } from "./lib/supabase";
 import { sessionQuery } from "./lib/auth";
 import { clearFeedLocation } from "./lib/location";
+import { syncPushSubscription } from "./lib/push";
 import { initTheme } from "./lib/theme";
 import { ScreenLoader } from "./components/ui/spinner";
 import "./styles.css";
@@ -42,8 +43,24 @@ supabase.auth.onAuthStateChange((event, session) => {
     queryClient.removeQueries({ queryKey: ["map"] });
     clearFeedLocation();
   }
+  // A push subscription the browser renewed is saved again for the person who turned push on.
+  const userId = session?.user.id;
+  if (userId && (event === "INITIAL_SESSION" || event === "SIGNED_IN")) {
+    setTimeout(() => void syncPushSubscription(userId), 0);
+  }
   setTimeout(() => void router.invalidate(), 0);
 });
+
+// The service worker says the subscription changed (pushsubscriptionchange).
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", (event: MessageEvent<unknown>) => {
+    const data = event.data as { type?: unknown } | null;
+    if (data?.type !== "push-subscription-changed") return;
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) void syncPushSubscription(session.user.id);
+    });
+  });
+}
 
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Missing #root element");

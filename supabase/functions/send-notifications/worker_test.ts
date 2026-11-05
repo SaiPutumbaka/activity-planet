@@ -60,22 +60,37 @@ Deno.test("nothing claimed: no completion call", async () => {
   );
 });
 
-Deno.test("one Resend batch for every email; a refusal fails, a 5xx retries", async () => {
-  let batches = 0;
-  const { deps, calls } = fake([row("1"), row("2", { push: null })], {
+Deno.test("one email result per row: one refusal fails only its row, a 5xx retries", async () => {
+  let calls_ = 0;
+  const { deps, calls } = fake([row("1"), row("2", { push: null }), row("3", { push: null })], {
     sendEmails: (m) => {
-      batches++;
-      assertEquals(m.length, 2);
-      return Promise.resolve("retry");
+      calls_++;
+      assertEquals(
+        m.map((x) => x.id),
+        ["1", "2", "3"],
+      );
+      return Promise.resolve(["sent", "failed", "retry"]);
     },
   });
   const s = await runBatch(deps);
-  assertEquals(batches, 1);
-  assertEquals(s.email.retry, 2);
+  assertEquals(calls_, 1);
+  assertEquals(s.email, { sent: 1, skipped: 0, failed: 1, retry: 1 });
   const results = calls.at(-1)!.args.p_results as { id: string; email: string }[];
   assertEquals(
     results.map((r) => r.email),
-    ["retry", "retry"],
+    ["sent", "failed", "retry"],
+  );
+});
+
+Deno.test("a thrown or short email answer retries the rows it did not cover", async () => {
+  const { deps, calls } = fake([row("1", { push: null }), row("2", { push: null })], {
+    sendEmails: () => Promise.resolve(["sent"]),
+  });
+  await runBatch(deps);
+  const results = calls.at(-1)!.args.p_results as { id: string; email: string }[];
+  assertEquals(
+    results.map((r) => r.email),
+    ["sent", "retry"],
   );
 });
 

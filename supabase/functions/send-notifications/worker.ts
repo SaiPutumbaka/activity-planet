@@ -3,8 +3,8 @@
 //
 //   1. claim_pending_notifications(50): due rows, already re-checked by the database (prefs,
 //      quiet hours, blocks and mutes, stale plans, confirmed address, daily email cap).
-//   2. Email through Resend's batch endpoint (one request for the batch), or skipped without
-//      RESEND_API_KEY. Push to every live device of the person, or skipped without the VAPID
+//   2. Email through Resend, one request per message with the row id as its idempotency key
+//      (migration 56), or skipped without RESEND_API_KEY. Push to every live device of the person, or skipped without the VAPID
 //      keys. A push counts as sent when one device took it.
 //   3. complete_notification_delivery(results, devices): sent / skipped / failed / retry per
 //      channel; devices gone (404, 410) are revoked, failed ones counted.
@@ -16,6 +16,8 @@ import { classifyPushStatus, type PushOutcome } from "./webpush.ts";
 export type ChannelResult = "sent" | "skipped" | "failed" | "retry";
 
 export interface EmailMessage {
+  /** The notification id (Resend idempotency key). */
+  id: string;
   to: string;
   subject: string;
   text: string;
@@ -34,8 +36,8 @@ export interface PushMessage {
 
 export interface WorkerDeps {
   rpc: (name: string, args: Record<string, unknown>) => Promise<unknown>;
-  /** null when RESEND_API_KEY is not set. Resolves "sent", "failed" (refused) or "retry". */
-  sendEmails: ((messages: EmailMessage[]) => Promise<"sent" | "failed" | "retry">) | null;
+  /** null when RESEND_API_KEY is not set. Resolves one "sent", "failed" (refused) or "retry" per message, in order. */
+  sendEmails: ((messages: EmailMessage[]) => Promise<("sent" | "failed" | "retry")[]>) | null;
   /** null when the VAPID keys are not set. Resolves the push service's HTTP status. */
   sendPush: ((message: PushMessage) => Promise<number>) | null;
   links: Links;
@@ -102,18 +104,19 @@ export async function runBatch(deps: WorkerDeps, limit = BATCH): Promise<RunSumm
 
   const rendered = new Map(claimed.map((n) => [n.id, render(n, deps.links)]));
 
-  // Email: one batch request.
+  // Email: one result per message (resend.ts sends them one at a time).
   const emailRows = claimed.filter((n) => n.email && n.email.to);
   if (emailRows.length > 0) {
-    let outcome: ChannelResult;
+    let outcomes: ChannelResult[];
     if (!deps.sendEmails) {
-      outcome = "skipped";
+      outcomes = emailRows.map(() => "skipped");
     } else {
       try {
-        outcome = await deps.sendEmails(
+        const got = await deps.sendEmails(
           emailRows.map((n) => {
             const r = rendered.get(n.id)!;
             return {
+              id: n.id,
               to: n.email!.to,
               subject: r.subject,
               text: r.text,
@@ -122,17 +125,19 @@ export async function runBatch(deps: WorkerDeps, limit = BATCH): Promise<RunSumm
             };
           }),
         );
+        outcomes = emailRows.map((_, i) => got[i] ?? "retry");
       } catch {
-        outcome = "retry";
+        outcomes = emailRows.map(() => "retry");
       }
     }
-    for (const n of emailRows) {
+    emailRows.forEach((n, i) => {
+      const outcome = outcomes[i];
       const r = result(n.id);
       r.email = outcome;
       if (outcome === "skipped") r.error = "no_resend_key";
       else if (outcome !== "sent") r.error = `email_${outcome}`;
       summary.email[outcome]++;
-    }
+    });
   }
 
   // Push: every device, a few at a time.
