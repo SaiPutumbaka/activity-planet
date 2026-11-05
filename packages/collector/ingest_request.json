@@ -1,5 +1,5 @@
 {
   "$comment": "A push to a branch other than main that changes this file runs collector-ingest.yml against STAGING for this region: due (collector regions not collected today), all, or a city file id (workflow_dispatch needs the workflow on main). Optional region_limit and max_run_minutes.",
-  "region": "due",
+  "region": "atl",
   "requested": "2026-11-05T12:05Z (collector completion: geocoding live check after migration 64)"
 }
