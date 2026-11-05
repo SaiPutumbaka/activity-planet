@@ -24,3 +24,4 @@ deno.lock
 # Collector conditional-GET cache (kept between CI runs by actions/cache, never committed)
 packages/collector/.cache/
 __pycache__/
+e2e-output/

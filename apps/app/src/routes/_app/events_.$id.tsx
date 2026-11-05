@@ -44,7 +44,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FieldTextArea } from "@/components/ui/textarea";
 import { canAnswerAttendance, myAttendanceQuery } from "@/lib/attendance";
 import { SITE_URL } from "@/lib/site";
-import { DEFAULT_TIMEZONE, formatEventTime } from "@/lib/datetime";
+import { formatEventTime, viewerZone } from "@/lib/datetime";
 import {
   canManageEventQuery,
   cancelEvent,
@@ -273,7 +273,7 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
               <p className="font-semibold tabular">
                 {formatEventTime(event.starts_at, event.ends_at, event.timezone)}
               </p>
-              {event.timezone !== DEFAULT_TIMEZONE ? (
+              {event.timezone !== viewerZone() ? (
                 <p className="text-[13px] text-text-2">
                   Times in {event.timezone.replace(/_/g, " ")}
                 </p>

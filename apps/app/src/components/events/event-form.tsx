@@ -239,7 +239,7 @@ export function EventForm({
         ) : null}
         {repeat ? (
           <>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-3">
               <FieldSelect label="Every" {...register("weekday")} error={errors.weekday?.message}>
                 {WEEKDAYS.map((name, i) => (
                   <option key={name} value={String(i)}>
@@ -255,7 +255,7 @@ export function EventForm({
                 error={errors.startTime?.message}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-3">
               <Field
                 label="Starting"
                 type="date"
@@ -270,7 +270,7 @@ export function EventForm({
                 error={errors.endsOn?.message}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-3">
               <DurationSelect
                 options={durationOptions}
                 {...register("durationMinutes")}
@@ -296,17 +296,20 @@ export function EventForm({
             </p>
           </>
         ) : (
-          <div className="grid grid-cols-[1fr_auto] gap-3">
+          // Stacked on phones: a datetime-local input's own minimum width pushed Lasts off a 390 px
+          // screen, and side by side its text was clipped under the picker icon.
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
             <Field
               label="Starts"
               type="datetime-local"
+              className="min-w-0"
               step={300}
               {...register("startsAt")}
               error={errors.startsAt?.message}
             />
             <DurationSelect
               options={durationOptions}
-              className="w-[132px]"
+              className="sm:w-[132px]"
               {...register("durationMinutes")}
               error={errors.durationMinutes?.message}
             />
@@ -350,7 +353,7 @@ export function EventForm({
       </Section>
 
       <Section title="Who can come">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-3">
           <Field
             label="Capacity (optional)"
             type="number"

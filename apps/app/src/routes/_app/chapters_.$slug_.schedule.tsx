@@ -25,7 +25,7 @@ import {
   type ChapterDetail,
   type ManagedChapter,
 } from "@/lib/chapters";
-import { DEFAULT_TIMEZONE } from "@/lib/datetime";
+import { viewerZone } from "@/lib/datetime";
 import { createEventSeries } from "@/lib/events";
 
 const appRoute = getRouteApi("/_app");
@@ -127,15 +127,17 @@ function ScheduleForm({ chapter }: { chapter: ManagedChapter }) {
   const { profile } = appRoute.useRouteContext();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // Posted in the captain's own zone (D-040), not a fixed one.
+  const timeZone = viewerZone();
   const initialValues = useMemo(
     () =>
       defaultEventFormValues({
         hubId: chapter.hubId,
         chapterId: chapter.id,
         repeatWeekly: true,
-        timeZone: DEFAULT_TIMEZONE,
+        timeZone,
       }),
-    [chapter.hubId, chapter.id],
+    [chapter.hubId, chapter.id, timeZone],
   );
 
   async function onSubmit(values: EventFormValues, ctx: EventArgsContext) {
@@ -162,7 +164,7 @@ function ScheduleForm({ chapter }: { chapter: ManagedChapter }) {
       chapters={[chapter]}
       canCampus={profile.home_org_id !== null}
       campusId={profile.home_campus_id}
-      timeZone={DEFAULT_TIMEZONE}
+      timeZone={timeZone}
       submitLabel="Post schedule"
       onSubmit={onSubmit}
     />

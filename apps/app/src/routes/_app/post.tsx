@@ -21,7 +21,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FormError } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { chapterKeys, myManagedChaptersQuery } from "@/lib/chapters";
-import { DEFAULT_TIMEZONE } from "@/lib/datetime";
+import { viewerZone } from "@/lib/datetime";
 import { createEvent, createEventSeries, myPostableHubsQuery } from "@/lib/events";
 import {
   placeFromVenueToken,
@@ -79,6 +79,8 @@ function PostPage() {
   );
   // "Post as" is an extra; a failed load just means posting as yourself.
   const chapters = managed.data ?? [];
+  // Posted in the host's own zone (D-040), not a fixed one.
+  const timeZone = viewerZone();
   const loading = hubs.isPending || managed.isPending || (Boolean(place) && placeVenue.isPending);
 
   const initialValues = useMemo(() => {
@@ -88,13 +90,13 @@ function PostPage() {
       return defaultEventFormValues({
         hubId: asChapter.hubId,
         chapterId: asChapter.id,
-        timeZone: DEFAULT_TIMEZONE,
+        timeZone,
       });
     }
     const chosen = list.find((h) => h.slug === hubSlug) ?? list[0];
-    const values = defaultEventFormValues({ hubId: chosen?.id ?? "", timeZone: DEFAULT_TIMEZONE });
+    const values = defaultEventFormValues({ hubId: chosen?.id ?? "", timeZone });
     return venue ? withVenue(values, venue) : values;
-  }, [hubs.data, managed.data, hubSlug, chapterId, venue]);
+  }, [hubs.data, managed.data, hubSlug, chapterId, venue, timeZone]);
 
   /** A map place with no venue yet gets its public venue now, on posting (venue_for_place). */
   async function withResolvedVenue(values: EventFormValues): Promise<EventFormValues> {
@@ -178,7 +180,7 @@ function PostPage() {
               chapters={chapters}
               canCampus={profile.home_org_id !== null}
               campusId={profile.home_campus_id}
-              timeZone={DEFAULT_TIMEZONE}
+              timeZone={timeZone}
               submitLabel="Post plan"
               onSubmit={onSubmit}
             />

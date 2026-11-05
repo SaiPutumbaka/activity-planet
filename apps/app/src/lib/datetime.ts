@@ -1,3 +1,5 @@
+import { deviceTimeZone } from "@ap/core/feed";
+
 /**
  * Event times, Intl only. Every function takes an IANA timezone (events.timezone, default
  * America/New_York) because a time is a wall-clock fact at the venue, not on the phone.
@@ -10,6 +12,15 @@
  *   fromLocalDateTimeInputValue("2026-11-05T16:00", tz)   // ISO string in UTC, or null
  */
 export const DEFAULT_TIMEZONE = "America/New_York";
+
+/**
+ * The zone of the person using the app (D-040: anyone, anywhere): the device's IANA zone, else
+ * DEFAULT_TIMEZONE. A new plan is posted in it (the host is almost always where the plan is), and
+ * the event page names an event's zone only when it differs from this one.
+ */
+export function viewerZone(device: string | null = deviceTimeZone()): string {
+  return device ?? DEFAULT_TIMEZONE;
+}
 
 type DateInput = string | Date;
 
