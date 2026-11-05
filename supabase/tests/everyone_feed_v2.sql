@@ -35,6 +35,8 @@ begin
    where user_id = v_young;
   -- Migration 22: the 18+ gate (viewer_is_adult) needs an onboarded profile with a birth date.
   -- (The viewer onboards through complete_onboarding below.)
+  update public.profile_private set home_area_id = (select id from public.areas where slug = 'atlanta')
+   where user_id = v_young;
   update public.profiles set onboarding_completed_at = now(), guidelines_accepted_at = now()
    where id = v_young;
 
@@ -359,8 +361,10 @@ begin
     raise exception 'FAIL profiles.home_area_id still exists (it is readable by every signed-in user)';
   end if;
   if exists (select 1 from public.profiles p join public.profile_private pp on pp.user_id = p.id
-              where p.onboarding_completed_at is not null and p.deleted_at is null and pp.home_area_id is null) then
-    raise exception 'FAIL an onboarded profile has no home area';
+              where p.onboarding_completed_at is not null and p.deleted_at is null and pp.home_area_id is null
+                and pp.home_point is null) then
+    -- Migration 24 (D-040): set_home_location saves a point anywhere and clears the home area.
+    raise exception 'FAIL an onboarded profile has neither a home area nor a home point';
   end if;
 
   if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 10] then
