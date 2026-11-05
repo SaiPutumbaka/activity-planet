@@ -19,12 +19,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import { getSession } from "@/lib/auth";
 import { cn } from "@/lib/cn";
-import { clearFeedLocation, useDevicePoint } from "@/lib/location";
+import { clearFeedLocation, feedPrefsQuery, useDevicePoint } from "@/lib/location";
 import {
   EMPTY_VIEW,
   LOCATED_ZOOM,
   PLACES_MIN_ZOOM,
-  WORLD_CAMERA,
   applyHubFilter,
   applyLayerFilter,
   bboxAround,
@@ -37,6 +36,7 @@ import {
   parseLayersParam,
   planHubRequest,
   readSavedCamera,
+  startCamera,
   saveCamera,
   snapBBox,
   viewerTimeZone,
@@ -134,22 +134,6 @@ function MapPage() {
   );
 }
 
-function initialCamera(
-  search: { lat?: number; lng?: number; z?: number },
-  device: { lat: number; lng: number } | null,
-): { camera: Camera; located: boolean } {
-  if (search.lat !== undefined && search.lng !== undefined) {
-    return {
-      camera: { lat: search.lat, lng: search.lng, zoom: search.z ?? LOCATED_ZOOM },
-      located: true,
-    };
-  }
-  if (device) return { camera: { ...device, zoom: LOCATED_ZOOM }, located: true };
-  const saved = readSavedCamera();
-  if (saved) return { camera: saved, located: true };
-  return { camera: WORLD_CAMERA, located: false };
-}
-
 function viewportBBox(c: Camera): BBox {
   const w = typeof window === "undefined" ? 400 : Math.min(window.innerWidth, 512);
   const h = typeof window === "undefined" ? 600 : Math.max(240, window.innerHeight - 220);
@@ -166,7 +150,13 @@ function MapScreen({ userId }: { userId: string | null }) {
   const signedIn = userId !== null;
 
   // Camera and bbox. The list loads from the computed bbox before MapLibre exists.
-  const [start] = useState(() => initialCamera(search, device.point));
+  // The saved home (owner-only) is a fallback start for members; Home prefetches it, so it is
+  // usually cached by now, and the effect below moves there if it arrives after the first paint.
+  const prefs = useQuery({ ...feedPrefsQuery(userId ?? ""), enabled: signedIn });
+  const homePoint = prefs.data?.homePoint ?? null;
+  const [start] = useState(() =>
+    startCamera({ search, device: device.point, saved: readSavedCamera(), home: homePoint }),
+  );
   const [camera, setCamera] = useState<Camera>(start.camera);
   const [located, setLocated] = useState(start.located);
   const [bbox, setBBox] = useState<BBox>(() => viewportBBox(start.camera));
@@ -347,6 +337,17 @@ function MapScreen({ userId }: { userId: string | null }) {
     saveCamera(c);
     setFocus((f) => ({ ...c, seq: (f?.seq ?? 0) + 1 }));
   }, [device.point]);
+
+  const homeApplied = useRef(start.located);
+  useEffect(() => {
+    if (homeApplied.current || located || !homePoint) return;
+    homeApplied.current = true;
+    const c = { ...homePoint, zoom: LOCATED_ZOOM };
+    setLocated(true);
+    setCamera(c);
+    setBBox(viewportBBox(c));
+    setFocus((f) => ({ ...c, seq: (f?.seq ?? 0) + 1 }));
+  }, [homePoint, located]);
 
   function onMove(s: { bounds: BBox; camera: Camera }) {
     setCamera(s.camera);

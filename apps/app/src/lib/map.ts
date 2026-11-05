@@ -1344,6 +1344,31 @@ export interface Camera extends LngLat {
 /** No location yet: the whole world, plans and shows only, with "Use my location" on offer. */
 export const WORLD_CAMERA: Camera = { lng: 10, lat: 25, zoom: 1.6 };
 export const LOCATED_ZOOM = 12.5;
+/**
+ * Where the Map tab opens (§9 step 1): a shared link's point, else the device point, else the
+ * last camera on this device, else the member's saved home (about 1 km), else the whole world.
+ * `located` is false only for the world view, which offers "Use my location".
+ */
+export function startCamera(opts: {
+  search: { lat?: number; lng?: number; z?: number };
+  device: LngLat | null;
+  saved: Camera | null;
+  home: LngLat | null;
+}): { camera: Camera; located: boolean } {
+  const { search, device, saved, home } = opts;
+  if (search.lat !== undefined && search.lng !== undefined) {
+    return {
+      camera: { lat: search.lat, lng: search.lng, zoom: search.z ?? LOCATED_ZOOM },
+      located: true,
+    };
+  }
+  if (device)
+    return { camera: { lat: device.lat, lng: device.lng, zoom: LOCATED_ZOOM }, located: true };
+  if (saved) return { camera: saved, located: true };
+  if (home) return { camera: { lat: home.lat, lng: home.lng, zoom: LOCATED_ZOOM }, located: true };
+  return { camera: WORLD_CAMERA, located: false };
+}
+
 /** Below this, places give way to the "Zoom in to see places" pill (§9). */
 export const PLACES_MIN_ZOOM = 10;
 

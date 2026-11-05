@@ -32,6 +32,9 @@ import {
   parseLayersParam,
   planHubRequest,
   snapBBox,
+  startCamera,
+  LOCATED_ZOOM,
+  WORLD_CAMERA,
   sourceLine,
   canStartPlan,
   startPlanSearch,
@@ -799,6 +802,39 @@ describe("Start a plan here", () => {
     });
     expect(startPlanSearch({ id: "p1", hubs: [h("chess", false, false)] })).toEqual({
       place: "p1",
+    });
+  });
+});
+
+describe("startCamera", () => {
+  const home = { lat: 51.5, lng: -0.13 };
+  const device = { lat: 33.75, lng: -84.39 };
+  const saved = { lat: 40.7, lng: -74, zoom: 9 };
+
+  it("opens at the saved home for a member with no device point or saved camera", () => {
+    expect(startCamera({ search: {}, device: null, saved: null, home })).toEqual({
+      camera: { ...home, zoom: LOCATED_ZOOM },
+      located: true,
+    });
+  });
+
+  it("prefers a shared link, then the device point, then the last camera over the home", () => {
+    expect(startCamera({ search: { lat: 1, lng: 2, z: 5 }, device, saved, home }).camera).toEqual({
+      lat: 1,
+      lng: 2,
+      zoom: 5,
+    });
+    expect(startCamera({ search: {}, device, saved, home }).camera).toEqual({
+      ...device,
+      zoom: LOCATED_ZOOM,
+    });
+    expect(startCamera({ search: {}, device: null, saved, home }).camera).toEqual(saved);
+  });
+
+  it("falls back to the whole world, not located, with nothing known", () => {
+    expect(startCamera({ search: {}, device: null, saved: null, home: null })).toEqual({
+      camera: WORLD_CAMERA,
+      located: false,
     });
   });
 });

@@ -5,7 +5,9 @@ import {
   type GeoJSONSource,
   type MapLayerMouseEvent,
   type SymbolLayerSpecification,
+  setWorkerUrl,
 } from "maplibre-gl";
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./map-canvas.css";
 
@@ -65,6 +67,11 @@ export interface MapCanvasProps {
   /** False while the List view covers the screen; the map stays alive and resizes on return. */
   visible: boolean;
 }
+
+// MapLibre 6 finds its worker next to its own module (import.meta.url), which in a bundle is this
+// chunk's folder where no worker file exists (the SPA fallback answers with index.html and the map
+// never loads). Vite emits the worker as an asset and this points MapLibre at it.
+setWorkerUrl(maplibreWorkerUrl);
 
 const CANVAS_LABEL =
   "Map of places and plans. Arrow keys pan, plus and minus zoom. The list has everything shown here.";

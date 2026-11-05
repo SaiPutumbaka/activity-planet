@@ -35,10 +35,12 @@ registerRoute(
   new NavigationRoute(createHandlerBoundToURL("/index.html"), { denylist: [/^\/api\//] }),
 );
 
-// MapLibre (lazy, Map tab only, D-038): cached on first use, never precached.
+// MapLibre and its worker (lazy, Map tab only, D-038): cached on first use, never precached.
 registerRoute(
-  ({ url }) => url.origin === self.location.origin && /\/assets\/map-canvas-/.test(url.pathname),
-  new CacheFirst({ cacheName: "map-canvas", plugins: [new ExpirationPlugin({ maxEntries: 4 })] }),
+  ({ url }) =>
+    url.origin === self.location.origin &&
+    /\/assets\/(map-canvas|maplibre-gl-worker)-/.test(url.pathname),
+  new CacheFirst({ cacheName: "map-canvas", plugins: [new ExpirationPlugin({ maxEntries: 6 })] }),
 );
 
 // Static place tile files (D-042 slice 5): content-hashed names, so cache-first for 60 days.

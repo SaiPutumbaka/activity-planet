@@ -22,6 +22,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FormError } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { feedQuery } from "@/lib/events";
+import { cn } from "@/lib/cn";
 import { areasQuery, feedPrefsQuery, setMyTimezone, useFeedOrigin } from "@/lib/location";
 import { myHubsQuery } from "@/lib/profile";
 
@@ -57,9 +58,17 @@ function HomePage() {
       <TopBar
         actions={
           <>
-            <Button variant="secondary" size="icon-sm" className="rounded-full" aria-label="Search">
+            {/* The Hubs tab's search is the app's search for now; this was a button with no action. */}
+            <Link
+              to="/hubs"
+              aria-label="Search hubs"
+              className={cn(
+                buttonVariants({ variant: "secondary", size: "icon-sm" }),
+                "rounded-full",
+              )}
+            >
               <Search className="size-5" aria-hidden="true" />
-            </Button>
+            </Link>
             <ChatsButton />
             <InboxBell userId={session.user.id} />
           </>
