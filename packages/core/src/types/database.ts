@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 67 (schema_version 2.63). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 68 (schema_version 2.64). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -4657,6 +4657,21 @@ export type Database = {
           },
         ];
       };
+      rec_embed_daily: {
+        Row: {
+          day: string;
+          embedded: number;
+        };
+        Insert: {
+          day: string;
+          embedded?: number;
+        };
+        Update: {
+          day?: string;
+          embedded?: number;
+        };
+        Relationships: [];
+      };
       rec_embed_queue: {
         Row: {
           attempts: number;
@@ -4909,6 +4924,21 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      scorecard_active_weeks: {
+        Row: {
+          active: number;
+          week_start: string;
+        };
+        Insert: {
+          active?: number;
+          week_start: string;
+        };
+        Update: {
+          active?: number;
+          week_start?: string;
+        };
+        Relationships: [];
       };
       scorecard_runs: {
         Row: {
