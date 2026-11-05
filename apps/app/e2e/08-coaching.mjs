@@ -59,10 +59,17 @@ async function handleOf(page) {
   return (await sec.locator("p").nth(1).innerText()).trim().replace(/^@/, "");
 }
 
+/** Waits up to ms for a locator to show (isVisible itself never waits). */
+const visible = (loc, ms) =>
+  loc
+    .waitFor({ state: "visible", timeout: ms })
+    .then(() => true)
+    .catch(() => false);
+
 /** Accepts the Community guidelines sheet when it opens (first booking or coach profile). */
 async function agreeIfAsked(page) {
   const agree = page.getByRole("button", { name: "I agree" });
-  if (await agree.isVisible({ timeout: 4000 }).catch(() => false)) await agree.click();
+  if (await visible(agree, 4000)) await agree.click();
 }
 
 async function noSideways(page, label) {
@@ -101,6 +108,17 @@ if (phase === "book" || phase === "all") {
     const inPerson = pa.getByRole("switch", { name: "In person" });
     if ((await inPerson.getAttribute("aria-checked")) !== "true") await inPerson.click();
     const home = pa.getByRole("button", { name: "My home location" });
+    // The saved home loads after the form; a new coach starts from it.
+    await pa
+      .waitForFunction(
+        () =>
+          [...document.querySelectorAll("button")].some(
+            (b) => b.textContent?.includes("My home location") && !b.disabled,
+          ),
+        null,
+        { timeout: 15000 },
+      )
+      .catch(() => undefined);
     if (await home.isEnabled().catch(() => false)) await home.click();
     const area = pa.getByLabel("Area name (public)");
     if (!(await area.inputValue())) await area.fill("Test area");
@@ -159,7 +177,7 @@ if (phase === "book" || phase === "all") {
   await r.step("A publishes the coach page", async () => {
     await pa.goto(`${env.base}/coach`);
     const publish = pa.getByRole("button", { name: "Publish" });
-    if (await publish.isVisible({ timeout: 15000 }).catch(() => false)) await publish.click();
+    if (await visible(publish, 15000)) await publish.click();
     await pa.getByText("live", { exact: true }).waitFor({ timeout: 20000 });
     // Requests only: no payout entry while payments are off.
     if (
@@ -267,7 +285,7 @@ if (phase === "finish" || phase === "all") {
     await pa.goto(`${env.base}/bookings/${bookingId}`);
     await pa.getByText("Timeline").waitFor({ timeout: 20000 });
     const done = pa.getByRole("button", { name: "Mark as done" });
-    if (!(await done.isVisible({ timeout: 5000 }).catch(() => false))) {
+    if (!(await visible(done, 5000))) {
       if (
         await pa
           .getByText("Completed", { exact: true })
@@ -310,7 +328,7 @@ if (phase === "finish" || phase === "all") {
     if (listingId) {
       await pa.goto(`${env.base}/coach/listings/${listingId}`);
       const archive = pa.getByRole("button", { name: "Archive" });
-      if (await archive.isVisible({ timeout: 15000 }).catch(() => false)) {
+      if (await visible(archive, 15000)) {
         await archive.click();
         await pa.waitForURL((u) => u.pathname === "/coach", { timeout: 20000 });
       }
@@ -326,7 +344,7 @@ if (phase === "finish" || phase === "all") {
     await pa.getByText("Availability saved.").waitFor({ timeout: 20000 });
     await pa.goto(`${env.base}/coach`);
     const pause = pa.getByRole("button", { name: "Pause my page" });
-    if (await pause.isVisible({ timeout: 10000 }).catch(() => false)) await pause.click();
+    if (await visible(pause, 10000)) await pause.click();
   });
 }
 
