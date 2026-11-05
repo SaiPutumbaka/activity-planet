@@ -274,8 +274,10 @@ declare
   v_n   integer;
   v_lab record;
 begin
+  -- p_limit 200: since migration 57 (20261221000100_feed_distance.sql) nearby plans with only
+  -- a described location also come in, and imported rows sort after every human-hosted row.
   select count(*) into v_n
-    from public.feed_events_v2(now(), now() + interval '30 days')
+    from public.feed_events_v2(now(), now() + interval '30 days', p_limit => 200)
    where is_imported and source_name in ('Test Calendar A') and matched_by = 'nearby';
   if v_n < 4 then
     raise exception 'FAIL feed_events_v2 shows % test imported rows to a fresh user', v_n;
