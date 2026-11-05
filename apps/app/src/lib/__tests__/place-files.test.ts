@@ -14,7 +14,12 @@ import {
   decodePlaceFiles,
   decodeRulesFile,
   decodeTileFile,
+  fileDuplicates,
   filePlaceDetail,
+  filePlacesNear,
+  fileRowTile,
+  rememberTile,
+  searchPlaces,
   fetchLoader,
   osmRefOfPlaceId,
   placesBaseUrl,
@@ -425,5 +430,72 @@ describe("formats and config", () => {
       hubs: [],
     });
     expect(v.places[0]?.osmRef).toBe("w9");
+  });
+});
+
+describe("search, duplicates and nearby from the files (D-042 slice 11)", () => {
+  afterEach(() => resetFilePlaces());
+  const tile = decodeTileFile({
+    v: 1,
+    tile: 178031,
+    rules_version: 1,
+    rows: [
+      ["n1", -84.39, 33.75, "court_field", "Riverside Courts", [1], "", "Atlanta"],
+      ["n2", -84.3903, 33.7502, "park", "Riverside Park", [2], "", "Atlanta"],
+      ["n3", -84.38, 33.76, "library", "Central Library", [3], "", "Atlanta"],
+      ["n4", -84.3901, 33.7501, "court_field", "Owned Court", [1], "", "Atlanta"],
+    ],
+  });
+
+  it("knows each file row's tile, and the card reads a searched row", () => {
+    rememberTile(178031, tile.rows, new Set(["n4"]));
+    expect(fileRowTile("n3")).toBe(178031);
+    expect(fileRowTile("n9")).toBeNull();
+    expect(filePlaceDetail("n3")?.name).toBe("Central Library");
+  });
+
+  it("searches the view and every loaded row; the database row wins; owned refs stay out", () => {
+    rememberTile(178031, tile.rows, new Set(["n4"]));
+    const origin = { lng: -84.39, lat: 33.75 };
+    const fromDb = {
+      id: "00000000-0000-4000-8000-000000000001",
+      kind: "place" as const,
+      lng: -84.39,
+      lat: 33.75,
+      type: "court_field",
+      hubId: null,
+      hubIds: [],
+      flags: 0,
+      name: "Riverside Courts (fixed)",
+      startsAt: null,
+      generic: false,
+      imported: false,
+      pending: false,
+      geoapify: false,
+      mine: false,
+      private: false,
+      free: false,
+      adultsOnly: false,
+      osmRef: "n1",
+    };
+    const found = searchPlaces("riverside", [fromDb], origin);
+    expect(found.map((f) => f.id)).toEqual([fromDb.id, "o:n2"]);
+    expect(searchPlaces("atlanta", [], origin).map((f) => f.id)).toEqual(["o:n1", "o:n2", "o:n3"]);
+    expect(searchPlaces("owned", [], origin)).toEqual([]);
+    expect(searchPlaces("r", [], origin)).toEqual([]);
+  });
+
+  it("duplicates: 60 m, same kind or close name; nearby: 150 m, nearest first", () => {
+    rememberTile(178031, tile.rows, new Set(["n4"]));
+    const at = { lng: -84.3901, lat: 33.7501 };
+    expect(fileDuplicates(at, "Riverside Court", "store").map((d) => d.osmRef)).toEqual([
+      "n1",
+      "n2",
+    ]);
+    expect(fileDuplicates(at, "Something", "court_field").map((d) => d.osmRef)).toEqual(["n1"]);
+    expect(fileDuplicates(at, "Something", "store")).toEqual([]);
+    const near = filePlacesNear(at, 150, tile.rows);
+    expect(near.map((n) => n.osmRef)).toEqual(["n4", "n1", "n2"]);
+    expect(near[1]?.distanceM).toBeGreaterThan(10);
   });
 });

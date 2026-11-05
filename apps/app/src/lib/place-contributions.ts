@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import type { Json } from "@ap/core/types";
 
+import { placeRowId } from "./file-place-row";
 import { placeKindInfo, type PlaceDetail } from "./map";
 import { supabase } from "./supabase";
 
@@ -39,6 +40,7 @@ export function placeErrorCode(err: unknown): string {
 }
 
 const MESSAGES: Record<string, string> = {
+  place_unavailable: "This place can't be changed right now. Try again in a moment.",
   not_authenticated: "Your session ended. Sign in again.",
   onboarding_required: "Finish setting up your profile first.",
   invalid_args: "Check the form and try again.",
@@ -246,7 +248,8 @@ export async function suggestPlaceEdit(
 ): Promise<EditResult> {
   const trimmed = note.trim();
   const { data, error } = await supabase.rpc("suggest_place_edit", {
-    p_place: placeId,
+    // A place read from a static file gets its database row first (D-042 slice 11).
+    p_place: await placeRowId(placeId),
     p_changes: changes,
     ...(trimmed ? { p_note: trimmed } : {}),
   });
@@ -301,7 +304,7 @@ export async function reportPlace(
 ): Promise<ReportResult> {
   const trimmed = note.trim();
   const { data, error } = await supabase.rpc("report_place", {
-    p_place: placeId,
+    p_place: await placeRowId(placeId),
     p_reason: reason,
     ...(trimmed ? { p_note: trimmed } : {}),
   });

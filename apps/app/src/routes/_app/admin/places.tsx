@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FieldTextArea } from "@/components/ui/textarea";
 import { isModeratorQuery } from "@/lib/chapters";
 import { formatRelativeDay } from "@/lib/datetime";
+import { filePlacesNearPoint } from "@/lib/file-place-row";
 import { formatDistance, mapKeys } from "@/lib/map";
 import {
   MOD_ACTIONS,
@@ -144,6 +145,7 @@ function ItemCard({ item }: { item: ModItem }) {
   const queryClient = useQueryClient();
   const [note, setNote] = useState("");
   const p = item.place;
+  const nearby = useNearby(p);
   const resolve = useMutation({
     mutationFn: (action: ModAction) => modResolvePlace(item.kind, item.id, action, note),
     onSuccess: () => {
@@ -226,11 +228,11 @@ function ItemCard({ item }: { item: ModItem }) {
           ))}
       </dl>
 
-      {p.nearby.length ? (
+      {nearby.length ? (
         <div className="text-[14px]">
           <p className="text-text-2">Nearby on the map</p>
           <ul>
-            {p.nearby.map((n) => (
+            {nearby.map((n) => (
               <li key={n.id}>
                 {n.name} · {formatDistance(n.distanceM)}
               </li>
@@ -294,4 +296,25 @@ function ItemCard({ item }: { item: ModItem }) {
       )}
     </article>
   );
+}
+
+/**
+ * The card's nearby places: the database's (mod_place_queue) plus the static file's for the spot
+ * (D-042 slice 11, so places only a file holds count), the same name once, nearest three.
+ */
+function useNearby(p: ModItem["place"]): ModItem["place"]["nearby"] {
+  const files = useQuery({
+    queryKey: ["admin", "places", "file-nearby", p.lat, p.lng] as const,
+    queryFn: () => filePlacesNearPoint(p.lat, p.lng),
+    staleTime: 10 * 60_000,
+    retry: false,
+  });
+  const own = p.name.toLowerCase();
+  const fromFile = (files.data ?? []).filter(
+    (n) => !(n.distanceM < 5 && n.name.toLowerCase() === own),
+  );
+  const names = new Set(p.nearby.map((n) => n.name.toLowerCase()));
+  return [...p.nearby, ...fromFile.filter((n) => !names.has(n.name.toLowerCase()))]
+    .sort((a, b) => a.distanceM - b.distanceM)
+    .slice(0, 3);
 }

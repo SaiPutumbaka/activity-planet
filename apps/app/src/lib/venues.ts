@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import type { Database, Json } from "@ap/core/types";
 
+import { isFilePlaceId, placeRowId } from "./file-place-row";
 import { isNamedPlace } from "./geo-place";
 import { supabase } from "./supabase";
 
@@ -41,12 +42,29 @@ export async function upsertVenue(args: UpsertVenueArgs): Promise<Venue> {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
+ * A place id from the map: a uuid, or "o:<osm_ref>" for a place read from a static file, which
+ * gets its database row first (D-042 slice 11; an ODbL import with no user id, never a venue).
+ * Null when it is neither or no row can be had.
+ */
+async function rowIdOrNull(id: string): Promise<string | null> {
+  if (UUID.test(id)) return id;
+  if (!isFilePlaceId(id)) return null;
+  try {
+    const row = await placeRowId(id);
+    return UUID.test(row) ? row : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * "Start a plan here" (`/post?place=<id>`, migration 33): the public venue that is this map
  * place, made from the place's public facts the first time. Null when the id is not a uuid or the
  * place is not an active public place the viewer can see (place_not_found).
  */
-export async function venueForPlace(placeId: string): Promise<Venue | null> {
-  if (!UUID.test(placeId)) return null;
+export async function venueForPlace(id: string): Promise<Venue | null> {
+  const placeId = await rowIdOrNull(id);
+  if (!placeId) return null;
   const { data, error } = await supabase.rpc("venue_for_place", { p_place_id: placeId });
   if (error?.code === "P0002") return null;
   if (error) throw error;
@@ -66,8 +84,9 @@ export interface PlaceVenuePreview {
  * nothing, so opening or prefetching the link never makes a venue in the viewer's name. Null on
  * the same cases as venueForPlace.
  */
-export async function placeVenuePreview(placeId: string): Promise<PlaceVenuePreview | null> {
-  if (!UUID.test(placeId)) return null;
+export async function placeVenuePreview(id: string): Promise<PlaceVenuePreview | null> {
+  const placeId = await rowIdOrNull(id);
+  if (!placeId) return null;
   const { data, error } = await supabase.rpc("venue_preview_for_place", { p_place_id: placeId });
   if (error?.code === "P0002") return null;
   if (error) throw error;

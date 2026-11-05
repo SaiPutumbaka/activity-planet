@@ -73,8 +73,15 @@ function AddPlaceForm({
   const [error, setError] = useState<string | null>(null);
 
   const add = useMutation({
-    mutationFn: (allowDuplicate: boolean) =>
-      addPlace({
+    mutationFn: async (allowDuplicate: boolean) => {
+      if (!allowDuplicate) {
+        // The duplicate check also covers places only a static file holds (D-042 slice 11);
+        // the database checks its own rows in add_place.
+        const { fileDuplicates } = await import("@/lib/place-files");
+        const near = fileDuplicates(point, name.trim(), kind);
+        if (near.length) throw new FileDuplicates(near.map((d) => ({ ...d, mine: false })));
+      }
+      return addPlace({
         name,
         kind,
         lat: point.lat,
@@ -85,7 +92,8 @@ function AddPlaceForm({
         website,
         hours,
         allowDuplicate,
-      }),
+      });
+    },
     onSuccess: (r) => {
       void queryClient.invalidateQueries({ queryKey: mapKeys.all });
       toast.success(
@@ -98,7 +106,7 @@ function AddPlaceForm({
       onAdded(r.id);
     },
     onError: (err) => {
-      const candidates = duplicateCandidates(err);
+      const candidates = err instanceof FileDuplicates ? err.candidates : duplicateCandidates(err);
       if (candidates.length) {
         setDups(candidates);
         setError(null);
@@ -270,4 +278,11 @@ function AddPlaceForm({
       </Button>
     </form>
   );
+}
+
+/** File places like the new one within 60 m (the same rule as add_place's duplicate_candidates). */
+class FileDuplicates extends Error {
+  constructor(readonly candidates: DuplicateCandidate[]) {
+    super("duplicate_candidates");
+  }
 }

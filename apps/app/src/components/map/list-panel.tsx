@@ -1,6 +1,8 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ChevronUp } from "lucide-react";
+import { ChevronUp, Search } from "lucide-react";
+
+import { inputClassName } from "@/components/ui/field";
 
 import { cn } from "@/lib/cn";
 import { formatRelativeDay, formatTime } from "@/lib/datetime";
@@ -17,6 +19,8 @@ import {
   type MapFeature,
   type MapView,
 } from "@/lib/map";
+import { searchPlaces } from "@/lib/place-files";
+import { placeSearchNeedle } from "@/lib/place-match";
 import { ShowsCredit } from "@/components/events/imported-source";
 
 import { MapAttribution } from "./attribution";
@@ -74,6 +78,14 @@ export function ListPanel({
       ),
     [view.cells, origin],
   );
+  const [q, setQ] = useState("");
+  const searching = placeSearchNeedle(q) !== null;
+  // Name search runs here, on the places in view and the place files already read (D-042
+  // slice 11), not on the database.
+  const found = useMemo(
+    () => (searching ? searchPlaces(q, view.places, origin) : []),
+    [searching, q, view.places, origin],
+  );
   const line = status ?? countLine(view);
   const sheet = mode === "sheet";
 
@@ -116,11 +128,44 @@ export function ListPanel({
         )}
       >
         {notices}
-        <Section title="Places" count={places.length}>
-          {places.map((f) => (
-            <PlaceRow key={f.id} f={f} origin={origin} onSelect={onSelectPlace} />
-          ))}
-        </Section>
+        <div className="pt-2">
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute inset-y-0 left-4 my-auto size-5 text-text-3"
+              aria-hidden="true"
+            />
+            <input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              maxLength={60}
+              className={cn(inputClassName, "pl-11")}
+              placeholder="Find a place by name"
+              aria-label="Find a place by name"
+              autoComplete="off"
+              enterKeyHint="search"
+            />
+          </div>
+        </div>
+        {searching ? (
+          found.length ? (
+            <Section title="Matching places" count={found.length}>
+              {found.map((f) => (
+                <PlaceRow key={f.id} f={f} origin={origin} onSelect={onSelectPlace} />
+              ))}
+            </Section>
+          ) : (
+            <p className="pt-3 text-[14px] text-text-2">
+              No place by that name in this part of the map. Move the map and try again.
+            </p>
+          )
+        ) : (
+          <Section title="Places" count={places.length}>
+            {places.map((f) => (
+              <PlaceRow key={f.id} f={f} origin={origin} onSelect={onSelectPlace} />
+            ))}
+          </Section>
+        )}
         <Section title="Plans" count={plans.length + cells.length}>
           {plans.map((f) => (
             <EventRow

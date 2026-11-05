@@ -1,5 +1,6 @@
 import type { BBox, LngLat, MapFeature, MapHub, MapView, PlaceDetail, PlaceDetailHub } from "./map";
-import { PLACE_FLAG, placeKindInfo } from "./map";
+import { PLACE_FLAG, distanceM, placeKindInfo } from "./map";
+import { placeSearchMatches, placeSearchNeedle, sameOrCloseName } from "./place-match";
 
 /**
  * Static place tile files (D-042 slices 3 to 5, AUTO_COVERAGE_DESIGN §4.4 and §4.5).
@@ -17,6 +18,11 @@ import { PLACE_FLAG, placeKindInfo } from "./map";
  *
  * If a file cannot be fetched or read, the caller asks the RPC again without p_files, so places
  * never vanish (Postgres keeps every place during the transition; nothing is deleted).
+ *
+ * Slice 11 (migration 49): name search, the add-a-place duplicate check and a moderation card's
+ * nearby places also read the files (searchPlaces, fileDuplicates, filePlacesNear), so they work
+ * for places only a file holds; a file place a member acts on gets its database row from the
+ * place-files function (file-place-row.ts).
  *
  * Privacy: files are fetched per tile, never per hub, so the host learns a tile, not an interest.
  * Nothing here logs a bbox, a tile or a user id.
@@ -291,6 +297,148 @@ function planarDistance(b: BBox, p: LngLat): number {
 const fileRows = new Map<string, FileRow>();
 let lastRules: RulesFile | null = null;
 
+/**
+ * Every row of the tile files read this session (D-042 slice 11), by tile, newest last, at most
+ * LOADED_TILES of them: what name search, the duplicate check and a file place's row lookup read
+ * now that Postgres need not hold the OSM rows. Refs the database owns (hidden) are left out.
+ */
+const loadedTiles = new Map<number, FileRow[]>();
+const LOADED_TILES = 24;
+let ownedRefs = new Set<string>();
+
+export function rememberTile(
+  tile: number,
+  rows: readonly FileRow[],
+  hidden?: ReadonlySet<string>,
+): void {
+  loadedTiles.delete(tile);
+  loadedTiles.set(tile, [...rows]);
+  while (loadedTiles.size > LOADED_TILES)
+    loadedTiles.delete(loadedTiles.keys().next().value as number);
+  if (hidden) {
+    ownedRefs =
+      ownedRefs.size + hidden.size > 20_000 ? new Set(hidden) : new Set([...ownedRefs, ...hidden]);
+  }
+}
+
+function* loadedRows(): Generator<{ tile: number; row: FileRow }> {
+  for (const [tile, rows] of loadedTiles) {
+    for (const row of rows) if (!ownedRefs.has(row.osmRef)) yield { tile, row };
+  }
+}
+
+/** The tile whose file holds this OSM ref, among the files read this session, else null. */
+export function fileRowTile(osmRef: string): number | null {
+  for (const [tile, rows] of loadedTiles) if (rows.some((r) => r.osmRef === osmRef)) return tile;
+  return null;
+}
+
+function findLoadedRow(osmRef: string): FileRow | null {
+  for (const rows of loadedTiles.values()) {
+    const row = rows.find((r) => r.osmRef === osmRef);
+    if (row) return row;
+  }
+  return null;
+}
+
+export interface NearbyFilePlace {
+  id: string;
+  osmRef: string;
+  name: string;
+  kind: string;
+  distanceM: number;
+}
+
+/** File places within `radiusM` of a point, nearest first (a moderation card's "nearby"). */
+export function filePlacesNear(
+  p: LngLat,
+  radiusM: number,
+  rows?: readonly FileRow[],
+): NearbyFilePlace[] {
+  const list = rows ? rows.map((row) => ({ row })) : [...loadedRows()];
+  return list
+    .map(({ row }) => ({ row, d: distanceM(p, row) }))
+    .filter((x) => x.d <= radiusM)
+    .sort((a, b) => a.d - b.d || (a.row.osmRef < b.row.osmRef ? -1 : 1))
+    .map(({ row, d }) => ({
+      id: filePlaceId(row.osmRef),
+      osmRef: row.osmRef,
+      name: row.name,
+      kind: row.kind,
+      distanceM: Math.round(d),
+    }));
+}
+
+/**
+ * add_place's duplicate check (migration 34) on the files read this session: up to five file
+ * places within 60 m with the same kind or the same or a close name, nearest first.
+ */
+export function fileDuplicates(p: LngLat, name: string, kind: string): NearbyFilePlace[] {
+  return filePlacesNear(p, 60)
+    .filter((f) => f.kind === kind || sameOrCloseName(f.name, name))
+    .slice(0, 5);
+}
+
+/** A file row as a map feature (search results open the same card as a pin). */
+function fileRowFeature(row: FileRow): MapFeature {
+  fileRows.set(row.osmRef, row);
+  return {
+    id: filePlaceId(row.osmRef),
+    kind: "place",
+    lng: row.lng,
+    lat: row.lat,
+    type: row.kind,
+    hubId: null,
+    hubIds: [],
+    flags: 0,
+    name: row.name,
+    startsAt: null,
+    generic: false,
+    imported: false,
+    pending: false,
+    geoapify: false,
+    mine: false,
+    private: false,
+    free: false,
+    adultsOnly: false,
+    osmRef: row.osmRef,
+  };
+}
+
+/**
+ * Name search (places_in_view's p_query rule, on the client): the view's places plus every row
+ * of the files read this session whose "name locality" holds the text, nearest `origin` first,
+ * at most `limit`. A database row wins over the file copy of the same OSM ref. [] for text
+ * shorter than 2 or longer than 60 characters.
+ */
+export function searchPlaces(
+  text: string,
+  viewPlaces: readonly MapFeature[],
+  origin: LngLat,
+  limit = 50,
+): MapFeature[] {
+  const needle = placeSearchNeedle(text);
+  if (!needle) return [];
+  const out: MapFeature[] = [];
+  const refs = new Set<string>();
+  for (const f of viewPlaces) {
+    if (f.osmRef) refs.add(f.osmRef);
+    const locality = f.osmRef ? (findLoadedRow(f.osmRef)?.locality ?? "") : "";
+    if (placeSearchMatches(needle, f.name, locality)) out.push(f);
+  }
+  for (const { row } of loadedRows()) {
+    if (refs.has(row.osmRef)) continue;
+    if (!placeSearchMatches(needle, row.name, row.locality ?? "")) continue;
+    refs.add(row.osmRef);
+    out.push(fileRowFeature(row));
+  }
+  return out
+    .map((f) => ({ f, d: distanceM(origin, f) }))
+    .sort((a, b) => a.d - b.d || (a.f.id < b.f.id ? -1 : 1))
+    .slice(0, limit)
+    .map((x) => x.f);
+}
+
 export const FILE_PLACE_PREFIX = "o:";
 
 export function filePlaceId(osmRef: string): string {
@@ -410,7 +558,11 @@ export async function withFilePlaces(
   const rules = decodeRulesFile(rulesJson);
   lastRules = rules;
   const ctx: FileMatchContext = { info, rules, hubs: view.hubs, generic: view.generic, bbox };
-  const filePlaces = tileJson.flatMap((j) => matchFileRows(decodeTileFile(j).rows, ctx));
+  const filePlaces = tileJson.flatMap((j, i) => {
+    const file = decodeTileFile(j);
+    rememberTile(info.tiles[i]?.id ?? file.tile, file.rows, info.hidden);
+    return matchFileRows(file.rows, ctx);
+  });
   return mergeFilePlaces(view, filePlaces, info, bbox);
 }
 
@@ -418,9 +570,13 @@ export async function withFilePlaces(
 /* Place card for a file place with no database row                     */
 /* ------------------------------------------------------------------ */
 
-/** The card from the file alone (after slice 11 removes OSM rows from Postgres). */
+/**
+ * The card from the file alone, for a place Postgres has no row for. Acting on it (report,
+ * correction, "Start a plan here") first asks the place-files function for its row
+ * (file-place-row.ts).
+ */
 export function filePlaceDetail(osmRef: string): PlaceDetail | null {
-  const row = fileRows.get(osmRef);
+  const row = fileRows.get(osmRef) ?? findLoadedRow(osmRef);
   if (!row) return null;
   const hubs: PlaceDetailHub[] = [];
   for (const h of lastRules?.hubs.values() ?? []) {
@@ -465,5 +621,7 @@ export function filePlaceDetail(osmRef: string): PlaceDetail | null {
 /** Test hook: forget the rows and rules seen so far. */
 export function resetFilePlaces(): void {
   fileRows.clear();
+  loadedTiles.clear();
+  ownedRefs = new Set();
   lastRules = null;
 }
