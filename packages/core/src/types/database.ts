@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 51 (schema_version 2.47). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 52 (schema_version 2.48). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -141,6 +141,41 @@ export type Database = {
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      blocked_image_hashes: {
+        Row: {
+          created_at: string;
+          dhash: number | null;
+          id: string;
+          phash: number | null;
+          request_id: string | null;
+          sha256: string;
+        };
+        Insert: {
+          created_at?: string;
+          dhash?: number | null;
+          id?: string;
+          phash?: number | null;
+          request_id?: string | null;
+          sha256: string;
+        };
+        Update: {
+          created_at?: string;
+          dhash?: number | null;
+          id?: string;
+          phash?: number | null;
+          request_id?: string | null;
+          sha256?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "blocked_image_hashes_request_id_fkey";
+            columns: ["request_id"];
+            isOneToOne: false;
+            referencedRelation: "takedown_requests";
             referencedColumns: ["id"];
           },
         ];
@@ -1604,6 +1639,85 @@ export type Database = {
           {
             foreignKeyName: "hubs_created_by_fkey";
             columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      image_hashes: {
+        Row: {
+          attempts: number;
+          block_request_id: string | null;
+          blocked_at: string | null;
+          blocked_hash_id: string | null;
+          bucket: string;
+          checked_at: string | null;
+          created_at: string;
+          dhash: number | null;
+          dispatched_at: string | null;
+          id: string;
+          owner_id: string | null;
+          path: string;
+          phash: number | null;
+          purged_at: string | null;
+          sha256: string | null;
+          status: string;
+        };
+        Insert: {
+          attempts?: number;
+          block_request_id?: string | null;
+          blocked_at?: string | null;
+          blocked_hash_id?: string | null;
+          bucket: string;
+          checked_at?: string | null;
+          created_at?: string;
+          dhash?: number | null;
+          dispatched_at?: string | null;
+          id?: string;
+          owner_id?: string | null;
+          path: string;
+          phash?: number | null;
+          purged_at?: string | null;
+          sha256?: string | null;
+          status?: string;
+        };
+        Update: {
+          attempts?: number;
+          block_request_id?: string | null;
+          blocked_at?: string | null;
+          blocked_hash_id?: string | null;
+          bucket?: string;
+          checked_at?: string | null;
+          created_at?: string;
+          dhash?: number | null;
+          dispatched_at?: string | null;
+          id?: string;
+          owner_id?: string | null;
+          path?: string;
+          phash?: number | null;
+          purged_at?: string | null;
+          sha256?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "image_hashes_block_request_id_fkey";
+            columns: ["block_request_id"];
+            isOneToOne: false;
+            referencedRelation: "takedown_requests";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "image_hashes_blocked_hash_id_fkey";
+            columns: ["blocked_hash_id"];
+            isOneToOne: false;
+            referencedRelation: "blocked_image_hashes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "image_hashes_owner_id_fkey";
+            columns: ["owner_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -3294,6 +3408,99 @@ export type Database = {
           },
         ];
       };
+      takedown_requests: {
+        Row: {
+          contact_cleared_at: string | null;
+          created_at: string;
+          description: string;
+          due_at: string;
+          email_hash: string;
+          good_faith: boolean;
+          id: string;
+          images_blocked: number;
+          involves_minor: boolean;
+          kind: string;
+          locations: string;
+          priority: number;
+          reference: string;
+          relationship: string;
+          requester_email: string;
+          requester_name: string;
+          resolution_note: string;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          signature: string;
+          status: string;
+          target_user_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          contact_cleared_at?: string | null;
+          created_at?: string;
+          description?: string;
+          due_at: string;
+          email_hash: string;
+          good_faith: boolean;
+          id?: string;
+          images_blocked?: number;
+          involves_minor?: boolean;
+          kind?: string;
+          locations: string;
+          priority?: number;
+          reference: string;
+          relationship: string;
+          requester_email: string;
+          requester_name: string;
+          resolution_note?: string;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          signature: string;
+          status?: string;
+          target_user_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          contact_cleared_at?: string | null;
+          created_at?: string;
+          description?: string;
+          due_at?: string;
+          email_hash?: string;
+          good_faith?: boolean;
+          id?: string;
+          images_blocked?: number;
+          involves_minor?: boolean;
+          kind?: string;
+          locations?: string;
+          priority?: number;
+          reference?: string;
+          relationship?: string;
+          requester_email?: string;
+          requester_name?: string;
+          resolution_note?: string;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          signature?: string;
+          status?: string;
+          target_user_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "takedown_requests_resolved_by_fkey";
+            columns: ["resolved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "takedown_requests_target_user_id_fkey";
+            columns: ["target_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_roles: {
         Row: {
           created_at: string;
@@ -4111,6 +4318,57 @@ export type Database = {
           members: number;
         }[];
       };
+      image_block_hash: {
+        Args: {
+          p_dhash: number;
+          p_phash: number;
+          p_request: string;
+          p_sha256: string;
+        };
+        Returns: string;
+      };
+      image_block_matches: {
+        Args: { p_blocked: string; p_moderator?: string };
+        Returns: number;
+      };
+      image_block_row: {
+        Args: { p_blocked: string; p_image: string; p_moderator?: string };
+        Returns: number;
+      };
+      image_clear_references: {
+        Args: { p_bucket: string; p_path: string };
+        Returns: number;
+      };
+      image_guard_dispatch: { Args: { p_body: Json }; Returns: number };
+      image_guard_mark_purged: { Args: { p_ids: string[] }; Returns: number };
+      image_guard_purge_list: { Args: { p_limit?: number }; Returns: Json };
+      image_guard_record: {
+        Args: {
+          p_bucket: string;
+          p_dhash?: string;
+          p_path: string;
+          p_phash?: string;
+          p_sha256?: string;
+          p_status: string;
+        };
+        Returns: Json;
+      };
+      image_guard_tick: { Args: never; Returns: Json };
+      image_guard_verify_secret: {
+        Args: { p_secret: string };
+        Returns: boolean;
+      };
+      image_hash_close: {
+        Args: {
+          p_dhash_a: number;
+          p_dhash_b: number;
+          p_phash_a: number;
+          p_phash_b: number;
+        };
+        Returns: boolean;
+      };
+      image_hash_from_hex: { Args: { p_hex: string }; Returns: number };
+      image_owner_from_path: { Args: { p_path: string }; Returns: string };
       import_clip: { Args: { p_max: number; p_text: string }; Returns: string };
       import_dispatch: { Args: { p_slug: string }; Returns: number };
       import_dispatch_all: { Args: never; Returns: Json };
@@ -4252,6 +4510,23 @@ export type Database = {
       };
       mod_review_source_candidate: {
         Args: { p_approve: boolean; p_id: string; p_reason?: string };
+        Returns: Json;
+      };
+      mod_takedown_block_image: {
+        Args: { p_image_url: string; p_request: string };
+        Returns: Json;
+      };
+      mod_takedown_queue: {
+        Args: { p_closed?: boolean; p_limit?: number };
+        Returns: Json;
+      };
+      mod_takedown_resolve: {
+        Args: {
+          p_action: string;
+          p_note?: string;
+          p_request: string;
+          p_target_user?: string;
+        };
         Returns: Json;
       };
       mod_team: { Args: never; Returns: Json };
@@ -4480,6 +4755,7 @@ export type Database = {
       project_url: { Args: never; Returns: string };
       purge_account_deletions: { Args: never; Returns: number };
       purge_read_notifications: { Args: never; Returns: number };
+      purge_takedown_contacts: { Args: never; Returns: number };
       record_place_dump: {
         Args: {
           p_bytes: number;
@@ -4691,6 +4967,10 @@ export type Database = {
       };
       source_url_check: { Args: { p_url: string }; Returns: Json };
       source_url_host: { Args: { p_url: string }; Returns: string };
+      storage_object_from_url: {
+        Args: { p_url: string };
+        Returns: Record<string, unknown>;
+      };
       submit_attendance: {
         Args: { p_attended: boolean; p_event_id: string; p_met?: string[] };
         Returns: Json;
@@ -4727,6 +5007,19 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      submit_takedown_request: {
+        Args: {
+          p_description?: string;
+          p_email: string;
+          p_good_faith: boolean;
+          p_involves_minor?: boolean;
+          p_locations: string;
+          p_name: string;
+          p_relationship: string;
+          p_signature: string;
+        };
+        Returns: Json;
       };
       suggest_calendar: { Args: { p_url: string }; Returns: Json };
       suggest_place_edit: {
