@@ -13,6 +13,7 @@ node apps/app/e2e/02-browse.mjs       # Home, Also happening, Hubs, a hub, Map l
 node apps/app/e2e/03-plan.mjs         # post a plan, Add to calendar, Share, RSVP and leave
 node apps/app/e2e/04-safety-you.mjs   # mute, report, block, Blocked accounts, inbox, settings, delete page
 node apps/app/e2e/05-sweep.mjs        # every route at 390x844 and 1280x800
+node apps/app/e2e/06-offline.mjs      # "You're offline" with the service worker, recovery when back
 ```
 
 Use test accounts on staging only, never production. Screenshots go to `E2E_QA_DIR`

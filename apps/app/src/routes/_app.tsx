@@ -3,7 +3,8 @@ import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { TabBar } from "@/components/shell/tab-bar";
 import { getSession } from "@/lib/auth";
 import { clearFeedLocation } from "@/lib/location";
-import { getProfile } from "@/lib/profile";
+import { OfflineError, isOnline } from "@/lib/online";
+import { getProfile, profileQuery } from "@/lib/profile";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -19,6 +20,11 @@ export const Route = createFileRoute("/_app")({
         search: { next: location.href === "/" ? undefined : location.href },
         replace: true,
       });
+    }
+    // Offline with nothing cached: React Query would pause the profile fetch until the device is
+    // back, leaving a spinner forever; fail now so the error screen says "You're offline".
+    if (!isOnline() && queryClient.getQueryData(profileQuery(session.user.id).queryKey) == null) {
+      throw new OfflineError();
     }
     // The own profile row is always readable (migration 22 keeps it out of the 18+ read gate),
     // so a missing row means the account is gone, not that RLS hid it.
