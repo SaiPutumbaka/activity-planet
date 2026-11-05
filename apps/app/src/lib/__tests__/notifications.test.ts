@@ -155,12 +155,22 @@ describe("notificationCopy", () => {
       "hub_new_event",
       "broadcast",
       "chapter_claim_update",
+      "blocked_attendee",
     ];
     for (const k of kinds) {
       const c = notificationCopy(item(k), NOW);
       expect(c.title.length).toBeGreaterThan(0);
       expect(`${c.title} ${c.body ?? ""}`).not.toMatch(/student|campus|GSU|Georgia State/i);
     }
+  });
+
+  it("explains a plan our moderators took down", () => {
+    expect(
+      notificationCopy(
+        item("event_cancelled", { payload: { title: "Run club", reason: "moderator_removed" } }),
+        NOW,
+      ).body,
+    ).toBe("Our moderators took this plan down.");
   });
 
   it("shows the broadcast body and sender", () => {

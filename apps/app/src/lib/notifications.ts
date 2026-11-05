@@ -316,7 +316,11 @@ export function notificationCopy(item: CopyInput, now: Date = new Date()): Notif
     case "event_cancelled": {
       const dates = p.occurrences && p.occurrences > 1 ? ` (${p.occurrences} dates)` : "";
       const reason =
-        p.reason === "host_deleted" ? "The host closed their account." : (p.reason ?? null);
+        p.reason === "host_deleted"
+          ? "The host closed their account."
+          : p.reason === "moderator_removed"
+            ? "Our moderators took this plan down."
+            : (p.reason ?? null);
       return { title: `${plan} is cancelled${dates}`, body: reason ?? when(p, now) };
     }
     case "event_updated": {
@@ -346,6 +350,11 @@ export function notificationCopy(item: CopyInput, now: Date = new Date()): Notif
         body: p.note ?? (p.hub_name ? `About ${name} in ${p.hub_name}.` : `About ${name}.`),
       };
     }
+    case "blocked_attendee":
+      return {
+        title: `Someone you blocked is on ${plan}`,
+        body: "You won't see each other in the attendee list. Meet in a public place.",
+      };
     default:
       return { title: "Update", body: null };
   }

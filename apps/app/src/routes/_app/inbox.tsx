@@ -8,6 +8,7 @@ import {
   CircleCheck,
   Megaphone,
   Settings,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   UserPlus,
@@ -66,6 +67,7 @@ const ICONS: Record<NotificationKind, LucideIcon> = {
   hub_new_event: Sparkles,
   broadcast: Megaphone,
   chapter_claim_update: ShieldCheck,
+  blocked_attendee: ShieldAlert,
 };
 
 function InboxPage() {
