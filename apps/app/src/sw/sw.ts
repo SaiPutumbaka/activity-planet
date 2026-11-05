@@ -2,7 +2,7 @@
 /**
  * The app's service worker (vite-plugin-pwa injectManifest, migration 55). It keeps everything the
  * generated worker did before (precache of the shell, the SPA navigation fallback, the runtime
- * caches for the map bundle, place tile files and fonts, auto-update) and adds web push: the
+ * caches for the map bundle, place tile files and fonts) and adds web push: the
  * send-notifications Edge Function sends an encrypted JSON payload {title, body, url, tag, nid}
  * and this shows it; a tap focuses an open app window (or opens one) on the in-app path.
  *
@@ -24,8 +24,13 @@ import { parsePushPayload, safeAppPath } from "./push-payload";
 
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: (string | PrecacheEntry)[] };
 
-// registerType "autoUpdate": a new worker takes over at once.
-void self.skipWaiting();
+// registerType "prompt" (RECS_DESIGN 9.2): a new worker waits until the page's "A new version is
+// ready" toast asks it to take over, so an open tab never loses its lazy route chunks mid-session.
+// A first install has nothing to wait for and activates at once; clientsClaim takes the page.
+self.addEventListener("message", (event) => {
+  const data = event.data as { type?: unknown } | null;
+  if (data?.type === "SKIP_WAITING") void self.skipWaiting();
+});
 clientsClaim();
 
 precacheAndRoute(self.__WB_MANIFEST);

@@ -7,12 +7,14 @@ import { AppIcon } from "@ap/ui/brand";
 
 import { LocationSheet } from "@/components/feed/location-sheet";
 import { ChatsButton } from "@/components/shell/chats-button";
+import { InstallCard } from "@/components/shell/install-card";
 import { InboxBell } from "@/components/shell/inbox-bell";
 import { TopBar } from "@/components/shell/top-bar";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { ButtonRow, LinkRow } from "@/components/you/link-row";
 import { authErrorMessage, signOut } from "@/lib/auth";
 import { myCoachStatusQuery } from "@/lib/coaching";
@@ -20,6 +22,7 @@ import { isModeratorQuery, myManagedChaptersQuery, roleLabel } from "@/lib/chapt
 import { feedPrefsQuery, useFeedOrigin } from "@/lib/location";
 import { notificationPrefsQuery } from "@/lib/notifications";
 import { profileQuery } from "@/lib/profile";
+import { recPrefsQuery, useSetRecPrefs } from "@/lib/recs";
 import { myBlocksQuery } from "@/lib/safety";
 import { SITE_URL } from "@/lib/site";
 import { setThemePreference, useThemePreference, type ThemePreference } from "@/lib/theme";
@@ -56,6 +59,8 @@ function YouPage() {
   const prefs = useQuery(notificationPrefsQuery(session.user.id));
   const blocks = useQuery(myBlocksQuery(session.user.id));
   const coachStatus = useQuery(myCoachStatusQuery(session.user.id));
+  const recPrefs = useQuery(recPrefsQuery(session.user.id));
+  const saveRecPrefs = useSetRecPrefs(session.user.id);
   const chapters = managed.data ?? [];
   const verifiedSpace = membership.data
     ? (membership.data.org_campuses?.name ?? membership.data.organizations?.name ?? "Verified")
@@ -106,6 +111,8 @@ function YouPage() {
             </Link>
           </div>
         </section>
+
+        <InstallCard placement="you" persistent />
 
         <section className="flex flex-col gap-2">
           <h3 className="text-[13px] font-bold uppercase tracking-[0.08em] text-text-3">
@@ -214,6 +221,24 @@ function YouPage() {
                 )
               }
             />
+            <div className="px-4 py-1">
+              <Switch
+                label="Suggest me to people I share plans with"
+                hint="Off: you're never suggested to anyone, and you see no people suggestions."
+                checked={recPrefs.data?.people_suggestions ?? true}
+                disabled={!recPrefs.isSuccess}
+                onCheckedChange={(on) => saveRecPrefs.mutate({ people_suggestions: on })}
+              />
+            </div>
+            <div className="px-4 py-1">
+              <Switch
+                label="Use my activity to personalize recommendations"
+                hint="Your hubs, RSVPs and check-ins. Off: suggestions use only distance and time."
+                checked={recPrefs.data?.personalize ?? true}
+                disabled={!recPrefs.isSuccess}
+                onCheckedChange={(on) => saveRecPrefs.mutate({ personalize: on })}
+              />
+            </div>
           </div>
         </section>
 

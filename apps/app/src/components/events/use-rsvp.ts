@@ -9,6 +9,7 @@ import {
   setRsvp,
   type RsvpStatus,
 } from "@/lib/events";
+import { noteRsvpForInstall } from "@/lib/install";
 
 /**
  * set_rsvp with the guidelines gate: the first RSVP of an account raises guidelines_required,
@@ -35,7 +36,9 @@ export function useRsvp() {
       void queryClient.invalidateQueries({ queryKey: ["events", eventId] });
       void queryClient.invalidateQueries({ queryKey: ["feed"] });
       void queryClient.invalidateQueries({ queryKey: ["hubs", "events"] });
+      void queryClient.invalidateQueries({ queryKey: ["recs"] });
       const got = row?.status ?? (status === "cancelled" ? "cancelled" : status);
+      if (got === "going" || got === "waitlisted") noteRsvpForInstall();
       if (got === "going") toast.success("You're in.");
       else if (got === "waitlisted")
         toast.success(

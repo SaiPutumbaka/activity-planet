@@ -3,6 +3,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { MessageCircle, UsersRound } from "lucide-react";
 
 import { useOpenChat } from "@/components/chats/use-open-chat";
+import { PeopleRow } from "@/components/recs/people-row";
 import { TopBar } from "@/components/shell/top-bar";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ function MetPage() {
           After a plan, you pick who you met. When they pick you too, or you both checked in, they
           show up here. Nobody sees a pick that isn&apos;t mutual.
         </p>
+        <PeopleRow userId={session.user.id} />
         {met.isPending ? (
           <div className="flex flex-col gap-2" aria-busy="true">
             <Skeleton className="h-16 rounded-card" />

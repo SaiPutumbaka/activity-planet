@@ -15,6 +15,7 @@ import {
   SectionHeading,
 } from "@/components/hubs/hub-states";
 import { RequestHubSheet } from "@/components/hubs/request-hub-sheet";
+import { HubsYouMayLike } from "@/components/recs/hubs-you-may-like";
 import { useHubMembership } from "@/components/hubs/use-hub-membership";
 import { ChatsButton } from "@/components/shell/chats-button";
 import { InboxBell } from "@/components/shell/inbox-bell";
@@ -30,6 +31,7 @@ import {
   viewerAgeQuery,
 } from "@/lib/hubs";
 import { hubCatalogQuery, myHubsQuery, type CatalogHub } from "@/lib/profile";
+import { useRecOrigin } from "@/lib/recs";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 const appRoute = getRouteApi("/_app");
@@ -54,6 +56,7 @@ function HubsPage() {
   const hubIds = useMemo(() => catalog.data?.hubs.map((h) => h.id) ?? [], [catalog.data]);
   const counts = useQuery({ ...hubMemberCountsQuery(hubIds), enabled: hubIds.length > 0 });
   const membership = useHubMembership(userId);
+  const recOrigin = useRecOrigin(userId);
 
   const [query, setQuery] = useState("");
   const needle = useDebouncedValue(normalizeSearch(query), 200);
@@ -125,6 +128,7 @@ function HubsPage() {
       />
       <main className="flex flex-col gap-6 pb-8 safe-px">
         <HubSearch value={query} onChange={setQuery} total={hubCount} />
+        {needle ? null : <HubsYouMayLike origin={recOrigin} />}
 
         {catalog.isPending ? (
           <HubsTabSkeleton />

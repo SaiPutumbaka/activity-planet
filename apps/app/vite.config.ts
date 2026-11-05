@@ -51,9 +51,14 @@ export default defineConfig(({ mode }) => ({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt" (RECS_DESIGN 9.2): a new build waits for the "A new version is ready" toast
+      // (components/shell/update-toast.tsx registers the worker) instead of taking over an open
+      // tab, so lazy route chunks from the running build never 404 mid-session.
+      registerType: "prompt",
+      injectRegister: false,
       includeAssets: ["icon.svg", "icons/apple-touch-icon.png"],
       manifest: {
+        id: "/",
         name: "Activity Planet",
         short_name: "Activity Planet",
         description: "Find your people and something to do with them this week.",
@@ -69,12 +74,67 @@ export default defineConfig(({ mode }) => ({
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
           {
+            src: "/icons/icon-maskable-192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable",
+          },
+          {
             src: "/icons/icon-maskable-512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
           },
+          {
+            src: "/icons/icon-monochrome-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "monochrome",
+          },
         ],
+        shortcuts: [
+          {
+            name: "Post a plan",
+            short_name: "Post",
+            url: "/post",
+            icons: [{ src: "/icons/shortcut-post-96.png", sizes: "96x96", type: "image/png" }],
+          },
+          {
+            name: "Map",
+            url: "/map",
+            icons: [{ src: "/icons/shortcut-map-96.png", sizes: "96x96", type: "image/png" }],
+          },
+          {
+            name: "Chats",
+            url: "/chats",
+            icons: [{ src: "/icons/shortcut-chats-96.png", sizes: "96x96", type: "image/png" }],
+          },
+        ],
+        // Brand art for Android's richer install sheet, never a member's real screen.
+        screenshots: [
+          {
+            src: "/screenshots/narrow-1.png",
+            sizes: "1080x1920",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Plans near you this week",
+          },
+          {
+            src: "/screenshots/narrow-2.png",
+            sizes: "1080x1920",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Hubs for what you're into",
+          },
+          {
+            src: "/screenshots/wide-1.png",
+            sizes: "1920x1080",
+            type: "image/png",
+            form_factor: "wide",
+            label: "Find your people and something to do",
+          },
+        ],
+        launch_handler: { client_mode: "focus-existing" },
       },
       // injectManifest (migration 55): src/sw/sw.ts is the worker. It keeps the precache, the SPA
       // navigation fallback and the runtime caches that the generated worker had (map bundle,
@@ -87,7 +147,9 @@ export default defineConfig(({ mode }) => ({
         // MapLibre (about 270 KB gzip) is lazy-loaded on the Map tab only (D-038). Keep it out of
         // the install-time precache so people who never open the map never download it; the
         // worker caches it on first use instead (hashed file names, so cache-first is safe).
-        globIgnores: ["**/map-canvas-*.{js,css}"],
+        // Install-time extras stay out of the precache too: the iOS launch images and the
+        // manifest screenshots are fetched by the OS, not by the running app.
+        globIgnores: ["**/map-canvas-*.{js,css}", "splash/**", "screenshots/**"],
       },
     }),
   ],

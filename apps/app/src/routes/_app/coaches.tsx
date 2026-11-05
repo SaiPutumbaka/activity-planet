@@ -6,6 +6,7 @@ import { z } from "zod";
 import { coachingErrorMessage, parsePrice } from "@ap/core/coaching";
 
 import { CardList, CoachCard } from "@/components/coaching/parts";
+import { CoachesForYou } from "@/components/recs/coaches-for-you";
 import { TopBar } from "@/components/shell/top-bar";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
@@ -17,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { coachSearchQuery, myCoachStatusQuery } from "@/lib/coaching";
 import { useFeedOrigin } from "@/lib/location";
 import { hubCatalogQuery } from "@/lib/profile";
+import { useRecOrigin } from "@/lib/recs";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 const appRoute = getRouteApi("/_app");
@@ -51,6 +53,7 @@ function CoachesPage() {
   const [currency, setCurrency] = useState("usd");
   const q = useDebouncedValue(text, 350);
   const origin = useFeedOrigin(userId);
+  const recOrigin = useRecOrigin(userId);
   const catalog = useQuery(hubCatalogQuery);
   const coachStatus = useQuery(myCoachStatusQuery(userId));
 
@@ -83,6 +86,7 @@ function CoachesPage() {
         <p className="pt-1 text-[14px] text-text-2">
           Book a session with a coach near you or online. Coaches set their own prices.
         </p>
+        {q.trim() || hubId ? null : <CoachesForYou origin={recOrigin} />}
         <SegmentedControl
           label="Where"
           value={mode}

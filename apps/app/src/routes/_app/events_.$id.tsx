@@ -27,6 +27,7 @@ import { RsvpBar } from "@/components/events/rsvp-bar";
 import { useRsvp } from "@/components/events/use-rsvp";
 import { ImportedChips, ImportedSourceSection } from "@/components/events/imported-source";
 import { HubBadges } from "@/components/hubs/hub-badges";
+import { SimilarPlans } from "@/components/recs/similar-plans";
 import { BlockWarning } from "@/components/safety/block-warning";
 import {
   PersonActionsButton,
@@ -34,6 +35,7 @@ import {
   type SafetyPerson,
 } from "@/components/safety/person-sheet";
 import { ReportButton } from "@/components/safety/report-button";
+import { InstallCard } from "@/components/shell/install-card";
 import { TopBar } from "@/components/shell/top-bar";
 import { Avatar, AvatarStack } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -414,6 +416,12 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
               />
             )
           ) : null}
+
+          {myStatus === "going" || myStatus === "waitlisted" ? (
+            <InstallCard placement="rsvp" />
+          ) : null}
+
+          <SimilarPlans eventId={event.id} userId={userId} />
 
           <p className="text-[13px] text-text-2">
             Meeting people for the first time? Meet in public and tell a friend where you&apos;re

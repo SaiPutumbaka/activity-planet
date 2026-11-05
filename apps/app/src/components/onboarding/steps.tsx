@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Field, FormError, inputClassName } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
+import { InstallCard } from "@/components/shell/install-card";
 import { cn } from "@/lib/cn";
 import { homeChoiceLabel, type HomeChoice } from "@/lib/location";
 import { campusesQuery, hubCatalogQuery, type CatalogHub } from "@/lib/profile";
@@ -463,6 +464,7 @@ export function AffiliationStep({
           ))}
         </div>
       )}
+      <InstallCard placement="onboarding" className="mt-2" />
     </StepFrame>
   );
 }

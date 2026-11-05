@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FormError } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { InstallCard } from "@/components/shell/install-card";
 import {
   deviceTimeZone,
   fromTimeInput,
@@ -332,6 +333,7 @@ function ThisDevice() {
         ) : (
           <>
             <p className="text-[14px] text-text-2">{copy.hint}</p>
+            {state.data === "needs_install" ? <InstallCard placement="push" persistent /> : null}
             {copy.action === "on" ? (
               <Button
                 className="self-start"

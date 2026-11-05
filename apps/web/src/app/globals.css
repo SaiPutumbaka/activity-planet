@@ -5,3 +5,10 @@ body {
   background: var(--color-surface);
   color: var(--color-text);
 }
+
+/* The landing page's "See what's on this week" anchor glides, unless motion is reduced. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}

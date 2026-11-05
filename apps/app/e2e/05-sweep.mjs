@@ -35,6 +35,7 @@ const signedIn = [
   "/you/notifications",
   "/you/blocked",
   "/you/delete",
+  "/you/met",
   "/you/photo",
   "/you/verify",
   "/suggest-calendar",

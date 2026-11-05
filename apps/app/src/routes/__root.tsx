@@ -10,6 +10,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { Mark } from "@ap/ui/brand";
 
+import { UpdateToast } from "@/components/shell/update-toast";
 import { Button } from "@/components/ui/button";
 import { routeErrorCopy, useOnReconnect, useOnline } from "@/lib/online";
 import { useResolvedTheme } from "@/lib/theme";
@@ -29,6 +30,7 @@ function RootLayout() {
   return (
     <>
       <Outlet />
+      <UpdateToast />
       <Toaster
         position="top-center"
         theme={theme}

@@ -10,6 +10,8 @@ import { EventCard } from "@/components/events/event-card";
 import { GuidelinesSheet } from "@/components/events/guidelines-sheet";
 import { useRsvp } from "@/components/events/use-rsvp";
 import { ImportedShelf } from "@/components/feed/imported-shelf";
+import { ForYouRow } from "@/components/recs/for-you-row";
+import { HubsYouMayLike } from "@/components/recs/hubs-you-may-like";
 import { ShowsRow } from "@/components/feed/shows-row";
 import { LocationSheet } from "@/components/feed/location-sheet";
 import { ChatsButton } from "@/components/shell/chats-button";
@@ -114,6 +116,9 @@ function Feed({ userId }: { userId: string }) {
     setMyTimezone(deviceZone).catch(() => undefined);
   }, [deviceZone, savedZone, radius.isSuccess]);
 
+  const homeKey = origin.homePoint
+    ? `${origin.homePoint.lat},${origin.homePoint.lng}`
+    : (origin.homeLabel ?? null);
   // Wait for the radius, the areas (part of the key) and, when filtering by a slug, the hub list,
   // so the first request is the right one. A failed load of any of them still lets the feed run.
   const ready = !radius.isPending && !areas.isPending && (!search.hub || !hubs.isPending);
@@ -122,9 +127,7 @@ function Feed({ userId }: { userId: string }) {
       userId,
       point: origin.point,
       areaId: origin.homeArea?.id ?? null,
-      homeKey: origin.homePoint
-        ? `${origin.homePoint.lat},${origin.homePoint.lng}`
-        : (origin.homeLabel ?? null),
+      homeKey,
       radiusKm,
       hubId: hubFilter?.id,
       free: search.free,
@@ -136,6 +139,15 @@ function Feed({ userId }: { userId: string }) {
   const now = new Date();
   const groups = groupFeed(feed.data?.events ?? [], now, feedTimeZone(deviceZone, savedZone));
   const filtered = Boolean(hubFilter) || Boolean(search.free);
+  // Recommendations use the feed's origin and the radius it settled on (after any widening).
+  const recOrigin = {
+    userId,
+    point: origin.point,
+    areaId: origin.homeArea?.id ?? null,
+    homeKey,
+    radiusKm: feed.data?.radiusKm ?? radiusKm,
+    timeZone: deviceZone,
+  };
 
   function setFilter(next: { hub?: string; free?: boolean }) {
     void navigate({ search: next, replace: true });
@@ -217,6 +229,8 @@ function Feed({ userId }: { userId: string }) {
             </p>
           ) : null}
 
+          <ForYouRow origin={recOrigin} hidden={filtered} />
+
           {groups.sections.length === 0 ? (
             filtered ? (
               <EmptyState
@@ -282,15 +296,12 @@ function Feed({ userId }: { userId: string }) {
               userId={userId}
               point={origin.point}
               areaId={origin.homeArea?.id ?? null}
-              homeKey={
-                origin.homePoint
-                  ? `${origin.homePoint.lat},${origin.homePoint.lng}`
-                  : (origin.homeLabel ?? null)
-              }
+              homeKey={homeKey}
               timeZone={deviceZone}
             />
           )}
           <ImportedShelf events={groups.imported} />
+          {filtered ? null : <HubsYouMayLike origin={recOrigin} compact />}
         </>
       )}
 

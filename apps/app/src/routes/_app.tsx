@@ -1,5 +1,6 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 
+import { AppBadge } from "@/components/shell/app-badge";
 import { TabBar } from "@/components/shell/tab-bar";
 import { getSession } from "@/lib/auth";
 import { ChatsRealtime } from "@/lib/messaging";
@@ -54,6 +55,7 @@ function AppShell() {
   return (
     <div className="mx-auto min-h-dvh max-w-lg pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))]">
       <ChatsRealtime userId={session.user.id} />
+      <AppBadge userId={session.user.id} />
       <Outlet />
       <TabBar />
     </div>

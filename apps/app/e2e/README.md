@@ -20,6 +20,12 @@ node apps/app/e2e/09-collector.mjs    # an imported listing's removal and organi
                                       # claim (code, copy, Check now), /organizer, the calendar
                                       # form, the moderator tabs; with E2E_SITE_URL (apps/web on
                                       # :3000) also /bot and /bot/remove?event=
+node apps/app/e2e/10-recs.mjs        # For you with chips, Not interested (and Undo), Why am I
+                                      # seeing this, Similar plans, the other rows, the privacy
+                                      # switches, the install card (iPhone, installed), the update
+                                      # toast on a waiting worker; with E2E_SITE_URL (apps/web,
+                                      # next build + next start) the landing page at both widths
+                                      # (E2E_ONLY=landing runs only that part)
 E2E_PHASE=book node apps/app/e2e/08-coaching.mjs    # A coaches (profile, listing, availability,
                                                     # publish), B requests a time, A confirms, DM
 E2E_PHASE=finish node apps/app/e2e/08-coaching.mjs  # A marks it done, B reviews, cleanup

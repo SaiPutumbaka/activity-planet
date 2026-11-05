@@ -10,10 +10,35 @@ import { sessionQuery } from "./lib/auth";
 import { clearFeedLocation } from "./lib/location";
 import { syncPushSubscription } from "./lib/push";
 import { initTheme } from "./lib/theme";
+// Captures beforeinstallprompt before any screen mounts (lib/install.ts).
+import "./lib/install";
 import { ScreenLoader } from "./components/ui/spinner";
 import "./styles.css";
 
 initTheme();
+
+// A lazy chunk from an older build is gone after a deploy: reload once to pick up the new build.
+// sessionStorage keeps a broken network from turning this into a reload loop.
+window.addEventListener("vite:preloadError", (event) => {
+  let reloaded: boolean;
+  try {
+    reloaded = sessionStorage.getItem("ap-preload-reload") === "1";
+    if (!reloaded) sessionStorage.setItem("ap-preload-reload", "1");
+  } catch {
+    reloaded = true;
+  }
+  if (reloaded) return;
+  event.preventDefault();
+  window.location.reload();
+});
+// This load worked: a later deploy in the same tab may reload once again.
+window.setTimeout(() => {
+  try {
+    sessionStorage.removeItem("ap-preload-reload");
+  } catch {
+    /* ignore */
+  }
+}, 10_000);
 
 const router = createRouter({
   routeTree,
