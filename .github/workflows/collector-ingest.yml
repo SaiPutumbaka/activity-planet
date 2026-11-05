@@ -41,7 +41,11 @@ name: Collector ingest
 #     are switched on (--enable).
 #   * PRODUCTION only from main, and only when the repository variable COLLECTOR_PRODUCTION is
 #     "true" (default off). Production rows are created switched off and stay as the database has
-#     them: a source is switched on there by a deliberate data change, never by this job.
+#     them: a hand-written, API or import-feed source is switched on there by a deliberate data
+#     change, never by this job. Discovered sources (disc-) are the exception: the "Regions,
+#     record the run" step posts their results to the discovery lifecycle, which switches one on
+#     after good runs on two separate days and off again when it pauses or is rejected (D-042
+#     slice 7, source_candidates_record), in production too once COLLECTOR_PRODUCTION is on.
 #
 # Secrets: only the two optional API keys above. Like places-extract.yml it links the target project with
 # SUPABASE_ACCESS_TOKEN and that project's database password, reads the collector secret that
