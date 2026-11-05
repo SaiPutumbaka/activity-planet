@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { RequestForm } from "./request-form";
 
@@ -22,7 +23,9 @@ export default function IntimateImageRemovalPage() {
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col gap-10 px-4 py-16">
       <header className="flex flex-col gap-4">
         <p className="text-sm font-medium uppercase tracking-wide text-text-2">
-          Activity Planet safety
+          <Link href="/safety" className="underline-offset-2 hover:underline">
+            Activity Planet Safety Center
+          </Link>
         </p>
         <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
           Remove an intimate image

@@ -36,6 +36,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FieldTextArea } from "@/components/ui/textarea";
 import { canAnswerAttendance, myAttendanceQuery } from "@/lib/attendance";
+import { SITE_URL } from "@/lib/site";
 import { DEFAULT_TIMEZONE, formatEventTime } from "@/lib/datetime";
 import {
   canManageEventQuery,
@@ -388,6 +389,17 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
               />
             )
           ) : null}
+
+          <p className="text-[13px] text-text-2">
+            Meeting people for the first time? Meet in public and tell a friend where you&apos;re
+            going.{" "}
+            <a
+              href={`${SITE_URL}/safety`}
+              className="font-semibold text-link underline-offset-2 hover:underline"
+            >
+              Safety tips
+            </a>
+          </p>
         </div>
       </main>
 
