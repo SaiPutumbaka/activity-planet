@@ -462,11 +462,11 @@ begin
     raise exception 'FAIL place_detail pv1 plans_here %', r -> 'plans_here';
   end if;
   begin perform public.place_detail(current_setting('test.pu1')::uuid); raise exception 'FAIL anon read a private pin';
-  exception when no_data_found then if sqlerrm <> 'place_not_found' then raise; end if; end;
+  exception when sqlstate 'PT404' then if sqlerrm <> 'place_not_found' then raise; end if; end;
   begin perform public.place_detail(current_setting('test.ph1')::uuid); raise exception 'FAIL anon read a hidden place';
-  exception when no_data_found then if sqlerrm <> 'place_not_found' then raise; end if; end;
+  exception when sqlstate 'PT404' then if sqlerrm <> 'place_not_found' then raise; end if; end;
   begin perform public.place_detail(null); raise exception 'FAIL null id';
-  exception when no_data_found then if sqlerrm <> 'place_not_found' then raise; end if; end;
+  exception when sqlstate 'PT404' then if sqlerrm <> 'place_not_found' then raise; end if; end;
 end $$;
 reset role;
 
@@ -534,7 +534,7 @@ begin
   r := public.map_in_view(-150.5, -60.5, -150.0, -60.0, null, array['plans', 'shows']);
   if not (r ->> 'no_hubs')::boolean then raise exception 'FAIL no_hubs without the places layer'; end if;
   begin perform public.place_detail(current_setting('test.pu1')::uuid); raise exception 'FAIL another adult read a private pin';
-  exception when no_data_found then if sqlerrm <> 'place_not_found' then raise; end if; end;
+  exception when sqlstate 'PT404' then if sqlerrm <> 'place_not_found' then raise; end if; end;
 end $$;
 reset role;
 

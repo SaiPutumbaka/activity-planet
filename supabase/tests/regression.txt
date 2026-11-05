@@ -74,3 +74,4 @@ recommendations.sql
 recommendations_people.sql
 scorecard_landing.sql
 recommendations_review_fixes.sql
+not_found_404.sql
