@@ -2,6 +2,46 @@
 
 Claude cannot create accounts, enter payment details, or sign anything. Everything below needs you. Ordered by lead time. Cash this week: about $16 (domain $9.99 the first year, $15/yr after; DMCA agent $6). Everything else is free until the triggers in `FINANCIAL-PLAN.md` fire; the store accounts ($124) come after the evidence test.
 
+## Start here: what only you can do, in priority order (updated Nov 5, release B QA)
+
+Release B is built (messaging, coaching with payments off, collector completion, recommendations, landing v2, PWA polish) and passes its QA pass (`docs/ops/release-b-test-plan.md`). Everything below waits on you; each feature that needs a key simply stays off, without failing, until the key exists. Secrets go into the dashboards named, never into chat, the repo or `.env` files in git. "Both projects" means production and staging Supabase, Project Settings, Edge Functions, Secrets. The numbers in this list are its own; "item N" points to the numbered items further down.
+
+**Keys and variables**
+
+1. **`COLLECTOR_PRODUCTION`** = `true` (GitHub, Settings, Secrets and variables, Actions, Variables), after Claude merges release B to main. Without it the nightly collector posts to staging only and production shows no imported events beyond the existing feeds.
+2. **`PLACES_EXTRACT_SCHEDULE`** = `production` (same Variables page; item 7). Without it new members' areas get no places on production until Claude runs the job by hand. Add `PLACES_DUMP_SCHEDULE` = `production` at the same time for the monthly ODbL release.
+3. **`GEOAPIFY_SERVER_KEY`** on both projects (item 5): a new area anywhere fills with places within about 15 minutes instead of the next night, and imported venues geocode with it before Nominatim.
+4. **`TICKETMASTER_API_KEY`** and **`SEATGEEK_CLIENT_ID`** on both projects (item 20b): the "Shows and games" row and map layer, and the only imported events EU members get until question (a) below is answered.
+5. **VAPID keys** (item 16a): `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` on both projects, and `VITE_VAPID_PUBLIC_KEY` on the `activity-planet-app` Vercel project. Turns on web push for plans, chats and bookings.
+6. **`RESEND_API_KEY`** on both projects (item 16a; needs the domain and Resend verification, item 1) and **`SCORECARD_TO`** (the address the Monday scorecard goes to). Without them every email and the weekly scorecard are recorded as skipped.
+7. **`SUPABASE_SERVICE_ROLE_KEY`** on the `activity-planet` (site) Vercel project, server only, never `NEXT_PUBLIC_`. Without it the public intimate-image request form and the listing removal form on `/bot/remove` answer "unavailable" (the QA pass saw the 503).
+8. **Stripe test keys on staging only** (item 17, then COACHING_DESIGN section 16): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and optionally `STRIPE_CONNECT_WEBHOOK_SECRET` on the staging project; tell Claude, who sets `coach_payments` on there and runs a test-mode booking. Production keys wait for the attorney read in (d) and the LLC trigger.
+9. **Cloudflare Turnstile** (free): `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` on the `activity-planet` Vercel project, for the takedown and removal forms. Do not turn on CAPTCHA in Supabase Auth yet: the app's sign-up has no widget, so sign-up would fail.
+10. **Sightengine** (free plan): `SIGHTENGINE_API_USER` and `SIGHTENGINE_API_SECRET` on both projects, when you want photos in chats. Low priority: image-guard's classify step is not built yet (release B known gap), so Claude builds it first and then sets `chat_images` on.
+11. **Eventbrite** (optional, item 20d b): `EVENTBRITE_CLIENT_ID`, `EVENTBRITE_CLIENT_SECRET`, `EVENTBRITE_REDIRECT_URI` on both projects, if organizers should connect Eventbrite.
+
+**GitHub Pages**
+
+12. **Turn on GitHub Pages for `gh-pages`** and add `VITE_PLACES_BASE_URL` to the app's Vercel project (item 7b), after the first Places files run from main.
+
+**Attorney questions** (item 12; one free session can take all of them)
+
+13. **Terms of Service and Privacy Policy texts.** They are linked from sign-up, You, the Safety Center and every share page, and `/terms` and `/privacy` are still 404s: a release B go/no-go item. Either have the drafts read, or tell Claude to publish them as DRAFT pages the way the Coach Terms are. The Community Guidelines are now live as a draft at `/guidelines`.
+14. **Questions for the attorney:**
+    (a) **EU database law**: may the collector find and read EU venues' public calendars and store facts, a short excerpt and a link (Directive 96/9/EC Article 7)? Until answered, discovery stays off in the EU.
+    (b) **Ticketmaster's monetisation clause** next to a paid coaching marketplace or future fees.
+    (c) **The D-040 collector posture** (official APIs, public feeds, the schema.org reader with robots.txt and removal on every item).
+    (d) **Coach Terms and Refund Policy** (drafts at `/coach-terms` and `/refund-policy`): needed before payments go live.
+    (e) **Nominatim under D-041's amendment of Nov 5**: the nightly collector job geocodes imported venue text with Nominatim's free service (1 request every 2 seconds, identifying User-Agent, results cached); is that within its usage policy and the ODbL for storing the points?
+
+**Decisions pending from D-044** (each is Claude's default until you say otherwise)
+
+15. Confirm the launch refund windows: free cancellation 24 hours or more before, 50% inside 24 hours, a client no-show forfeits, a coach cancellation or no-show refunds in full.
+16. Confirm the platform fee (12%, at least $3 in USD) and that the platform absorbs Stripe's processing fee (D-026's proposal).
+17. Confirm payments stay off on production until 14(d) is answered and the LLC trigger in `FINANCIAL-PLAN.md` fires; until then coaches arrange payment directly and the app says so.
+
+The numbered items further down keep their details and history.
+
 **Changed 2026-11-04 (D-042, your direction of Nov 4):** anyone anywhere, for example in Germany, gets a map and a feed built for their home and hubs automatically (`docs/design/auto-coverage/AUTO_COVERAGE_DESIGN.md`). Nothing needs a new account: place files are served from GitHub Pages first, and Cloudflare comes only if traffic ever needs it. Five things for you, none urgent and none blocking the build (each part simply waits, without failing, until you do it): (a) the repository variable `PLACES_EXTRACT_SCHEDULE` = `production` (item 7), which now runs the places job nightly so new areas get places the next morning; (b) the Geoapify server key `GEOAPIFY_SERVER_KEY` (item 5), so a new area fills within minutes; (c) the Ticketmaster and SeatGeek keys (item 20b); (d) allow `query.wikidata.org` and `download.geofabrik.de` for Claude (item 14); (e) two more attorney questions: the EU database right and Ticketmaster's monetisation clause (item 12). (f) after Claude merges to main and the first Places files run from main has created the `gh-pages` branch: turn on GitHub Pages for that branch and add one environment variable to the app (item 7b); until then every place keeps coming from the database. Until (e) is answered, automatic event discovery stays off in the EU; places work there from day one.
 
 **Changed 2026-11-04 (D-041, your decision of Nov 3):** the hub map comes before messaging and is in release A on Dec 8; messaging and the rest of the event collector follow it (ROADMAP). New for you: the Atlanta known-spots list (item 20c), a second Geoapify key for the places fill (item 5), and allowing `taginfo.openstreetmap.org` and `download.geofabrik.de` for Claude (item 14).
