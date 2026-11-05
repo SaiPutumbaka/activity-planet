@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 49 (schema_version 2.45). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 50 (schema_version 2.46). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -2876,6 +2876,7 @@ export type Database = {
           empty_runs: number;
           empty_since: string | null;
           error_runs: number;
+          error_since: string | null;
           feed_kind: string | null;
           feed_url: string | null;
           host: string;
@@ -2908,6 +2909,7 @@ export type Database = {
           empty_runs?: number;
           empty_since?: string | null;
           error_runs?: number;
+          error_since?: string | null;
           feed_kind?: string | null;
           feed_url?: string | null;
           host: string;
@@ -2940,6 +2942,7 @@ export type Database = {
           empty_runs?: number;
           empty_since?: string | null;
           error_runs?: number;
+          error_since?: string | null;
           feed_kind?: string | null;
           feed_url?: string | null;
           host?: string;
@@ -4123,6 +4126,7 @@ export type Database = {
       };
       place_file_at: { Args: { p_lat: number; p_lng: number }; Returns: Json };
       place_file_of_tile: { Args: { p_tile: number }; Returns: Json };
+      place_file_request_take: { Args: { p_user_id: string }; Returns: Json };
       place_files_in_view: {
         Args: { p_env1: unknown; p_env2: unknown };
         Returns: Json;
@@ -4146,6 +4150,7 @@ export type Database = {
         Returns: string;
       };
       place_raise_near: { Args: { p_why: string }; Returns: undefined };
+      place_rate_log_prune: { Args: never; Returns: number };
       place_size_status: { Args: never; Returns: Json };
       place_tile_bbox: { Args: { p_id: number }; Returns: unknown };
       place_tile_file_page: {
@@ -4377,10 +4382,13 @@ export type Database = {
         Returns: Json;
       };
       source_candidates_record: { Args: { p_results: Json }; Returns: Json };
-      source_discovery_allowed: {
-        Args: { p_country: string; p_origin: string };
-        Returns: boolean;
-      };
+      source_discovery_allowed:
+        | { Args: { p_country: string; p_origin: string }; Returns: boolean }
+        | {
+            Args: { p_country: string; p_origin: string; p_region: string };
+            Returns: boolean;
+          };
+      source_discovery_gate_min_required: { Args: never; Returns: number };
       source_discovery_gate_open: {
         Args: { p_probe_hash: string };
         Returns: boolean;
@@ -4404,6 +4412,10 @@ export type Database = {
         Returns: Json;
       };
       source_discovery_regions_record: { Args: { p_ids: Json }; Returns: Json };
+      source_discovery_zone_needs_country: {
+        Args: { p_tz: string };
+        Returns: boolean;
+      };
       source_url_check: { Args: { p_url: string }; Returns: Json };
       source_url_host: { Args: { p_url: string }; Returns: string };
       submit_attendance: {
