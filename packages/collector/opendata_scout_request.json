@@ -1,7 +1,7 @@
 {
   "regions": [
     {
-      "region": "atl"
+      "inspect": "data.calgary.ca/n625-9k5x"
     },
     {
       "lat": 51.05,
@@ -9,24 +9,6 @@
       "radius_km": 30,
       "label": "Calgary",
       "domains": ["data.calgary.ca"]
-    },
-    {
-      "lat": 51.5,
-      "lng": -0.1,
-      "radius_km": 25,
-      "label": "London"
-    },
-    {
-      "lat": 51.3,
-      "lng": 12.4,
-      "radius_km": 25,
-      "label": "Leipzig"
-    },
-    {
-      "lat": 48.0,
-      "lng": 7.9,
-      "radius_km": 25,
-      "label": "Freiburg"
     }
   ]
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   formatRow,
+  inspect,
+  valueMask,
   hubSearchUrl,
   parseHubSearch,
   parseSocrataCatalog,
@@ -132,5 +134,45 @@ describe("open-data scout", () => {
     };
     const { rows } = await scout({ region: ATL, fetcher });
     expect(rows).toEqual([]);
+  });
+});
+
+describe("open-data inspect", () => {
+  it("prints metadata and value masks only", async () => {
+    const fetcher = {
+      get: async (url: string) => {
+        const body = url.includes("/api/views/")
+          ? JSON.stringify({
+              name: "City Events",
+              attribution: "The City",
+              license: {
+                name: "Open Government Licence",
+                termsLink: "https://data.example.gov/terms",
+              },
+              columns: [
+                { fieldName: "title", dataTypeName: "text" },
+                { fieldName: "next_date_times", dataTypeName: "text" },
+              ],
+            })
+          : JSON.stringify([{ next_date_times: "Saturday Nov 14, 2026 9:00 am - Secret Party" }]);
+        return {
+          ok: true as const,
+          url,
+          status: 200,
+          contentType: "application/json",
+          xRobotsTag: null,
+          body,
+          notModified: false,
+        };
+      },
+    };
+    const out = (await inspect({ domain: "data.example.gov", id: "abcd-1234", fetcher })).join(
+      "\n",
+    );
+    expect(out).toContain('licence="Open Government Licence" terms=https://data.example.gov/terms');
+    expect(out).toContain("columns=title:text,next_date_times:text");
+    expect(out).toContain("shape next_date_times: a+ aaa 99, 9999 9:99 aa - a+ a+");
+    expect(out).not.toContain("Secret");
+    expect(valueMask(3)).toBe("number");
   });
 });

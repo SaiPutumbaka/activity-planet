@@ -333,6 +333,62 @@ export async function scout(o: {
   return { rows: out, counts };
 }
 
+/** A value's shape with its content removed: letters become a, digits 9 (runs of letters shortened). */
+export function valueMask(v: unknown): string {
+  if (v === null || v === undefined) return "null";
+  if (typeof v === "number" || typeof v === "boolean") return typeof v;
+  if (typeof v !== "string") return Array.isArray(v) ? "array" : "object";
+  return v
+    .slice(0, 60)
+    .replace(/\p{L}+/gu, (m) => (m.length > 3 ? "a+" : "a".repeat(m.length)))
+    .replace(/[0-9]/g, "9");
+}
+
+/**
+ * One dataset's public metadata (name, attribution, licence and its terms link, column types) and
+ * the shape of its first values in date-like columns (masks only: no value is printed).
+ */
+export async function inspect(o: {
+  domain: string;
+  id: string;
+  fetcher: Pick<Fetcher, "get">;
+}): Promise<string[]> {
+  if (!DOMAIN.test(o.domain) || !ID4X4.test(o.id))
+    throw new Error("--dataset must be <portal domain>/<4x4 id>");
+  const out: string[] = [];
+  const meta = await o.fetcher.get(`https://${o.domain}/api/views/${o.id}.json`, {
+    accept: "application/json",
+  });
+  if (!meta.ok)
+    return [`[inspect] metadata failed: ${meta.reason}${meta.status ? ` ${meta.status}` : ""}`];
+  const m = JSON.parse(meta.body) as Record<string, unknown>;
+  const lic = (m.license ?? {}) as Record<string, unknown>;
+  const cols = (Array.isArray(m.columns) ? m.columns : []) as Record<string, unknown>[];
+  out.push(
+    `[inspect] name=${JSON.stringify(clean(m.name))} attribution=${JSON.stringify(clean(m.attribution))} attribution_link=${clean(m.attributionLink, 200) || "-"}`,
+    `[inspect] licence=${JSON.stringify(clean(lic.name))} terms=${clean(lic.termsLink, 200) || "-"} licence_id=${clean(m.licenseId, 40) || "-"} rows_updated=${typeof m.rowsUpdatedAt === "number" ? new Date(m.rowsUpdatedAt * 1000).toISOString().slice(0, 10) : "-"}`,
+    `[inspect] columns=${cols.map((c) => `${clean(c.fieldName, 64)}:${clean(c.dataTypeName, 30)}`).join(",")}`,
+  );
+  const dateLike = cols
+    .map((c) => clean(c.fieldName, 64))
+    .filter((n) => /^[a-z_][a-z0-9_]{0,63}$/.test(n) && /date|time|start|end|when/.test(n))
+    .slice(0, 4);
+  if (dateLike.length > 0) {
+    const u = new URL(`https://${o.domain}/resource/${o.id}.json`);
+    u.searchParams.set("$select", dateLike.join(","));
+    u.searchParams.set("$limit", "3");
+    const rows = await o.fetcher.get(u.toString(), { accept: "application/json" });
+    if (rows.ok) {
+      const list = JSON.parse(rows.body) as Record<string, unknown>[];
+      for (const c of dateLike)
+        out.push(
+          `[inspect] shape ${c}: ${(Array.isArray(list) ? list : []).map((r) => valueMask(r?.[c])).join(" | ")}`,
+        );
+    } else out.push(`[inspect] shapes failed: ${rows.reason}`);
+  }
+  return out;
+}
+
 async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
   const { values } = parseArgs({
@@ -344,9 +400,16 @@ async function main(argv: string[]): Promise<number> {
       "radius-km": { type: "string" },
       label: { type: "string" },
       domains: { type: "string" },
+      dataset: { type: "string" },
     },
     allowPositionals: false,
   });
+  if (command === "inspect") {
+    const [domain = "", id = ""] = (values.dataset ?? "").split("/");
+    const fetcher = new PoliteFetcher({ denylist: Denylist.load() });
+    for (const l of await inspect({ domain: domain.toLowerCase(), id, fetcher })) console.log(l);
+    return 0;
+  }
   if (command !== "scout") {
     console.error(
       "usage: opendata scout (--region <city id> | --lat N --lng N --radius-km N) (see src/opendata-scout.ts)",
