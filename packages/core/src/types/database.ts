@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 56 (schema_version 2.52). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 57 (schema_version 2.53). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -4230,6 +4230,7 @@ export type Database = {
         Returns: undefined;
       };
       event_share_card: { Args: { p_event_id: string }; Returns: Json };
+      feed_event_area: { Args: { p_event_id: string }; Returns: unknown };
       feed_events: {
         Args: { p_from: string; p_limit?: number; p_to: string };
         Returns: {
