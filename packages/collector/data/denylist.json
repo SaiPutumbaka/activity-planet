@@ -44,6 +44,41 @@
       "pathPrefix": "/discovery/v2/",
       "reason": "Ticketmaster Discovery API"
     },
-    { "host": "api.seatgeek.com", "pathPrefix": "/2/", "reason": "SeatGeek Platform API" }
+    { "host": "api.seatgeek.com", "pathPrefix": "/2/", "reason": "SeatGeek Platform API" },
+    {
+      "host": "www.eventbriteapi.com",
+      "pathPrefix": "/v3/",
+      "reason": "Eventbrite API for organizer-connected accounts only (OAuth, key-gated); Eventbrite web pages stay denylisted"
+    },
+    {
+      "host": "nominatim.openstreetmap.org",
+      "pathPrefix": "/search",
+      "reason": "Nominatim geocoding under its usage policy (nightly venue geocoding only)"
+    },
+    {
+      "host": "photon.komoot.io",
+      "pathPrefix": "/api/",
+      "reason": "Photon geocoding, only after Nominatim answers 429 or 5xx"
+    },
+    {
+      "host": "api.geoapify.com",
+      "pathPrefix": "/v1/geocode/",
+      "reason": "Geoapify geocoding, only with GEOAPIFY_SERVER_KEY"
+    },
+    {
+      "host": "api.us.socrata.com",
+      "pathPrefix": "/api/catalog/",
+      "reason": "Socrata Discovery API (open-data scout)"
+    },
+    {
+      "host": "api.eu.socrata.com",
+      "pathPrefix": "/api/catalog/",
+      "reason": "Socrata Discovery API, EU (open-data scout)"
+    },
+    {
+      "host": "hub.arcgis.com",
+      "pathPrefix": "/api/search/",
+      "reason": "ArcGIS Hub search API (open-data scout)"
+    }
   ]
 }

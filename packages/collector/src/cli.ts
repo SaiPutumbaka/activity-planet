@@ -7,6 +7,8 @@
 //   --sources-file <path> discovered sources for collector regions in the regions file,
 //                         {sources: [{region_id, seed}]} as `regions fetch --sources-out`
 //                         writes them; they run like that region's hand-written seeds
+//   --only-sources        with --sources-file: run only those sources (no city files, no
+//                         open-data registry, no API adapters): the verify job's Refresh now
 //   --dry-run             print counts only
 //   --ingest <base-url>   post each source's items to the collector Edge Function
 //                         (https://<ref>.supabase.co/functions/v1/collector, POST /ingest/events)
@@ -30,6 +32,9 @@
 //                         redirects included (default 60); later ones are not sent
 //   --max-run-minutes <n> no request starts after this many minutes (default 9), so the
 //                         run ends in time however slow its hosts are
+//   --denylist-file <path> the database-only denylist (`regions denylist --out` writes it:
+//                         hosts and sources removed on an owner's request, migration 63),
+//                         merged into data/denylist.json for this run; those sources are skipped
 //   --api-budget <path>   the API calls this run may send per adapter, as `regions budget take`
 //                         writes them ({"calls": {"ticketmaster": 100}}); an adapter not in it
 //                         sends none. Without it only each adapter's paging cap applies.
@@ -56,7 +61,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { DryRunIngest, HttpIngest, type Ingest } from "./ingest.ts";
 import { discoveredCities } from "./regions.ts";
 import { sourceForSeed } from "./sources.ts";
-import { Denylist } from "./policy/denylist.ts";
+import { Denylist, parseRemoteDenylist } from "./policy/denylist.ts";
+import { registrySeeds } from "./opendata-registry.ts";
 import type { Region } from "./types.ts";
 
 /** Default --max-run-minutes: the Atlanta run must finish within 10 minutes. */
@@ -84,6 +90,8 @@ async function main(argv: string[]): Promise<number> {
       "max-requests-per-host": { type: "string" },
       "max-run-minutes": { type: "string" },
       "api-budget": { type: "string" },
+      "denylist-file": { type: "string" },
+      "only-sources": { type: "boolean", default: false },
       cache: { type: "string" },
       "no-cache": { type: "boolean", default: false },
       list: { type: "boolean", default: false },
@@ -120,13 +128,31 @@ async function main(argv: string[]): Promise<number> {
   if (values["sources-file"]) {
     if (!values["regions-file"]) throw new Error("--sources-file needs --regions-file");
     const d = discoveredCities(JSON.parse(readFileSync(values["sources-file"], "utf8")), regions);
-    cities = [...cities, ...d.cities];
+    cities = values["only-sources"] ? d.cities : [...cities, ...d.cities];
     console.error(
       `discovered sources: ${d.cities.reduce((n, c) => n + c.seeds.length, 0)} in ${d.cities.length} region(s), ${d.dropped} dropped`,
     );
   }
 
-  const env = process.env as Record<string, string | undefined>;
+  if (values["only-sources"] && !values["sources-file"])
+    throw new Error("--only-sources needs --sources-file");
+  // Open-data datasets from data/opendata, as seeds of every run region their box overlaps.
+  if (!values["only-sources"]) cities = [...cities, ...registrySeeds(regions)];
+
+  // Hosts and sources removed on an owner's request (database only): never fetched this run.
+  const denylist = Denylist.load();
+  if (values["denylist-file"]) {
+    const remote = parseRemoteDenylist(JSON.parse(readFileSync(values["denylist-file"], "utf8")));
+    denylist.merge(remote);
+    const skip = new Set(remote.sources);
+    cities = cities.map((c) => ({ ...c, seeds: c.seeds.filter((s) => !skip.has(s.id)) }));
+    console.error(
+      `remote denylist: hosts=${remote.entries.length} sources=${remote.sources.length}`,
+    );
+  }
+
+  // --only-sources reads no API: no key reaches the run.
+  const env = (values["only-sources"] ? {} : process.env) as Record<string, string | undefined>;
   if (values.list) {
     for (const r of regions) {
       console.log(`region ${r.id} (${r.label}) ${r.lat},${r.lng} r=${r.radiusKm}km`);
@@ -180,7 +206,7 @@ async function main(argv: string[]): Promise<number> {
     : undefined;
   const started = Date.now();
   const fetcher = new PoliteFetcher({
-    denylist: Denylist.load(),
+    denylist,
     cache,
     slowHostBudgetMs: slowMinutes * 60_000,
     maxRequestsPerHost: perHost,

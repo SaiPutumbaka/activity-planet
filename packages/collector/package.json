@@ -11,7 +11,9 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "verify": "node src/verify-cli.ts",
+    "opendata": "node src/opendata-scout.ts"
   },
   "dependencies": {
     "domhandler": "^6.0.1",

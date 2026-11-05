@@ -43,6 +43,14 @@ export type Route =
   | { kind: "api_keys" }
   | { kind: "api_budget_take" }
   | { kind: "api_budget_return" }
+  // Collector completion (migrations 62 and 63).
+  | { kind: "denylist" }
+  | { kind: "claims_due"; limit: number }
+  | { kind: "claims_record" }
+  | { kind: "geocode_queue"; limit: number }
+  | { kind: "geocode_record" }
+  | { kind: "runs_record" }
+  | { kind: "discovery_yield" }
   | { kind: "not_found" };
 
 /** collector_sources_for_regions' and source_candidates_due's largest region list (migration 46). */
@@ -171,6 +179,26 @@ export function matchRoute(method: string, url: string): Route {
   if (method === "GET" && path === "/api-keys") return { kind: "api_keys" };
   if (method === "POST" && path === "/api-budget") return { kind: "api_budget_take" };
   if (method === "POST" && path === "/api-budget/return") return { kind: "api_budget_return" };
+  // Collector completion (migrations 62 and 63).
+  if (method === "GET" && path === "/denylist") return { kind: "denylist" };
+  if (method === "GET" && path === "/claims/due") {
+    const lim = Number(u.searchParams.get("limit") ?? "50");
+    return {
+      kind: "claims_due",
+      limit: Number.isInteger(lim) ? Math.min(CLAIMS_MAX, Math.max(1, lim)) : 50,
+    };
+  }
+  if (method === "POST" && path === "/claims/record") return { kind: "claims_record" };
+  if (method === "GET" && path === "/geocode/queue") {
+    const lim = Number(u.searchParams.get("limit") ?? "300");
+    return {
+      kind: "geocode_queue",
+      limit: Number.isInteger(lim) ? Math.min(GEOCODE_MAX, Math.max(1, lim)) : 300,
+    };
+  }
+  if (method === "POST" && path === "/geocode/record") return { kind: "geocode_record" };
+  if (method === "POST" && path === "/runs/record") return { kind: "runs_record" };
+  if (method === "GET" && path === "/discovery/yield") return { kind: "discovery_yield" };
   const rows = /^\/tiles\/([0-9]{1,6})\/rows$/.exec(path);
   if (method === "GET" && rows) {
     const tileId = Number(rows[1]);
@@ -628,8 +656,11 @@ export function parseDiscoveryRegionsBody(body: unknown): Parsed<{ p_ids: string
   return { ok: true, args: { p_ids: (list as string[]).map((id) => id.toLowerCase()) } };
 }
 
-/** The lane 1 APIs with a daily call budget (collector_api_budget_cap, migration 48). */
-export const BUDGET_APIS = ["ticketmaster", "seatgeek"] as const;
+/**
+ * The APIs with a daily call budget (collector_api_budget_cap, migration 48; geoapify_geocode,
+ * venue geocoding with GEOAPIFY_SERVER_KEY, migration 63).
+ */
+export const BUDGET_APIS = ["ticketmaster", "seatgeek", "geoapify_geocode"] as const;
 /** collector_api_budget_take's and _return's largest request. */
 export const API_CALLS_MAX = 1000;
 
@@ -666,6 +697,123 @@ export function parseApiBudgetReturnBody(
   return { ok: true, args: { p_api: c.api, p_day: o.day, p_calls: c.calls } };
 }
 
+/** collector_claims_due's and collector_claims_record's largest list (migration 62). */
+export const CLAIMS_MAX = 200;
+/** collector_geocode_queue's and collector_geocode_record's largest list (migration 63). */
+export const GEOCODE_MAX = 500;
+const CLAIM_OUTCOMES = ["verified", "token_not_found", "dns_no_txt", "fetch_failed"];
+const CLAIM_METHODS = ["meta", "well_known", "dns_txt", "feed"];
+const GEO_PROVIDERS = ["place", "venue", "geoapify", "nominatim", "photon", "none"];
+const RUN_JOBS = ["ingest", "discovery", "verify", "places_extract", "places_files"];
+
+/** Body of POST /collector/claims/record: {results: [{claim_id, outcome, method?, reason?}]} (<= 200). */
+export function parseClaimsRecordBody(
+  body: unknown,
+): Parsed<{ p_results: Record<string, unknown>[] }> {
+  if (typeof body !== "object" || body === null || Array.isArray(body))
+    return { ok: false, error: "invalid_body" };
+  const list = (body as Record<string, unknown>).results;
+  if (!Array.isArray(list) || list.length === 0 || list.length > CLAIMS_MAX)
+    return { ok: false, error: "results_invalid" };
+  const out: Record<string, unknown>[] = [];
+  for (const e of list) {
+    if (typeof e !== "object" || e === null || Array.isArray(e))
+      return { ok: false, error: "results_invalid" };
+    const o = e as Record<string, unknown>;
+    if (typeof o.claim_id !== "string" || !UUID.test(o.claim_id))
+      return { ok: false, error: "results_invalid" };
+    if (typeof o.outcome !== "string" || !CLAIM_OUTCOMES.includes(o.outcome))
+      return { ok: false, error: "results_invalid" };
+    if (
+      o.method !== undefined &&
+      (typeof o.method !== "string" || !CLAIM_METHODS.includes(o.method))
+    )
+      return { ok: false, error: "results_invalid" };
+    if (
+      o.reason !== undefined &&
+      (typeof o.reason !== "string" || !/^[a-z_]{1,40}$/.test(o.reason))
+    )
+      return { ok: false, error: "results_invalid" };
+    out.push({
+      claim_id: o.claim_id.toLowerCase(),
+      outcome: o.outcome,
+      ...(o.method !== undefined ? { method: o.method } : {}),
+      ...(o.reason !== undefined ? { reason: o.reason } : {}),
+    });
+  }
+  return { ok: true, args: { p_results: out } };
+}
+
+/** Body of POST /collector/geocode/record: {results: [{key, status, lat?, lng?, provider, place_ref?, confidence?}]}. */
+export function parseGeocodeRecordBody(
+  body: unknown,
+): Parsed<{ p_results: Record<string, unknown>[] }> {
+  if (typeof body !== "object" || body === null || Array.isArray(body))
+    return { ok: false, error: "invalid_body" };
+  const list = (body as Record<string, unknown>).results;
+  if (!Array.isArray(list) || list.length === 0 || list.length > GEOCODE_MAX)
+    return { ok: false, error: "results_invalid" };
+  const out: Record<string, unknown>[] = [];
+  for (const e of list) {
+    if (typeof e !== "object" || e === null || Array.isArray(e))
+      return { ok: false, error: "results_invalid" };
+    const o = e as Record<string, unknown>;
+    if (typeof o.key !== "string" || !/^[0-9a-f]{64}$/.test(o.key))
+      return { ok: false, error: "results_invalid" };
+    if (o.status !== "ok" && o.status !== "miss") return { ok: false, error: "results_invalid" };
+    if (typeof o.provider !== "string" || !GEO_PROVIDERS.includes(o.provider))
+      return { ok: false, error: "results_invalid" };
+    const r: Record<string, unknown> = { key: o.key, status: o.status, provider: o.provider };
+    if (o.status === "ok") {
+      if (
+        typeof o.lat !== "number" ||
+        typeof o.lng !== "number" ||
+        Math.abs(o.lat) > 90 ||
+        Math.abs(o.lng) > 180
+      )
+        return { ok: false, error: "results_invalid" };
+      r.lat = o.lat;
+      r.lng = o.lng;
+    }
+    if (typeof o.place_ref === "string" && /^[A-Za-z0-9:._-]{1,80}$/.test(o.place_ref))
+      r.place_ref = o.place_ref;
+    if (typeof o.confidence === "number" && o.confidence >= 0 && o.confidence <= 1)
+      r.confidence = o.confidence;
+    out.push(r);
+  }
+  return { ok: true, args: { p_results: out } };
+}
+
+/** Body of POST /collector/runs/record: {job, run_id, outcome, started_at?, stats?} (counts only). */
+export function parseRunsRecordBody(body: unknown): Parsed<{ p_run: Record<string, unknown> }> {
+  if (typeof body !== "object" || body === null || Array.isArray(body))
+    return { ok: false, error: "invalid_body" };
+  const o = body as Record<string, unknown>;
+  if (typeof o.job !== "string" || !RUN_JOBS.includes(o.job))
+    return { ok: false, error: "run_invalid" };
+  if (typeof o.run_id !== "string" || !RUN_ID.test(o.run_id))
+    return { ok: false, error: "invalid_run_id" };
+  if (o.outcome !== "ok" && o.outcome !== "partial" && o.outcome !== "failed")
+    return { ok: false, error: "run_invalid" };
+  const stats = o.stats ?? {};
+  if (typeof stats !== "object" || stats === null || Array.isArray(stats))
+    return { ok: false, error: "run_invalid" };
+  const entries = Object.entries(stats as Record<string, unknown>);
+  if (entries.length > 80) return { ok: false, error: "run_invalid" };
+  for (const [k, v] of entries) {
+    if (!/^[a-z0-9_]{1,40}$/.test(k)) return { ok: false, error: "run_invalid" };
+    const okValue =
+      (typeof v === "number" && Number.isFinite(v)) ||
+      typeof v === "boolean" ||
+      (typeof v === "string" && /^[a-z0-9_]{0,40}$/.test(v));
+    if (!okValue) return { ok: false, error: "run_invalid" };
+  }
+  const run: Record<string, unknown> = { job: o.job, run_id: o.run_id, outcome: o.outcome, stats };
+  if (typeof o.started_at === "string" && /^\d{4}-\d{2}-\d{2}T[0-9:.]+Z?$/.test(o.started_at))
+    run.started_at = o.started_at;
+  return { ok: true, args: { p_run: run } };
+}
+
 /** The database error names the RPCs raise, mapped to HTTP statuses for the job. */
 const RPC_ERRORS: Record<string, number> = {
   tile_unknown: 404,
@@ -698,6 +846,7 @@ const RPC_ERRORS: Record<string, number> = {
   api_invalid: 400,
   calls_invalid: 400,
   day_invalid: 400,
+  run_invalid: 400,
 };
 
 /** Picks a known error name out of a PostgREST error body; anything else is a 502. */

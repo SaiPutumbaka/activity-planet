@@ -25,6 +25,22 @@
 //   pnpm --filter collector regions budget settle --to <base> --budget api-budget.json \
 //     --summary collected.json
 //       After the run: the calls granted but not sent go back to that day's budget.
+//
+//   pnpm --filter collector regions denylist --from <base> --out denylist-remote.json
+//       The database-only denylist (hosts and sources removed on an owner's request, migration
+//       63) for `collect --denylist-file`. Prints counts only.
+//
+//   pnpm --filter collector regions geocode --to <base> [--limit 300] [--max-minutes 8] \
+//     [--dry-run]
+//       Venue geocoding (design 2.5, migration 63): the queue of imported events still on their
+//       area centroid, our own places first, then Geoapify (GEOAPIFY_SERVER_KEY, its daily budget)
+//       and Nominatim (300 a night, Photon after a 429 or 5xx), answers recorded. --dry-run asks
+//       the providers but records nothing. Counts by provider and outcome only, never a text.
+//
+//   pnpm --filter collector regions runs record --to <base> --job <job> --run-id <id> \
+//     --outcome ok|partial|failed [--stats summary.json] [--started-at <iso>]
+//       The run's record for the health panel (collector_job_runs): counts only. A 404 (an older
+//       function) is ignored.
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
@@ -36,9 +52,17 @@ import {
 } from "./api-budget.ts";
 import type { CollectResult } from "./collect.ts";
 import { loadCities } from "./config.ts";
+import { fetchTileRows } from "./discovery/discover.ts";
+import { geocode } from "./geocode/run.ts";
+import { fetchGeocodeQueue, recordGeocodes } from "./geocode/service.ts";
+import { Denylist } from "./policy/denylist.ts";
+import { PoliteFetcher } from "./net/fetcher.ts";
+import { flatCounts, JOBS, type Job, type Outcome, recordRun } from "./runs.ts";
 import {
+  call,
   citySeedCount,
   fetchRegions,
+  fetchRemoteDenylist,
   fetchSources,
   recordRegions,
   recordSources,
@@ -56,7 +80,7 @@ interface RegionsFile {
 
 async function main(argv: string[]): Promise<number> {
   const [command, sub, ...afterSub] = argv;
-  const rest = command === "budget" ? afterSub : argv.slice(1);
+  const rest = command === "budget" || command === "runs" ? afterSub : argv.slice(1);
   const { values } = parseArgs({
     args: rest,
     options: {
@@ -73,6 +97,12 @@ async function main(argv: string[]): Promise<number> {
       "region-count": { type: "string" },
       budget: { type: "string" },
       summary: { type: "string" },
+      job: { type: "string" },
+      outcome: { type: "string" },
+      stats: { type: "string" },
+      "started-at": { type: "string" },
+      "max-minutes": { type: "string" },
+      "dry-run": { type: "boolean", default: false },
     },
     allowPositionals: false,
   });
@@ -209,8 +239,127 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
 
+  if (command === "denylist") {
+    if (!values.from || !values.out) throw new Error("denylist needs --from and --out");
+    const r = await fetchRemoteDenylist({ baseUrl: values.from.replace(/\/+$/, ""), secret });
+    writeFileSync(values.out, JSON.stringify(r.denylist));
+    console.log(
+      `[denylist] remote=${r.available ? "yes" : "route not available yet"} hosts=${r.denylist.entries.length} sources=${r.denylist.sources.length}`,
+    );
+    return 0;
+  }
+
+  if (command === "geocode") {
+    if (!values.to) throw new Error("geocode needs --to");
+    const baseUrl = values.to.replace(/\/+$/, "");
+    const svc = { baseUrl, secret };
+    const limit = values.limit ? Number(values.limit) : 300;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 500)
+      throw new Error("--limit must be 1..500");
+    const minutes = values["max-minutes"] ? Number(values["max-minutes"]) : 8;
+    if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 30)
+      throw new Error("--max-minutes must be more than 0 and at most 30");
+    const started = Date.now();
+    const q = await fetchGeocodeQueue(svc, limit);
+    if (!q.available || q.jobs.length === 0) {
+      console.log(
+        `[geocode] queue=${q.jobs.length}${q.available ? "" : " (route not available yet)"}; nothing to do`,
+      );
+      return 0;
+    }
+    // Geoapify only with its key, within the day's budget (collector_budget geoapify_geocode_calls).
+    const key = (process.env.GEOAPIFY_SERVER_KEY ?? "").trim() || null;
+    let granted = 0;
+    if (key && !values["dry-run"]) {
+      const { status, body } = await call(svc, "/api-budget", {
+        method: "POST",
+        body: JSON.stringify({ api: "geoapify_geocode", calls: Math.min(300, q.jobs.length) }),
+      });
+      const b = (body ?? {}) as { granted?: unknown };
+      granted = status === 200 && typeof b.granted === "number" ? b.granted : 0;
+    }
+    const fetcher = new PoliteFetcher({
+      denylist: Denylist.load(),
+      deadlineAt: started + minutes * 60_000,
+      maxRequestsFor: () => 400,
+    });
+    const rowsCache = new Map<string, Awaited<ReturnType<typeof fetchTileRows>>["rows"]>();
+    const out = await geocode({
+      jobs: q.jobs,
+      fetcher,
+      placesFor: async (r) => {
+        const k = `${r.lat},${r.lng},${r.radius_km}`;
+        let rows = rowsCache.get(k);
+        if (!rows) {
+          try {
+            rows = (
+              await fetchTileRows(svc, {
+                id: "geocode",
+                label: "geocode",
+                lat: r.lat,
+                lng: r.lng,
+                radiusKm: r.radius_km,
+              })
+            ).rows;
+          } catch {
+            rows = [];
+          }
+          rowsCache.set(k, rows);
+        }
+        return rows;
+      },
+      geoapifyKey: key,
+      geoapifyCalls: granted,
+      nominatim: q.nominatim,
+      deadlineAt: started + minutes * 60_000,
+    });
+    if (key && granted > out.calls.geoapify && !values["dry-run"]) {
+      const day = new Date().toISOString().slice(0, 10);
+      await call(svc, "/api-budget/return", {
+        method: "POST",
+        body: JSON.stringify({ api: "geoapify_geocode", day, calls: granted - out.calls.geoapify }),
+      }).catch(() => undefined);
+    }
+    const recorded = values["dry-run"] ? { dry_run: 1 } : await recordGeocodes(svc, out.results);
+    console.log(
+      `[geocode] queue=${q.jobs.length} nominatim=${q.nominatim ? "on" : "off"} geoapify=${key ? `key set, granted ${granted}` : "skipped: no key"} calls=${JSON.stringify(out.calls)} outcomes=${JSON.stringify(out.counts)} recorded=${JSON.stringify(recorded)}`,
+    );
+    return 0;
+  }
+
+  if (command === "runs" && sub === "record") {
+    if (!values.to || !values.job || !values["run-id"] || !values.outcome)
+      throw new Error("runs record needs --to, --job, --run-id and --outcome");
+    if (!JOBS.includes(values.job as Job))
+      throw new Error(`--job must be one of ${JOBS.join(", ")}`);
+    if (!["ok", "partial", "failed"].includes(values.outcome))
+      throw new Error("--outcome must be ok, partial or failed");
+    let stats: Record<string, number | boolean> = {};
+    if (values.stats && existsSync(values.stats)) {
+      try {
+        stats = flatCounts(JSON.parse(readFileSync(values.stats, "utf8")));
+      } catch {
+        stats = {};
+      }
+    }
+    const r = await recordRun(
+      { baseUrl: values.to.replace(/\/+$/, ""), secret },
+      {
+        job: values.job as Job,
+        run_id: values["run-id"],
+        outcome: values.outcome as Outcome,
+        ...(values["started-at"] ? { started_at: values["started-at"] } : {}),
+        stats,
+      },
+    );
+    console.log(
+      `[runs] job=${values.job} outcome=${values.outcome} recorded=${r.recorded}${r.recorded ? "" : " (route not available yet)"}`,
+    );
+    return 0;
+  }
+
   console.error(
-    "usage: regions fetch|record|budget take|budget settle ... (see src/regions-cli.ts)",
+    "usage: regions fetch|record|denylist|geocode|budget take|budget settle|runs record ... (see src/regions-cli.ts)",
   );
   return 2;
 }

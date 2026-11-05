@@ -60,6 +60,8 @@ on:
       - "supabase/functions/stripe-connect/**"
       - "supabase/functions/stripe-checkout/**"
       - "supabase/functions/stripe-webhook/**"
+      - "supabase/functions/organizer-verify/**"
+      - "supabase/functions/eventbrite-connect/**"
       - "supabase/functions/_shared/**"
       - ".github/workflows/migrate.yml"
   workflow_dispatch:
@@ -205,7 +207,7 @@ jobs:
               *[!a-z0-9-]*) echo "Refusing function name: $fn"; exit 1 ;;
             esac
             test -f "supabase/functions/$fn/index.ts" || { echo "No such function: $fn"; exit 1; }
-            case "$fn" in import-feed|collector|places-fill|place-files|image-guard|send-notifications|stripe-checkout|stripe-webhook) flags="--no-verify-jwt" ;; *) flags="" ;; esac
+            case "$fn" in import-feed|collector|places-fill|place-files|image-guard|send-notifications|stripe-checkout|stripe-webhook|eventbrite-connect) flags="--no-verify-jwt" ;; *) flags="" ;; esac
             supabase functions deploy "$fn" --project-ref "$STAGING_PROJECT_REF" --use-api $flags
             if [ "$fn" = "import-feed" ]; then
               supabase db query --linked \
@@ -459,6 +461,27 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy stripe-webhook --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
+
+      # Collector completion (migrations 62 and 63). organizer-verify (the DNS TXT proof of an
+      # organizer claim) keeps the gateway JWT check; eventbrite-connect is key-gated (without
+      # EVENTBRITE_CLIENT_ID, EVENTBRITE_CLIENT_SECRET and EVENTBRITE_REDIRECT_URI every request
+      # answers {"skipped":"no key"}) and its sync caller is the collector job, so the gateway check
+      # is off. Both call RPCs the push creates, so they are deployed after it.
+      - name: Production, deploy the organizer-verify function
+        if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy organizer-verify --project-ref "$PROD_PROJECT_REF" --use-api
+
+      - name: Production, deploy the eventbrite-connect function
+        if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy eventbrite-connect --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 
       - name: Deploy web and app
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'

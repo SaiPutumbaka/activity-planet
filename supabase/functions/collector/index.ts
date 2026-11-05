@@ -43,6 +43,20 @@
 //                                                         -> source_discovery_probe_queue() (409
 //                                                            discovery_gate_closed until the gate
 //                                                            passed for that probe code)
+//   GET  /collector/denylist                              -> collector_denylist_remote() (hosts and
+//                                                            sources removed on request; names only;
+//                                                            migration 63)
+//   GET  /collector/claims/due?limit=50                   -> collector_claims_due() (organizer claims
+//                                                            to check, with their tokens, for the verify
+//                                                            job; plus the connected feeds whose owner
+//                                                            pressed Refresh now; migration 62)
+//   POST /collector/claims/record {results}               -> collector_claims_record()
+//   GET  /collector/geocode/queue?limit=300               -> collector_geocode_queue() and
+//                                                            meta.collector_geocode_nominatim (migration 63)
+//   POST /collector/geocode/record {results}              -> collector_geocode_record()
+//   POST /collector/runs/record {job, run_id, outcome, stats?}
+//                                                         -> collector_runs_record() (health panel)
+//   GET  /collector/discovery/yield                       -> collector_discovery_yield() (counts)
 //   GET  /collector/discovery/regions?limit=10            -> source_discovery_regions_due()
 //   POST /collector/discovery/regions/record {regions: [<uuid>, ...]}
 //                                                         -> source_discovery_regions_record()
@@ -66,6 +80,9 @@ import {
   parseFilesRecordBody,
   parseIngestBody,
   parseCandidatesBody,
+  parseClaimsRecordBody,
+  parseGeocodeRecordBody,
+  parseRunsRecordBody,
   parseApiBudgetReturnBody,
   parseApiBudgetTakeBody,
   parseDiscoveryRegionsBody,
@@ -120,6 +137,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const text = await res.text();
     if (!res.ok) throw new RpcFailure(res.status, text);
     return text ? JSON.parse(text) : null;
+  };
+  // A read of one table through PostgREST (service role), for the few routes that need a row
+  // the RPCs do not return.
+  const select = async (pathAndQuery: string): Promise<unknown[]> => {
+    const res = await fetch(`${supabaseUrl}/rest/v1/${pathAndQuery}`, {
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+    });
+    const text = await res.text();
+    if (!res.ok) throw new RpcFailure(res.status, text);
+    const rows = text ? JSON.parse(text) : [];
+    return Array.isArray(rows) ? rows : [];
   };
 
   const secret = req.headers.get("x-collector-secret") ?? "";
@@ -219,7 +247,61 @@ Deno.serve(async (req: Request): Promise<Response> => {
       return json({
         ticketmaster: key("TICKETMASTER_API_KEY"),
         seatgeek: key("SEATGEEK_CLIENT_ID"),
+        // Venue geocoding (migration 63); masked by the job like the others.
+        geoapify: key("GEOAPIFY_SERVER_KEY"),
       });
+    }
+
+    // Collector completion (migrations 62 and 63). Names, counts and the claim tokens the verify
+    // job must look for; never a member's id or contact.
+    if (route.kind === "denylist") {
+      return json(await rpc("collector_denylist_remote", {}));
+    }
+    if (route.kind === "discovery_yield") {
+      return json(await rpc("collector_discovery_yield", {}));
+    }
+    if (route.kind === "geocode_queue") {
+      const queue = await rpc("collector_geocode_queue", { p_limit: route.limit });
+      const meta = (await select("meta?select=value&key=eq.collector_geocode_nominatim")) as {
+        value?: unknown;
+      }[];
+      return json({ queue, nominatim: meta[0]?.value === "off" ? "off" : "on" });
+    }
+    if (route.kind === "claims_due") {
+      const claims = await rpc("collector_claims_due", { p_limit: route.limit });
+      // Connected feeds whose owner pressed Refresh now, as seeds of their regions (at most 20).
+      const wanted = (await select(
+        "feed_sources?select=slug,collector_region_id&origin=eq.organizer&kind=eq.ics" +
+          "&organizer_refresh_requested_at=not.is.null&organizer_stopped_at=is.null&organizer_id=not.is.null" +
+          "&order=organizer_refresh_requested_at.asc&limit=20",
+      )) as { slug?: unknown; collector_region_id?: unknown }[];
+      const slugs = new Set(
+        wanted.map((w) => w.slug).filter((s): s is string => typeof s === "string"),
+      );
+      const regionIds = [
+        ...new Set(
+          wanted
+            .map((w) => w.collector_region_id)
+            .filter((r): r is string => typeof r === "string"),
+        ),
+      ];
+      let regions: unknown[] = [];
+      let sources: unknown[] = [];
+      if (regionIds.length > 0) {
+        const all = (await rpc("collector_regions_due", { p_limit: 100, p_all: true })) as {
+          id?: unknown;
+        }[];
+        regions = (Array.isArray(all) ? all : []).filter(
+          (r) => typeof r.id === "string" && regionIds.includes(r.id),
+        );
+        const listed = (await rpc("collector_sources_for_regions", { p_regions: regionIds })) as {
+          seed?: { id?: unknown };
+        }[];
+        sources = (Array.isArray(listed) ? listed : []).filter(
+          (x) => typeof x.seed?.id === "string" && slugs.has(x.seed.id),
+        );
+      }
+      return json({ claims, refresh: { regions, sources } });
     }
 
     let body: unknown;
@@ -328,6 +410,28 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!parsed.ok) return json({ error: parsed.error }, 400);
       const result = await rpc("collector_api_budget_return", { ...parsed.args });
       console.log("collector api budget return", JSON.stringify(result));
+      return json(result);
+    }
+
+    if (route.kind === "claims_record") {
+      const parsed = parseClaimsRecordBody(body);
+      if (!parsed.ok) return json({ error: parsed.error }, 400);
+      const result = await rpc("collector_claims_record", { ...parsed.args });
+      console.log("collector claims", JSON.stringify(result));
+      return json(result);
+    }
+    if (route.kind === "geocode_record") {
+      const parsed = parseGeocodeRecordBody(body);
+      if (!parsed.ok) return json({ error: parsed.error }, 400);
+      const result = await rpc("collector_geocode_record", { ...parsed.args });
+      console.log("collector geocode", JSON.stringify(result));
+      return json(result);
+    }
+    if (route.kind === "runs_record") {
+      const parsed = parseRunsRecordBody(body);
+      if (!parsed.ok) return json({ error: parsed.error }, 400);
+      const result = await rpc("collector_runs_record", { ...parsed.args });
+      console.log("collector run", parsed.args.p_run.job, parsed.args.p_run.outcome);
       return json(result);
     }
 

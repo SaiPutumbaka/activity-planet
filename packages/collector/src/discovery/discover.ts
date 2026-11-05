@@ -11,7 +11,9 @@ import { siteOf, hostOf } from "../util/url.ts";
 import {
   aroundQuery,
   type Candidate,
+  cheapScore,
   entitiesQuery,
+  type KindYield,
   mergeCandidates,
   osmCandidates,
   parseAround,
@@ -77,6 +79,8 @@ export async function buildCandidates(o: {
   country?: string | null;
   skipSites?: Set<string>;
   wikidata?: boolean;
+  /** Learned yield by kind (candidates runs; the gate keeps the static priors). */
+  yields?: KindYield;
 }): Promise<{ candidates: Candidate[]; counts: BuildCounts }> {
   const osm = osmCandidates(o.rows, o.region, {
     denylist: o.denylist,
@@ -100,7 +104,14 @@ export async function buildCandidates(o: {
   const entitySites = new Map<string, string>();
   let around: Candidate[] = [];
   if (o.wikidata !== false) {
-    const ids = [...osm.wikidataIds.keys()].sort();
+    // The 50-id entity lookups go to the best OSM places with a wikidata tag first, so the cap
+    // (caps.wikidataEntityCallsPerRegion) cuts the weakest.
+    const scoreOf = new Map(osm.candidates.map((c) => [c.host, cheapScore(c, o.yields)]));
+    const ids = [...osm.wikidataIds.keys()].sort(
+      (a, b) =>
+        (scoreOf.get(osm.wikidataIds.get(b) ?? "") ?? 0) -
+          (scoreOf.get(osm.wikidataIds.get(a) ?? "") ?? 0) || a.localeCompare(b),
+    );
     for (let i = 0; i < ids.length && i / 50 < o.caps.wikidataEntityCallsPerRegion; i += 50) {
       const body = await sparql(entitiesQuery(ids.slice(i, i + 50)));
       if (body) for (const [k, v] of parseEntities(body)) entitySites.set(k, v);
@@ -123,6 +134,7 @@ export async function buildCandidates(o: {
     osm.wikidataIds,
     around,
     o.caps.candidatesPerRegion,
+    o.yields,
   );
   return {
     candidates,

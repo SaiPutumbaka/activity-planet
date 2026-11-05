@@ -22,6 +22,7 @@ export function socrataUrl(seed: Seed, region: Region, window: ApiWindow, limit 
     `${f.start} >= '${sodaTime(window.start)}'`,
     `${f.start} < '${sodaTime(window.end)}'`,
   ];
+  if (f.where) where.push(`(${f.where})`);
   if (seed.geoColumn) {
     where.push(
       `within_circle(${seed.geoColumn}, ${region.lat}, ${region.lng}, ${Math.round(region.radiusKm * 1000)})`,
@@ -36,7 +37,7 @@ export function socrataUrl(seed: Seed, region: Region, window: ApiWindow, limit 
 export function arcgisUrl(seed: Seed, region: Region, limit = 1000): string {
   const base = seed.url.replace(/\/+$/, "").replace(/\/query$/, "");
   const u = new URL(`${base}/query`);
-  u.searchParams.set("where", "1=1");
+  u.searchParams.set("where", seed.fields?.where ? seed.fields.where : "1=1");
   u.searchParams.set("outFields", "*");
   u.searchParams.set("returnGeometry", "true");
   u.searchParams.set("outSR", "4326");

@@ -226,8 +226,8 @@ describe("candidates", () => {
     expect(wikidataIds.get("Q2945111")).toBe("atlantahistorycenter.com");
     const alliance = candidates.find((c) => c.host === "alliancetheatre.org")!;
     expect(alliance.extra_urls).toEqual(["https://www.alliancetheatre.org/content/shows-events"]);
-    // kind prior x 20, +10 Wikidata, +2 per extra place up to 10.
-    expect(cheapScore({ place_kind: "arts_venue", wikidata_id: "Q1", places: 1 })).toBe(22);
+    // kind prior x 20, +25 Wikidata (COLLECTOR_COMPLETION 2.9), +2 per extra place up to 10.
+    expect(cheapScore({ place_kind: "arts_venue", wikidata_id: "Q1", places: 1 })).toBe(37);
     expect(marietta.score).toBe(12);
   });
 
@@ -285,8 +285,9 @@ describe("candidates", () => {
       list,
       10,
     );
-    // school 14 + Wikidata 10 before attraction 10 + Wikidata 10.
-    expect(merged.map((c) => c.host)).toEqual(["kennesaw.edu", "atlantabg.org"]);
+    // school 10 + Wikidata 25 ties attraction 10 + Wikidata 25 (school's prior is 0.5 since
+    // COLLECTOR_COMPLETION 2.9); the host breaks the tie.
+    expect(merged.map((c) => c.host)).toEqual(["atlantabg.org", "kennesaw.edu"]);
     expect(merged.find((c) => c.host === "kennesaw.edu")?.wikidata_id).toBe("Q3445053");
   });
 });

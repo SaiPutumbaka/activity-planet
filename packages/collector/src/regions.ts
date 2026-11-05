@@ -10,11 +10,18 @@
 //   recordSources  POST <base>/sources/record         (source_candidates_record, migration 46:
 //                                                      each discovered source's run result, which
 //                                                      moves it through probation to enabled)
+//   fetchRemoteDenylist GET <base>/denylist           (collector_denylist_remote, migration 63:
+//                                                      hosts and sources removed on request)
+//
+// Organizer-connected feeds (migration 62) come back from GET /collector/sources like discovered
+// ones, with status organizer and no candidate id: they run as seeds of their region, and
+// sourceResults leaves them out (they have no discovery lifecycle).
 //
 // Nothing here prints a region's point: public logs carry counts and region ids only.
 
 import tzlookup from "tz-lookup";
 import { citiesFor, validateRegion, validateSeed } from "./config.ts";
+import { parseRemoteDenylist, type RemoteDenylist } from "./policy/denylist.ts";
 import type { CityFile, Region, Seed, SourceBatch } from "./types.ts";
 import { haversineKm } from "./util/geo.ts";
 import { isValidZone } from "./util/time.ts";
@@ -368,4 +375,18 @@ export async function recordSources(
       if (typeof v === "number") out[k] = (out[k] ?? 0) + v;
   }
   return out;
+}
+
+/**
+ * The database-only denylist (GET /collector/denylist, migration 63): hosts and sources removed
+ * on an owner's request. A 404 (an older Edge Function) means none beyond data/denylist.json.
+ */
+export async function fetchRemoteDenylist(
+  opts: ServiceOptions,
+): Promise<{ available: boolean; denylist: RemoteDenylist }> {
+  checkService(opts);
+  const { status, body } = await call(opts, "/denylist");
+  if (status === 404) return { available: false, denylist: { entries: [], sources: [] } };
+  if (status !== 200) throw new Error(`GET /denylist failed: ${status}`);
+  return { available: true, denylist: parseRemoteDenylist(body) };
 }

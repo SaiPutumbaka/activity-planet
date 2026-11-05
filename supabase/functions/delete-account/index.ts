@@ -5,7 +5,12 @@
 // JWT. With the service role it:
 //   1. removes the person's avatar files from the avatars bucket, and their chat images from
 //      chat-images (<user id>/<conversation id>/<file>; migration 58);
-//   2. drops provider tokens (Apple revocation is a TODO until Capacitor ships);
+//   2. drops provider tokens (Apple revocation is a TODO until Capacitor ships). Migration 62:
+//      the RPC already removed the person's organizer_claims and organizer_oauth_states rows,
+//      stopped the feeds they connected (feed_sources.origin organizer) and took their Eventbrite
+//      token out of the vault; Eventbrite has no token revocation endpoint, so nothing is sent
+//      there (the person can remove the app in their Eventbrite settings). Listing removal
+//      requests hold no account link. None of these rows is in Storage;
 //   3. fans out to processors: Stripe (migration 60), when STRIPE_SECRET_KEY is set and the
 //      person has a connected account, is asked to delete it; if Stripe refuses (funds still
 //      pending), a stripe_jobs close_account row retries it later. Migration 61: while money can

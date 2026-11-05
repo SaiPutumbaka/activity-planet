@@ -5,6 +5,9 @@ import {
   parseApiBudgetReturnBody,
   parseApiBudgetTakeBody,
   parseCandidatesBody,
+  parseClaimsRecordBody,
+  parseGeocodeRecordBody,
+  parseRunsRecordBody,
   parseDiscoveryRegionsBody,
   parseDoneBody,
   parseGateBody,
@@ -613,6 +616,131 @@ Deno.test("api budget: routes and bodies (D-042 slice 10)", () => {
   });
   assertEquals(rpcError(JSON.stringify({ message: "calls_invalid" })), {
     error: "calls_invalid",
+    status: 400,
+  });
+});
+
+// Collector completion (migrations 62 and 63).
+Deno.test("routes: denylist, claims, geocode, runs and yield", () => {
+  assertEquals(matchRoute("GET", `${base}/denylist`), { kind: "denylist" });
+  assertEquals(matchRoute("POST", `${base}/denylist`), { kind: "not_found" });
+  assertEquals(matchRoute("GET", `${base}/claims/due`), { kind: "claims_due", limit: 50 });
+  assertEquals(matchRoute("GET", `${base}/claims/due?limit=9999`), {
+    kind: "claims_due",
+    limit: 200,
+  });
+  assertEquals(matchRoute("POST", `${base}/claims/record`), { kind: "claims_record" });
+  assertEquals(matchRoute("GET", `${base}/geocode/queue?limit=0`), {
+    kind: "geocode_queue",
+    limit: 1,
+  });
+  assertEquals(matchRoute("GET", `${base}/geocode/queue`), { kind: "geocode_queue", limit: 300 });
+  assertEquals(matchRoute("POST", `${base}/geocode/record`), { kind: "geocode_record" });
+  assertEquals(matchRoute("POST", `${base}/runs/record`), { kind: "runs_record" });
+  assertEquals(matchRoute("GET", `${base}/runs/record`), { kind: "not_found" });
+  assertEquals(matchRoute("GET", `${base}/discovery/yield`), { kind: "discovery_yield" });
+});
+
+Deno.test("claims record: outcomes, methods and reasons are checked", () => {
+  const id = "0b9e7c1a-1111-4222-8333-944445555666";
+  assertEquals(
+    parseClaimsRecordBody({ results: [{ claim_id: id, outcome: "verified", method: "meta" }] }),
+    {
+      ok: true,
+      args: { p_results: [{ claim_id: id, outcome: "verified", method: "meta" }] },
+    },
+  );
+  assertEquals(parseClaimsRecordBody({ results: [{ claim_id: id, outcome: "maybe" }] }).ok, false);
+  assertEquals(
+    parseClaimsRecordBody({
+      results: [{ claim_id: id, outcome: "fetch_failed", reason: "https://x" }],
+    }).ok,
+    false,
+  );
+  assertEquals(parseClaimsRecordBody({ results: [] }).ok, false);
+  assertEquals(parseClaimsRecordBody([]).ok, false);
+});
+
+Deno.test("geocode record: a hit needs a point; extra fields are dropped", () => {
+  const key = "a".repeat(64);
+  assertEquals(
+    parseGeocodeRecordBody({
+      results: [
+        {
+          key,
+          status: "ok",
+          lat: 33.7,
+          lng: -84.4,
+          provider: "nominatim",
+          place_ref: "osm:n1",
+          location: "x",
+        },
+      ],
+    }),
+    {
+      ok: true,
+      args: {
+        p_results: [
+          { key, status: "ok", provider: "nominatim", lat: 33.7, lng: -84.4, place_ref: "osm:n1" },
+        ],
+      },
+    },
+  );
+  assertEquals(
+    parseGeocodeRecordBody({ results: [{ key, status: "ok", provider: "nominatim" }] }).ok,
+    false,
+  );
+  assertEquals(
+    parseGeocodeRecordBody({ results: [{ key: "short", status: "miss", provider: "none" }] }).ok,
+    false,
+  );
+  assertEquals(
+    parseGeocodeRecordBody({ results: [{ key, status: "miss", provider: "google" }] }).ok,
+    false,
+  );
+});
+
+Deno.test("runs record: counts only", () => {
+  assertEquals(
+    parseRunsRecordBody({
+      job: "ingest",
+      run_id: "gh-1-1",
+      outcome: "ok",
+      stats: { items: 3, mode: "regions" },
+    }),
+    {
+      ok: true,
+      args: {
+        p_run: {
+          job: "ingest",
+          run_id: "gh-1-1",
+          outcome: "ok",
+          stats: { items: 3, mode: "regions" },
+        },
+      },
+    },
+  );
+  assertEquals(
+    parseRunsRecordBody({
+      job: "ingest",
+      run_id: "gh-1-1",
+      outcome: "ok",
+      stats: { host: "https://x.org" },
+    }).ok,
+    false,
+  );
+  assertEquals(parseRunsRecordBody({ job: "deploy", run_id: "gh-1-1", outcome: "ok" }).ok, false);
+  assertEquals(parseRunsRecordBody({ job: "verify", run_id: "bad id", outcome: "ok" }).ok, false);
+});
+
+Deno.test("api budget: geoapify_geocode is a budgeted API", () => {
+  assertEquals(parseApiBudgetTakeBody({ api: "geoapify_geocode", calls: 300 }), {
+    ok: true,
+    args: { p_api: "geoapify_geocode", p_calls: 300 },
+  });
+  assertEquals(parseApiBudgetTakeBody({ api: "nominatim", calls: 3 }).ok, false);
+  assertEquals(rpcError(JSON.stringify({ message: "run_invalid" })), {
+    error: "run_invalid",
     status: 400,
   });
 });

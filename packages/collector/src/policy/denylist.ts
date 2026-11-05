@@ -19,6 +19,36 @@ export interface DenyVerdict {
   api?: boolean;
 }
 
+/**
+ * The database-only part of the denylist (GET /collector/denylist, migration 63): hosts removed on
+ * an owner's request, and the slugs of sources switched off on request. Names only.
+ */
+export interface RemoteDenylist {
+  entries: { name: string; match: "domain" | "any_tld" }[];
+  sources: string[];
+}
+
+const NAME = /^[a-z0-9]([a-z0-9.-]{0,98}[a-z0-9])?$/;
+
+/** Checks a GET /collector/denylist answer; anything malformed is dropped. */
+export function parseRemoteDenylist(body: unknown): RemoteDenylist {
+  const b = (body ?? {}) as { entries?: unknown; sources?: unknown };
+  const entries: RemoteDenylist["entries"] = [];
+  for (const e of Array.isArray(b.entries) ? b.entries : []) {
+    const o = (e ?? {}) as Record<string, unknown>;
+    if (
+      typeof o.name === "string" &&
+      NAME.test(o.name) &&
+      (o.match === "domain" || o.match === "any_tld")
+    )
+      entries.push({ name: o.name, match: o.match });
+  }
+  const sources = (Array.isArray(b.sources) ? b.sources : []).filter(
+    (s): s is string => typeof s === "string" && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(s),
+  );
+  return { entries, sources };
+}
+
 export class Denylist {
   private readonly domains: { domain: string; reason: string }[];
   private readonly anyTld: { name: string; reason: string }[];
@@ -37,6 +67,20 @@ export class Denylist {
       host: a.host.toLowerCase(),
       pathPrefix: a.pathPrefix,
     }));
+  }
+
+  /**
+   * Adds the database-only entries (an owner's removal request) to this list for the run, so a
+   * host removed on request is refused at every hop, even when a city seed still names it.
+   */
+  merge(remote: RemoteDenylist): this {
+    for (const e of remote.entries) {
+      if (e.match === "domain" && !this.domains.some((d) => d.domain === e.name))
+        this.domains.push({ domain: e.name, reason: "owner request" });
+      if (e.match === "any_tld" && !this.anyTld.some((d) => d.name === e.name))
+        this.anyTld.push({ name: e.name, reason: "owner request" });
+    }
+    return this;
   }
 
   static load(path = new URL("../../data/denylist.json", import.meta.url)): Denylist {

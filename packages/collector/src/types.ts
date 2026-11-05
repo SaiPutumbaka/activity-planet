@@ -51,6 +51,11 @@ export interface FieldMap {
   lat?: string;
   lng?: string;
   category?: string;
+  /**
+   * A filter the portal applies (Socrata SoQL, ArcGIS where): for example only the rows a column
+   * marks public, so a permit register never lists a private event.
+   */
+  where?: string;
 }
 
 export interface Seed {

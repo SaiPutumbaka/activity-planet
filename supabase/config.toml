@@ -131,3 +131,19 @@ verify_jwt = false
 # is off. Without STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET every request answers 503
 # {"error":"payments_off"}.
 verify_jwt = false
+
+[functions.organizer-verify]
+# Collector completion (migration 62, design 2.3): a signed-in organizer asks for the DNS TXT check
+# of their claim. The function also verifies the user JWT itself against the project's JWKS (role
+# must be authenticated) and reads the claim with that JWT. It contacts only the public
+# DNS-over-HTTPS resolver, never the claimed host. No secret of its own.
+verify_jwt = true
+
+[functions.eventbrite-connect]
+# Collector completion (migration 62, design 2.8): Eventbrite organizer OAuth. Two callers:
+# signed-in organizers (start, callback; the function verifies the user JWT itself against the
+# project's JWKS) and the collector job ({op: "sync"} with the x-collector-secret header, checked
+# through collector_verify_secret). So the gateway JWT check is off. Without EVENTBRITE_CLIENT_ID,
+# EVENTBRITE_CLIENT_SECRET and EVENTBRITE_REDIRECT_URI every request answers 200
+# {"skipped":"no key"}.
+verify_jwt = false

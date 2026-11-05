@@ -34,6 +34,7 @@
 import { writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { loadCities } from "./config.ts";
+import { parseYield } from "./discovery/candidates.ts";
 import { loadDiscoveryConfig } from "./discovery/config.ts";
 import {
   buildCandidates,
@@ -255,6 +256,9 @@ async function main(argv: string[]): Promise<number> {
       throw new Error(`GET /discovery/regions failed: ${status}`);
     const skip = seedSites();
     const fetcher = fetcherFor(caps.probeRunMinutes, denylist);
+    // Learned yield by kind, worldwide (migration 63); 404 on an older function: static priors.
+    const yieldRes = await call(svc, "/discovery/yield");
+    const yields = yieldRes.status === 200 ? parseYield(yieldRes.body) : undefined;
     const stamped: string[] = [];
     const sum: Record<string, number> = {
       regions: rows.length,
@@ -281,6 +285,7 @@ async function main(argv: string[]): Promise<number> {
         caps,
         country: zoneCountry(region.timezone),
         skipSites: skip,
+        yields,
       });
       // The region's circle can cross into a gated country: each candidate is judged by its own
       // place, and carries the country of its point (the database needs one in European regions).

@@ -399,7 +399,13 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
         seed.kind === "socrata"
           ? socrataUrl(seed, region, { start: windowStart, end: windowEnd })
           : arcgisUrl(seed, region);
-      const res = await fetcher.get(url, { accept: "application/json" });
+      // An optional free Socrata app token raises its throttling limit; it travels as a header,
+      // never in the URL, so no log line can carry it.
+      const appToken = seed.kind === "socrata" ? (env.SOCRATA_APP_TOKEN ?? "").trim() : "";
+      const res = await fetcher.get(url, {
+        accept: "application/json",
+        ...(appToken ? { headers: { "X-App-Token": appToken } } : {}),
+      });
       if (!res.ok) return fail(run.key, res, url, false, true);
       fetched++;
       try {

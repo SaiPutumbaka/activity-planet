@@ -10,16 +10,22 @@ import { haversineKm } from "../util/geo.ts";
 import { fetchableUrl, siteOf } from "../util/url.ts";
 import { keywordsFor, keywordStrength } from "./keywords.ts";
 
-/** Kind priors (design 6.3, "kind prior x 20") for the place kinds of extract_rules.json. */
+/**
+ * Kind priors (design 6.3, "kind prior x 20") for the place kinds of extract_rules.json. Tuned
+ * from the first staging numbers (COLLECTOR_COMPLETION.md 2.9): community 0.7 (best yield, 7 of
+ * 30), cinema 0.15 (0 of 19: showtimes live on ticketing sites), school 0.5 (3 of 37); the rest
+ * wait for a second region's data. Once a kind has LEARNED_MIN_PROBES probes worldwide, its learned
+ * yield replaces the prior (learnedPrior).
+ */
 export const KIND_PRIOR: Record<string, number> = {
   library: 0.8,
-  school: 0.7,
+  school: 0.5,
   arts_venue: 0.6,
-  community: 0.5,
+  community: 0.7,
   attraction: 0.5,
   maker: 0.5,
   dance: 0.5,
-  cinema: 0.4,
+  cinema: 0.15,
   sports_centre: 0.4,
   historic: 0.4,
   nature: 0.3,
@@ -196,16 +202,48 @@ export function osmCandidates(
   return { candidates, wikidataIds, dropped };
 }
 
+/** Probed and good candidates by place kind, across all regions (GET /collector/discovery/yield). */
+export type KindYield = Record<string, { probed: number; good: number }>;
+
+/** GET /collector/discovery/yield's kinds, checked: {kind: {probed, good}}. */
+export function parseYield(body: unknown): KindYield {
+  const kinds = (body as { kinds?: unknown } | null)?.kinds;
+  const out: KindYield = {};
+  if (kinds && typeof kinds === "object" && !Array.isArray(kinds))
+    for (const [k, v] of Object.entries(kinds as Record<string, unknown>)) {
+      const o = (v ?? {}) as Record<string, unknown>;
+      if (/^[a-z0-9_]{1,40}$/.test(k) && typeof o.probed === "number" && typeof o.good === "number")
+        out[k] = { probed: o.probed, good: o.good };
+    }
+  return out;
+}
+
+/** A kind's yield replaces its static prior once it has this many probes worldwide. */
+export const LEARNED_MIN_PROBES = 30;
 /**
- * The score from signals known before any request (design 6.3): kind prior x 20, Wikidata +10,
- * up to +10 for a host many places name (a city or park system's site), and +10 when a place
- * links an events page of it.
+ * Wikidata candidates yield about three times as well as OSM ones on staging (20% against 6.6%),
+ * so a Wikidata item is worth +25 (was +10).
+ */
+export const WIKIDATA_BONUS = 25;
+
+/** The prior for a kind: max(0.1, (good + 1) / (probed + 5)) after 30 probes, else the static one. */
+export function learnedPrior(kind: string | undefined, yields?: KindYield): number {
+  const y = yields?.[kind ?? ""];
+  if (y && y.probed >= LEARNED_MIN_PROBES) return Math.max(0.1, (y.good + 1) / (y.probed + 5));
+  return KIND_PRIOR[kind ?? ""] ?? 0.3;
+}
+
+/**
+ * The score from signals known before any request (design 6.3): kind prior x 20 (learned once
+ * the kind has 30 probes), Wikidata +25, up to +10 for a host many places name (a city or park
+ * system's site), and +10 when a place links an events page of it.
  */
 export function cheapScore(
   c: Pick<Candidate, "place_kind" | "wikidata_id" | "places" | "extra_urls">,
+  yields?: KindYield,
 ): number {
-  const prior = (KIND_PRIOR[c.place_kind ?? ""] ?? 0.3) * 20;
-  const wd = c.wikidata_id ? 10 : 0;
+  const prior = learnedPrior(c.place_kind, yields) * 20;
+  const wd = c.wikidata_id ? WIKIDATA_BONUS : 0;
   const many = Math.min(10, 2 * Math.max(0, c.places - 1));
   // A place whose own website link is an events page ("/content/shows-events") says it lists events.
   const events = (c.extra_urls ?? []).some((u) => keywordStrength(u, "", keywordsFor(null)) >= 3)
@@ -323,7 +361,7 @@ export function parseAround(
 /**
  * One list per region: OSM candidates, then Wikidata ones on hosts OSM did not name. A host that
  * Wikidata confirms (the item an OSM place links has the same official website) keeps its OSM
- * origin and gains the +10. Best cheap score first, at most `max`.
+ * origin and gains the Wikidata bonus. Best cheap score first, at most `max`.
  */
 export function mergeCandidates(
   osm: Candidate[],
@@ -331,6 +369,7 @@ export function mergeCandidates(
   wikidataIds: Map<string, string>,
   around: Candidate[],
   max: number,
+  yields?: KindYield,
 ): Candidate[] {
   const by = new Map(osm.map((c) => [c.host, { ...c }]));
   // An OSM place's Wikidata item names another official site: that site is a candidate too.
@@ -369,7 +408,7 @@ export function mergeCandidates(
     by.set(c.host, { ...c });
   }
   return [...by.values()]
-    .map((c) => ({ ...c, score: cheapScore(c) }))
+    .map((c) => ({ ...c, score: cheapScore(c, yields) }))
     .sort((a, b) => b.score - a.score || a.host.localeCompare(b.host))
     .slice(0, Math.max(0, max));
 }
