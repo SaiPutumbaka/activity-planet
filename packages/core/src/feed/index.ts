@@ -14,6 +14,10 @@
  * The zone used for Today / This week / Later only when the viewer's own is unknown (feed_events_v2
  * falls back to the event's zone first, then this one).
  */
+import { bandText, type DistanceUnit } from "./distance";
+
+export * from "./distance";
+
 export const FEED_TIMEZONE = "America/New_York";
 
 /** Zone names that mean UTC but have no "/", which the database refuses; sent as Etc/UTC. */
@@ -192,22 +196,17 @@ export function roundPoint(lat: number, lng: number): { lat: number; lng: number
   return { lat: roundCoordinate(lat), lng: roundCoordinate(lng) };
 }
 
-/** feed_events_v2 distance_band values as words for an event card. Null and unknown give null. */
-export function distanceBandLabel(band: string | null | undefined): string | null {
-  switch (band) {
-    case "approximate":
-      return "Approximate area";
-    case "<1 mi":
-      return "Under 1 mi";
-    case "1-5 mi":
-      return "1 to 5 mi";
-    case "5-10 mi":
-      return "5 to 10 mi";
-    case "10-25 mi":
-      return "10 to 25 mi";
-    case "25+ mi":
-      return "25+ mi";
-    default:
-      return null;
-  }
+/**
+ * feed_events_v2 distance_band values as words for an event card, in the viewer's unit (miles by
+ * default). Null and unknown give null.
+ */
+export function distanceBandLabel(
+  band: string | null | undefined,
+  unit: DistanceUnit = "mi",
+): string | null {
+  if (band === "approximate") return "Approximate area";
+  if (!band || !(band in BAND_KEYS)) return null;
+  return bandText(band, unit);
 }
+
+const BAND_KEYS = { "<1 mi": 1, "1-5 mi": 1, "5-10 mi": 1, "10-25 mi": 1, "25+ mi": 1 } as const;

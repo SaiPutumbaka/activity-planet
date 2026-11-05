@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { buildIcs, googleCalendarUrl, icsFilename, type CalendarEvent } from "@ap/core/calendar";
-import { DefaultCover } from "@ap/ui/brand";
+import { EventCover } from "@/components/events/event-cover";
 
 import { AttendeesSection } from "@/components/events/attendees-section";
 import { eventState, rsvpState, spotsLeft } from "@/components/events/event-state";
@@ -90,15 +90,17 @@ function EventPage() {
         title="Plan"
         back
         actions={
-          <Button
-            variant="secondary"
-            size="icon"
-            className="rounded-full"
-            aria-label="Share"
-            onClick={share}
-          >
-            <Share className="size-5" aria-hidden="true" />
-          </Button>
+          event.data ? (
+            <Button
+              variant="secondary"
+              size="icon"
+              className="rounded-full"
+              aria-label="Share"
+              onClick={share}
+            >
+              <Share className="size-5" aria-hidden="true" />
+            </Button>
+          ) : null
         }
       />
       {event.isPending ? (
@@ -218,11 +220,7 @@ function EventBody({ event, userId }: { event: EventDetail; userId: string }) {
     <>
       <main className="flex flex-col gap-5 pb-28">
         <div className="h-[200px] bg-surface-2">
-          {event.cover_url ? (
-            <img src={event.cover_url} alt="" className="size-full object-cover" />
-          ) : (
-            <DefaultCover seed={event.id} />
-          )}
+          <EventCover src={event.cover_url} seed={event.id} />
         </div>
 
         <div className="flex flex-col gap-5 safe-px">

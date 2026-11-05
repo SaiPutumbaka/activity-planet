@@ -1,3 +1,4 @@
+import { bandText, type DistanceUnit } from "../feed/distance";
 import type {
   BookingStatus,
   BookingSummary,
@@ -99,10 +100,12 @@ export function ratingLabel(avg: number | null, count: number): string {
   return `${avg.toFixed(1)} (${count})`;
 }
 
-/** The distance band as search returns it ("<1 mi", "online"); never a distance. */
-export function bandLabel(band: string): string {
+/**
+ * The distance band search returns ("<1 mi", "online") in the viewer's unit; never a distance.
+ */
+export function bandLabel(band: string, unit: DistanceUnit = "mi"): string {
   if (band === "online") return "Online";
-  return band;
+  return unit === "km" ? bandText(band, unit) : band;
 }
 
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {

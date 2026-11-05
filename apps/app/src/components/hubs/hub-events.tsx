@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarPlus } from "lucide-react";
-import { DefaultCover } from "@ap/ui/brand";
+import { EventCover } from "@/components/events/event-cover";
 
 import { buttonVariants } from "@/components/ui/button-variants";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -89,11 +89,7 @@ export function EventRow({ event }: { event: HubEvent }) {
       className="flex gap-3 rounded-card border border-border bg-surface p-3 shadow-[var(--shadow-card)] transition-colors hover:bg-surface-2"
     >
       <div className="h-[72px] w-[88px] shrink-0 overflow-hidden rounded-tile bg-surface-2">
-        {event.cover_url ? (
-          <img src={event.cover_url} alt="" loading="lazy" className="size-full object-cover" />
-        ) : (
-          <DefaultCover seed={event.id} />
-        )}
+        <EventCover src={event.cover_url} seed={event.id} loading="lazy" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-1.5 text-[12px] font-semibold">

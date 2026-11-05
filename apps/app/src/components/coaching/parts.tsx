@@ -14,6 +14,7 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/cn";
 import { viewerZone } from "@/lib/datetime";
+import { DISTANCE_UNIT } from "@/lib/units";
 
 /** Section title used across the coaching screens (same type as the You tab's). */
 export function SectionTitle({ children, id }: { children: ReactNode; id?: string }) {
@@ -93,7 +94,7 @@ export function CoachCard({ coach }: { coach: CoachSearchRow }) {
         <span className="flex flex-wrap items-center gap-x-2 text-[13px] text-text-3">
           <span>{ratingLabel(coach.rating_avg, coach.rating_count)}</span>
           <span aria-hidden="true">·</span>
-          <span>{bandLabel(coach.distance_band)}</span>
+          <span>{bandLabel(coach.distance_band, DISTANCE_UNIT)}</span>
           {coach.area_label && coach.distance_band !== "online" ? (
             <span className="truncate">{coach.area_label}</span>
           ) : null}

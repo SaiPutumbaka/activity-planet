@@ -1,3 +1,4 @@
+import { bandText, type DistanceUnit } from "../feed/distance";
 import type { Reason } from "./schemas";
 
 /**
@@ -19,9 +20,13 @@ const WHEN_LABELS = {
   this_weekend: "This weekend",
 } as const;
 
-/** A distance band in words: "<1 mi" reads "Under 1 mi". */
-function bandWords(band: string): string {
-  return band === "<1 mi" ? "Under 1 mi" : band;
+/**
+ * A distance band in words, in the viewer's unit: "<1 mi" reads "Under 1 mi", "1-5 mi" stays
+ * short; in kilometres "Under 2 km" and "2-8 km".
+ */
+function bandWords(band: string, unit: DistanceUnit): string {
+  if (band === "<1 mi") return bandText(band, unit);
+  return unit === "km" ? bandText(band, unit).replace(" to ", "-") : band;
 }
 
 function plural(n: number, one: string, many: string): string {
@@ -29,7 +34,7 @@ function plural(n: number, one: string, many: string): string {
 }
 
 /** The chip copy for one reason. */
-export function reasonLabel(r: Reason): string {
+export function reasonLabel(r: Reason, unit: DistanceUnit = "mi"): string {
   switch (r.code) {
     case "people_met_going":
       return `${r.n} ${plural(r.n, "person you've met is", "people you've met are")} going`;
@@ -44,7 +49,7 @@ export function reasonLabel(r: Reason): string {
     case "when":
       return WHEN_LABELS[r.when];
     case "near":
-      return r.band === "online" ? "Online" : `${bandWords(r.band)} away`;
+      return r.band === "online" ? "Online" : `${bandWords(r.band, unit)} away`;
     case "free":
       return "Free";
     case "popular":
@@ -71,7 +76,7 @@ export function reasonLabel(r: Reason): string {
 }
 
 /** One sentence per reason, for the "Why am I seeing this?" sheet. */
-export function reasonSentence(r: Reason): string {
+export function reasonSentence(r: Reason, unit: DistanceUnit = "mi"): string {
   switch (r.code) {
     case "people_met_going":
       return `${r.n} ${plural(r.n, "person you've met is", "people you've met are")} going.`;
@@ -86,7 +91,9 @@ export function reasonSentence(r: Reason): string {
     case "when":
       return `It's ${WHEN_LABELS[r.when].toLowerCase()}.`;
     case "near":
-      return r.band === "online" ? "It's online." : `It's ${bandWords(r.band).toLowerCase()} away.`;
+      return r.band === "online"
+        ? "It's online."
+        : `It's ${bandWords(r.band, unit).toLowerCase()} away.`;
     case "free":
       return "It's free.";
     case "popular":
@@ -140,9 +147,9 @@ export function splitReasons(reasons: readonly Reason[]): SplitReasons {
  * The sentences behind a card, chips first and then the attribution. A recommendation with no
  * reason still says how it was picked, without any score or personal detail.
  */
-export function whyLines(reasons: readonly Reason[]): string[] {
+export function whyLines(reasons: readonly Reason[], unit: DistanceUnit = "mi"): string[] {
   const { chips, attribution } = splitReasons(reasons);
-  const lines = chips.map(reasonSentence);
+  const lines = chips.map((r) => reasonSentence(r, unit));
   if (attribution) lines.push(reasonSentence(attribution));
   if (lines.length === 0) lines.push("It's coming up near you.");
   return lines;

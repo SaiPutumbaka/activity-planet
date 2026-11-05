@@ -118,7 +118,7 @@ function ChatsPage() {
             <EmptyState
               icon={MessageCircle}
               title="No chats yet"
-              body="Every plan you join has a chat, and so do your hubs and chapters. You can also message people you've met."
+              body="Plans you join, your hubs and your chapters each have a chat: open one and tap Chat to start it. You can also message people you've met."
               action={
                 <Link to="/chats/new" className={buttonVariants({ variant: "secondary" })}>
                   New message

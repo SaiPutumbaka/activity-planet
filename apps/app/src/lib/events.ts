@@ -198,11 +198,15 @@ export async function removeRsvp(
 const EVENT_SELECT =
   "*, hubs(id,slug,name,emoji,min_age,scope), profiles!events_host_id_fkey(id,handle,first_name,avatar_url), event_addresses(venue_id,location_text,address_note,venues(id,name,address_line1,address_line2,city,state,postal_code,is_public,place_id))" as const;
 
+const EVENT_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** One event with its hub, host and (when RLS lets the viewer see it) the exact address. Null when unreadable. */
 export const eventQuery = (eventId: string) =>
   queryOptions({
     queryKey: ["events", eventId] as const,
     queryFn: async () => {
+      // A mistyped or truncated link is "not here", not a database error about the id's format.
+      if (!EVENT_ID_RE.test(eventId)) return null;
       const { data, error } = await supabase
         .from("events")
         .select(EVENT_SELECT)

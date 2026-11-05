@@ -285,7 +285,7 @@ export default function SafetyCenterPage() {
         <ul className="flex flex-wrap gap-x-5 gap-y-2">
           <li>
             <a href="/guidelines" className={linkClass}>
-              Community Guidelines
+              Community Guidelines (draft)
             </a>
           </li>
           <li>

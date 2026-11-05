@@ -1,13 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { MapPin, Navigation } from "lucide-react";
 import { distanceBandLabel } from "@ap/core/feed";
-import { DefaultCover } from "@ap/ui/brand";
 
 import { Button } from "@/components/ui/button";
 import { formatTime } from "@/lib/datetime";
 import type { FeedEvent } from "@/lib/events";
 import type { ImportLabel } from "@/lib/imports";
+import { DISTANCE_UNIT } from "@/lib/units";
 import { canRsvp, eventState, isFull, rsvpState } from "./event-state";
+import { EventCover } from "./event-cover";
 import { EventStateChip } from "./event-state-chip";
 import { ImportedCardFooter, ImportedChips } from "./imported-source";
 
@@ -47,7 +48,7 @@ export function EventCard({
   const goingLabel = full ? "Join waitlist" : "Going";
   const imported = event.kind === "imported";
   const hub = event.hub_name ? { emoji: event.hub_emoji, name: event.hub_name } : null;
-  const distance = distanceBandLabel(event.distance_band);
+  const distance = distanceBandLabel(event.distance_band, DISTANCE_UNIT);
   const time = `${formatTime(event.starts_at, event.timezone)} to ${formatTime(event.ends_at, event.timezone)}`;
 
   return (
@@ -59,11 +60,7 @@ export function EventCard({
         aria-label={event.title}
       />
       <div className="h-[120px] bg-surface-2">
-        {event.cover_url ? (
-          <img src={event.cover_url} alt="" className="size-full object-cover" loading="lazy" />
-        ) : (
-          <DefaultCover seed={event.id} />
-        )}
+        <EventCover src={event.cover_url} seed={event.id} loading="lazy" />
       </div>
       <div className="flex flex-col gap-1.5 p-4">
         {myState || state || (imported && importLabel) ? (

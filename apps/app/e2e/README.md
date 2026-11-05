@@ -26,6 +26,9 @@ node apps/app/e2e/10-recs.mjs        # For you with chips, Not interested (and U
                                       # toast on a waiting worker; with E2E_SITE_URL (apps/web,
                                       # next build + next start) the landing page at both widths
                                       # (E2E_ONLY=landing runs only that part)
+E2E_SITE_URL=http://localhost:3000 node apps/app/e2e/11-site.mjs  # the public site at both
+                                      # widths: landing, /bot, Safety Center, policy pages,
+                                      # /account/delete, internal links, the 404 (no account)
 E2E_PHASE=book node apps/app/e2e/08-coaching.mjs    # A coaches (profile, listing, availability,
                                                     # publish), B requests a time, A confirms, DM
 E2E_PHASE=finish node apps/app/e2e/08-coaching.mjs  # A marks it done, B reviews, cleanup

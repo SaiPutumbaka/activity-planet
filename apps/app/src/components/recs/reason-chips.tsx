@@ -1,6 +1,7 @@
 import { reasonLabel, splitReasons, type Reason } from "@ap/core/recs";
 
 import { cn } from "@/lib/cn";
+import { DISTANCE_UNIT } from "@/lib/units";
 
 /**
  * Up to two explain-why chips the server chose (RECS_DESIGN 5.1), plus an imported listing's
@@ -20,7 +21,7 @@ export function ReasonChips({
       {chips.length > 0 ? (
         <ul className="flex min-w-0 flex-wrap gap-1" aria-label="Why this is suggested">
           {chips.map((r) => {
-            const label = reasonLabel(r);
+            const label = reasonLabel(r, DISTANCE_UNIT);
             return (
               <li
                 key={label}

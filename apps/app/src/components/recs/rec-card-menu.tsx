@@ -4,6 +4,7 @@ import { whyLines, whyNote, type Reason } from "@ap/core/recs";
 
 import { Sheet } from "@/components/ui/sheet";
 import { useDismissRec, type RecSubjectKind } from "@/lib/recs";
+import { DISTANCE_UNIT } from "@/lib/units";
 
 export type WhyKind = Parameters<typeof whyNote>[0];
 
@@ -74,7 +75,7 @@ export function RecCardMenu({
         ) : (
           <div className="flex flex-col gap-3 pb-2">
             <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[15px]">
-              {whyLines(reasons).map((line) => (
+              {whyLines(reasons, DISTANCE_UNIT).map((line) => (
                 <li key={line}>{line}</li>
               ))}
             </ul>

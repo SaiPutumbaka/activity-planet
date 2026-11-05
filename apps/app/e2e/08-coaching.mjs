@@ -344,7 +344,11 @@ if (phase === "finish" || phase === "all") {
     await pa.getByText("Availability saved.").waitFor({ timeout: 20000 });
     await pa.goto(`${env.base}/coach`);
     const pause = pa.getByRole("button", { name: "Pause my page" });
-    if (await visible(pause, 10000)) await pause.click();
+    if (await visible(pause, 10000)) {
+      await pause.click();
+      // Wait for the server's answer: closing the browser right after the click can drop it.
+      await pa.getByText("Your coach page is paused.").first().waitFor({ timeout: 20000 });
+    }
   });
 }
 

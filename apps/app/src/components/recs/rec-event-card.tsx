@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { namesGeorgiaState, type RecEvent } from "@ap/core/recs";
-import { DefaultCover } from "@ap/ui/brand";
+import { EventCover } from "@/components/events/event-cover";
 
 import { formatRelativeDay, formatTime } from "@/lib/datetime";
 import { cn } from "@/lib/cn";
@@ -37,19 +37,14 @@ export function RecEventCard({
         aria-label={event.title}
       />
       <div className="relative h-[88px] bg-surface-2">
-        {event.cover_url ? (
-          <img
-            src={event.cover_url}
-            alt=""
-            width={260}
-            height={88}
-            className="size-full object-cover"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <DefaultCover seed={event.id} />
-        )}
+        <EventCover
+          src={event.cover_url}
+          seed={event.id}
+          width={260}
+          height={88}
+          loading="lazy"
+          decoding="async"
+        />
         <div className="absolute top-1.5 right-1.5">
           <RecCardMenu
             kind="event"
