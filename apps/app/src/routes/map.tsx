@@ -14,6 +14,7 @@ import { ComingSoon } from "@/components/shell/coming-soon";
 import { TabBar } from "@/components/shell/tab-bar";
 import { ChatsButton } from "@/components/shell/chats-button";
 import { InboxBell } from "@/components/shell/inbox-bell";
+import { Presence } from "@/components/shell/presence";
 import { TopBar } from "@/components/shell/top-bar";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button-variants";
@@ -132,6 +133,7 @@ function MapPage() {
     >
       <MapScreen userId={signedIn ? (session?.user.id ?? null) : null} />
       {signedIn ? <TabBar /> : null}
+      {signedIn ? <Presence /> : null}
     </div>
   );
 }
