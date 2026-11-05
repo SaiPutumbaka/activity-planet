@@ -1,0 +1,131 @@
+name: Collector verify
+
+# Organizer claim checks that read the claimed site (docs/design/collector/COLLECTOR_COMPLETION.md
+# 2.3; packages/collector/src/verify.ts): the meta tag or .well-known file on the claimed host and
+# the token in a connected calendar, through the collector's PoliteFetcher (robots.txt, one request
+# per 2 seconds per host, https and public hosts only, the denylist, 3 URLs a claim). DNS TXT
+# proofs are checked by the organizer-verify Edge Function instead. The same run collects the
+# connected feeds whose owner pressed Refresh now (at most 20, once an hour each).
+#
+# Every 30 minutes and on dispatch. The first step asks for the queue and stops when nothing is
+# due, so an idle run costs about 20 seconds. Runs against STAGING, and against PRODUCTION only
+# from main when the repository variable COLLECTOR_PRODUCTION is "true", with the same secret
+# handling as collector-ingest.yml (the collector secret read from the project's vault and
+# masked). A branch other than main can run it by changing packages/collector/verify_request.json.
+#
+# Logs print counts and outcomes only, never a host, a URL or a token.
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+    paths:
+      - "packages/collector/verify_request.json"
+  schedule:
+    - cron: "7,37 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: collector-verify
+  cancel-in-progress: false
+
+env:
+  STAGING_PROJECT_REF: gzrscndzzggxmcwnvvcq
+  PROD_PROJECT_REF: gtesfiqxqontescqpllo
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      max-parallel: 1
+      matrix:
+        target: [staging, production]
+    steps:
+      - name: Decide
+        id: mode
+        env:
+          TARGET: ${{ matrix.target }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          PROD_VAR: ${{ vars.COLLECTOR_PRODUCTION }}
+        run: |
+          run=true
+          if [ "$TARGET" = "production" ]; then
+            if [ "$EVENT" = "push" ] || [ "$REF" != "refs/heads/main" ] || [ "$PROD_VAR" != "true" ]; then run=false; fi
+          fi
+          echo "target=$TARGET run=$run"
+          {
+            echo "run=$run"
+            echo "run_id=gh-${{ github.run_id }}-${{ github.run_attempt }}-$TARGET"
+            echo "started=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.mode.outputs.run == 'true'
+      - uses: pnpm/action-setup@v4
+        if: steps.mode.outputs.run == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.mode.outputs.run == 'true'
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: steps.mode.outputs.run == 'true'
+      - uses: supabase/setup-cli@v1
+        if: steps.mode.outputs.run == 'true'
+        with:
+          version: 2.122.0
+
+      # The secret is captured, never echoed; ::add-mask:: hides it if anything ever prints it.
+      - name: Read the collector secret
+        if: steps.mode.outputs.run == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          TARGET: ${{ matrix.target }}
+          STAGING_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+          PROD_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
+        run: |
+          if [ "$TARGET" = "production" ]; then ref="$PROD_PROJECT_REF"; pw="$PROD_DB_PASSWORD"; else ref="$STAGING_PROJECT_REF"; pw="$STAGING_DB_PASSWORD"; fi
+          SUPABASE_DB_PASSWORD="$pw" supabase link --project-ref "$ref" > /dev/null
+          out=$(supabase db query --linked "select 'CSECRET:' || ds.decrypted_secret as v from vault.decrypted_secrets ds where ds.name = 'collector_secret'" 2>/dev/null || true)
+          secret=$(printf '%s' "$out" | grep -o 'CSECRET:[0-9a-f]\{64\}' | head -1 | cut -d: -f2)
+          unset out
+          if [ -z "$secret" ]; then echo "collector_secret not found in the vault"; exit 1; fi
+          echo "::add-mask::$secret"
+          echo "COLLECTOR_SECRET=$secret" >> "$GITHUB_ENV"
+          echo "COLLECTOR_BASE=https://$ref.supabase.co/functions/v1/collector" >> "$GITHUB_ENV"
+          echo "Collector secret read (masked)."
+
+      - name: Verify due claims
+        id: verify
+        if: steps.mode.outputs.run == 'true'
+        run: |
+          mkdir -p work
+          pnpm --silent --filter collector verify --from "$COLLECTOR_BASE" \
+            --refresh-out "$GITHUB_WORKSPACE/work/refresh.json" --regions-out "$GITHUB_WORKSPACE/work/refresh-regions.json"
+          n=$(python3 -I -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["sources"]))' "$GITHUB_WORKSPACE/work/refresh.json" 2>/dev/null || echo 0)
+          echo "refresh=$n" >> "$GITHUB_OUTPUT"
+
+      # Refresh now: only the connected feeds asked for, as seeds of their regions; no city files,
+      # no open-data registry, no API. Counts only.
+      - name: Refresh connected feeds
+        if: steps.mode.outputs.run == 'true' && steps.verify.outputs.refresh != '0' && steps.verify.outputs.refresh != ''
+        env:
+          RUN_ID: ${{ steps.mode.outputs.run_id }}
+        run: |
+          pnpm --filter collector collect --regions-file "$GITHUB_WORKSPACE/work/refresh-regions.json" \
+            --sources-file "$GITHUB_WORKSPACE/work/refresh.json" --only-sources --no-cache --max-run-minutes 10 \
+            --ingest "$COLLECTOR_BASE" --run-id "$RUN_ID-refresh"
+
+      - name: Record the run
+        if: always() && steps.mode.outputs.run == 'true' && env.COLLECTOR_SECRET != ''
+        env:
+          RUN_ID: ${{ steps.mode.outputs.run_id }}
+          STARTED: ${{ steps.mode.outputs.started }}
+          OUTCOME: ${{ job.status == 'success' && 'ok' || 'failed' }}
+        run: |
+          pnpm --silent --filter collector regions runs record --to "$COLLECTOR_BASE" --job verify \
+            --run-id "$RUN_ID" --outcome "$OUTCOME" --started-at "$STARTED" || true

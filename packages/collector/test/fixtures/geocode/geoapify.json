@@ -1,0 +1,6 @@
+{
+  "results": [
+    { "lat": 33.76, "lon": -84.38, "formatted": "Test Hall, Atlanta", "rank": { "confidence": 0.9 } }
+  ],
+  "query": { "text": "Test Hall" }
+}

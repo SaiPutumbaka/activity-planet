@@ -279,3 +279,38 @@ describe("the fixtures still parse", () => {
     expect(page.events[0]?.priceText).toBe("From $25");
   });
 });
+
+// Collector completion 2.8: the Eventbrite API lane for organizer-connected accounts.
+describe("Eventbrite API lane", () => {
+  const d = Denylist.load();
+  it("allows only the documented API, only to the API lane", () => {
+    expect(d.isApiEndpoint("https://www.eventbriteapi.com/v3/users/me/organizations/")).toBe(true);
+    expect(
+      d.check("https://www.eventbriteapi.com/v3/organizations/1/events/", { allowApi: true })
+        .denied,
+    ).toBe(false);
+    expect(d.check("https://www.eventbriteapi.com/v3/organizations/1/events/").denied).toBe(true);
+  });
+  it("keeps every Eventbrite web page refused", () => {
+    for (const u of [
+      "https://www.eventbrite.com/e/123",
+      "https://www.eventbrite.co.uk/d/london/events/",
+      "https://evbuc.com/x",
+    ]) {
+      expect(d.check(u).denied, u).toBe(true);
+      expect(d.check(u, { allowApi: true }).denied, u).toBe(true);
+    }
+  });
+  it("allows the geocoders and catalogue APIs to the API lane only", () => {
+    for (const u of [
+      "https://nominatim.openstreetmap.org/search?q=x",
+      "https://photon.komoot.io/api/?q=x",
+      "https://api.geoapify.com/v1/geocode/search?text=x",
+      "https://api.us.socrata.com/api/catalog/v1?q=event",
+      "https://hub.arcgis.com/api/search/v1/collections/dataset/items",
+    ]) {
+      expect(d.check(u, { allowApi: true }).denied, u).toBe(false);
+      expect(d.check(u).denied, u).toBe(true);
+    }
+  });
+});

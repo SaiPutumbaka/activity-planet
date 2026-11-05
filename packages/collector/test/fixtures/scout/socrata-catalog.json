@@ -1,0 +1,35 @@
+{
+  "results": [
+    {
+      "resource": {
+        "name": "Festival and Special Event Permits",
+        "id": "abcd-1234",
+        "updatedAt": "2026-10-30T12:00:00.000Z",
+        "columns_field_name": ["event_name", "start_date", "location", "is_public"],
+        "columns_datatype": ["text", "calendar_date", "point", "checkbox"]
+      },
+      "classification": { "tags": ["events"], "domain_tags": [] },
+      "metadata": { "domain": "data.example-city.gov", "license": "Open Government Licence" }
+    },
+    {
+      "resource": {
+        "name": "Street Trees",
+        "id": "tree-0001",
+        "columns_field_name": ["species"],
+        "columns_datatype": ["text"]
+      },
+      "classification": { "tags": ["trees"] },
+      "metadata": { "domain": "data.example-city.gov" }
+    },
+    {
+      "resource": {
+        "name": "Library Calendar",
+        "id": "libr-0002",
+        "columns_field_name": ["title", "starts"],
+        "columns_datatype": ["text", "floating_timestamp"]
+      },
+      "classification": { "tags": [] },
+      "metadata": { "domain": "data.far-away.gov", "license": "Public Domain" }
+    }
+  ]
+}

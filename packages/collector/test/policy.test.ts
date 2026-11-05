@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { parseRemoteDenylist } from "../src/policy/denylist.ts";
+import { PoliteFetcher } from "../src/net/fetcher.ts";
+import { fakeClock, fakeTransport } from "./helpers.ts";
 import { Denylist } from "../src/policy/denylist.ts";
 import {
   isLoginUrl,
@@ -174,5 +177,59 @@ describe("login pages", () => {
     ).toBe(true);
     expect(looksLikeLoginPage('<form id="login-form"><input name="u"></form>')).toBe(true);
     expect(looksLikeLoginPage('<form action="/search"><input type="text"></form>')).toBe(false);
+  });
+});
+
+// Collector completion 2.1: hosts removed on an owner's request live only in the database.
+describe("remote denylist", () => {
+  it("drops malformed entries and merges names into the run's list", () => {
+    const r = parseRemoteDenylist({
+      entries: [
+        { name: "removed.example.org", match: "domain" },
+        { name: "Bad Name!", match: "domain" },
+        { name: "takendown", match: "any_tld" },
+        { name: "x.org", match: "regex" },
+      ],
+      sources: ["disc-0123456789ab", "Not A Slug"],
+    });
+    expect(r).toEqual({
+      entries: [
+        { name: "removed.example.org", match: "domain" },
+        { name: "takendown", match: "any_tld" },
+      ],
+      sources: ["disc-0123456789ab"],
+    });
+    const d = Denylist.load().merge(r);
+    expect(d.check("https://events.removed.example.org/cal.ics").denied).toBe(true);
+    expect(d.check("https://www.takendown.co.uk/").denied).toBe(true);
+    expect(Denylist.load().check("https://events.removed.example.org/cal.ics").denied).toBe(false);
+  });
+
+  it("refuses a removed host at every hop, redirects included", async () => {
+    const c = fakeClock();
+    const { transport, log } = fakeTransport(
+      {
+        "https://ok.example.org/robots.txt": { body: "User-agent: *\nAllow: /\n" },
+        "https://ok.example.org/feed": {
+          status: 302,
+          headers: { location: "https://removed.example.org/feed.ics" },
+        },
+      },
+      c.clock,
+    );
+    const d = Denylist.load().merge({
+      entries: [{ name: "removed.example.org", match: "domain" }],
+      sources: [],
+    });
+    const f = new PoliteFetcher({ denylist: d, transport, now: c.now, sleep: c.sleep });
+    expect(await f.get("https://removed.example.org/feed.ics")).toMatchObject({
+      ok: false,
+      reason: "denylisted",
+    });
+    expect(await f.get("https://ok.example.org/feed")).toMatchObject({
+      ok: false,
+      reason: "denylisted",
+    });
+    expect(log.some((l) => l.url.includes("removed.example.org"))).toBe(false);
   });
 });

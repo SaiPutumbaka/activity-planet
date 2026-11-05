@@ -1,0 +1,4 @@
+{
+  "note": "Changing this file runs collector-verify.yml on staging from a branch other than main.",
+  "n": 1
+}

@@ -1,0 +1,26 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "9f8e7d",
+        "title": "City Events",
+        "type": "Feature Service",
+        "url": "https://services.arcgis.com/ABC/arcgis/rest/services/City_Events/FeatureServer/0",
+        "license": "CC BY 4.0",
+        "modified": 1793491200000,
+        "tags": ["events", "parks"]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "777",
+        "title": "Zoning Districts",
+        "url": "https://services.arcgis.com/ABC/arcgis/rest/services/Zoning/FeatureServer/0",
+        "tags": ["zoning"]
+      }
+    }
+  ]
+}

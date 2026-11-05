@@ -52,6 +52,17 @@ name: Collector ingest
 # migration 28 generated in the project's vault, masks it, and uses it only as the
 # x-collector-secret header. The service-role key never reaches the job.
 #
+# Collector completion (docs/design/collector/COLLECTOR_COMPLETION.md, migrations 62 and 63):
+#   * before collecting, the database-only denylist (hosts and sources removed on an owner's
+#     request, GET /collector/denylist) is merged into data/denylist.json for the run;
+#   * open-data datasets in packages/collector/data/opendata join every region their box overlaps;
+#   * after the posts, venue geocoding (`regions geocode`, its own 8-minute budget) on each project
+#     posted to: our own places first, Geoapify only with GEOAPIFY_SERVER_KEY, Nominatim at most
+#     300 a night (Photon after a 429 or 5xx); counts by provider only;
+#   * organizer-connected Eventbrite accounts are read by the eventbrite-connect function itself
+#     (their tokens never leave Supabase); without its keys it answers skipped: no key;
+#   * the last step records the run for the health panel (POST /collector/runs/record, counts only).
+#
 # Logs are public: counts, flags and error names per source only, never item titles, page text,
 # secrets or member data. The collected batches stay on the runner (work/, never uploaded).
 
@@ -153,6 +164,7 @@ jobs:
             echo "production=$production"
             echo "regions_from=$regions_from"
             echo "run_id=gh-${{ github.run_id }}-${{ github.run_attempt }}"
+            echo "started=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           } >> "$GITHUB_OUTPUT"
 
       - uses: pnpm/action-setup@v4
@@ -225,6 +237,18 @@ jobs:
           n=$(python3 -I -c 'import json,sys;print(sum(1 for r in json.load(open(sys.argv[1]))["regions"] if r.get("collector")))' "$GITHUB_WORKSPACE/work/regions.json")
           echo "collector_regions=$n" >> "$GITHUB_OUTPUT"
 
+      # Hosts and sources removed on an owner's request live only in the database (migration 63);
+      # the run never fetches them. Counts only. A project without the route gives an empty list.
+      - name: Denylist, fetch the database-only entries
+        if: steps.mode.outputs.mode == 'city' || steps.regions.outputs.collector_regions != '0'
+        env:
+          FROM: ${{ steps.mode.outputs.regions_from }}
+        run: |
+          mkdir -p work
+          if [ "$FROM" = "production" ]; then ref="$PROD_PROJECT_REF"; secret="$PROD_COLLECTOR_SECRET"; else ref="$STAGING_PROJECT_REF"; secret="$STAGING_COLLECTOR_SECRET"; fi
+          COLLECTOR_SECRET="$secret" pnpm --silent --filter collector regions denylist \
+            --from "https://$ref.supabase.co/functions/v1/collector" --out "$GITHUB_WORKSPACE/work/denylist-remote.json"
+
       # Lane 1 keys: the repository secrets when they exist, else the Edge Function secrets of the
       # project the regions come from (FOUNDER-TODO 20b allows either), read through the
       # collector function and masked. Prints only which keys are set.
@@ -234,6 +258,7 @@ jobs:
           FROM: ${{ steps.mode.outputs.regions_from }}
           GH_TM: ${{ secrets.TICKETMASTER_API_KEY }}
           GH_SG: ${{ secrets.SEATGEEK_CLIENT_ID }}
+          GH_GEO: ${{ secrets.GEOAPIFY_SERVER_KEY }}
         run: |
           if [ "$FROM" = "production" ]; then ref="$PROD_PROJECT_REF"; secret="$PROD_COLLECTOR_SECRET"; else ref="$STAGING_PROJECT_REF"; secret="$STAGING_COLLECTOR_SECRET"; fi
           tm="$GH_TM"; sg="$GH_SG"; from_tm=github; from_sg=github
@@ -243,10 +268,17 @@ jobs:
             if [ -z "$sg" ]; then sg=$(printf '%s' "$out" | python3 -I -c 'import json,sys;print(json.load(sys.stdin).get("seatgeek") or "")' 2>/dev/null || true); from_sg=supabase; fi
             unset out
           fi
-          for v in "$tm" "$sg"; do if [ -n "$v" ]; then echo "::add-mask::$v"; fi; done
-          case "$tm$sg" in *[!A-Za-z0-9_-]*) echo "Refusing a key with unexpected characters"; exit 1 ;; esac
-          { echo "TICKETMASTER_API_KEY=$tm"; echo "SEATGEEK_CLIENT_ID=$sg"; } >> "$GITHUB_ENV"
-          echo "ticketmaster key: $([ -n "$tm" ] && echo "set ($from_tm)" || echo unset); seatgeek client id: $([ -n "$sg" ] && echo "set ($from_sg)" || echo unset)"
+          # Venue geocoding's optional Geoapify key (migration 63), the same way.
+          geo="$GH_GEO"; from_geo=github
+          if [ -z "$geo" ]; then
+            out=$(curl -sS --fail -H "x-collector-secret: $secret" "https://$ref.supabase.co/functions/v1/collector/api-keys" || echo '{}')
+            geo=$(printf '%s' "$out" | python3 -I -c 'import json,sys;print(json.load(sys.stdin).get("geoapify") or "")' 2>/dev/null || true); from_geo=supabase
+            unset out
+          fi
+          for v in "$tm" "$sg" "$geo"; do if [ -n "$v" ]; then echo "::add-mask::$v"; fi; done
+          case "$tm$sg$geo" in *[!A-Za-z0-9_-]*) echo "Refusing a key with unexpected characters"; exit 1 ;; esac
+          { echo "TICKETMASTER_API_KEY=$tm"; echo "SEATGEEK_CLIENT_ID=$sg"; echo "GEOAPIFY_SERVER_KEY=$geo"; } >> "$GITHUB_ENV"
+          echo "ticketmaster key: $([ -n "$tm" ] && echo "set ($from_tm)" || echo unset); seatgeek client id: $([ -n "$sg" ] && echo "set ($from_sg)" || echo unset); geoapify key: $([ -n "$geo" ] && echo "set ($from_geo)" || echo "unset (geocoding skips it)")"
 
       # Lane 1 calls for this run from the day's budget (counts only). Without a key nothing is
       # asked and every adapter gets 0.
@@ -280,6 +312,7 @@ jobs:
           else
             set -- --region "$REGION"
           fi
+          if [ -f work/denylist-remote.json ]; then set -- "$@" --denylist-file "$GITHUB_WORKSPACE/work/denylist-remote.json"; fi
           printf '%s\n' "$@" > work/region-args
           # --diagnose: one stderr line per request (status, host, media type, size, robots.txt
           # and parser verdicts, page-type hints); metadata and counts only.
@@ -342,6 +375,62 @@ jobs:
             --to "https://$ref.supabase.co/functions/v1/collector" --run-id "$RUN_ID-$FROM" \
             --regions "$GITHUB_WORKSPACE/work/regions.json" --batches "$GITHUB_WORKSPACE/work/batches.json" \
             --sources "$GITHUB_WORKSPACE/work/sources.json"
+
+      # Venue geocoding (design 2.5) on each project posted to, after its posts: its own budget of
+      # 8 minutes. Counts by provider and outcome only, never a location text.
+      - name: Staging, geocode venues
+        if: steps.mode.outputs.mode == 'city' || steps.regions.outputs.collector_regions != '0'
+        continue-on-error: true
+        run: |
+          COLLECTOR_SECRET="$STAGING_COLLECTOR_SECRET" pnpm --silent --filter collector regions geocode \
+            --to "https://$STAGING_PROJECT_REF.supabase.co/functions/v1/collector" --max-minutes 8
+
+      - name: Production, geocode venues
+        if: steps.mode.outputs.production == 'true' && (steps.mode.outputs.mode == 'city' || steps.regions.outputs.collector_regions != '0')
+        continue-on-error: true
+        run: |
+          COLLECTOR_SECRET="$PROD_COLLECTOR_SECRET" pnpm --silent --filter collector regions geocode \
+            --to "https://$PROD_PROJECT_REF.supabase.co/functions/v1/collector" --max-minutes 8
+
+      # Organizer-connected Eventbrite accounts (design 2.8): the eventbrite-connect function reads
+      # them itself, so their tokens never leave Supabase. Without its keys it answers
+      # {"skipped":"no key"}; a project without the function answers 404. Counts only.
+      - name: Eventbrite, sync connected accounts
+        if: steps.mode.outputs.mode == 'regions'
+        continue-on-error: true
+        env:
+          PRODUCTION: ${{ steps.mode.outputs.production }}
+          RUN_ID: ${{ steps.mode.outputs.run_id }}
+        run: |
+          for target in staging production; do
+            if [ "$target" = "production" ] && [ "$PRODUCTION" != "true" ]; then continue; fi
+            if [ "$target" = "production" ]; then ref="$PROD_PROJECT_REF"; secret="$PROD_COLLECTOR_SECRET"; else ref="$STAGING_PROJECT_REF"; secret="$STAGING_COLLECTOR_SECRET"; fi
+            out=$(curl -sS -X POST -H "content-type: application/json" -H "x-collector-secret: $secret" \
+              -d "{\"op\":\"sync\",\"run_id\":\"$RUN_ID-eb-$target\"}" \
+              "https://$ref.supabase.co/functions/v1/eventbrite-connect" || echo '{"error":"unreachable"}')
+            printf '%s' "$out" | python3 -I -c 'import json,sys
+          try: d = json.load(sys.stdin)
+          except Exception: d = {"error": "not_json"}
+          keep = {k: v for k, v in d.items() if k in ("skipped", "sources", "events", "failed", "error")}
+          print("[eventbrite] " + sys.argv[1] + " " + json.dumps(keep))' "$target"
+          done
+
+      # The run's record for the health panel (migration 63, collector_job_runs): counts only, on
+      # the project the regions came from. An older function answers 404, which is ignored.
+      - name: Record the run
+        if: always() && steps.mode.outputs.run_id != ''
+        env:
+          FROM: ${{ steps.mode.outputs.regions_from }}
+          RUN_ID: ${{ steps.mode.outputs.run_id }}
+          STARTED: ${{ steps.mode.outputs.started }}
+          OUTCOME: ${{ job.status == 'success' && 'ok' || 'failed' }}
+        run: |
+          if [ "$FROM" = "production" ]; then ref="$PROD_PROJECT_REF"; secret="$PROD_COLLECTOR_SECRET"; else ref="$STAGING_PROJECT_REF"; secret="$STAGING_COLLECTOR_SECRET"; fi
+          [ -n "$secret" ] || { echo "no collector secret; nothing recorded"; exit 0; }
+          set -- --job ingest --run-id "$RUN_ID-$FROM" --outcome "$OUTCOME" --started-at "$STARTED"
+          if [ -f work/collected.json ]; then set -- "$@" --stats "$GITHUB_WORKSPACE/work/collected.json"; fi
+          COLLECTOR_SECRET="$secret" pnpm --silent --filter collector regions runs record \
+            --to "https://$ref.supabase.co/functions/v1/collector" "$@" || true
 
       - name: Summary
         if: always()

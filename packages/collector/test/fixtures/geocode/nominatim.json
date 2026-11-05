@@ -1,0 +1,17 @@
+[
+  {
+    "place_id": 123456,
+    "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "node",
+    "osm_id": 368194721,
+    "lat": "33.7395",
+    "lon": "-84.3488",
+    "category": "amenity",
+    "type": "bar",
+    "place_rank": 30,
+    "importance": 0.21,
+    "addresstype": "amenity",
+    "name": "Test Hall",
+    "display_name": "Test Hall, 1 Main Street, Atlanta, Georgia, United States"
+  }
+]

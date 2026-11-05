@@ -1,0 +1,89 @@
+name: Open-data scout
+
+# Finds candidate open-data event datasets for a region (docs/design/collector/
+# COLLECTOR_COMPLETION.md 2.7; packages/collector/src/opendata-scout.ts) on the free, keyless
+# catalogue APIs: the Socrata Discovery API (US and EU) and the ArcGIS Hub search API. It prints
+# dataset ids, names, portals, column names, licence, update date and two aggregates per Socrata
+# dataset (count(*) inside the region's box and the latest date). These are public metadata; no
+# row value is requested or printed. A person reads the output and the dataset's licence, then adds
+# the dataset to packages/collector/data/opendata/. Nothing is written anywhere.
+#
+# Runs on dispatch only (a city file id, or a point and radius), or, from a branch other than main
+# before this file reaches main, on a push that changes packages/collector/opendata_scout_request.json
+# ({"regions": [{"region": "atl"} | {"lat": 51.05, "lng": -114.07, "radius_km": 30, "label": "Calgary"}]}).
+#
+# Secrets: SOCRATA_APP_TOKEN (optional, free; raises Socrata's throttling limit) is sent as the
+# X-App-Token header when the repository secret exists and is never printed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: "A city seed file id under packages/collector/data/cities (or empty with lat, lng, radius_km)"
+        type: string
+        default: atl
+      lat:
+        description: "Latitude of the region's centre (when region is empty)"
+        type: string
+        default: ""
+      lng:
+        description: "Longitude of the region's centre (when region is empty)"
+        type: string
+        default: ""
+      radius_km:
+        description: "Radius in km (when region is empty)"
+        type: string
+        default: "30"
+  push:
+    branches-ignore: [main]
+    paths:
+      - "packages/collector/opendata_scout_request.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: opendata-scout
+  cancel-in-progress: false
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Scout
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          IN_REGION: ${{ inputs.region }}
+          IN_LAT: ${{ inputs.lat }}
+          IN_LNG: ${{ inputs.lng }}
+          IN_RADIUS: ${{ inputs.radius_km }}
+          SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
+        run: |
+          if [ -n "$SOCRATA_APP_TOKEN" ]; then echo "::add-mask::$SOCRATA_APP_TOKEN"; fi
+          if [ "$EVENT" = "push" ]; then
+            if [ "$REF" = "refs/heads/main" ]; then echo "never on main pushes"; exit 1; fi
+            python3 -I -c 'import json,sys
+          for r in json.load(open(sys.argv[1]))["regions"][:5]:
+              print(r.get("region") or "-", r.get("lat", "-"), r.get("lng", "-"), r.get("radius_km", 30))' packages/collector/opendata_scout_request.json > "$RUNNER_TEMP/regions.txt"
+          else
+            echo "${IN_REGION:--} ${IN_LAT:--} ${IN_LNG:--} ${IN_RADIUS:-30}" > "$RUNNER_TEMP/regions.txt"
+          fi
+          while read -r region lat lng radius; do
+            if [ "$region" != "-" ]; then
+              case "$region" in *[!a-z0-9-]*) echo "Refusing region: $region"; exit 1 ;; esac
+              pnpm --silent --filter collector opendata scout --region "$region"
+            else
+              case "$lat$lng$radius" in *[!0-9.-]*|"") echo "Refusing point"; exit 1 ;; esac
+              if [ "$lat" = "-" ] || [ "$lng" = "-" ]; then echo "Refusing point"; exit 1; fi
+              pnpm --silent --filter collector opendata scout --lat "$lat" --lng "$lng" --radius-km "$radius" --label point
+            fi
+          done < "$RUNNER_TEMP/regions.txt"

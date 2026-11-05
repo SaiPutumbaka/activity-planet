@@ -1,0 +1,17 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//Connected calendar//EN
+BEGIN:VEVENT
+UID:past@test.example
+DTSTART:20200101T190000Z
+SUMMARY:Old event
+DESCRIPTION:ap-verify-zzzzzzzzzzzzzzzzzzzzzzzz
+END:VEVENT
+BEGIN:VEVENT
+UID:next@test.example
+DTSTART:20261201T190000Z
+SUMMARY:Next event
+DESCRIPTION:Hosted by us. Verification ap-verify-abcdefghijklmn
+ opqrstuvwx
+END:VEVENT
+END:VCALENDAR

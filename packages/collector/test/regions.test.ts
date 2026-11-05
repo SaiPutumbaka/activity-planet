@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { flatCounts, recordRun } from "../src/runs.ts";
 import { collect } from "../src/collect.ts";
 import { loadCities } from "../src/config.ts";
 import { PoliteFetcher } from "../src/net/fetcher.ts";
@@ -340,5 +341,83 @@ describe("collector regions (D-042 slice 6)", () => {
     await expect(
       recordSources({ baseUrl: BASE, secret: SECRET, fetch: bad, runId: "r" }, [r]),
     ).rejects.toThrow(/sources\/record failed: 400/);
+  });
+});
+
+// Collector completion 2.4 and 2.6.
+describe("organizer-connected feeds and run records", () => {
+  const region = {
+    id: "11111111-2222-4333-8444-555555555555",
+    label: "R",
+    lat: 51.0,
+    lng: -114.1,
+    radiusKm: 25,
+    collector: true,
+  };
+  const entry = {
+    region_id: region.id,
+    candidate_id: null,
+    status: "organizer",
+    seed: {
+      id: "org-0123456789ab",
+      kind: "ics",
+      url: "https://cal.example.org/feed.ics",
+      name: "Feed",
+      attribution: "Listed by the organizer (example.org).",
+      enabled: true,
+      verified: true,
+      imagesLicensed: true,
+    },
+  };
+  it("runs connected feeds as seeds of their region, with no discovery lifecycle", () => {
+    const { cities, dropped } = discoveredCities({ sources: [entry] }, [region]);
+    expect(dropped).toBe(0);
+    expect(cities[0]?.seeds.map((s) => s.id)).toEqual(["org-0123456789ab"]);
+    expect(cities[0]?.seeds[0]?.imagesLicensed).toBe(true);
+    const batch = {
+      sourceKey: "org-0123456789ab",
+      sourceName: "Feed",
+      attribution: "x",
+      regionId: region.id,
+      items: [],
+      skipped: {},
+      complete: true,
+      source: {} as never,
+    };
+    expect(sourceResults({ sources: [entry] }, [region], [batch])).toEqual([]);
+  });
+
+  const svc = (status: number, seen: { path: string; body: unknown }[]) => ({
+    baseUrl: "https://x.supabase.co/functions/v1/collector",
+    secret: "s".repeat(64),
+    fetch: (async (url: string, init?: RequestInit) => {
+      seen.push({ path: new URL(url).pathname, body: JSON.parse(String(init?.body ?? "null")) });
+      return new Response(JSON.stringify({ recorded: true }), { status });
+    }) as typeof fetch,
+  });
+
+  it("posts the run with counts only; a 404 from an older function is ignored", async () => {
+    const seen: { path: string; body: unknown }[] = [];
+    const stats = flatCounts({
+      sources: 3,
+      items: 12,
+      mode: "regions",
+      skipped: { age_21: 1 },
+      perSource: [{ source: "x" }],
+    });
+    expect(stats).toEqual({ sources: 3, items: 12, skipped_age_21: 1 });
+    expect(
+      await recordRun(svc(200, seen), { job: "ingest", run_id: "gh-1-1", outcome: "ok", stats }),
+    ).toEqual({ recorded: true, status: 200 });
+    expect(seen[0]).toEqual({
+      path: "/functions/v1/collector/runs/record",
+      body: { job: "ingest", run_id: "gh-1-1", outcome: "ok", stats },
+    });
+    expect(
+      await recordRun(svc(404, []), { job: "verify", run_id: "gh-1-1", outcome: "failed" }),
+    ).toEqual({ recorded: false, status: 404 });
+    await expect(
+      recordRun(svc(500, []), { job: "verify", run_id: "gh-1-1", outcome: "ok" }),
+    ).rejects.toThrow(/500/);
   });
 });

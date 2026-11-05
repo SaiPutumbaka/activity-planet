@@ -1,5 +1,13 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import {
+  cheapScore as score2,
+  KIND_PRIOR,
+  learnedPrior,
+  LEARNED_MIN_PROBES,
+  parseYield,
+  WIKIDATA_BONUS,
+} from "../src/discovery/candidates.ts";
 import { loadCities } from "../src/config.ts";
 import {
   aroundQuery,
@@ -614,5 +622,43 @@ describe("probe hash", () => {
     const h = probeHash();
     expect(h).toMatch(/^[0-9a-f]{32}$/);
     expect(probeHash()).toBe(h);
+  });
+});
+
+// Collector completion 2.9: discovery tuning from the staging numbers.
+describe("discovery tuning", () => {
+  it("uses the tuned priors and the Wikidata bonus as the fallback", () => {
+    expect([
+      KIND_PRIOR.community,
+      KIND_PRIOR.cinema,
+      KIND_PRIOR.school,
+      KIND_PRIOR.library,
+    ]).toEqual([0.7, 0.15, 0.5, 0.8]);
+    expect(WIKIDATA_BONUS).toBe(25);
+    expect(score2({ place_kind: "community", places: 1 })).toBe(14);
+    expect(score2({ place_kind: "community", wikidata_id: "Q1", places: 1 })).toBe(39);
+  });
+  it("switches a kind to its learned yield at 30 probes", () => {
+    const below = { cinema: { probed: LEARNED_MIN_PROBES - 1, good: 20 } };
+    expect(learnedPrior("cinema", below)).toBe(0.15);
+    const at = { cinema: { probed: 30, good: 0 }, community: { probed: 35, good: 9 } };
+    expect(learnedPrior("cinema", at)).toBe(0.1); // max(0.1, 1/35)
+    expect(learnedPrior("community", at)).toBe(0.25); // (9 + 1) / (35 + 5)
+    expect(score2({ place_kind: "community", places: 1 }, at)).toBe(5);
+    expect(learnedPrior("library", at)).toBe(0.8);
+  });
+  it("reads GET /collector/discovery/yield and drops junk", () => {
+    expect(
+      parseYield({
+        kinds: {
+          cinema: { probed: 30, good: 0 },
+          "Bad Kind": { probed: 1, good: 1 },
+          park: { probed: "x" },
+        },
+      }),
+    ).toEqual({
+      cinema: { probed: 30, good: 0 },
+    });
+    expect(parseYield(null)).toEqual({});
   });
 });

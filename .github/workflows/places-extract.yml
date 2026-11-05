@@ -515,6 +515,20 @@ jobs:
           [ "$reasons" = "{}" ] && { echo "no queued tiles"; exit 0; }
           supabase db query --linked "select public.place_tiles_set_queue_reasons('$reasons'::jsonb) as result"
 
+      # The run's record for the collector health panel (migration 63, collector_job_runs): counts
+      # only. A project or function without the route answers 404, which is ignored.
+      - name: Record the run
+        if: always() && env.COLLECTOR_SECRET != ''
+        env:
+          PROJECT_REF: ${{ steps.mode.outputs.project_ref }}
+          RUN_ID: ${{ steps.mode.outputs.run_id }}
+          OUTCOME: ${{ job.status == 'success' && 'ok' || 'failed' }}
+        run: |
+          body=$(python3 -I -c 'import json,sys;print(json.dumps({"job": sys.argv[1], "run_id": sys.argv[2], "outcome": sys.argv[3]}))' places_extract "$RUN_ID" "$OUTCOME")
+          curl -sS -o /dev/null -w 'runs record: HTTP %{http_code}\n' -X POST -H "Content-Type: application/json" \
+            -H "x-collector-secret: $COLLECTOR_SECRET" -d "$body" \
+            "https://$PROJECT_REF.supabase.co/functions/v1/collector/runs/record" || true
+
       - name: Summary
         if: always() && steps.budget.outputs.tiles != ''
         run: |

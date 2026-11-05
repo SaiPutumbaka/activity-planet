@@ -1,0 +1,11 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//Connected calendar//EN
+X-WR-CALNAME:Community events
+X-WR-CALDESC:Public events. ap-verify-abcdefghijklmnopqrstuvwx
+BEGIN:VEVENT
+UID:one@test.example
+DTSTART:20261120T190000Z
+SUMMARY:Open studio
+END:VEVENT
+END:VCALENDAR

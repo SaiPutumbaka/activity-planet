@@ -176,6 +176,20 @@ jobs:
           RUN_ID: ${{ steps.mode.outputs.run_id }}
         run: pnpm --silent --filter collector discover probe --from "$COLLECTOR_BASE" --run-id "$RUN_ID"
 
+      # The run's record for the collector health panel (migration 63, collector_job_runs): counts
+      # only. A project or function without the route answers 404, which is ignored.
+      - name: Record the run
+        if: always() && env.COLLECTOR_SECRET != ''
+        env:
+          PROJECT_REF: ${{ steps.mode.outputs.production == 'true' && env.PROD_PROJECT_REF || env.STAGING_PROJECT_REF }}
+          RUN_ID: ${{ steps.mode.outputs.run_id }}-${{ steps.mode.outputs.mode }}
+          OUTCOME: ${{ job.status == 'success' && 'ok' || 'failed' }}
+        run: |
+          body=$(python3 -I -c 'import json,sys;print(json.dumps({"job": sys.argv[1], "run_id": sys.argv[2], "outcome": sys.argv[3]}))' discovery "$RUN_ID" "$OUTCOME")
+          curl -sS -o /dev/null -w 'runs record: HTTP %{http_code}\n' -X POST -H "Content-Type: application/json" \
+            -H "x-collector-secret: $COLLECTOR_SECRET" -d "$body" \
+            "https://$PROJECT_REF.supabase.co/functions/v1/collector/runs/record" || true
+
       - name: Summary
         if: always() && steps.mode.outputs.mode == 'gate'
         run: |

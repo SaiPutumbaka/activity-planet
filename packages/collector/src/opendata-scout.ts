@@ -61,14 +61,11 @@ export function regionBox(
   return [f(r.lng - dLng), f(r.lat - dLat), f(r.lng + dLng), f(r.lat + dLat)];
 }
 
+// Control characters never reach the log.
+// eslint-disable-next-line no-control-regex
+const CONTROL = /[\u0000-\u001f\u007f]+/g;
 const clean = (v: unknown, max = 120): string =>
-  // eslint-disable-next-line no-control-regex -- control characters never reach the log
-  typeof v === "string"
-    ? v
-        .replace(/[\u0000-\u001f\u007f]+/g, " ")
-        .trim()
-        .slice(0, max)
-    : "";
+  typeof v === "string" ? v.replace(CONTROL, " ").trim().slice(0, max) : "";
 
 export function socrataCatalogUrl(base: string, term: string, offset = 0): string {
   const u = new URL(base);
