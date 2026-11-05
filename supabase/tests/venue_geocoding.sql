@@ -5,7 +5,7 @@
 -- nothing is fetched) in the Southern Ocean; asserts in DO blocks that raise
 -- on failure, then rolls everything back. Prints pass/fail lines only.
 --
---   1 Static: RLS, grants, the key equals the collector's TypeScript key on
+--   1 Static: RLS, grants, no DELETE without WHERE (migration 64), the key equals the collector's TypeScript key on
 --     the shared fixtures (packages/collector/test/geocode.test.ts).
 --   2 Queue: online, short, cached and already-placed items are left out.
 --   3 Record: a point outside the region is stored as a miss; a hit moves the
@@ -67,6 +67,10 @@ begin
        <> '267ccd55fc532a2038fcba917ebae77d5fc95fae52ac31144f1b50d5c6227114'
      or public.import_location_key('', pg_temp.pt(1, 1)) is not null then
     raise exception 'FAIL 1 import_location_key differs from the collector''s';
+  end if;
+  -- Migration 64: Supabase's safeupdate (loaded for the API roles) refuses a DELETE without WHERE.
+  if pg_get_functiondef('public.collector_geocode_record(jsonb)'::regprocedure) ~* 'delete\s+from\s+[a-z_.]+\s*;' then
+    raise exception 'FAIL 1 collector_geocode_record has a DELETE without WHERE (safeupdate refuses it)';
   end if;
   if (select value from public.meta where key = 'collector_geocode_nominatim') not in ('on', 'off') then
     raise exception 'FAIL 1 meta.collector_geocode_nominatim';
