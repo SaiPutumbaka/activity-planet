@@ -1,4 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
+import { formatAddressLine } from "@ap/core/locale";
+import { isNotFoundError } from "@ap/core/supabase";
 import type { Database, Json } from "@ap/core/types";
 
 import { isFilePlaceId, placeRowId } from "./file-place-row";
@@ -66,7 +68,7 @@ export async function venueForPlace(id: string): Promise<Venue | null> {
   const placeId = await rowIdOrNull(id);
   if (!placeId) return null;
   const { data, error } = await supabase.rpc("venue_for_place", { p_place_id: placeId });
-  if (error?.code === "P0002") return null;
+  if (isNotFoundError(error)) return null;
   if (error) throw error;
   return data;
 }
@@ -88,7 +90,7 @@ export async function placeVenuePreview(id: string): Promise<PlaceVenuePreview |
   const placeId = await rowIdOrNull(id);
   if (!placeId) return null;
   const { data, error } = await supabase.rpc("venue_preview_for_place", { p_place_id: placeId });
-  if (error?.code === "P0002") return null;
+  if (isNotFoundError(error)) return null;
   if (error) throw error;
   const row = (data ?? {}) as { place_id?: string; venue_id?: string | null; name?: string };
   if (!row.place_id) return null;
@@ -116,7 +118,7 @@ export function placeFromVenueToken(venueId: string | null | undefined): string 
 }
 
 const VENUE_SEARCH_SELECT =
-  "id,name,address_line1,address_line2,city,state,postal_code,is_public,place_id" as const;
+  "id,name,address_line1,address_line2,city,state,postal_code,country,is_public,place_id" as const;
 
 /** Escapes the LIKE wildcards in a person's search text. */
 function escapeLike(value: string): string {
@@ -153,23 +155,25 @@ export type VenueSearchResult = Pick<
   | "city"
   | "state"
   | "postal_code"
+  | "country"
   | "is_public"
   | "place_id"
 >;
 
-/** One line of address for lists and the event page: "25 Park Pl, Atlanta, GA 30303". */
+/**
+ * One line of address for lists and the event page: "25 Park Pl, Atlanta, GA 30303", or
+ * "Schlossbergring, 79098 Freiburg im Breisgau" where the postcode comes first; a source's own
+ * formatted street line is used as it is (packages/core/src/locale, formatAddressLine).
+ */
 export function formatVenueAddress(v: {
   address_line1: string;
   address_line2?: string;
   city: string;
   state: string;
   postal_code: string;
+  country?: string | null;
 }): string {
-  const street = [v.address_line1, v.address_line2].filter(Boolean).join(", ");
-  const cityState = [v.city, [v.state, v.postal_code].filter(Boolean).join(" ")]
-    .filter(Boolean)
-    .join(", ");
-  return [street, cityState].filter(Boolean).join(", ");
+  return formatAddressLine(v);
 }
 
 /* ------------------------------------------------------------------ */

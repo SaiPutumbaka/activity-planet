@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { formatWeekdayClock } from "@ap/core/locale";
+import { VIEWER_PREFS } from "@/lib/units";
 import { Link, createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, BellOff, LogOut } from "lucide-react";
@@ -47,11 +49,7 @@ function muteText(until: string | null): string {
   if (!isMuted(until)) return "Off";
   if (until === "infinity") return "Until you turn it back on";
   const d = new Date(until ?? "");
-  return `Until ${new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(d)}`;
+  return `Until ${formatWeekdayClock(d, undefined, VIEWER_PREFS)}`;
 }
 
 function ChatInfoPage() {

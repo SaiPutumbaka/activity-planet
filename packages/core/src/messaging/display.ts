@@ -1,3 +1,4 @@
+import { formatClock, formatDay, viewerPrefs, type LocalePrefs } from "../locale/index";
 import type { ChatListRow, ChatMessage, ConversationKind } from "./schemas";
 
 /** Display helpers for chat rows and bubbles. Neutral copy for everyone (D-040). */
@@ -44,7 +45,12 @@ export function removedLabel(m: Pick<ChatMessage, "deleted" | "hidden" | "mine">
 }
 
 /** "Today", "Yesterday" or a date, for day dividers in a conversation. */
-export function dayLabel(iso: string, now: Date = new Date(), timeZone?: string): string {
+export function dayLabel(
+  iso: string,
+  now: Date = new Date(),
+  timeZone?: string,
+  prefs: LocalePrefs = viewerPrefs(),
+): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   const key = (x: Date) =>
@@ -56,20 +62,16 @@ export function dayLabel(iso: string, now: Date = new Date(), timeZone?: string)
     }).format(x);
   if (key(d) === key(now)) return "Today";
   if (key(d) === key(new Date(now.getTime() - 86_400_000))) return "Yesterday";
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    ...(d.getFullYear() !== now.getFullYear() ? { year: "numeric" } : {}),
-  }).format(d);
+  return formatDay(d, timeZone, prefs, { now });
 }
 
-/** "3:05 PM" for a bubble. */
-export function timeLabel(iso: string, timeZone?: string): string {
+/** "3:05 PM" (or "15:05") for a bubble. */
+export function timeLabel(
+  iso: string,
+  timeZone?: string,
+  prefs: LocalePrefs = viewerPrefs(),
+): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "2-digit" }).format(
-    d,
-  );
+  return formatClock(d, timeZone, prefs);
 }

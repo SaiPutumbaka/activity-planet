@@ -1,4 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
+import { formatDayClock } from "@ap/core/locale";
+import { VIEWER_PREFS } from "./units";
 
 import { REPORT_REASON_LABELS, type ReportReason } from "./safety";
 import { supabase } from "./supabase";
@@ -197,18 +199,9 @@ export function viewerTimeZone(): string | undefined {
   }
 }
 
-/** "Thu, Nov 5, 3:10 PM" in the viewer's zone. */
+/** "Thu, Nov 5 · 3:10 PM" in the viewer's zone and formats ("Thu 5 Nov · 15:10"). */
 export function formatWhen(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: viewerTimeZone(),
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(d);
+  return formatDayClock(iso, viewerTimeZone(), VIEWER_PREFS);
 }
 
 /** Minutes until `dueAt`, for rows that carry only a due time. */

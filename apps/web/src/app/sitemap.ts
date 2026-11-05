@@ -15,6 +15,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${site}/safety`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${site}/support`, changeFrequency: "monthly", priority: 0.4 },
     { url: `${site}/guidelines`, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${site}/terms`, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${site}/privacy`, changeFrequency: "monthly", priority: 0.4 },
     { url: `${site}/coach-terms`, changeFrequency: "monthly", priority: 0.3 },
     { url: `${site}/refund-policy`, changeFrequency: "monthly", priority: 0.3 },
     { url: `${site}/safety/intimate-images`, changeFrequency: "yearly", priority: 0.3 },

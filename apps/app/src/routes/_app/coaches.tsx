@@ -4,6 +4,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { GraduationCap, LocateFixed, Search } from "lucide-react";
 import { z } from "zod";
 import { coachingErrorMessage, parsePrice } from "@ap/core/coaching";
+import { formatKm } from "@ap/core/locale";
 
 import { CardList, CoachCard } from "@/components/coaching/parts";
 import { CoachesForYou } from "@/components/recs/coaches-for-you";
@@ -18,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { coachSearchQuery, myCoachStatusQuery } from "@/lib/coaching";
 import { useFeedOrigin } from "@/lib/location";
 import { hubCatalogQuery } from "@/lib/profile";
+import { DISTANCE_UNIT } from "@/lib/units";
 import { useRecOrigin } from "@/lib/recs";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 
@@ -100,7 +102,7 @@ function CoachesPage() {
           <div className="flex flex-wrap items-center gap-2">
             {RADII.map((r) => (
               <Chip key={r} selected={radius === r} onClick={() => setRadius(r)}>
-                {r} km
+                {formatKm(r, DISTANCE_UNIT)}
               </Chip>
             ))}
             <Button

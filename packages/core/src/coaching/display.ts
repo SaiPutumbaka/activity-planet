@@ -1,4 +1,5 @@
 import { bandText, type DistanceUnit } from "../feed/distance";
+import { formatClock, formatDay, viewerPrefs, type LocalePrefs } from "../locale/index";
 import type {
   BookingStatus,
   BookingSummary,
@@ -181,14 +182,14 @@ function fmt(d: Date, timeZone: string, opts: Intl.DateTimeFormatOptions): strin
   }
 }
 
-/** "6:00 PM" in a zone. */
-export function timeIn(iso: string, timeZone: string): string {
-  return fmt(new Date(iso), timeZone, { hour: "numeric", minute: "2-digit" });
+/** "6:00 PM" in a zone ("18:00" on a 24-hour clock; the viewer's locale by default). */
+export function timeIn(iso: string, timeZone: string, prefs: LocalePrefs = viewerPrefs()): string {
+  return formatClock(iso, timeZone, prefs);
 }
 
-/** "Sat, Nov 7" in a zone. */
-export function dayIn(iso: string, timeZone: string): string {
-  return fmt(new Date(iso), timeZone, { weekday: "short", month: "short", day: "numeric" });
+/** "Sat, Nov 7" in a zone ("Sat 7 Nov" day-first; the viewer's locale by default). */
+export function dayIn(iso: string, timeZone: string, prefs: LocalePrefs = viewerPrefs()): string {
+  return formatDay(iso, timeZone, prefs, { year: false });
 }
 
 /** "2026-11-07" in a zone (the coach-local date coach_slots takes). */
@@ -351,9 +352,10 @@ export const WEEKDAYS = [
   { value: 7, label: "Sunday", short: "Sun" },
 ] as const;
 
-/** "18:00" or "18:00:00" to "6:00 PM". */
-export function clockLabel(hhmm: string): string {
+/** "18:00" or "18:00:00" to "6:00 PM" ("18:00" on a 24-hour clock; the viewer's by default). */
+export function clockLabel(hhmm: string, prefs: LocalePrefs = viewerPrefs()): string {
   const [h = 0, m = 0] = hhmm.split(":").map(Number);
+  if (!prefs.hour12) return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   const ampm = h >= 12 ? "PM" : "AM";
   const h12 = h % 12 === 0 ? 12 : h % 12;
   return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;

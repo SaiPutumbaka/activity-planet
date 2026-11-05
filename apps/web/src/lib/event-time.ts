@@ -1,7 +1,11 @@
+import { US_PREFS, clockParts, formatDay as formatDayIn, type LocalePrefs } from "@ap/core/locale";
+
 /**
  * Event times for the public site, Intl only, mirroring apps/app/src/lib/datetime.ts. Every
  * function takes the event's IANA timezone because a time is a wall-clock fact at the venue, not
- * on the reader's device.
+ * on the reader's device. Clock and date order follow `prefs` (packages/core/src/locale): pages
+ * render with US_PREFS on the server and switch to the reader's locale in the browser
+ * (useLocalePrefs, components/local-time.tsx).
  */
 export const DEFAULT_TIMEZONE = "America/New_York";
 
@@ -30,28 +34,12 @@ function dayNumber(date: Date, timeZone: string): number {
   return Math.floor(Date.UTC(w.year, w.month - 1, w.day) / 86_400_000);
 }
 
-function formatTimeParts(date: Date, timeZone: string): { clock: string; period: string } {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).formatToParts(date);
-  const hour = parts.find((p) => p.type === "hour")?.value ?? "";
-  const minute = parts.find((p) => p.type === "minute")?.value ?? "00";
-  const period = parts.find((p) => p.type === "dayPeriod")?.value ?? "";
-  return { clock: `${hour}:${minute}`, period };
+function formatDay(date: Date, timeZone: string, now: Date, prefs: LocalePrefs): string {
+  return formatDayIn(date, timeZone, prefs, { now });
 }
 
-function formatDay(date: Date, timeZone: string, now: Date): string {
-  const sameYear = wallClock(date, timeZone).year === wallClock(now, timeZone).year;
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    ...(sameYear ? {} : { year: "numeric" }),
-  }).format(date);
+function joinClock(t: { clock: string; period: string }): string {
+  return t.period ? `${t.clock} ${t.period}` : t.clock;
 }
 
 /** "Thu, Nov 5 · 4:00 to 6:00 PM"; "11:30 AM to 1:00 PM" across noon; the end day when it differs. */
@@ -60,21 +48,22 @@ export function formatEventTime(
   endsAt?: DateInput | null,
   timeZone: string = DEFAULT_TIMEZONE,
   now: Date = new Date(),
+  prefs: LocalePrefs = US_PREFS,
 ): string {
   const start = toDate(startsAt);
   if (Number.isNaN(start.getTime())) return "";
-  const day = formatDay(start, timeZone, now);
-  const s = formatTimeParts(start, timeZone);
+  const day = formatDay(start, timeZone, now, prefs);
+  const s = clockParts(start, timeZone, prefs);
   const end = endsAt ? toDate(endsAt) : null;
-  if (!end || Number.isNaN(end.getTime()) || end <= start) return `${day} · ${s.clock} ${s.period}`;
+  if (!end || Number.isNaN(end.getTime()) || end <= start) return `${day} · ${joinClock(s)}`;
 
-  const e = formatTimeParts(end, timeZone);
+  const e = clockParts(end, timeZone, prefs);
   if (dayNumber(end, timeZone) !== dayNumber(start, timeZone)) {
-    return `${day} · ${s.clock} ${s.period} to ${formatDay(end, timeZone, now)} · ${e.clock} ${e.period}`;
+    return `${day} · ${joinClock(s)} to ${formatDay(end, timeZone, now, prefs)} · ${joinClock(e)}`;
   }
   return s.period === e.period
-    ? `${day} · ${s.clock} to ${e.clock} ${s.period}`
-    : `${day} · ${s.clock} ${s.period} to ${e.clock} ${e.period}`;
+    ? `${day} · ${s.clock} to ${joinClock(e)}`
+    : `${day} · ${joinClock(s)} to ${joinClock(e)}`;
 }
 
 /** "Today", "Tomorrow", "Yesterday", a weekday within the week, otherwise "Thu, Nov 5". */
@@ -82,6 +71,7 @@ export function formatRelativeDay(
   value: DateInput,
   timeZone: string = DEFAULT_TIMEZONE,
   now: Date = new Date(),
+  prefs: LocalePrefs = US_PREFS,
 ): string {
   const date = toDate(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -92,7 +82,7 @@ export function formatRelativeDay(
   if (diff > 1 && diff < 7) {
     return new Intl.DateTimeFormat("en-US", { timeZone, weekday: "long" }).format(date);
   }
-  return formatDay(date, timeZone, now);
+  return formatDay(date, timeZone, now, prefs);
 }
 
 /** Started and not yet ended. Raspberry "Happening now" in the UI. */

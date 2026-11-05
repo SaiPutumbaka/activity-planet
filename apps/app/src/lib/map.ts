@@ -1,5 +1,8 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { EVENT_FLAGS, PLACE_FLAGS } from "@ap/core/map";
+import { formatMeters, type DistanceUnit } from "@ap/core/locale";
+
+import { DISTANCE_UNIT } from "./units";
 
 /**
  * Hub map client (HUB_MAP_DESIGN §5, §7, §9; D-038, D-041). Everything the Map tab needs that is
@@ -1129,10 +1132,9 @@ export function sortByDistance<T extends LngLat>(items: readonly T[], origin: Ln
     .map((x) => x.item);
 }
 
-export function formatDistance(m: number): string {
-  if (m < 950) return `${Math.max(50, Math.round(m / 50) * 50)} m`;
-  const km = m / 1000;
-  return km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`;
+/** "350 m", "2.1 km"; "0.2 mi", "1.4 mi" for a viewer whose locale uses miles. */
+export function formatDistance(m: number, unit: DistanceUnit = DISTANCE_UNIT): string {
+  return formatMeters(m, unit);
 }
 
 /** The aria-live count line over the list. */
@@ -1194,10 +1196,12 @@ export function isMapUnavailable(err: unknown): boolean {
 
 /**
  * PostgREST's "function not found in the schema cache" (PGRST202), Postgres' "function does not
- * exist" (42883), or a bare 404 from the RPC endpoint: the map is not deployed here yet.
+ * exist" (42883), or a bare 404 from the RPC endpoint: the map is not deployed here yet. A 404
+ * that carries PT404 is the function's own not-found answer (migration 69), not a missing RPC.
  */
 export function isMissingRpc(error: { code?: string } | null, status?: number): boolean {
   if (!error) return false;
+  if (error.code === "PT404") return false;
   return error.code === "PGRST202" || error.code === "42883" || status === 404;
 }
 

@@ -2,11 +2,13 @@ import { useState } from "react";
 import { LocateFixed, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { RADIUS_OPTIONS_KM } from "@ap/core/feed";
+import { formatKm, formatKmRough } from "@ap/core/locale";
 
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { Sheet } from "@/components/ui/sheet";
 import type { FeedOriginController } from "@/lib/location";
+import { DISTANCE_UNIT } from "@/lib/units";
 
 import { HomePicker } from "./home-picker";
 import { LocationHowToSheet } from "./location-how-to";
@@ -14,7 +16,7 @@ import { useSaveHome } from "./use-save-home";
 
 const RADIUS_OPTIONS = RADIUS_OPTIONS_KM.map((km) => ({
   value: String(km),
-  label: `${km} km`,
+  label: formatKm(km, DISTANCE_UNIT),
 }));
 
 /**
@@ -41,7 +43,9 @@ export function LocationSheet({
   const usingDevice = origin.point !== null;
   const [changing, setChanging] = useState(false);
   const hasHome = origin.homeLabel !== null || origin.homePoint !== null;
-  const homeText = origin.homeLabel ?? (origin.homePoint ? "Your location (about 1 km)" : null);
+  const homeText =
+    origin.homeLabel ??
+    (origin.homePoint ? `Your location (about ${formatKmRough(1, DISTANCE_UNIT)})` : null);
 
   async function onLocate() {
     const result = await origin.locate();
@@ -98,7 +102,7 @@ export function LocationSheet({
               <p className="text-[13px] text-text-2">
                 {origin.denied && !usingDevice
                   ? "Location is turned off for this site. You can allow it in your browser settings, or set your home below."
-                  : "Only a rough spot (about 1 km), for this visit. It isn't saved."}
+                  : `Only a rough spot (about ${formatKmRough(1, DISTANCE_UNIT)}), for this visit. It isn't saved.`}
               </p>
             </section>
           ) : null}

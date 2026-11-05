@@ -3,6 +3,7 @@ import { createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-route
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, LocateFixed, Trash, X } from "lucide-react";
 import { toast } from "sonner";
+import { formatKm, formatKmRough } from "@ap/core/locale";
 import {
   coachingErrorCode,
   coachingErrorMessage,
@@ -39,6 +40,7 @@ import { acceptGuidelines } from "@/lib/events";
 import { useFeedOrigin, type DevicePoint } from "@/lib/location";
 import { hubCatalogQuery } from "@/lib/profile";
 import { SITE_URL } from "@/lib/site";
+import { DISTANCE_UNIT } from "@/lib/units";
 
 const appRoute = getRouteApi("/_app");
 
@@ -252,8 +254,8 @@ function ProfileForm({ userId, existing }: { userId: string; existing: Coach | n
         {inPerson ? (
           <div className="flex flex-col gap-3 rounded-card border border-border p-4">
             <p className="text-[14px] text-text-2">
-              Where you coach. The point is rounded to about 1 km and never shown; people see your
-              area label and a distance band.
+              Where you coach. The point is rounded to about {formatKmRough(1, DISTANCE_UNIT)} and
+              never shown; people see your area label and a distance band.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -295,7 +297,7 @@ function ProfileForm({ userId, existing }: { userId: string; existing: Coach | n
             >
               {RADII.map((r) => (
                 <option key={r} value={r}>
-                  {r} km
+                  {formatKm(r, DISTANCE_UNIT)}
                 </option>
               ))}
             </FieldSelect>

@@ -16,10 +16,10 @@ import {
   type EventShareCard,
   type EventShareStub,
 } from "@/lib/event-share";
+import { LocalEventTime, LocalRelativeDay } from "@/components/local-time";
 import {
   DEFAULT_TIMEZONE,
   formatEventTime,
-  formatRelativeDay,
   isHappeningNow,
   isOver,
   timeZoneLabel,
@@ -86,7 +86,6 @@ export default async function EventSharePage({ params }: Props) {
   const now = new Date();
   const live = isHappeningNow(card.starts_at, card.ends_at, now);
   const over = isOver(card.ends_at, now);
-  const when = formatEventTime(card.starts_at, card.ends_at, card.timezone, now);
   const left = spotsLeft(card);
   const about = excerpt(card.description, 320);
 
@@ -127,7 +126,14 @@ export default async function EventSharePage({ params }: Props) {
 
         <section className="flex flex-col gap-4 rounded-card border border-border p-4">
           <Row icon={ClockIcon}>
-            <p className="font-semibold tabular-nums">{when}</p>
+            <p className="font-semibold tabular-nums">
+              <LocalEventTime
+                startsAt={card.starts_at}
+                endsAt={card.ends_at}
+                timeZone={card.timezone}
+                now={now.toISOString()}
+              />
+            </p>
             {card.timezone !== DEFAULT_TIMEZONE ? (
               <p className="text-[13px] text-text-2">Times in {timeZoneLabel(card.timezone)}</p>
             ) : null}
@@ -314,7 +320,9 @@ function StateLine({
       </p>
     );
   }
-  const day = formatRelativeDay(card.starts_at, card.timezone, now);
+  const day = (
+    <LocalRelativeDay value={card.starts_at} timeZone={card.timezone} now={now.toISOString()} />
+  );
   const source = card.kind === "imported" && card.source_name ? ` · From ${card.source_name}` : "";
   return (
     <p className="text-[14px] font-semibold text-text-2">

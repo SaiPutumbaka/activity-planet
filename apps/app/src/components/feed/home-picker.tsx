@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, LocateFixed, MapPin, Search } from "lucide-react";
+import { formatKmRough } from "@ap/core/locale";
 import {
   normalizePlaceText,
   placeMatchScore,
@@ -22,6 +23,7 @@ import {
   type Area,
   type HomeChoice,
 } from "@/lib/location";
+import { DISTANCE_UNIT } from "@/lib/units";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 import { LocationHowToSheet } from "./location-how-to";
@@ -145,7 +147,7 @@ export function HomePicker({
         {locateMessage ??
           (denied
             ? "Location is turned off for this site. Search for your city below."
-            : "We keep only a rough spot (about 1 km). It's never shown on your profile.")}
+            : `We keep only a rough spot (about ${formatKmRough(1, DISTANCE_UNIT)}). It's never shown on your profile.`)}
       </p>
 
       <div className="relative">

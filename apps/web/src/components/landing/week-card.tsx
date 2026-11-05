@@ -1,18 +1,23 @@
+"use client";
+
 import Link from "next/link";
 import { distanceBandLabel } from "@ap/core/feed";
 import { goingLabel, namesGeorgiaState, priceLabel, type WeekCard } from "@ap/core/recs";
 
 import { formatEventTime } from "@/lib/event-time";
+import { useLocalePrefs } from "@/lib/use-locale-prefs";
 
 /**
  * One plan in "This week near you": hub, title, day and time at the venue, the distance band,
  * Free or the price, a rough going count and, for an imported listing, its source. No host, no
  * address and no description. A Georgia State source carries the not-affiliated line on this
- * card only (D-022). Opens the public share page, which applies its own rules.
+ * card only (D-022). Opens the public share page, which applies its own rules. The time and the
+ * distance band follow the reader's locale (16:00 and km in de-DE) once the page has loaded.
  */
 export function WeekCardView({ card }: { card: WeekCard }) {
-  const when = formatEventTime(card.starts_at, null, card.timezone);
-  const band = distanceBandLabel(card.distance_band);
+  const prefs = useLocalePrefs();
+  const when = formatEventTime(card.starts_at, null, card.timezone, new Date(), prefs);
+  const band = distanceBandLabel(card.distance_band, prefs.unit);
   const price = priceLabel(card);
   const going = goingLabel(card.going_bucket);
   const facts = [band, price, going].filter(Boolean) as string[];

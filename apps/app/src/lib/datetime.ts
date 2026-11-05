@@ -1,8 +1,14 @@
 import { deviceTimeZone } from "@ap/core/feed";
+import { clockParts, formatDay as formatDayIn, type LocalePrefs } from "@ap/core/locale";
+
+import { VIEWER_PREFS } from "./units";
 
 /**
  * Event times, Intl only. Every function takes an IANA timezone (events.timezone, default
  * America/New_York) because a time is a wall-clock fact at the venue, not on the phone.
+ *
+ * Clock and date order follow the viewer's locale (VIEWER_PREFS: "16:00", "Thu 5 Nov"); the
+ * examples are en-US.
  *
  *   formatEventTime(e.starts_at, e.ends_at, e.timezone)  // "Thu, Nov 5 · 4:00 to 6:00 PM"
  *   formatRelativeDay(e.starts_at, e.timezone)            // "Today" | "Tomorrow" | "Thu" | "Thu, Nov 5"
@@ -58,28 +64,21 @@ function dayNumber(date: Date, timeZone: string): number {
   return Math.floor(Date.UTC(w.year, w.month - 1, w.day) / 86_400_000);
 }
 
-function formatTimeParts(date: Date, timeZone: string): { clock: string; period: string } {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).formatToParts(date);
-  const hour = parts.find((p) => p.type === "hour")?.value ?? "";
-  const minute = parts.find((p) => p.type === "minute")?.value ?? "00";
-  const period = parts.find((p) => p.type === "dayPeriod")?.value ?? "";
-  return { clock: `${hour}:${minute}`, period };
+function formatTimeParts(
+  date: Date,
+  timeZone: string,
+  prefs: LocalePrefs = VIEWER_PREFS,
+): { clock: string; period: string } {
+  return clockParts(date, timeZone, prefs);
 }
 
-function formatDay(date: Date, timeZone: string, now: Date): string {
-  const sameYear = wallClock(date, timeZone).year === wallClock(now, timeZone).year;
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    ...(sameYear ? {} : { year: "numeric" }),
-  }).format(date);
+function formatDay(date: Date, timeZone: string, now: Date, prefs: LocalePrefs = VIEWER_PREFS) {
+  return formatDayIn(date, timeZone, prefs, { now });
+}
+
+/** "4:00 PM" or "16:00": a clock with its period, if any. */
+function joinClock(t: { clock: string; period: string }): string {
+  return t.period ? `${t.clock} ${t.period}` : t.clock;
 }
 
 /** "Thu, Nov 5 · 4:00 to 6:00 PM"; "11:30 AM to 1:00 PM" across noon; the end day when it differs. */
@@ -88,29 +87,33 @@ export function formatEventTime(
   endsAt?: DateInput | null,
   timeZone: string = DEFAULT_TIMEZONE,
   now: Date = new Date(),
+  prefs: LocalePrefs = VIEWER_PREFS,
 ): string {
   const start = toDate(startsAt);
   if (Number.isNaN(start.getTime())) return "";
-  const day = formatDay(start, timeZone, now);
-  const s = formatTimeParts(start, timeZone);
+  const day = formatDay(start, timeZone, now, prefs);
+  const s = formatTimeParts(start, timeZone, prefs);
   const end = endsAt ? toDate(endsAt) : null;
-  if (!end || Number.isNaN(end.getTime()) || end <= start) return `${day} · ${s.clock} ${s.period}`;
+  if (!end || Number.isNaN(end.getTime()) || end <= start) return `${day} · ${joinClock(s)}`;
 
-  const e = formatTimeParts(end, timeZone);
+  const e = formatTimeParts(end, timeZone, prefs);
   if (dayNumber(end, timeZone) !== dayNumber(start, timeZone)) {
-    return `${day} · ${s.clock} ${s.period} to ${formatDay(end, timeZone, now)} · ${e.clock} ${e.period}`;
+    return `${day} · ${joinClock(s)} to ${formatDay(end, timeZone, now, prefs)} · ${joinClock(e)}`;
   }
   return s.period === e.period
-    ? `${day} · ${s.clock} to ${e.clock} ${s.period}`
-    : `${day} · ${s.clock} ${s.period} to ${e.clock} ${e.period}`;
+    ? `${day} · ${s.clock} to ${joinClock(e)}`
+    : `${day} · ${joinClock(s)} to ${joinClock(e)}`;
 }
 
-/** "4:00 PM" on its own, for rows that already show the day. */
-export function formatTime(value: DateInput, timeZone: string = DEFAULT_TIMEZONE): string {
+/** "4:00 PM" (or "16:00") on its own, for rows that already show the day. */
+export function formatTime(
+  value: DateInput,
+  timeZone: string = DEFAULT_TIMEZONE,
+  prefs: LocalePrefs = VIEWER_PREFS,
+): string {
   const date = toDate(value);
   if (Number.isNaN(date.getTime())) return "";
-  const t = formatTimeParts(date, timeZone);
-  return `${t.clock} ${t.period}`;
+  return joinClock(formatTimeParts(date, timeZone, prefs));
 }
 
 /** "Today", "Tomorrow", "Yesterday", a weekday within the week, otherwise "Thu, Nov 5". */
@@ -118,6 +121,7 @@ export function formatRelativeDay(
   value: DateInput,
   timeZone: string = DEFAULT_TIMEZONE,
   now: Date = new Date(),
+  prefs: LocalePrefs = VIEWER_PREFS,
 ): string {
   const date = toDate(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -128,7 +132,7 @@ export function formatRelativeDay(
   if (diff > 1 && diff < 7) {
     return new Intl.DateTimeFormat("en-US", { timeZone, weekday: "long" }).format(date);
   }
-  return formatDay(date, timeZone, now);
+  return formatDay(date, timeZone, now, prefs);
 }
 
 /** Started and not yet ended. Raspberry "Happening now" in the UI. */

@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from "react";
+import { formatDayClock, formatWeekdayClock } from "@ap/core/locale";
+import { VIEWER_PREFS } from "@/lib/units";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CircleAlert, ExternalLink, MapPin, MessageCircle, ShieldCheck } from "lucide-react";
@@ -317,13 +319,7 @@ function BookingContent({ b }: { b: BookingDetail }) {
             <li key={t.key} className="flex justify-between gap-3 text-[14px]">
               <span>{t.label}</span>
               <span className="shrink-0 text-text-2">
-                {new Intl.DateTimeFormat("en-US", {
-                  timeZone: zone,
-                  month: "short",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                }).format(new Date(t.at))}
+                {formatDayClock(t.at, zone, VIEWER_PREFS, { weekday: false })}
               </span>
             </li>
           ))}
@@ -331,13 +327,7 @@ function BookingContent({ b }: { b: BookingDetail }) {
         {b.status === "requested" && b.expires_at ? (
           <p className="text-[13px] text-text-3">
             The request expires if it isn&apos;t answered by{" "}
-            {new Intl.DateTimeFormat("en-US", {
-              timeZone: zone,
-              weekday: "short",
-              hour: "numeric",
-              minute: "2-digit",
-            }).format(new Date(b.expires_at))}
-            .
+            {formatWeekdayClock(b.expires_at, zone, VIEWER_PREFS)}.
           </p>
         ) : null}
       </section>

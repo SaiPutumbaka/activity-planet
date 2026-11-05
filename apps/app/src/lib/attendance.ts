@@ -1,4 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
+import { formatDay } from "@ap/core/locale";
+import { VIEWER_PREFS } from "./units";
 import type { Database } from "@ap/core/types";
 
 import { supabase } from "./supabase";
@@ -355,14 +357,12 @@ export function barPercent(value: number, max: number): number {
   return Math.min(100, (value / max) * 100);
 }
 
-/** "2026-11-02" → "Nov 2" (a calendar date, so no timezone shift). */
+/** "2026-11-02" → "Nov 2" ("2 Nov" day-first; a calendar date, so no timezone shift). */
 export function formatWeekLabel(weekStart: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(weekStart);
   if (!m) return weekStart;
   const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
-    .format(d)
-    .replace(",", "");
+  return formatDay(d, "UTC", VIEWER_PREFS, { weekday: false, year: false });
 }
 
 /* ------------------------------------------------------------------ */

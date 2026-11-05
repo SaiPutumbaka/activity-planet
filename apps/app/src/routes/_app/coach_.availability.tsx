@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { formatDayClock } from "@ap/core/locale";
+import { VIEWER_PREFS } from "@/lib/units";
 import { createFileRoute, getRouteApi } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash } from "lucide-react";
@@ -180,15 +182,7 @@ function Exceptions({ userId, zone }: { userId: string; zone: string }) {
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const viewer = viewerZone();
-  const fmt = (iso: string) =>
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: zone,
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(new Date(iso));
+  const fmt = (iso: string) => formatDayClock(iso, zone, VIEWER_PREFS);
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: coachingKeys.exceptions(userId) });
     void queryClient.invalidateQueries({ queryKey: ["coaching", "slots"] });

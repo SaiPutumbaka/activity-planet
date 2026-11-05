@@ -2,6 +2,7 @@ import { Suspense, lazy, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarPlus, Clock, ExternalLink, Globe, MapPin, Navigation, Pencil } from "lucide-react";
+import { formatKmRough } from "@ap/core/locale";
 
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button-variants";
@@ -10,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
 import { formatRelativeDay, formatTime } from "@/lib/datetime";
 import { SITE_URL } from "@/lib/site";
+import { DISTANCE_UNIT } from "@/lib/units";
 import {
   CELL_NOTE,
   canStartPlan,
@@ -337,7 +339,8 @@ export function CellSheet({
       {cell ? (
         <div className="flex flex-col gap-3 pt-1">
           <p className="text-[15px] text-text-2">
-            {CELL_NOTE}. The shaded square is about 11 km across; the spot can be anywhere in it.
+            {CELL_NOTE}. The shaded square is about {formatKmRough(11, DISTANCE_UNIT)} across; the
+            spot can be anywhere in it.
           </p>
           <ul>
             {cell.events.map((e) => (

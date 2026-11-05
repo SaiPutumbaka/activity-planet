@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { AppIcon } from "@ap/ui/brand";
+import { formatKm } from "@ap/core/locale";
 
 import { LocationSheet } from "@/components/feed/location-sheet";
 import { ChatsButton } from "@/components/shell/chats-button";
@@ -26,6 +27,7 @@ import { recPrefsQuery, useSetRecPrefs } from "@/lib/recs";
 import { myBlocksQuery } from "@/lib/safety";
 import { SITE_URL } from "@/lib/site";
 import { setThemePreference, useThemePreference, type ThemePreference } from "@/lib/theme";
+import { DISTANCE_UNIT } from "@/lib/units";
 import { membershipQuery } from "@/lib/verification";
 
 const appRoute = getRouteApi("/_app");
@@ -262,7 +264,13 @@ function YouPage() {
             <ButtonRow
               label="Distance"
               hint="How far out Home looks"
-              value={radius.isPending ? <Skeleton className="h-4 w-12" /> : `${radiusKm} km`}
+              value={
+                radius.isPending ? (
+                  <Skeleton className="h-4 w-12" />
+                ) : (
+                  formatKm(radiusKm, DISTANCE_UNIT)
+                )
+              }
               onClick={() => setAreaSheetOpen(true)}
             />
           </div>

@@ -196,7 +196,7 @@ export async function removeRsvp(
 // eyes, so events <-> profiles has two candidate relationships and a bare `profiles(...)` answers
 // HTTP 300 PGRST201. postgrest-js keeps the result key `profiles`.
 const EVENT_SELECT =
-  "*, hubs(id,slug,name,emoji,min_age,scope), profiles!events_host_id_fkey(id,handle,first_name,avatar_url), event_addresses(venue_id,location_text,address_note,venues(id,name,address_line1,address_line2,city,state,postal_code,is_public,place_id))" as const;
+  "*, hubs(id,slug,name,emoji,min_age,scope), profiles!events_host_id_fkey(id,handle,first_name,avatar_url), event_addresses(venue_id,location_text,address_note,venues(id,name,address_line1,address_line2,city,state,postal_code,country,is_public,place_id))" as const;
 
 const EVENT_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

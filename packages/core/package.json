@@ -18,7 +18,8 @@
     "./messaging": "./src/messaging/index.ts",
     "./coaching": "./src/coaching/index.ts",
     "./organizer": "./src/organizer/index.ts",
-    "./recs": "./src/recs/index.ts"
+    "./recs": "./src/recs/index.ts",
+    "./locale": "./src/locale/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

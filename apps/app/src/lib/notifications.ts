@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { formatDay } from "@ap/core/locale";
+import { VIEWER_PREFS } from "./units";
 import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Database } from "@ap/core/types";
 
@@ -277,7 +279,7 @@ export function shortAgo(value: string, now: Date = new Date()): string {
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h`;
   if (hours < 48) return "Yesterday";
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(d);
+  return formatDay(d, undefined, VIEWER_PREFS, { weekday: false, year: false });
 }
 
 /* ------------------------------------------------------------------ */

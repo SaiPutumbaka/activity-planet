@@ -281,3 +281,19 @@ describe("labels and errors", () => {
     );
   });
 });
+
+describe("times follow the viewer's locale", () => {
+  it("12-hour and month first in en-US, 24-hour and day first in de-DE", async () => {
+    const { clockLabel, dayIn, timeIn } = await import("../display");
+    const { localePrefs } = await import("../../locale/index");
+    const de = localePrefs("de-DE");
+    const us = localePrefs("en-US");
+    const iso = "2026-11-07T23:00:00Z";
+    expect(clockLabel("18:05", us)).toBe("6:05 PM");
+    expect(clockLabel("18:05", de)).toBe("18:05");
+    expect(timeIn(iso, "America/New_York", us)).toBe("6:00 PM");
+    expect(timeIn(iso, "Europe/Berlin", de)).toBe("00:00");
+    expect(dayIn(iso, "America/New_York", us)).toBe("Sat, Nov 7");
+    expect(dayIn(iso, "Europe/Berlin", de)).toBe("Sun 8 Nov");
+  });
+});

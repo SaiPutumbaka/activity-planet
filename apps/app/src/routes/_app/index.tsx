@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CalendarX, ChevronDown, LocateFixed, MapPin, Search } from "lucide-react";
 import { z } from "zod";
 import { deviceTimeZone, feedTimeZone, groupFeed } from "@ap/core/feed";
+import { formatKm } from "@ap/core/locale";
 
 import { AttendancePromptCard } from "@/components/events/attendance-prompt-card";
 import { EventCard } from "@/components/events/event-card";
@@ -27,6 +28,7 @@ import { feedQuery } from "@/lib/events";
 import { cn } from "@/lib/cn";
 import { areasQuery, feedPrefsQuery, setMyTimezone, useFeedOrigin } from "@/lib/location";
 import { myHubsQuery } from "@/lib/profile";
+import { DISTANCE_UNIT } from "@/lib/units";
 
 const appRoute = getRouteApi("/_app");
 
@@ -162,8 +164,8 @@ function Feed({ userId }: { userId: string }) {
           className="inline-flex h-9 items-center gap-1.5 self-start rounded-control border border-border bg-surface px-3 text-[14px] font-semibold hover:bg-surface-2"
           aria-label={
             origin.label === "Near you"
-              ? `Showing plans near you, within ${radiusKm} km. Change`
-              : `Showing plans around ${origin.label}, within ${radiusKm} km. Change`
+              ? `Showing plans near you, within ${formatKm(radiusKm, DISTANCE_UNIT)}. Change`
+              : `Showing plans around ${origin.label}, within ${formatKm(radiusKm, DISTANCE_UNIT)}. Change`
           }
         >
           {origin.point ? (
@@ -172,7 +174,9 @@ function Feed({ userId }: { userId: string }) {
             <MapPin className="size-4 text-text-2" aria-hidden="true" />
           )}
           {origin.label}
-          <span className="font-normal text-text-2 tabular">· {radiusKm} km</span>
+          <span className="font-normal text-text-2 tabular">
+            · {formatKm(radiusKm, DISTANCE_UNIT)}
+          </span>
           <ChevronDown className="size-4 text-text-2" aria-hidden="true" />
         </button>
 
@@ -225,7 +229,11 @@ function Feed({ userId }: { userId: string }) {
           {feed.data.widened ? (
             <p className="text-[13px] text-text-2" role="status">
               Not much close by, so this goes a little further out
-              <span className="tabular"> (within {feed.data.radiusKm} km)</span>.
+              <span className="tabular">
+                {" "}
+                (within {formatKm(feed.data.radiusKm, DISTANCE_UNIT)})
+              </span>
+              .
             </p>
           ) : null}
 

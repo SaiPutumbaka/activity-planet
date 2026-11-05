@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BadgeCheck, CircleAlert } from "lucide-react";
+import { formatKmRough } from "@ap/core/locale";
 import { z } from "zod";
 import {
   CLAIM_METHODS,
@@ -21,6 +22,7 @@ import { buttonVariants } from "@/components/ui/button-variants";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, FormError } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
+import { DISTANCE_UNIT } from "@/lib/units";
 import {
   claimTargetQuery,
   coarsePosition,
@@ -345,8 +347,8 @@ function FeedClaim({ onStarted }: { onStarted: (id: string) => void }) {
       {needPoint && pending ? (
         <div className="flex flex-col gap-2 rounded-tile bg-surface-2 p-3">
           <p className="text-[14px]">
-            Where do these events happen? We use your device&apos;s rough location (about 10 km)
-            once, to list them for people nearby.
+            Where do these events happen? We use your device&apos;s rough location (about{" "}
+            {formatKmRough(10, DISTANCE_UNIT)}) once, to list them for people nearby.
           </p>
           <Button
             type="button"

@@ -708,6 +708,7 @@ describe("misc", () => {
     expect(isMissingRpc({ code: "X" }, 404)).toBe(true);
     expect(isMissingRpc({ code: "42501" }, 403)).toBe(false);
     expect(isMissingRpc(null, 404)).toBe(false);
+    expect(isMissingRpc({ code: "PT404" }, 404)).toBe(false);
   });
 
   it("hands directions to the device's maps app", () => {

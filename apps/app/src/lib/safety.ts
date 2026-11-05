@@ -1,4 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
+import { formatDay } from "@ap/core/locale";
+import { VIEWER_PREFS } from "./units";
 
 import { reportPlace } from "./place-contributions";
 import { supabase } from "./supabase";
@@ -267,11 +269,6 @@ export function blockedText(name: string, result: Pick<BlockResult, "shared_upco
 export function blockedOnText(iso: string, timeZone?: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "Blocked";
-  const day = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    ...(timeZone ? { timeZone } : {}),
-  }).format(d);
+  const day = formatDay(d, timeZone, VIEWER_PREFS, { weekday: false, year: true });
   return `Blocked ${day}`;
 }

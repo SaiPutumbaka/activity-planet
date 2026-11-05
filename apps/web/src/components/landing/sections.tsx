@@ -178,6 +178,12 @@ export function Footer() {
         <Link href="/safety" className="underline-offset-2 hover:underline">
           Safety
         </Link>
+        <Link href="/terms" className="underline-offset-2 hover:underline">
+          Terms
+        </Link>
+        <Link href="/privacy" className="underline-offset-2 hover:underline">
+          Privacy
+        </Link>
         <Link href="/coach-terms" className="underline-offset-2 hover:underline">
           Coach terms
         </Link>

@@ -1,3 +1,5 @@
+import { isNotFoundError } from "@ap/core/supabase";
+
 import type { MapAdapter, MapInViewArgs, PlacesInViewArgs } from "./map";
 import { MapUnavailableError, isMissingRpc } from "./map";
 import { supabase } from "./supabase";
@@ -49,8 +51,9 @@ export const rpcMapAdapter: MapAdapter = {
     // ?place= comes from the URL: anything but a uuid would be a 22P02 error, not "not found".
     if (!UUID.test(id)) return null;
     const r = await supabase.rpc("place_detail", { p_id: id });
-    // place_not_found (P0002): a place the viewer cannot see, or one that is gone.
-    if (r.error?.code === "P0002") return null;
+    // place_not_found (PT404, or P0002 before migration 69): a place the viewer cannot see, or
+    // one that is gone.
+    if (isNotFoundError(r.error)) return null;
     return unwrap(r);
   },
 };

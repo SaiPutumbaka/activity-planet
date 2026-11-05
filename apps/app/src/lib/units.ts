@@ -1,9 +1,11 @@
-import { distanceUnitForLocale, type DistanceUnit } from "@ap/core/feed";
+import { viewerPrefs, type DistanceUnit, type LocalePrefs } from "@ap/core/locale";
 
 /**
- * The viewer's distance unit for the server's distance bands, from the browser's language
- * (en-US: miles; de-DE, en-AU: kilometres). Read once; it does not change while the app runs.
+ * The viewer's units and formats from the browser's language (packages/core/src/locale): miles or
+ * kilometres, a 12- or 24-hour clock, month or day first (en-US: miles, 4:00 PM, Nov 5; de-DE:
+ * km, 16:00, 5 Nov). Read once; it does not change while the app runs.
  */
-export const DISTANCE_UNIT: DistanceUnit = distanceUnitForLocale(
-  typeof navigator === "undefined" ? undefined : navigator.language,
-);
+export const VIEWER_PREFS: LocalePrefs = viewerPrefs();
+
+/** The viewer's distance unit, for the server's distance bands, radii and map distances. */
+export const DISTANCE_UNIT: DistanceUnit = VIEWER_PREFS.unit;
