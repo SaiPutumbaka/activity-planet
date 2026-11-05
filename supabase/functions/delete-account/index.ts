@@ -8,8 +8,11 @@
 //   2. drops provider tokens (Apple revocation is a TODO until Capacitor ships);
 //   3. fans out to processors: Stripe (migration 60), when STRIPE_SECRET_KEY is set and the
 //      person has a connected account, is asked to delete it; if Stripe refuses (funds still
-//      pending), a stripe_jobs close_account row retries it later. Without the key nothing is
-//      sent and the coach_stripe_accounts row stays for when the key exists;
+//      pending), a stripe_jobs close_account row retries it later. Migration 61: while money can
+//      still move back through the account (the refunds request_account_deletion just queued,
+//      a paid session not yet completed, a dispute; coach_stripe_close_blocked), nothing is
+//      deleted now and the close_account job waits for them. Without the key nothing is sent
+//      and the coach_stripe_accounts row stays for when the key exists;
 //   4. soft-deletes the auth user, which frees the email address and the OAuth identities
 //      for a new signup, wipes metadata and ends every session and refresh token;
 //   5. stamps completed_at on the account_deletions row.
@@ -158,11 +161,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (stripeLookupError) return json({ error: "stripe_lookup_failed" }, 500);
   if (stripeAccount && stripeKey) {
     const acct = stripeAccount.stripe_account_id as string;
-    const res = await createStripe(stripeKey).request(
-      "DELETE",
-      `/v1/accounts/${encodeURIComponent(acct)}`,
-    );
-    if (res.ok || res.status === 404) {
+    // Migration 61: refunds use reverse_transfer against this account, so it stays open until
+    // they have run; the close_account job (stripe_jobs_claim) waits for them.
+    const { data: blocked, error: blockedError } = await admin.rpc("coach_stripe_close_blocked", {
+      p_coach: userId,
+    });
+    if (blockedError) return json({ error: "stripe_lookup_failed" }, 500);
+    const res =
+      blocked === true
+        ? null
+        : await createStripe(stripeKey).request(
+            "DELETE",
+            `/v1/accounts/${encodeURIComponent(acct)}`,
+          );
+    if (res && (res.ok || res.status === 404)) {
       await admin.from("coach_stripe_accounts").delete().eq("coach_id", userId);
       processorsNotified.stripe = "account_deleted";
     } else {
@@ -171,12 +183,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
           op: "close_account",
           stripe_account_id: acct,
           idempotency_key: `close:${acct}`,
-          next_at: new Date(Date.now() + 8 * 24 * 3600 * 1000).toISOString(),
+          next_at: new Date(Date.now() + (res ? 8 * 24 * 3600 * 1000 : 3600 * 1000)).toISOString(),
         },
         { onConflict: "idempotency_key", ignoreDuplicates: true },
       );
       if (jobError) return json({ error: "stripe_job_failed" }, 500);
-      processorsNotified.stripe = `close_queued:${stripeErrorName(res)}`;
+      processorsNotified.stripe = res
+        ? `close_queued:${stripeErrorName(res)}`
+        : "close_queued:refunds_pending";
     }
   } else if (stripeAccount) {
     processorsNotified.stripe = "no_key";

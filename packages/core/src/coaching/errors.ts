@@ -11,6 +11,32 @@ export function coachingErrorCode(err: unknown): string {
   return /^[a-z0-9_]+$/.test(raw) ? raw : "";
 }
 
+/**
+ * The error an Edge Function call should throw. supabase-js reports a non-2xx answer as
+ * "Edge Function returned a non-2xx status code" and keeps the response in `context`; the
+ * coaching functions answer {error: "<code>"}, so the code becomes the message (and reaches
+ * coachingErrorCode). Anything else is returned as it came.
+ */
+export async function edgeFunctionError(error: unknown): Promise<Error> {
+  const context =
+    typeof error === "object" && error !== null ? (error as { context?: unknown }).context : null;
+  if (
+    typeof context === "object" &&
+    context !== null &&
+    typeof (context as { clone?: unknown }).clone === "function"
+  ) {
+    try {
+      const body: unknown = await (context as Response).clone().json();
+      const code =
+        typeof body === "object" && body !== null ? (body as { error?: unknown }).error : null;
+      if (typeof code === "string" && /^[a-z0-9_]+$/.test(code)) return new Error(code);
+    } catch {
+      /* not JSON */
+    }
+  }
+  return error instanceof Error ? error : new Error(String(error));
+}
+
 const COPY: Record<string, string> = {
   not_authenticated: "Your session ended. Sign in again.",
   onboarding_required: "Finish setting up your profile first.",
@@ -66,6 +92,13 @@ const COPY: Record<string, string> = {
   invalid_photo: "That photo couldn't be used. Upload it again.",
   image_blocked: "That photo can't be used.",
   payments_off: "In-app payments aren't available right now.",
+  not_payable:
+    "This booking can't be paid in the app now. The payment deadline may have passed. Refresh to see the latest.",
+  not_a_coach: "Set up your coach profile first.",
+  no_account: "Set up payouts first.",
+  invalid_country: "Enter the two-letter code of the country you coach in.",
+  stripe_error: "Stripe didn't answer. Try again in a minute.",
+  listing_unavailable: "This listing isn't taking bookings right now.",
 };
 
 export function coachingErrorMessage(err: unknown): string {

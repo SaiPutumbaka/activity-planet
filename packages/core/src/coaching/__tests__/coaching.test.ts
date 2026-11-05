@@ -11,6 +11,7 @@ import {
   coachSearchRowSchema,
   coachingErrorCode,
   coachingErrorMessage,
+  edgeFunctionError,
   dateKeyIn,
   durationLabel,
   formatPrice,
@@ -250,6 +251,33 @@ describe("labels and errors", () => {
     expect(coachingErrorMessage({ message: "invalid_shape" })).toMatch(/Online group/);
     expect(coachingErrorMessage({ message: "whatever_else" })).toBe(
       "Something went wrong. Try again.",
+    );
+  });
+  it("Edge Function refusals carry their code (review: the raw invoke error hid it)", async () => {
+    // supabase-js FunctionsHttpError: a generic message, the response in context.
+    const httpError = (status: number, body: string) =>
+      Object.assign(new Error("Edge Function returned a non-2xx status code"), {
+        context: new Response(body, { status, headers: { "Content-Type": "application/json" } }),
+      });
+    for (const code of [
+      "payments_off",
+      "not_payable",
+      "coach_terms_required",
+      "not_a_coach",
+      "no_account",
+    ]) {
+      const err = await edgeFunctionError(
+        httpError(code === "payments_off" ? 503 : 409, JSON.stringify({ error: code })),
+      );
+      expect(coachingErrorCode(err)).toBe(code);
+      expect(coachingErrorMessage(err)).not.toBe("Something went wrong. Try again.");
+    }
+    const notJson = await edgeFunctionError(httpError(500, "oops"));
+    expect(coachingErrorCode(notJson)).toBe("");
+    const network = new Error("Failed to fetch");
+    expect(await edgeFunctionError(network)).toBe(network);
+    expect(coachingErrorMessage({ message: "listing_unavailable" })).toMatch(
+      /isn't taking bookings/,
     );
   });
 });

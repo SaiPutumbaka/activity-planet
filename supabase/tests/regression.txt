@@ -61,3 +61,4 @@ messaging_review_fixes.sql
 coaching.sql
 coaching_rules.sql
 coaching_payments.sql
+coaching_review_fixes.sql

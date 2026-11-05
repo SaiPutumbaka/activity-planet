@@ -637,6 +637,17 @@ Built on branch main-r1pc3k: `packages/core/src/coaching`, `apps/app/src/lib/coa
 - Analytics: `booking` (PLAN 4.12) with the delivery, format and payment mode only, never price or note.
 - Copy is neutral and for everyone (D-040). Done when `pnpm typecheck`, `lint`, `test` and `build` pass and the slice 1 test files pass on staging.
 
+### Review fixes: migration 61
+
+`supabase/migrations/20261225000100_coaching_review_fixes.sql`, `meta.schema_version` **2.56 to 2.57**, checks in `supabase/tests/coaching_review_fixes.sql`:
+
+- Group seats are counted under the session's row lock (`request_booking`, `booking_confirm`), so two requests for the last seat cannot both get it.
+- A deleted coach's Stripe account stays open while money can still move back through it (`coach_stripe_close_blocked`: a pending or sent refund or expiry job, a confirmed paid or processing booking, an unsettled paid no-show, a dispute). `delete-account` queues the `close_account` job instead of deleting, and `stripe_jobs_claim` holds that job an hour at a time, without an attempt.
+- Payments off: `stripe_dispatch` no longer depends on `meta.coach_payments`, so refunds already owed still run; `coaching_tick` turns a booking still due into an off-platform one at `pay_by` instead of cancelling it.
+- No review prompt and no `write_review` for a coach whose account was deleted.
+- `booking_confirm` refuses a hidden, removed, paused or archived listing (`listing_unavailable`).
+- The app reads the Edge Functions' JSON error code (`edgeFunctionError` in `packages/core/src/coaching/errors.ts`), so `payments_off`, `not_payable` and the Connect errors show their copy.
+
 ## 16. Open items for Sai
 
 - Create the Stripe account and the Connect platform profile (FOUNDER-TODO 17), then add **test** keys to staging (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, optional `STRIPE_CONNECT_WEBHOOK_SECRET`) and set `meta.coach_payments = 'on'` there; production keys and the flag only after the attorney read of Coach Terms and the Refund Policy, and the LLC trigger in FINANCIAL-PLAN section 4.

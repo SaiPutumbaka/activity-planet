@@ -1,5 +1,6 @@
 import type { AppSupabaseClient } from "../supabase/index";
 import type { Database } from "../types/database";
+import { edgeFunctionError } from "./errors";
 import {
   bookingDetailSchema,
   bookingSummarySchema,
@@ -342,14 +343,14 @@ export function createCoachingApi(client: AppSupabaseClient) {
       const { data, error } = await client.functions.invoke("stripe-connect", {
         body: compact({ op, country }),
       });
-      if (error) throw error;
+      if (error) throw await edgeFunctionError(error);
       return (data ?? {}) as { url?: string };
     },
     async checkout(bookingId: string): Promise<{ url?: string }> {
       const { data, error } = await client.functions.invoke("stripe-checkout", {
         body: { op: "create", booking_id: bookingId },
       });
-      if (error) throw error;
+      if (error) throw await edgeFunctionError(error);
       return (data ?? {}) as { url?: string };
     },
   };
