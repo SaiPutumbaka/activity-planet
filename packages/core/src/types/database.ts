@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 65 (schema_version 2.61). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 66 (schema_version 2.62). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
