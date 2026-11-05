@@ -25,4 +25,6 @@ with qa as (
 select (select count(*) from archived) as qa_listings_archived,
        (select count(*) from public.coach_listings l
          where l.coach_id in (select u.id from auth.users u where u.email like 'qa-e2e-%@example.com')
-           and l.title like 'E2E tennis %' and l.status = 'active') as qa_listings_still_active;
+           and l.title like 'E2E tennis %' and l.status = 'active'
+           -- the statement's snapshot predates the update, so leave out the rows it archived
+           and l.id not in (select id from archived)) as qa_listings_still_active;

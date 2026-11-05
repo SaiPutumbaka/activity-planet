@@ -25,7 +25,7 @@ New in Release B (release A's scope table still applies):
 | Recommendations      | For you on Home with up to two reason chips, Not interested and Undo, Why am I seeing this, Similar plans, Hubs you may like, Coaches for you, People you might click with, the privacy switches in You                          |
 | Landing page v2      | This week near you (Atlanta by default, a city picker, location only after a tap), How it works, the trust section, "On your phone" notes                                                                                        |
 | PWA polish           | Install card (Chromium prompt, iPhone instructions, hidden when installed), "A new version is ready" toast, app badge, the full manifest and iOS splash screens                                                                  |
-| Site pages           | `/bot`, `/bot/remove`, `/support`, `/guidelines` (draft), `/coach-terms` (draft), `/refund-policy` (draft), `/safety`, `/safety/intimate-images`, `/map-data`, `/account/delete`, the 404 page                                   |
+| Site pages           | `/bot`, `/bot/remove`, `/support`, `/terms` (draft), `/privacy` (draft), `/guidelines` (draft), `/coach-terms` (draft), `/refund-policy` (draft), `/safety`, `/safety/intimate-images`, `/map-data`, `/account/delete`, the 404 page |
 
 Out of scope: chat images (off until the classifier exists, section 6), live payments, the
 assistant, store apps, and email or push delivery before the keys exist (FOUNDER-TODO, top).
@@ -139,8 +139,8 @@ Bugs found and fixed in this pass (each verified in the browser on a fresh build
 3. **Distances were always in miles** on plan cards, recommendation chips, "Why am I seeing this?"
    and coach rows. They now follow the browser's locale (COACHING_DESIGN section 6): a `de-DE`
    browser in Freiburg reads "Under 2 km" and "2 to 8 km", an `en-US` browser still reads "Under 1
-   mi". The radius and the map still always use kilometres, and the landing page's week cards still
-   always use miles (section 6).
+   mi". Since the follow-up pass the radius, the map, times, dates and the landing page's week
+   cards follow the locale too (section 6).
 4. **A broken-image icon** showed on For you when an imported listing's cover image failed to load.
    Plan covers now fall back to the drawn default cover on the card, the For you card, the hub page
    and the plan page.
@@ -219,7 +219,9 @@ second address or a friend's phone) on production unless a line says staging.
       sentences and never names a sensitive hub or a person.
 - [ ] A plan page shows Similar plans. Hubs shows Hubs you may like. Coaches shows Coaches for you
       when there are coaches near you. People you've met shows People you might click with.
-- [ ] Distances read in your units (miles on a US iPhone, kilometres on one set to Germany).
+- [ ] Distances, the feed radius and map distances read in your units, and times and dates in
+      your format (miles, 4:00 PM and "Thu, Nov 5" on a US iPhone; km, 16:00 and "Thu 5 Nov" on
+      one set to Germany).
 - [ ] You, Privacy and safety: turning off personalisation changes the For you subtitle to "Close
       by and soon"; turning off people suggestions removes you from others' rows.
 
@@ -237,8 +239,9 @@ second address or a friend's phone) on production unless a line says staging.
 
 - [ ] The landing page shows This week near you for Atlanta, and the city picker swaps the cards
       without a reload. No location prompt until you tap "Use my location".
-- [ ] `/safety`, `/support`, `/guidelines`, `/coach-terms`, `/refund-policy`, `/bot`, `/map-data`
-      and `/account/delete` read well with no sideways scroll. A wrong address shows the 404 with a
+- [ ] `/safety`, `/support`, `/terms`, `/privacy`, `/guidelines`, `/coach-terms`,
+      `/refund-policy`, `/bot`, `/map-data` and `/account/delete` read well with no sideways
+      scroll; the five policy pages carry the DRAFT banner. A wrong address shows the 404 with a
       way home.
 
 ## 5. Release criteria (go or no-go on Jan 3)
@@ -268,24 +271,35 @@ Release B ships by Jan 4 only when all of these hold on the release candidate me
 
 ## 6. Known gaps (Nov 5)
 
-- **`/terms` and `/privacy` are not live.** The texts wait for the attorney read (FOUNDER-TODO);
-  until then the links 404. Release criterion 5. The Community Guidelines, Coach Terms and Refund
-  Policy are live as drafts.
+- **`/terms` and `/privacy` are drafts.** Both are live as DRAFT pages with the attorney banner,
+  like the Coach Terms, Refund Policy and Community Guidelines, and in the sitemap and the site
+  footer (Nov 5, written from TRUST-SAFETY-LEGAL, D-031 retention, the processors the code uses
+  and the data the schema stores). Release criterion 5 is met in form; the attorney read
+  (FOUNDER-TODO item 13) is what turns them from drafts into the terms in effect.
 - **Chat images stay off.** `meta.chat_images` is `off` and the composer has no photo button.
   Image-guard's `classify` op (Sightengine, design section 13) is not built yet, so adding the
   Sightengine keys alone does not turn images on. Building it is about a day and a half (the op,
   the monthly cap, the evidence copy and a staging smoke).
 - **Payments are off.** Stripe Checkout, Connect onboarding and the webhook have only mocked unit
   tests and the SQL suite; they get a staging run once Sai adds the Stripe test keys.
-- **Not-found answers are HTTP 500 in the logs.** `get_coach`, `get_booking`, `conversation_info`
-  and `get_messages` raise `not_found` with SQLSTATE P0002, which PostgREST reports as 500. The app
-  shows the right empty state, but monitoring will count them as errors. Changing the error code
-  touches many functions and the client's error mapping; about half a day, after the release.
-- **Units and formats outside the US are partly American.** Distance bands now follow the browser's
-  locale, but the radius and the map always use kilometres (so a US member sees miles on cards and
-  kilometres on the radius), the landing page's week cards always use miles, times are 12-hour
-  everywhere, and venue addresses use the US order ("Freiburg im Breisgau, 79098"). A locale-wide
-  pass is about a day.
+- **Not-found answers on mutations are still HTTP 500.** Migration 69 moved the read RPCs a
+  screen calls on load (`get_coach`, `coach_reviews_page`, `coach_slots`, `get_booking`,
+  `conversation_info`, `get_messages`, `mod_message_evidence`, `place_detail`,
+  `venue_preview_for_place`, `organizer_source_detail`, `recs_similar_events`, `chapter_dashboard`,
+  `mod_user_lookup`) to SQLSTATE `PT404`, which PostgREST answers with HTTP 404; the message is the
+  same documented code, so the app behaves as before (`supabase/tests/not_found_404.sql`). Writes
+  on a missing row (cancel, send, respond and the rest) keep P0002 and a 500: they are rare, and a
+  5xx there is worth a look.
+- **Units and formats follow the viewer's locale** (Nov 5, `packages/core/src/locale`): miles or
+  kilometres, a 12- or 24-hour clock and month-first or day-first dates, from the browser's
+  language, across the app (feed radius, You, coaches, map distances, plan, chat, booking, admin
+  and notification times) and the site (week cards, share page times; the server renders the US
+  form and the browser switches after hydration, so link previews and the OG image stay US). The
+  words stay English. Venue addresses put the postcode first where that is the norm (Germany,
+  France and most of Europe) and use a source's own formatted line as it is; there is no full
+  international address formatter. Left as is: text inputs for dates and times follow the
+  browser's own controls, and error copy such as "Pick a distance between 1 and 50 km" still
+  names kilometres.
 - **Sign-up with `@example.com` addresses is refused by Supabase Auth**, so a brand-new sign-up and
   the onboarding steps were last checked by hand; 01-onboarding now runs on an onboarded account.
   The Freiburg demo member stands in for a new member outside Atlanta.
@@ -297,8 +311,9 @@ Release B ships by Jan 4 only when all of these hold on the release candidate me
 - **Web push, email and the weekly scorecard are skipped** until the VAPID keys, `RESEND_API_KEY`
   and `SCORECARD_TO` exist.
 - **08-coaching runs at phone width only**; the coaching screens at 1280 were checked by hand.
-- **The QA coach account holds several active "E2E tennis" listings** from earlier book-only runs;
-  they are on staging only and harmless, and the finish phase archives the latest one.
+- **The QA coach account's "E2E tennis" listings are archived** (Nov 5,
+  `supabase/staging/qa_e2e_listings_cleanup.sql`, run 42064423565: 4 archived, none left active).
+  Re-run it after book-only runs of 08-coaching; it leaves a listing with a booking still to come.
 - **The demo accounts live on staging**, so an iPhone walkthrough of them needs a staging-pointed
   preview deployment (release A section 2).
 - Fixed since release A: the feed now applies distance inside a member's hubs (migration 57), so a

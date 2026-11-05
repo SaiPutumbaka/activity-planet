@@ -126,7 +126,7 @@ Not wired yet, each with a TODO block in the function: Apple token revocation (n
 
 ## 12. Hub map places: Terms and Privacy text (D-041, slice 14)
 
-The Terms of Service and Privacy Policy are drafted for the attorney (section 6) and are not yet pages on the site. These clauses go into them as written; the public page `/map-data` on the site (`apps/web/src/app/map-data/page.tsx`) already says the same in plain words, and the place card links to it.
+The Terms of Service and Privacy Policy are live as DRAFT pages at `/terms` and `/privacy` (Nov 5, `apps/web/src/app/terms` and `privacy`), pending the attorney read (section 6). These clauses are in them as written; the public page `/map-data` on the site (`apps/web/src/app/map-data/page.tsx`) already says the same in plain words, and the place card links to it.
 
 **Terms of Service, "Places and map data":**
 

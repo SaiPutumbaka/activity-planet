@@ -1,11 +1,10 @@
 // The public site (apps/web, `next build` + `next start`) at 390x844 and 1280x800: the landing
 // page, /bot and its removal form, the Safety Center and intimate-image page, the policy pages
-// (Community Guidelines, Coach Terms, Refund Policy, map data), /account/delete, /unsubscribe and
-// /support (the app's sign-in footer links it as Help).
+// (Terms, Privacy, Community Guidelines, Coach Terms, Refund Policy, map data; all drafts with
+// the attorney banner), /account/delete, /unsubscribe and /support (the app's sign-in footer
+// links it as Help).
 // Each must answer 200, fit without a sideways scroll, give every image alt text and link only
 // to pages that exist on the site. The site's 404 must offer a way home. No account is needed.
-// /terms and /privacy are reported (NOTE), not failed, until the attorney-reviewed texts exist
-// (docs/ops/release-b-test-plan.md, known gaps).
 // Usage: E2E_SITE_URL=http://localhost:3000 node e2e/11-site.mjs
 import {
   env,
@@ -29,6 +28,8 @@ const PAGES = [
   "/bot/remove",
   "/safety",
   "/safety/intimate-images",
+  "/terms",
+  "/privacy",
   "/guidelines",
   "/coach-terms",
   "/refund-policy",
@@ -37,7 +38,8 @@ const PAGES = [
   "/unsubscribe",
   "/support",
 ];
-const PENDING = new Set(["/terms", "/privacy"]);
+/** The policy drafts, which must carry the attorney banner until the reviewed texts replace them. */
+const DRAFTS = new Set(["/terms", "/privacy", "/guidelines", "/coach-terms", "/refund-policy"]);
 
 const browser = await pw.chromium.launch();
 let failed = 0;
@@ -51,6 +53,8 @@ for (const [vpName, viewport] of Object.entries(VIEWPORTS)) {
       const res = await page.goto(`${site}${path}`, { waitUntil: "networkidle" });
       if (!res || res.status() !== 200) throw new Error(`status ${res?.status()}`);
       await page.getByRole("heading", { level: 1 }).first().waitFor();
+      if (DRAFTS.has(path) && !(await page.getByText(/^DRAFT:/).count()))
+        throw new Error("no draft banner");
       await assertNoHorizontalScroll(page, path);
       const noAlt = await page.$$eval("img:not([alt])", (x) => x.length);
       if (noAlt) throw new Error(`${noAlt} image(s) without alt`);
@@ -65,15 +69,9 @@ for (const [vpName, viewport] of Object.entries(VIEWPORTS)) {
   await r.step("every internal link answers", async () => {
     const broken = [];
     for (const href of linked) {
-      if (PENDING.has(href)) continue;
       const res = await page.request.get(`${site}${href}`);
       if (res.status() !== 200) broken.push(`${href} ${res.status()}`);
     }
-    for (const href of PENDING)
-      if (linked.has(href)) {
-        const res = await page.request.get(`${site}${href}`);
-        if (res.status() !== 200) console.log(`  NOTE: ${href} is linked and not live yet`);
-      }
     if (broken.length) throw new Error(broken.join(", "));
   });
 
