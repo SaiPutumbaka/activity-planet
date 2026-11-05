@@ -1,5 +1,5 @@
 {
   "$comment": "A push to a branch other than main that changes this file runs collector-ingest.yml against STAGING for this region: due (collector regions not collected today), all, or a city file id (workflow_dispatch needs the workflow on main). Optional region_limit and max_run_minutes.",
   "region": "due",
-  "requested": "2026-11-04T20:30Z (D-042 slice 6: first run per collector region)"
+  "requested": "2026-11-05T11:40Z (collector completion: remote denylist, open-data registry, venue geocoding, Eventbrite sync, run record)"
 }
