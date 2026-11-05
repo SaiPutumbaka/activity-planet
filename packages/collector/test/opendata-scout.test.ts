@@ -37,6 +37,21 @@ describe("open-data scout", () => {
   });
 
   it("keeps event layers from ArcGIS Hub with a FeatureServer endpoint", () => {
+    expect(
+      parseHubSearch(
+        JSON.stringify({
+          features: [
+            {
+              properties: {
+                id: "1",
+                title: "Events",
+                url: "https://s.arcgis.com/a/rest/services/E/FeatureServer",
+              },
+            },
+          ],
+        }),
+      )[0]?.endpoint,
+    ).toBe("https://s.arcgis.com/a/rest/services/E/FeatureServer/0");
     const rows = parseHubSearch(fixture("scout/hub-search.json"));
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
@@ -70,9 +85,19 @@ describe("open-data scout", () => {
         };
       },
     };
-    const { rows, counts } = await scout({ region: ATL, fetcher, appToken: "TOKEN-SECRET" });
+    const { rows, counts } = await scout({
+      region: ATL,
+      fetcher,
+      appToken: "TOKEN-SECRET",
+      domains: ["data.far-away.gov"],
+    });
     expect(counts.aggregates).toBe(1);
+    expect(counts.hub_features).toBe(8);
+    // libr-0002 has no point column: listed only because its portal was asked for.
     expect(rows.map((r) => r.id).sort()).toEqual(["9f8e7d", "abcd-1234", "libr-0002"]);
+    expect(asked.some((u) => new URL(u).searchParams.get("domains") === "data.far-away.gov")).toBe(
+      true,
+    );
     expect(rows.find((r) => r.id === "abcd-1234")).toMatchObject({
       inBox: 12,
       latest: "2026-12-01",
@@ -106,6 +131,6 @@ describe("open-data scout", () => {
       },
     };
     const { rows } = await scout({ region: ATL, fetcher });
-    expect(rows.map((r) => r.id)).toEqual(["libr-0002"]);
+    expect(rows).toEqual([]);
   });
 });

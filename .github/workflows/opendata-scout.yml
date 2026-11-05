@@ -10,7 +10,9 @@ name: Open-data scout
 #
 # Runs on dispatch only (a city file id, or a point and radius), or, from a branch other than main
 # before this file reaches main, on a push that changes packages/collector/opendata_scout_request.json
-# ({"regions": [{"region": "atl"} | {"lat": 51.05, "lng": -114.07, "radius_km": 30, "label": "Calgary"}]}).
+# ({"regions": [{"region": "atl"} | {"lat": 51.05, "lng": -114.07, "radius_km": 30, "domains": ["data.calgary.ca"]}]};
+# domains are Socrata portals searched directly, whose event datasets are listed even without a
+# point column).
 #
 # Secrets: SOCRATA_APP_TOKEN (optional, free; raises Socrata's throttling limit) is sent as the
 # X-App-Token header when the repository secret exists and is never printed.
@@ -73,17 +75,20 @@ jobs:
             if [ "$REF" = "refs/heads/main" ]; then echo "never on main pushes"; exit 1; fi
             python3 -I -c 'import json,sys
           for r in json.load(open(sys.argv[1]))["regions"][:5]:
-              print(r.get("region") or "-", r.get("lat", "-"), r.get("lng", "-"), r.get("radius_km", 30))' packages/collector/opendata_scout_request.json > "$RUNNER_TEMP/regions.txt"
+              print(r.get("region") or "-", r.get("lat", "-"), r.get("lng", "-"), r.get("radius_km", 30), ",".join(r.get("domains", [])) or "-")' packages/collector/opendata_scout_request.json > "$RUNNER_TEMP/regions.txt"
           else
-            echo "${IN_REGION:--} ${IN_LAT:--} ${IN_LNG:--} ${IN_RADIUS:-30}" > "$RUNNER_TEMP/regions.txt"
+            echo "${IN_REGION:--} ${IN_LAT:--} ${IN_LNG:--} ${IN_RADIUS:-30} -" > "$RUNNER_TEMP/regions.txt"
           fi
-          while read -r region lat lng radius; do
+          while read -r region lat lng radius domains; do
+            case "$domains" in *[!a-z0-9.,-]*) echo "Refusing domains"; exit 1 ;; esac
+            set --
+            if [ "$domains" != "-" ]; then set -- --domains "$domains"; fi
             if [ "$region" != "-" ]; then
               case "$region" in *[!a-z0-9-]*) echo "Refusing region: $region"; exit 1 ;; esac
-              pnpm --silent --filter collector opendata scout --region "$region"
+              pnpm --silent --filter collector opendata scout --region "$region" "$@"
             else
               case "$lat$lng$radius" in *[!0-9.-]*|"") echo "Refusing point"; exit 1 ;; esac
               if [ "$lat" = "-" ] || [ "$lng" = "-" ]; then echo "Refusing point"; exit 1; fi
-              pnpm --silent --filter collector opendata scout --lat "$lat" --lng "$lng" --radius-km "$radius" --label point
+              pnpm --silent --filter collector opendata scout "--lat=$lat" "--lng=$lng" "--radius-km=$radius" --label point "$@"
             fi
           done < "$RUNNER_TEMP/regions.txt"

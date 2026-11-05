@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 61 (schema_version 2.57). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 63 (schema_version 2.59). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -1280,6 +1280,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      collector_job_runs: {
+        Row: {
+          created_at: string;
+          finished_at: string;
+          id: number;
+          job: string;
+          outcome: string;
+          run_id: string;
+          started_at: string | null;
+          stats: Json;
+        };
+        Insert: {
+          created_at?: string;
+          finished_at?: string;
+          id?: never;
+          job: string;
+          outcome: string;
+          run_id: string;
+          started_at?: string | null;
+          stats?: Json;
+        };
+        Update: {
+          created_at?: string;
+          finished_at?: string;
+          id?: never;
+          job?: string;
+          outcome?: string;
+          run_id?: string;
+          started_at?: string | null;
+          stats?: Json;
+        };
+        Relationships: [];
+      };
       collector_regions: {
         Row: {
           created_at: string;
@@ -2078,7 +2111,9 @@ export type Database = {
           campus_id: string | null;
           candidate_id: string | null;
           collector: boolean;
+          collector_fail_streak: number;
           collector_last_run_id: string | null;
+          collector_region_id: string | null;
           collector_seen_at: string | null;
           created_at: string;
           cron_minute: number;
@@ -2102,6 +2137,14 @@ export type Database = {
           last_stats: Json | null;
           listing_kind: string;
           name: string;
+          organizer_claim_id: string | null;
+          organizer_hub_id: string | null;
+          organizer_id: string | null;
+          organizer_images_at: string | null;
+          organizer_refresh_requested_at: string | null;
+          organizer_stopped_at: string | null;
+          organizer_verified_at: string | null;
+          origin: string;
           partner: boolean;
           region_label: string | null;
           region_point: unknown;
@@ -2117,7 +2160,9 @@ export type Database = {
           campus_id?: string | null;
           candidate_id?: string | null;
           collector?: boolean;
+          collector_fail_streak?: number;
           collector_last_run_id?: string | null;
+          collector_region_id?: string | null;
           collector_seen_at?: string | null;
           created_at?: string;
           cron_minute?: number;
@@ -2141,6 +2186,14 @@ export type Database = {
           last_stats?: Json | null;
           listing_kind?: string;
           name: string;
+          organizer_claim_id?: string | null;
+          organizer_hub_id?: string | null;
+          organizer_id?: string | null;
+          organizer_images_at?: string | null;
+          organizer_refresh_requested_at?: string | null;
+          organizer_stopped_at?: string | null;
+          organizer_verified_at?: string | null;
+          origin?: string;
           partner?: boolean;
           region_label?: string | null;
           region_point?: unknown;
@@ -2156,7 +2209,9 @@ export type Database = {
           campus_id?: string | null;
           candidate_id?: string | null;
           collector?: boolean;
+          collector_fail_streak?: number;
           collector_last_run_id?: string | null;
+          collector_region_id?: string | null;
           collector_seen_at?: string | null;
           created_at?: string;
           cron_minute?: number;
@@ -2180,6 +2235,14 @@ export type Database = {
           last_stats?: Json | null;
           listing_kind?: string;
           name?: string;
+          organizer_claim_id?: string | null;
+          organizer_hub_id?: string | null;
+          organizer_id?: string | null;
+          organizer_images_at?: string | null;
+          organizer_refresh_requested_at?: string | null;
+          organizer_stopped_at?: string | null;
+          organizer_verified_at?: string | null;
+          origin?: string;
           partner?: boolean;
           region_label?: string | null;
           region_point?: unknown;
@@ -2206,8 +2269,36 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "feed_sources_collector_region_fk";
+            columns: ["collector_region_id"];
+            isOneToOne: false;
+            referencedRelation: "collector_regions";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "feed_sources_default_hub_id_fkey";
             columns: ["default_hub_id"];
+            isOneToOne: false;
+            referencedRelation: "hubs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "feed_sources_organizer_claim_fk";
+            columns: ["organizer_claim_id"];
+            isOneToOne: false;
+            referencedRelation: "organizer_claims";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "feed_sources_organizer_fk";
+            columns: ["organizer_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "feed_sources_organizer_hub_fk";
+            columns: ["organizer_hub_id"];
             isOneToOne: false;
             referencedRelation: "hubs";
             referencedColumns: ["id"];
@@ -2761,6 +2852,94 @@ export type Database = {
           },
           {
             foreignKeyName: "import_hub_rules_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "feed_sources";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      listing_removal_requests: {
+        Row: {
+          client_hash: string | null;
+          contact_cleared_at: string | null;
+          created_at: string;
+          email_hash: string;
+          event_id: string | null;
+          id: string;
+          reason: string;
+          reference: string;
+          relationship: string;
+          requester_email: string;
+          requester_name: string;
+          resolution_note: string;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          scope: string;
+          source_id: string | null;
+          status: string;
+          updated_at: string;
+          url: string | null;
+        };
+        Insert: {
+          client_hash?: string | null;
+          contact_cleared_at?: string | null;
+          created_at?: string;
+          email_hash: string;
+          event_id?: string | null;
+          id?: string;
+          reason?: string;
+          reference: string;
+          relationship: string;
+          requester_email: string;
+          requester_name: string;
+          resolution_note?: string;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          scope?: string;
+          source_id?: string | null;
+          status?: string;
+          updated_at?: string;
+          url?: string | null;
+        };
+        Update: {
+          client_hash?: string | null;
+          contact_cleared_at?: string | null;
+          created_at?: string;
+          email_hash?: string;
+          event_id?: string | null;
+          id?: string;
+          reason?: string;
+          reference?: string;
+          relationship?: string;
+          requester_email?: string;
+          requester_name?: string;
+          resolution_note?: string;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          scope?: string;
+          source_id?: string | null;
+          status?: string;
+          updated_at?: string;
+          url?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "listing_removal_requests_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "listing_removal_requests_resolved_by_fkey";
+            columns: ["resolved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "listing_removal_requests_source_id_fkey";
             columns: ["source_id"];
             isOneToOne: false;
             referencedRelation: "feed_sources";
@@ -3404,6 +3583,126 @@ export type Database = {
           website?: string | null;
         };
         Relationships: [];
+      };
+      organizer_claims: {
+        Row: {
+          attempts: number;
+          check_requested_at: string | null;
+          created_at: string;
+          event_id: string | null;
+          failure: string | null;
+          feed_url: string | null;
+          host: string;
+          id: string;
+          last_checked_at: string | null;
+          method: string;
+          reviewed_at: string | null;
+          source_id: string | null;
+          status: string;
+          token: string;
+          updated_at: string;
+          user_id: string;
+          verified_at: string | null;
+        };
+        Insert: {
+          attempts?: number;
+          check_requested_at?: string | null;
+          created_at?: string;
+          event_id?: string | null;
+          failure?: string | null;
+          feed_url?: string | null;
+          host: string;
+          id?: string;
+          last_checked_at?: string | null;
+          method?: string;
+          reviewed_at?: string | null;
+          source_id?: string | null;
+          status?: string;
+          token: string;
+          updated_at?: string;
+          user_id: string;
+          verified_at?: string | null;
+        };
+        Update: {
+          attempts?: number;
+          check_requested_at?: string | null;
+          created_at?: string;
+          event_id?: string | null;
+          failure?: string | null;
+          feed_url?: string | null;
+          host?: string;
+          id?: string;
+          last_checked_at?: string | null;
+          method?: string;
+          reviewed_at?: string | null;
+          source_id?: string | null;
+          status?: string;
+          token?: string;
+          updated_at?: string;
+          user_id?: string;
+          verified_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "organizer_claims_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "organizer_claims_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "feed_sources";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "organizer_claims_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      organizer_oauth_states: {
+        Row: {
+          created_at: string;
+          expires_at: string;
+          id: string;
+          provider: string;
+          state_hash: string;
+          used_at: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          expires_at?: string;
+          id?: string;
+          provider?: string;
+          state_hash: string;
+          used_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          expires_at?: string;
+          id?: string;
+          provider?: string;
+          state_hash?: string;
+          used_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "organizer_oauth_states_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       place_edits: {
         Row: {
@@ -4821,6 +5120,39 @@ export type Database = {
           },
         ];
       };
+      venue_geocodes: {
+        Row: {
+          checked_at: string;
+          confidence: number | null;
+          expires_at: string;
+          key: string;
+          place_ref: string | null;
+          point: unknown;
+          provider: string;
+          status: string;
+        };
+        Insert: {
+          checked_at?: string;
+          confidence?: number | null;
+          expires_at: string;
+          key: string;
+          place_ref?: string | null;
+          point?: unknown;
+          provider: string;
+          status: string;
+        };
+        Update: {
+          checked_at?: string;
+          confidence?: number | null;
+          expires_at?: string;
+          key?: string;
+          place_ref?: string | null;
+          point?: unknown;
+          provider?: string;
+          status?: string;
+        };
+        Relationships: [];
+      };
       venues: {
         Row: {
           address_line1: string;
@@ -5009,6 +5341,17 @@ export type Database = {
             referencedColumns: ["slug"];
           },
         ];
+      };
+      source_kind_yield: {
+        Row: {
+          good: number | null;
+          origin: string | null;
+          place_kind: string | null;
+          probed: number | null;
+          rejected: number | null;
+          waiting: number | null;
+        };
+        Relationships: [];
       };
     };
     Functions: {
@@ -5286,6 +5629,14 @@ export type Database = {
         Returns: Json;
       };
       collector_api_shows_sweep: { Args: never; Returns: Json };
+      collector_claims_due: { Args: { p_limit?: number }; Returns: Json };
+      collector_claims_record: { Args: { p_results: Json }; Returns: Json };
+      collector_denylist_remote: { Args: never; Returns: Json };
+      collector_discovery_yield: { Args: never; Returns: Json };
+      collector_geocode_queue: { Args: { p_limit?: number }; Returns: Json };
+      collector_geocode_record: { Args: { p_results: Json }; Returns: Json };
+      collector_health_alerts: { Args: never; Returns: number };
+      collector_health_snapshot: { Args: never; Returns: Json };
       collector_host_denied: { Args: { p_host: string }; Returns: string };
       collector_ingest_events: {
         Args: {
@@ -5298,6 +5649,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      collector_job_stale_after: { Args: { p_job: string }; Returns: string };
       collector_note_home_point: {
         Args: { p_label: string; p_old_point?: unknown; p_point: unknown };
         Returns: boolean;
@@ -5307,6 +5659,8 @@ export type Database = {
         Returns: Json;
       };
       collector_regions_record: { Args: { p_regions: Json }; Returns: Json };
+      collector_runs_record: { Args: { p_run: Json }; Returns: Json };
+      collector_shared_host: { Args: { p_host: string }; Returns: boolean };
       collector_sources_for_regions: {
         Args: { p_regions: string[] };
         Returns: Json;
@@ -5359,6 +5713,10 @@ export type Database = {
       confirm_booking: { Args: { p_id: string }; Returns: Json };
       confirm_email_verification: {
         Args: { p_code: string; p_email?: string };
+        Returns: Json;
+      };
+      connect_organizer_feed: {
+        Args: { p_claim: string; p_lat?: number; p_lng?: number; p_url: string };
         Returns: Json;
       };
       contest_no_show: { Args: { p_id: string; p_note: string }; Returns: Json };
@@ -5665,6 +6023,10 @@ export type Database = {
           waitlist_enabled: boolean;
         }[];
       };
+      feed_source_withdraw: {
+        Args: { p_mode: string; p_reason?: string; p_source: string };
+        Returns: number;
+      };
       finish_place_tile: {
         Args: {
           p_allow_drop?: boolean;
@@ -5794,6 +6156,10 @@ export type Database = {
       import_dispatch: { Args: { p_slug: string }; Returns: number };
       import_dispatch_all: { Args: never; Returns: Json };
       import_is_21_plus: { Args: { p_text: string }; Returns: boolean };
+      import_location_key: {
+        Args: { p_location: string; p_region_point: unknown };
+        Returns: string;
+      };
       import_pick_hub: {
         Args: {
           p_categories: string;
@@ -5920,6 +6286,15 @@ export type Database = {
         Returns: Json;
       };
       mod_coaching_numbers: { Args: never; Returns: Json };
+      mod_collector_health: { Args: never; Returns: Json };
+      mod_listing_removal_queue: {
+        Args: { p_closed?: boolean; p_limit?: number };
+        Returns: Json;
+      };
+      mod_listing_removal_resolve: {
+        Args: { p_action: string; p_note?: string; p_request: string };
+        Returns: Json;
+      };
       mod_lookup_log: { Args: { p_limit?: number }; Returns: Json };
       mod_message_evidence: { Args: { p_report: string }; Returns: Json };
       mod_moderate: {
@@ -5929,6 +6304,10 @@ export type Database = {
           p_kind: string;
           p_note?: string;
         };
+        Returns: Json;
+      };
+      mod_organizer_claim_review: {
+        Args: { p_action: string; p_claim: string; p_note?: string };
         Returns: Json;
       };
       mod_place_facts: { Args: { p_id: string }; Returns: Json };
@@ -6053,6 +6432,7 @@ export type Database = {
           slug: string;
         }[];
       };
+      my_organizer_claims: { Args: never; Returns: Json };
       notification_event_payload: {
         Args: { p_event_id: string };
         Returns: Json;
@@ -6093,6 +6473,34 @@ export type Database = {
       open_chapter_chat: { Args: { p_chapter: string }; Returns: Json };
       open_event_chat: { Args: { p_event: string }; Returns: Json };
       open_hub_chat: { Args: { p_hub: string }; Returns: Json };
+      organizer_claim_apply: { Args: { p_claim: string }; Returns: undefined };
+      organizer_claim_check: { Args: { p_claim: string }; Returns: Json };
+      organizer_claim_proofs: {
+        Args: { p_host: string; p_token: string };
+        Returns: Json;
+      };
+      organizer_eventbrite_sources: {
+        Args: { p_limit?: number };
+        Returns: Json;
+      };
+      organizer_eventbrite_store: {
+        Args: { p_token: string; p_user: string };
+        Returns: Json;
+      };
+      organizer_oauth_start: {
+        Args: { p_state_hash: string; p_user: string };
+        Returns: Json;
+      };
+      organizer_oauth_take: {
+        Args: { p_state_hash: string; p_user: string };
+        Returns: boolean;
+      };
+      organizer_region_for: { Args: { p_point: unknown }; Returns: string };
+      organizer_source_update: {
+        Args: { p_args: Json; p_source: string };
+        Returns: Json;
+      };
+      organizer_token: { Args: never; Returns: string };
       pause_coach_profile: { Args: never; Returns: Json };
       pending_attendance_prompts: {
         Args: never;
@@ -6245,6 +6653,7 @@ export type Database = {
       purge_account_deletions: { Args: never; Returns: number };
       purge_admin_lookups: { Args: never; Returns: number };
       purge_coaching: { Args: never; Returns: Json };
+      purge_listing_removal_contacts: { Args: never; Returns: number };
       purge_messaging: { Args: never; Returns: Json };
       purge_read_notifications: { Args: never; Returns: number };
       purge_takedown_contacts: { Args: never; Returns: number };
@@ -6270,6 +6679,7 @@ export type Database = {
         };
         Returns: string;
       };
+      registrable_domain: { Args: { p_host: string }; Returns: string };
       remove_availability_exception: {
         Args: { p_id: string };
         Returns: boolean;
@@ -6569,9 +6979,20 @@ export type Database = {
         Args: { p_tz: string };
         Returns: boolean;
       };
+      source_kind_learned_yield: { Args: { p_kind: string }; Returns: number };
       source_url_check: { Args: { p_url: string }; Returns: Json };
       source_url_host: { Args: { p_url: string }; Returns: string };
       start_dm: { Args: { p_user: string }; Returns: Json };
+      start_organizer_claim: {
+        Args: {
+          p_event?: string;
+          p_feed_url?: string;
+          p_host?: string;
+          p_method?: string;
+          p_source?: string;
+        };
+        Returns: Json;
+      };
       storage_object_from_url: {
         Args: { p_url: string };
         Returns: Record<string, unknown>;
@@ -6647,6 +7068,19 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      submit_listing_removal: {
+        Args: {
+          p_client_hash?: string;
+          p_email: string;
+          p_event: string;
+          p_name: string;
+          p_reason: string;
+          p_relationship: string;
+          p_scope: string;
+          p_url: string;
+        };
+        Returns: Json;
       };
       submit_takedown_request: {
         Args: {
@@ -6944,7 +7378,8 @@ export type Database = {
         | "booking_no_show"
         | "review_received"
         | "review_reply"
-        | "coach_payout_action";
+        | "coach_payout_action"
+        | "collector_alert";
       org_kind: "university" | "company" | "community";
       org_role: "member" | "officer" | "admin";
       place_source: "osm" | "geoapify" | "user" | "venue";
@@ -7138,6 +7573,7 @@ export const Constants = {
         "review_received",
         "review_reply",
         "coach_payout_action",
+        "collector_alert",
       ],
       org_kind: ["university", "company", "community"],
       org_role: ["member", "officer", "admin"],

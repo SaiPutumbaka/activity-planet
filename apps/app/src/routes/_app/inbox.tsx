@@ -85,6 +85,8 @@ const ICONS: Record<NotificationKind, LucideIcon> = {
   review_received: Sparkles,
   review_reply: MessageCircle,
   coach_payout_action: ShieldCheck,
+  // Collector health (migration 63): in-app only, moderators only.
+  collector_alert: ShieldAlert,
 };
 
 function InboxPage() {

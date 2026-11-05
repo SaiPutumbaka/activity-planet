@@ -28,6 +28,9 @@ export const QUEUE_SOURCES = [
   "place_edit",
   "claim",
   "calendar",
+  // Collector completion (migration 62); their pages come in Slice 2.
+  "listing_removal",
+  "organizer_claim",
 ] as const;
 export type QueueSource = (typeof QUEUE_SOURCES)[number];
 
@@ -39,6 +42,8 @@ export const SOURCE_LABELS: Record<QueueSource, string> = {
   place_edit: "Place correction",
   claim: "Chapter claim",
   calendar: "Calendar suggestion",
+  listing_removal: "Listing removal request",
+  organizer_claim: "Organizer claim",
 };
 
 /** Plural labels for the scorecard rows. */
@@ -50,6 +55,8 @@ export const SOURCE_PLURALS: Record<QueueSource, string> = {
   place_edit: "Place corrections",
   claim: "Chapter claims",
   calendar: "Calendar suggestions",
+  listing_removal: "Listing removal requests",
+  organizer_claim: "Organizer claims",
 };
 
 /** The review target behind each source, for the queue's footnote. Mirrors mod_sla_hours. */
@@ -61,6 +68,8 @@ export const SOURCE_TARGETS: Record<QueueSource, string> = {
   place_edit: "72 hours",
   claim: "72 hours",
   calendar: "7 days",
+  listing_removal: "72 hours",
+  organizer_claim: "7 days (verified automatically; a look after the fact)",
 };
 
 export interface QueueItem {
@@ -116,6 +125,10 @@ export function queueItemDetail(item: QueueItem): string {
       return item.detail === "area" ? "Area chapter" : "Organization chapter";
     case "calendar":
       return item.count > 1 ? `Suggested by ${item.count} members` : "Suggested by a member";
+    case "listing_removal":
+      return item.detail === "source" ? "Everything from the source" : "One listing";
+    case "organizer_claim":
+      return "Ownership proved, not yet reviewed";
     default:
       return "";
   }
@@ -131,7 +144,10 @@ export function queueItemLink(
     case "takedown":
       return "/admin/takedowns";
     case "claim":
+    case "organizer_claim":
       return "/admin/claims";
+    case "listing_removal":
+      return "/admin/takedowns";
     case "calendar":
       return "/admin/calendars";
     default:

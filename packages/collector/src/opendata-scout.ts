@@ -67,8 +67,14 @@ const CONTROL = /[\u0000-\u001f\u007f]+/g;
 const clean = (v: unknown, max = 120): string =>
   typeof v === "string" ? v.replace(CONTROL, " ").trim().slice(0, max) : "";
 
-export function socrataCatalogUrl(base: string, term: string, offset = 0): string {
+export function socrataCatalogUrl(
+  base: string,
+  term: string,
+  offset = 0,
+  domains: string[] = [],
+): string {
   const u = new URL(base);
+  if (domains.length > 0) u.searchParams.set("domains", domains.join(","));
   u.searchParams.set("q", term);
   u.searchParams.set("only", "dataset");
   u.searchParams.set("limit", "100");
@@ -166,18 +172,25 @@ export function hubSearchUrl(term: string, box: [number, number, number, number]
 }
 
 /** Hub search results (OGC API Records features) that read as event layers. */
-export function parseHubSearch(body: string): ScoutRow[] {
+export function parseHubSearch(body: string, counts: Record<string, number> = {}): ScoutRow[] {
   const root = JSON.parse(body) as { features?: unknown };
   const out: ScoutRow[] = [];
   for (const f of Array.isArray(root.features) ? root.features : []) {
+    counts.hub_features = (counts.hub_features ?? 0) + 1;
     const p = ((f ?? {}) as { properties?: Record<string, unknown> }).properties ?? {};
     const name = clean(p.title ?? p.name);
     const tags = (Array.isArray(p.tags) ? p.tags : []).map((t: unknown) => clean(t, 40));
     if (!EVENT_WORD.test(name) && !tags.some((t: string) => EVENT_WORD.test(t))) continue;
+    counts.hub_event_like = (counts.hub_event_like ?? 0) + 1;
     const url = clean(p.url, 300);
     let endpoint = "";
     try {
       const u = new URL(url);
+      u.search = "";
+      u.hash = "";
+      // A service URL without a layer index names its first layer.
+      if (u.protocol === "https:" && /\/(FeatureServer|MapServer)\/?$/i.test(u.pathname))
+        u.pathname = `${u.pathname.replace(/\/$/, "")}/0`;
       if (u.protocol === "https:" && /\/(FeatureServer|MapServer)\/\d+$/i.test(u.pathname))
         endpoint = u.toString();
     } catch {
@@ -223,7 +236,10 @@ export async function scout(o: {
   fetcher: Pick<Fetcher, "get">;
   appToken?: string;
   maxProbes?: number;
+  /** Socrata portals to search directly: their event datasets are listed even without a point column. */
+  domains?: string[];
 }): Promise<{ rows: ScoutRow[]; counts: Record<string, number> }> {
+  const domains = (o.domains ?? []).filter((d) => DOMAIN.test(d)).slice(0, 10);
   const box = regionBox(o.region);
   const counts: Record<string, number> = {
     catalog_calls: 0,
@@ -233,10 +249,12 @@ export async function scout(o: {
   };
   const rows = new Map<string, ScoutRow & { types?: string[] }>();
   const headers = o.appToken ? { "X-App-Token": o.appToken } : undefined;
-  for (const base of SOCRATA_CATALOGS) {
+  const searches: [string, string[]][] = SOCRATA_CATALOGS.map((b) => [b, []]);
+  if (domains.length > 0) for (const b of SOCRATA_CATALOGS) searches.push([b, domains]);
+  for (const [base, only] of searches) {
     for (const term of TERMS) {
       counts.catalog_calls!++;
-      const res = await o.fetcher.get(socrataCatalogUrl(base, term), {
+      const res = await o.fetcher.get(socrataCatalogUrl(base, term, 0, only), {
         api: true,
         accept: "application/json",
       });
@@ -256,7 +274,7 @@ export async function scout(o: {
   for (const r of rows.values()) {
     if (r.portal !== "socrata" || !r.types) continue;
     const { geo, date } = socrataColumns({ columns: r.columns, types: r.types });
-    if (!geo || probes >= (o.maxProbes ?? 25)) {
+    if (!geo || probes >= (o.maxProbes ?? 150)) {
       r.inBox = null;
       continue;
     }
@@ -291,14 +309,16 @@ export async function scout(o: {
       continue;
     }
     try {
-      for (const r of parseHubSearch(res.body)) rows.set(`${r.domain}/${r.id}`, r);
+      for (const r of parseHubSearch(res.body, counts)) rows.set(`${r.domain}/${r.id}`, r);
     } catch {
       counts.catalog_failed!++;
     }
   }
   // Socrata datasets with nothing inside the box are left out; those not asked are kept.
   const out = [...rows.values()]
-    .filter((r) => r.portal === "arcgis" || r.inBox === null || (r.inBox ?? 0) > 0)
+    // Socrata: datasets of the portals asked for, and others with at least 3 rows inside the box
+    // (the catalogue has no place filter; one or two rows are usually a stray point).
+    .filter((r) => r.portal === "arcgis" || domains.includes(r.domain) || (r.inBox ?? 0) >= 3)
     .map(({ types: _t, ...r }) => {
       void _t;
       return r;
@@ -323,6 +343,7 @@ async function main(argv: string[]): Promise<number> {
       lng: { type: "string" },
       "radius-km": { type: "string" },
       label: { type: "string" },
+      domains: { type: "string" },
     },
     allowPositionals: false,
   });
@@ -351,7 +372,16 @@ async function main(argv: string[]): Promise<number> {
   }
   const fetcher = new PoliteFetcher({ denylist: Denylist.load(), maxRequestsFor: () => 200 });
   const token = (process.env.SOCRATA_APP_TOKEN ?? "").trim();
-  const { rows, counts } = await scout({ region, fetcher, ...(token ? { appToken: token } : {}) });
+  const domains = (values.domains ?? "")
+    .split(",")
+    .map((d) => d.trim().toLowerCase())
+    .filter(Boolean);
+  const { rows, counts } = await scout({
+    region,
+    fetcher,
+    domains,
+    ...(token ? { appToken: token } : {}),
+  });
   console.log(
     `[scout] region=${region.label} socrata_app_token=${token ? "set" : "unset"} ${JSON.stringify(counts)}`,
   );

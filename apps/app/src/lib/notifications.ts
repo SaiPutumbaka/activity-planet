@@ -40,6 +40,8 @@ export const notificationKeys = {
 
 /** What the producers put in notifications.payload. Every field is optional on read. */
 export interface NotificationPayload {
+  /** collector_alert (migration 63): which alert; count is how many jobs or sources. */
+  alert?: string;
   title?: string;
   starts_at?: string;
   ends_at?: string;
@@ -438,10 +440,24 @@ export function notificationCopy(item: CopyInput, now: Date = new Date()): Notif
             body: "Our team reviews it. Open the booking for details.",
           }
         : { title: "Stripe needs a few details to pay you", body: "Open your payout settings." };
+    // Migration 63: moderators only, in-app only. The admin health page has the details.
+    case "collector_alert":
+      return {
+        title: "Event collector needs a look",
+        body: COLLECTOR_ALERTS[p.alert ?? ""] ?? null,
+      };
     default:
       return { title: "Update", body: null };
   }
 }
+
+const COLLECTOR_ALERTS: Record<string, string> = {
+  jobs_overdue: "A collector job has not run on time.",
+  sources_stale: "Some event sources were not read in the last day.",
+  sources_failing: "Some event sources keep failing.",
+  gate_expired: "The discovery quality gate needs a new run.",
+  budget_spent: "A daily API budget ran out before noon UTC.",
+};
 
 export type NotificationLink =
   | { to: "/events/$id"; params: { id: string } }
@@ -450,7 +466,8 @@ export type NotificationLink =
   | { to: "/bookings/$id"; params: { id: string } }
   | { to: "/bookings" }
   | { to: "/coaches/$handle"; params: { handle: string } }
-  | { to: "/coach/payouts" };
+  | { to: "/coach/payouts" }
+  | { to: "/admin/health" };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HANDLE_RE = /^[A-Za-z0-9_]{3,24}$/;
@@ -474,6 +491,7 @@ export function notificationLink(item: LinkInput): NotificationLink | null {
       : { to: "/bookings" };
   }
   if (item.kind === "coach_payout_action") return { to: "/coach/payouts" };
+  if (item.kind === "collector_alert") return { to: "/admin/health" };
   if (item.kind === "chapter_claim_update") {
     const chapterSlug = item.chapter?.slug ?? item.payload.chapter_slug;
     if (item.payload.status === "approved" && chapterSlug) {
