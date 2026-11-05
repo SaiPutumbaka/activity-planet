@@ -90,3 +90,12 @@ verify_jwt = false
 # the user token with the Auth API itself). So the gateway JWT check is off. Files are read from
 # PLACES_BASE_URL (optional Edge Function secret) or meta.places_base_url.
 verify_jwt = false
+
+[functions.image-guard]
+# The caller is the database (migration 52: the image reference triggers, mod_takedown_block_image
+# and the pg_cron job image-guard-tick, all through pg_net and public.image_guard_dispatch), not a
+# user, so the gateway JWT check is off; the function refuses any request whose
+# x-image-guard-secret header does not match the vault secret image_guard_secret (checked through
+# image_guard_verify_secret, service_role only). The secret is generated inside the database and
+# is in no file. The function stores hashes only, never an image.
+verify_jwt = false

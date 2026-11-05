@@ -55,6 +55,7 @@ on:
       - "supabase/functions/collector/**"
       - "supabase/functions/places-fill/**"
       - "supabase/functions/place-files/**"
+      - "supabase/functions/image-guard/**"
       - ".github/workflows/migrate.yml"
   workflow_dispatch:
     inputs:
@@ -191,7 +192,7 @@ jobs:
               *[!a-z0-9-]*) echo "Refusing function name: $fn"; exit 1 ;;
             esac
             test -f "supabase/functions/$fn/index.ts" || { echo "No such function: $fn"; exit 1; }
-            case "$fn" in import-feed|collector|places-fill|place-files) flags="--no-verify-jwt" ;; *) flags="" ;; esac
+            case "$fn" in import-feed|collector|places-fill|place-files|image-guard) flags="--no-verify-jwt" ;; *) flags="" ;; esac
             supabase functions deploy "$fn" --project-ref "$STAGING_PROJECT_REF" --use-api $flags
             if [ "$fn" = "import-feed" ]; then
               supabase db query --linked \
@@ -355,6 +356,17 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy place-files --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
+
+      # image-guard (migration 52) hashes profile photos and covers for the NCII flow; the database
+      # calls it through pg_net with a secret generated inside the database, and it calls RPCs the
+      # push creates, so it is deployed after it. No secret of its own.
+      - name: Production, deploy the image-guard function
+        if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy image-guard --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 
       - name: Deploy web and app
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
