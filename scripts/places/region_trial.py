@@ -155,9 +155,9 @@ def report_sql(trial):
                   "'places_files', (select m.value from public.meta m where m.key = 'places_files'), "
                   "'eu_discovery', (select m.value from public.meta m where m.key = 'eu_discovery'))"))
     s.append(_out("discovery", "select jsonb_build_object("
-                  "'allowed_osm_de', public.source_discovery_allowed('DE', 'osm'), "
-                  "'allowed_wikidata_de', public.source_discovery_allowed('DE', 'wikidata'), "
-                  "'allowed_member_de', public.source_discovery_allowed('DE', 'member'), "
+                  "'allowed_osm_de', public.source_discovery_allowed('osm', 'DE'), "
+                  "'allowed_wikidata_de', public.source_discovery_allowed('wikidata', 'DE'), "
+                  "'allowed_member_de', public.source_discovery_allowed('member', 'DE'), "
                   "'candidates', (select coalesce(jsonb_object_agg(c.status, c.n), '{}'::jsonb) from ("
                   "  select sc.status, count(*) as n from public.source_candidates sc, trial_region r "
                   "  where sc.region_id = r.id group by sc.status) c), "
