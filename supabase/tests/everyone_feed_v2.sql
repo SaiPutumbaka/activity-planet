@@ -34,10 +34,9 @@ begin
      set birth_date = (current_date - interval '20 years 1 month')::date
    where user_id = v_young;
   -- Migration 22: the 18+ gate (viewer_is_adult) needs an onboarded profile with a birth date.
-  update public.profile_private set birth_date = date '1990-01-01'
-   where user_id in (v_viewer, v_host) and birth_date is null;
+  -- (The viewer onboards through complete_onboarding below.)
   update public.profiles set onboarding_completed_at = now(), guidelines_accepted_at = now()
-   where id in (v_viewer, v_host, v_young);
+   where id = v_young;
 
   select id into v_hub_a from public.hubs
    where is_active and min_age = 18 and scope = 'general' order by slug limit 1;
