@@ -262,7 +262,10 @@ if (phase === "book" || phase === "all") {
     await pb.getByRole("textbox", { name: "Message" }).waitFor({ timeout: 20000 });
     // The DM's banner links the pair's next booking: this one, or an earlier run's that is still
     // to come (a run stopped before its finish phase leaves one).
-    await pb.getByRole("link", { name: /E2E tennis / }).first().waitFor({ timeout: 20000 });
+    await pb
+      .getByRole("link", { name: /E2E tennis / })
+      .first()
+      .waitFor({ timeout: 20000 });
     await shot(pb, "coach-09-dm");
   });
 

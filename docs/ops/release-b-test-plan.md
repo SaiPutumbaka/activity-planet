@@ -15,16 +15,16 @@ true before Release B ships, and what is known not to work yet. The audience is 
 
 New in Release B (release A's scope table still applies):
 
-| Area                 | What it covers                                                                                                                                                                                                                   |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Chats (D-043)        | Chats tab and badge, DMs, message requests (Requests tab, accept, decline), plan, hub and chapter chats (created when first opened), typing, delete own message, report a message, chat info, mute, block stops delivery         |
-| Coaching (D-044)     | Become a coach (profile, Coach Terms), listings (one-on-one in person or online; online group refused), weekly availability and exceptions, publish and pause, find coaches (near you, online), request a time, confirm, decline |
-| Bookings             | `/bookings` for both sides, the booking page, the DM from a booking, mark done, no-show and contest, reviews and replies, the Refund Policy acknowledgment                                                                       |
-| Payments             | Off (`meta.coach_payments = 'off'`, no Stripe keys): prices show with "arranged directly with the coach"; no payment entry point anywhere. Stripe test mode on staging only once Sai adds the test keys                          |
-| Collector completion | An imported listing's source block and "Request removal", the site's `/bot` and removal form, organizer claims (code, Check now), `/organizer`, connect a calendar, moderator tabs (Takedowns, Claims, Health), venue geocoding  |
-| Recommendations      | For you on Home with up to two reason chips, Not interested and Undo, Why am I seeing this, Similar plans, Hubs you may like, Coaches for you, People you might click with, the privacy switches in You                          |
-| Landing page v2      | This week near you (Atlanta by default, a city picker, location only after a tap), How it works, the trust section, "On your phone" notes                                                                                        |
-| PWA polish           | Install card (Chromium prompt, iPhone instructions, hidden when installed), "A new version is ready" toast, app badge, the full manifest and iOS splash screens                                                                  |
+| Area                 | What it covers                                                                                                                                                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Chats (D-043)        | Chats tab and badge, DMs, message requests (Requests tab, accept, decline), plan, hub and chapter chats (created when first opened), typing, delete own message, report a message, chat info, mute, block stops delivery             |
+| Coaching (D-044)     | Become a coach (profile, Coach Terms), listings (one-on-one in person or online; online group refused), weekly availability and exceptions, publish and pause, find coaches (near you, online), request a time, confirm, decline     |
+| Bookings             | `/bookings` for both sides, the booking page, the DM from a booking, mark done, no-show and contest, reviews and replies, the Refund Policy acknowledgment                                                                           |
+| Payments             | Off (`meta.coach_payments = 'off'`, no Stripe keys): prices show with "arranged directly with the coach"; no payment entry point anywhere. Stripe test mode on staging only once Sai adds the test keys                              |
+| Collector completion | An imported listing's source block and "Request removal", the site's `/bot` and removal form, organizer claims (code, Check now), `/organizer`, connect a calendar, moderator tabs (Takedowns, Claims, Health), venue geocoding      |
+| Recommendations      | For you on Home with up to two reason chips, Not interested and Undo, Why am I seeing this, Similar plans, Hubs you may like, Coaches for you, People you might click with, the privacy switches in You                              |
+| Landing page v2      | This week near you (Atlanta by default, a city picker, location only after a tap), How it works, the trust section, "On your phone" notes                                                                                            |
+| PWA polish           | Install card (Chromium prompt, iPhone instructions, hidden when installed), "A new version is ready" toast, app badge, the full manifest and iOS splash screens                                                                      |
 | Site pages           | `/bot`, `/bot/remove`, `/support`, `/terms` (draft), `/privacy` (draft), `/guidelines` (draft), `/coach-terms` (draft), `/refund-policy` (draft), `/safety`, `/safety/intimate-images`, `/map-data`, `/account/delete`, the 404 page |
 
 Out of scope: chat images (off until the classifier exists, section 6), live payments, the
@@ -113,6 +113,18 @@ Results of the Nov 5 QA pass (fresh builds of both apps against staging):
 
 The only console noise is `ERR_TUNNEL_CONNECTION_FAILED` from the map tile host and imported image
 hosts, which the test container cannot reach.
+
+Follow-up pass (Nov 5, after the known-gap fixes: `/terms` and `/privacy`, migration 69, the
+locale helper): 02-browse 14 passed, 05-sweep 58 passed, 10-recs 22 passed, 11-site 32 passed
+(now also `/terms` and `/privacy`, and the DRAFT banner on the five policy pages), 08-coaching book
+13 passed and finish 6 passed, all with 0 failed. The first finish run lost a race (the review was
+read from the coach's page before it was saved) and is fixed in the flow; reruns of the book phase
+then stopped at "You've sent a lot of requests today", the daily request limit working as
+intended, so the book phase's two flow fixes (preview checked after publishing, the DM banner may
+show an earlier run's booking) were checked step by step rather than in one clean run. A
+Playwright check with a `de-DE` and an `en-US` browser: landing cards 16:00 and km against 4:00 PM
+and mi, the share page "Thu 5 Nov · 16:00" against "Thu, Nov 5 · 4:00 PM", the Home radius in km
+against mi. The regression suite (66 files) passed on staging in run 42070857194.
 
 ### 3.4 Exploratory pass (Nov 5, by hand in Playwright)
 
@@ -312,7 +324,8 @@ Release B ships by Jan 4 only when all of these hold on the release candidate me
   and `SCORECARD_TO` exist.
 - **08-coaching runs at phone width only**; the coaching screens at 1280 were checked by hand.
 - **The QA coach account's "E2E tennis" listings are archived** (Nov 5,
-  `supabase/staging/qa_e2e_listings_cleanup.sql`, run 42064423565: 4 archived, none left active).
+  `supabase/staging/qa_e2e_listings_cleanup.sql`: run 42064423565 archived 4, and run 42070857194
+  archived the 7 the follow-up pass left; none are active).
   Re-run it after book-only runs of 08-coaching; it leaves a listing with a booking still to come.
 - **The demo accounts live on staging**, so an iPhone walkthrough of them needs a staging-pointed
   preview deployment (release A section 2).
