@@ -72,6 +72,19 @@ const ICONS: Record<NotificationKind, LucideIcon> = {
   // Chat notices are left out of the inbox query (migration 58); listed for the type.
   message: MessageCircle,
   message_request: MessageCircle,
+  // Coaching (migration 60); their copy and links arrive with the coaching client (slice 2).
+  booking_requested: CalendarClock,
+  booking_confirmed: CircleCheck,
+  booking_declined: CalendarX,
+  booking_cancelled: CalendarX,
+  booking_payment_due: CalendarClock,
+  booking_reminder_day: CalendarClock,
+  booking_reminder_2h: CalendarClock,
+  booking_review_prompt: Sparkles,
+  booking_no_show: ShieldAlert,
+  review_received: Sparkles,
+  review_reply: MessageCircle,
+  coach_payout_action: ShieldCheck,
 };
 
 function InboxPage() {

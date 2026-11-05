@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 59 (schema_version 2.55). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 60 (schema_version 2.56). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -258,6 +258,243 @@ export type Database = {
           },
         ];
       };
+      booking_payments: {
+        Row: {
+          amount_minor: number;
+          booking_id: string;
+          checkout_attempts: number;
+          checkout_session_id: string | null;
+          created_at: string;
+          currency: string;
+          dispute_status: string | null;
+          disputed_at: string | null;
+          fee_minor: number;
+          last_error: string | null;
+          payment_intent_id: string | null;
+          refund_requested_minor: number;
+          refunded_minor: number;
+          stripe_account_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          amount_minor: number;
+          booking_id: string;
+          checkout_attempts?: number;
+          checkout_session_id?: string | null;
+          created_at?: string;
+          currency: string;
+          dispute_status?: string | null;
+          disputed_at?: string | null;
+          fee_minor: number;
+          last_error?: string | null;
+          payment_intent_id?: string | null;
+          refund_requested_minor?: number;
+          refunded_minor?: number;
+          stripe_account_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          amount_minor?: number;
+          booking_id?: string;
+          checkout_attempts?: number;
+          checkout_session_id?: string | null;
+          created_at?: string;
+          currency?: string;
+          dispute_status?: string | null;
+          disputed_at?: string | null;
+          fee_minor?: number;
+          last_error?: string | null;
+          payment_intent_id?: string | null;
+          refund_requested_minor?: number;
+          refunded_minor?: number;
+          stripe_account_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "booking_payments_booking_id_fkey";
+            columns: ["booking_id"];
+            isOneToOne: true;
+            referencedRelation: "bookings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      booking_private: {
+        Row: {
+          booking_id: string;
+          meeting_note: string;
+          online_link: string | null;
+        };
+        Insert: {
+          booking_id: string;
+          meeting_note?: string;
+          online_link?: string | null;
+        };
+        Update: {
+          booking_id?: string;
+          meeting_note?: string;
+          online_link?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "booking_private_booking_id_fkey";
+            columns: ["booking_id"];
+            isOneToOne: true;
+            referencedRelation: "bookings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      bookings: {
+        Row: {
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+          client_id: string;
+          client_note: string;
+          client_request_id: string;
+          coach_id: string;
+          completed_at: string | null;
+          confirmed_at: string | null;
+          created_at: string;
+          currency: string;
+          declined_at: string | null;
+          delivery: Database["public"]["Enums"]["listing_delivery"];
+          ends_at: string;
+          expired_at: string | null;
+          expires_at: string;
+          fee_minor: number;
+          format: Database["public"]["Enums"]["listing_format"];
+          free_cancel_until: string;
+          id: string;
+          listing_id: string | null;
+          no_show_at: string | null;
+          no_show_contested_at: string | null;
+          no_show_party: string | null;
+          no_show_settled_at: string | null;
+          paid_at: string | null;
+          pay_by: string | null;
+          payment_mode: string;
+          payment_state: Database["public"]["Enums"]["booking_payment_state"];
+          policy_version: string;
+          price_minor: number;
+          requested_at: string;
+          session_id: string | null;
+          starts_at: string;
+          status: Database["public"]["Enums"]["booking_status"];
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          client_id: string;
+          client_note?: string;
+          client_request_id: string;
+          coach_id: string;
+          completed_at?: string | null;
+          confirmed_at?: string | null;
+          created_at?: string;
+          currency: string;
+          declined_at?: string | null;
+          delivery: Database["public"]["Enums"]["listing_delivery"];
+          ends_at: string;
+          expired_at?: string | null;
+          expires_at: string;
+          fee_minor?: number;
+          format: Database["public"]["Enums"]["listing_format"];
+          free_cancel_until: string;
+          id?: string;
+          listing_id?: string | null;
+          no_show_at?: string | null;
+          no_show_contested_at?: string | null;
+          no_show_party?: string | null;
+          no_show_settled_at?: string | null;
+          paid_at?: string | null;
+          pay_by?: string | null;
+          payment_mode: string;
+          payment_state: Database["public"]["Enums"]["booking_payment_state"];
+          policy_version: string;
+          price_minor: number;
+          requested_at?: string;
+          session_id?: string | null;
+          starts_at: string;
+          status?: Database["public"]["Enums"]["booking_status"];
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          client_id?: string;
+          client_note?: string;
+          client_request_id?: string;
+          coach_id?: string;
+          completed_at?: string | null;
+          confirmed_at?: string | null;
+          created_at?: string;
+          currency?: string;
+          declined_at?: string | null;
+          delivery?: Database["public"]["Enums"]["listing_delivery"];
+          ends_at?: string;
+          expired_at?: string | null;
+          expires_at?: string;
+          fee_minor?: number;
+          format?: Database["public"]["Enums"]["listing_format"];
+          free_cancel_until?: string;
+          id?: string;
+          listing_id?: string | null;
+          no_show_at?: string | null;
+          no_show_contested_at?: string | null;
+          no_show_party?: string | null;
+          no_show_settled_at?: string | null;
+          paid_at?: string | null;
+          pay_by?: string | null;
+          payment_mode?: string;
+          payment_state?: Database["public"]["Enums"]["booking_payment_state"];
+          policy_version?: string;
+          price_minor?: number;
+          requested_at?: string;
+          session_id?: string | null;
+          starts_at?: string;
+          status?: Database["public"]["Enums"]["booking_status"];
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "bookings_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bookings_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bookings_listing_id_fkey";
+            columns: ["listing_id"];
+            isOneToOne: false;
+            referencedRelation: "coach_listings";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bookings_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "coach_sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       chapter_claims: {
         Row: {
           agreement_version: string;
@@ -443,6 +680,559 @@ export type Database = {
             foreignKeyName: "chat_filter_strikes_user_id_fkey";
             columns: ["user_id"];
             isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      coach_availability_exceptions: {
+        Row: {
+          coach_id: string;
+          ends_at: string;
+          id: string;
+          kind: string;
+          note: string;
+          starts_at: string;
+        };
+        Insert: {
+          coach_id: string;
+          ends_at: string;
+          id?: string;
+          kind: string;
+          note?: string;
+          starts_at: string;
+        };
+        Update: {
+          coach_id?: string;
+          ends_at?: string;
+          id?: string;
+          kind?: string;
+          note?: string;
+          starts_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coach_availability_exceptions_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "coach_profiles";
+            referencedColumns: ["user_id"];
+          },
+        ];
+      };
+      coach_availability_rules: {
+        Row: {
+          coach_id: string;
+          end_local: string;
+          id: string;
+          listing_id: string | null;
+          start_local: string;
+          valid_from: string | null;
+          valid_until: string | null;
+          weekday: number;
+        };
+        Insert: {
+          coach_id: string;
+          end_local: string;
+          id?: string;
+          listing_id?: string | null;
+          start_local: string;
+          valid_from?: string | null;
+          valid_until?: string | null;
+          weekday: number;
+        };
+        Update: {
+          coach_id?: string;
+          end_local?: string;
+          id?: string;
+          listing_id?: string | null;
+          start_local?: string;
+          valid_from?: string | null;
+          valid_until?: string | null;
+          weekday?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coach_availability_rules_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "coach_profiles";
+            referencedColumns: ["user_id"];
+          },
+          {
+            foreignKeyName: "coach_availability_rules_listing_id_fkey";
+            columns: ["listing_id"];
+            isOneToOne: false;
+            referencedRelation: "coach_listings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      coach_credentials: {
+        Row: {
+          coach_id: string;
+          id: string;
+          issuer: string;
+          position: number;
+          title: string;
+          year: number | null;
+        };
+        Insert: {
+          coach_id: string;
+          id?: string;
+          issuer?: string;
+          position?: number;
+          title: string;
+          year?: number | null;
+        };
+        Update: {
+          coach_id?: string;
+          id?: string;
+          issuer?: string;
+          position?: number;
+          title?: string;
+          year?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coach_credentials_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "coach_profiles";
+            referencedColumns: ["user_id"];
+          },
+        ];
+      };
+      coach_fee_minimums: {
+        Row: {
+          currency: string;
+          min_fee_minor: number;
+        };
+        Insert: {
+          currency: string;
+          min_fee_minor: number;
+        };
+        Update: {
+          currency?: string;
+          min_fee_minor?: number;
+        };
+        Relationships: [];
+      };
+      coach_hubs: {
+        Row: {
+          coach_id: string;
+          hub_id: string;
+        };
+        Insert: {
+          coach_id: string;
+          hub_id: string;
+        };
+        Update: {
+          coach_id?: string;
+          hub_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coach_hubs_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "coach_profiles";
+            referencedColumns: ["user_id"];
+          },
+          {
+            foreignKeyName: "coach_hubs_hub_id_fkey";
+            columns: ["hub_id"];
+            isOneToOne: false;
+            referencedRelation: "hubs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      coach_listing_private: {
+        Row: {
+          listing_id: string;
+          meeting_note: string;
+          online_link: string | null;
+        };
+        Insert: {
+          listing_id: string;
+          meeting_note?: string;
+          online_link?: string | null;
+        };
+        Update: {
+          listing_id?: string;
+          meeting_note?: string;
+          online_link?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coach_listing_private_listing_id_fkey";
+            columns: ["listing_id"];
+            isOneToOne: true;
+            referencedRelation: "coach_listings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      coach_listings: {
+        Row: {
+          auto_confirm: boolean;
+          buffer_minutes: number;
+          capacity: number;
+          coach_id: string;
+          created_at: string;
+          currency: string;
+          delivery: Database["public"]["Enums"]["listing_delivery"];
+          description: string;
+          duration_minutes: number;
+          format: Database["public"]["Enums"]["listing_format"];
+          hub_id: string | null;
+          id: string;
+          max_advance_days: number;
+          min_age: number;
+          min_notice_hours: number;
+          moderated_at: string | null;
+          moderation_state: string | null;
+          price_minor: number;
+          slot_step_minutes: number;
+          status: Database["public"]["Enums"]["listing_status"];
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          auto_confirm?: boolean;
+          buffer_minutes?: number;
+          capacity?: number;
+          coach_id: string;
+          created_at?: string;
+          currency: string;
+          delivery: Database["public"]["Enums"]["listing_delivery"];
+          description?: string;
+          duration_minutes: number;
+          format: Database["public"]["Enums"]["listing_format"];
+          hub_id?: string | null;
+          id?: string;
+          max_advance_days?: number;
+          min_age?: number;
+          min_notice_hours?: number;
+          moderated_at?: string | null;
+          moderation_state?: string | null;
+          price_minor: number;
+          slot_step_minutes?: number;
+          status?: Database["public"]["Enums"]["listing_status"];
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          auto_confirm?: boolean;
+          buffer_minutes?: number;
+          capacity?: number;
+          coach_id?: string;
+          created_at?: string;
+          currency?: string;
+          delivery?: Database["public"]["Enums"]["listing_delivery"];
+          description?: string;
+          duration_minutes?: number;
+          format?: Database["public"]["Enums"]["listing_format"];
+          hub_id?: string | null;
+          id?: string;
+          max_advance_days?: number;
+          min_age?: number;
+          min_notice_hours?: number;
+          moderated_at?: string | null;
+          moderation_state?: string | null;
+          price_minor?: number;
+          slot_step_minutes?: number;
+          status?: Database["public"]["Enums"]["listing_status"];
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coach_listings_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "coach_profiles";
+            referencedColumns: ["user_id"];
+          },
+          {
+            foreignKeyName: "coach_listings_hub_id_fkey";
+            columns: ["hub_id"];
+            isOneToOne: false;
+            referencedRelation: "hubs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      coach_photos: {
+        Row: {
+          coach_id: string;
+          created_at: string;
+          id: string;
+          position: number;
+          url: string;
+        };
+        Insert: {
+          coach_id: string;
+          created_at?: string;
+          id?: string;
+          position?: number;
+          url: string;
+        };
+        Update: {
+          coach_id?: string;
+          created_at?: string;
+          id?: string;
+          position?: number;
+          url?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coach_photos_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "coach_profiles";
+            referencedColumns: ["user_id"];
+          },
+        ];
+      };
+      coach_profiles: {
+        Row: {
+          about: string;
+          area_label: string;
+          completed_count: number;
+          created_at: string;
+          headline: string;
+          in_person: boolean;
+          online: boolean;
+          published_at: string | null;
+          rating_avg: number | null;
+          rating_count: number;
+          service_point: unknown;
+          service_radius_km: number | null;
+          status: Database["public"]["Enums"]["coach_status"];
+          suspended_at: string | null;
+          terms_accepted_at: string | null;
+          terms_version: string | null;
+          timezone: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          about?: string;
+          area_label?: string;
+          completed_count?: number;
+          created_at?: string;
+          headline?: string;
+          in_person?: boolean;
+          online?: boolean;
+          published_at?: string | null;
+          rating_avg?: number | null;
+          rating_count?: number;
+          service_point?: unknown;
+          service_radius_km?: number | null;
+          status?: Database["public"]["Enums"]["coach_status"];
+          suspended_at?: string | null;
+          terms_accepted_at?: string | null;
+          terms_version?: string | null;
+          timezone: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          about?: string;
+          area_label?: string;
+          completed_count?: number;
+          created_at?: string;
+          headline?: string;
+          in_person?: boolean;
+          online?: boolean;
+          published_at?: string | null;
+          rating_avg?: number | null;
+          rating_count?: number;
+          service_point?: unknown;
+          service_radius_km?: number | null;
+          status?: Database["public"]["Enums"]["coach_status"];
+          suspended_at?: string | null;
+          terms_accepted_at?: string | null;
+          terms_version?: string | null;
+          timezone?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coach_profiles_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      coach_reviews: {
+        Row: {
+          body: string;
+          booking_id: string;
+          client_id: string;
+          coach_id: string;
+          created_at: string;
+          edited_at: string | null;
+          moderated_at: string | null;
+          moderation_state: string | null;
+          rating: number;
+          replied_at: string | null;
+          reply: string | null;
+          reply_moderation_state: string | null;
+        };
+        Insert: {
+          body?: string;
+          booking_id: string;
+          client_id: string;
+          coach_id: string;
+          created_at?: string;
+          edited_at?: string | null;
+          moderated_at?: string | null;
+          moderation_state?: string | null;
+          rating: number;
+          replied_at?: string | null;
+          reply?: string | null;
+          reply_moderation_state?: string | null;
+        };
+        Update: {
+          body?: string;
+          booking_id?: string;
+          client_id?: string;
+          coach_id?: string;
+          created_at?: string;
+          edited_at?: string | null;
+          moderated_at?: string | null;
+          moderation_state?: string | null;
+          rating?: number;
+          replied_at?: string | null;
+          reply?: string | null;
+          reply_moderation_state?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coach_reviews_booking_id_fkey";
+            columns: ["booking_id"];
+            isOneToOne: true;
+            referencedRelation: "bookings";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "coach_reviews_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "coach_reviews_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      coach_sessions: {
+        Row: {
+          busy: unknown;
+          cancelled_at: string | null;
+          capacity: number;
+          coach_id: string;
+          created_at: string;
+          ends_at: string;
+          id: string;
+          listing_id: string;
+          starts_at: string;
+          status: Database["public"]["Enums"]["coach_session_status"];
+        };
+        Insert: {
+          busy: unknown;
+          cancelled_at?: string | null;
+          capacity: number;
+          coach_id: string;
+          created_at?: string;
+          ends_at: string;
+          id?: string;
+          listing_id: string;
+          starts_at: string;
+          status?: Database["public"]["Enums"]["coach_session_status"];
+        };
+        Update: {
+          busy?: unknown;
+          cancelled_at?: string | null;
+          capacity?: number;
+          coach_id?: string;
+          created_at?: string;
+          ends_at?: string;
+          id?: string;
+          listing_id?: string;
+          starts_at?: string;
+          status?: Database["public"]["Enums"]["coach_session_status"];
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coach_sessions_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "coach_profiles";
+            referencedColumns: ["user_id"];
+          },
+          {
+            foreignKeyName: "coach_sessions_listing_id_fkey";
+            columns: ["listing_id"];
+            isOneToOne: false;
+            referencedRelation: "coach_listings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      coach_stripe_accounts: {
+        Row: {
+          charges_enabled: boolean;
+          coach_id: string;
+          country: string;
+          default_currency: string | null;
+          details_submitted: boolean;
+          disabled_reason: string | null;
+          payouts_enabled: boolean;
+          requirements_due: string[];
+          stripe_account_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          charges_enabled?: boolean;
+          coach_id: string;
+          country: string;
+          default_currency?: string | null;
+          details_submitted?: boolean;
+          disabled_reason?: string | null;
+          payouts_enabled?: boolean;
+          requirements_due?: string[];
+          stripe_account_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          charges_enabled?: boolean;
+          coach_id?: string;
+          country?: string;
+          default_currency?: string | null;
+          details_submitted?: boolean;
+          disabled_reason?: string | null;
+          payouts_enabled?: boolean;
+          requirements_due?: string[];
+          stripe_account_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coach_stripe_accounts_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: true;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
@@ -2275,6 +3065,7 @@ export type Database = {
       };
       notification_prefs: {
         Row: {
+          bookings: boolean;
           checkin_prompts: boolean;
           email_enabled: boolean;
           event_reminders: boolean;
@@ -2291,6 +3082,7 @@ export type Database = {
           weekly_digest: boolean;
         };
         Insert: {
+          bookings?: boolean;
           checkin_prompts?: boolean;
           email_enabled?: boolean;
           event_reminders?: boolean;
@@ -2307,6 +3099,7 @@ export type Database = {
           weekly_digest?: boolean;
         };
         Update: {
+          bookings?: boolean;
           checkin_prompts?: boolean;
           email_enabled?: boolean;
           event_reminders?: boolean;
@@ -3810,6 +4603,92 @@ export type Database = {
           },
         ];
       };
+      stripe_events: {
+        Row: {
+          account: string | null;
+          error: string | null;
+          id: string;
+          livemode: boolean;
+          object_id: string | null;
+          processed_at: string | null;
+          received_at: string;
+          type: string;
+        };
+        Insert: {
+          account?: string | null;
+          error?: string | null;
+          id: string;
+          livemode: boolean;
+          object_id?: string | null;
+          processed_at?: string | null;
+          received_at?: string;
+          type: string;
+        };
+        Update: {
+          account?: string | null;
+          error?: string | null;
+          id?: string;
+          livemode?: boolean;
+          object_id?: string | null;
+          processed_at?: string | null;
+          received_at?: string;
+          type?: string;
+        };
+        Relationships: [];
+      };
+      stripe_jobs: {
+        Row: {
+          amount_minor: number | null;
+          attempts: number;
+          booking_id: string | null;
+          created_at: string;
+          id: number;
+          idempotency_key: string;
+          last_error: string | null;
+          next_at: string;
+          op: string;
+          status: string;
+          stripe_account_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          amount_minor?: number | null;
+          attempts?: number;
+          booking_id?: string | null;
+          created_at?: string;
+          id?: number;
+          idempotency_key: string;
+          last_error?: string | null;
+          next_at?: string;
+          op: string;
+          status?: string;
+          stripe_account_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          amount_minor?: number | null;
+          attempts?: number;
+          booking_id?: string | null;
+          created_at?: string;
+          id?: number;
+          idempotency_key?: string;
+          last_error?: string | null;
+          next_at?: string;
+          op?: string;
+          status?: string;
+          stripe_account_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stripe_jobs_booking_id_fkey";
+            columns: ["booking_id"];
+            isOneToOne: false;
+            referencedRelation: "bookings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       takedown_requests: {
         Row: {
           client_hash: string | null;
@@ -4133,7 +5012,9 @@ export type Database = {
       };
     };
     Functions: {
+      accept_coach_terms: { Args: { p_version: string }; Returns: Json };
       accept_guidelines: { Args: never; Returns: string };
+      add_availability_exception: { Args: { p: Json }; Returns: string };
       add_group_members: {
         Args: { p_conversation: string; p_users: string[] };
         Returns: Json;
@@ -4168,11 +5049,51 @@ export type Database = {
         };
       };
       block_user: { Args: { p_user: string }; Returns: Json };
+      booking_checkout_opened: {
+        Args: {
+          p_account: string;
+          p_amount: number;
+          p_booking: string;
+          p_currency: string;
+          p_fee: number;
+          p_session_id: string;
+        };
+        Returns: Json;
+      };
+      booking_checkout_params: {
+        Args: { p_booking: string; p_user: string };
+        Returns: Json;
+      };
+      booking_dispute_update: {
+        Args: { p_closed: boolean; p_payment_intent: string; p_status: string };
+        Returns: string;
+      };
+      booking_mark_paid: {
+        Args: {
+          p_amount: number;
+          p_booking: string;
+          p_payment_intent: string;
+          p_session_id: string;
+        };
+        Returns: string;
+      };
+      booking_payment_expired: {
+        Args: { p_session_id: string };
+        Returns: string;
+      };
+      booking_refund_recorded: {
+        Args: { p_payment_intent: string; p_refunded_minor: number };
+        Returns: string;
+      };
       broadcast_to_event: {
         Args: { p_body: string; p_event_id: string };
         Returns: Json;
       };
       can_read_event: { Args: { p_event: string }; Returns: boolean };
+      cancel_booking: {
+        Args: { p_id: string; p_reason?: string };
+        Returns: Json;
+      };
       cancel_event: {
         Args: { p_event_id: string; p_reason?: string };
         Returns: {
@@ -4271,6 +5192,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      cancel_group_session: { Args: { p_id: string }; Returns: Json };
       chapter_dashboard: {
         Args: { p_chapter: string; p_weeks?: number };
         Returns: Json;
@@ -4335,6 +5257,21 @@ export type Database = {
       };
       claim_pending_notifications: { Args: { p_limit?: number }; Returns: Json };
       clear_foreign_image_urls: { Args: never; Returns: Json };
+      coach_payout_status: { Args: never; Returns: Json };
+      coach_reviews_page: {
+        Args: { p_before?: Json; p_coach: string; p_limit?: number };
+        Returns: Json;
+      };
+      coach_slots: {
+        Args: { p_from: string; p_listing: string; p_to: string };
+        Returns: {
+          ends_at: string;
+          seats_left: number;
+          starts_at: string;
+        }[];
+      };
+      coaching_config: { Args: never; Returns: Json };
+      coaching_tick: { Args: never; Returns: Json };
       collector_api_budget_cap: { Args: { p_api: string }; Returns: number };
       collector_api_budget_return: {
         Args: { p_api: string; p_calls: number; p_day: string };
@@ -4371,6 +5308,7 @@ export type Database = {
         Returns: Json;
       };
       collector_verify_secret: { Args: { p_secret: string }; Returns: boolean };
+      complete_booking: { Args: { p_id: string }; Returns: Json };
       complete_notification_delivery: {
         Args: { p_devices?: Json; p_results: Json };
         Returns: number;
@@ -4414,10 +5352,12 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      confirm_booking: { Args: { p_id: string }; Returns: Json };
       confirm_email_verification: {
         Args: { p_code: string; p_email?: string };
         Returns: Json;
       };
+      contest_no_show: { Args: { p_id: string; p_note: string }; Returns: Json };
       conversation_info: { Args: { p_conversation: string }; Returns: Json };
       create_event: {
         Args: { p_args: Json };
@@ -4525,6 +5465,7 @@ export type Database = {
         Args: { p_email: string; p_user_id: string };
         Returns: Json;
       };
+      decline_booking: { Args: { p_id: string }; Returns: Json };
       default_address_visibility: {
         Args: { p_venue_id: string };
         Returns: Database["public"]["Enums"]["address_visibility"];
@@ -4731,6 +5672,8 @@ export type Database = {
         Returns: Json;
       };
       generate_handle: { Args: { p_email: string }; Returns: string };
+      get_booking: { Args: { p_id: string }; Returns: Json };
+      get_coach: { Args: { p_handle: string }; Returns: Json };
       get_messages: {
         Args: {
           p_after_seq?: number;
@@ -4952,6 +5895,7 @@ export type Database = {
         Args: { p_conversation: string; p_seq: number };
         Returns: undefined;
       };
+      mark_no_show: { Args: { p_id: string }; Returns: Json };
       mark_notifications_read: { Args: { p_ids?: string[] }; Returns: number };
       materialize_all_event_series: {
         Args: { p_weeks?: number };
@@ -4967,6 +5911,11 @@ export type Database = {
         Returns: undefined;
       };
       mod_ban_user: { Args: { p_note?: string; p_user: string }; Returns: Json };
+      mod_booking: {
+        Args: { p_action: string; p_id: string; p_note?: string };
+        Returns: Json;
+      };
+      mod_coaching_numbers: { Args: never; Returns: Json };
       mod_lookup_log: { Args: { p_limit?: number }; Returns: Json };
       mod_message_evidence: { Args: { p_report: string }; Returns: Json };
       mod_moderate: {
@@ -4997,6 +5946,10 @@ export type Database = {
         Returns: Json;
       };
       mod_scorecard: { Args: never; Returns: Json };
+      mod_set_coach_status: {
+        Args: { p_note?: string; p_status: string; p_user: string };
+        Returns: Json;
+      };
       mod_sla_hours: { Args: { p_source: string }; Returns: number };
       mod_takedown_block_image: {
         Args: { p_image_url: string; p_request: string };
@@ -5045,6 +5998,16 @@ export type Database = {
           user_id: string;
         }[];
       };
+      my_bookings: {
+        Args: {
+          p_before?: Json;
+          p_limit?: number;
+          p_role: string;
+          p_scope: string;
+        };
+        Returns: Json;
+      };
+      my_bookings_with: { Args: { p_user: string }; Returns: Json };
       my_chapter_claims: {
         Args: never;
         Returns: {
@@ -5126,6 +6089,7 @@ export type Database = {
       open_chapter_chat: { Args: { p_chapter: string }; Returns: Json };
       open_event_chat: { Args: { p_event: string }; Returns: Json };
       open_hub_chat: { Args: { p_hub: string }; Returns: Json };
+      pause_coach_profile: { Args: never; Returns: Json };
       pending_attendance_prompts: {
         Args: never;
         Returns: {
@@ -5273,8 +6237,10 @@ export type Database = {
         Returns: string[];
       };
       project_url: { Args: never; Returns: string };
+      publish_coach_profile: { Args: never; Returns: Json };
       purge_account_deletions: { Args: never; Returns: number };
       purge_admin_lookups: { Args: never; Returns: number };
+      purge_coaching: { Args: never; Returns: Json };
       purge_messaging: { Args: never; Returns: Json };
       purge_read_notifications: { Args: never; Returns: number };
       purge_takedown_contacts: { Args: never; Returns: number };
@@ -5299,6 +6265,10 @@ export type Database = {
           p_user_agent?: string;
         };
         Returns: string;
+      };
+      remove_availability_exception: {
+        Args: { p_id: string };
+        Returns: boolean;
       };
       remove_chapter_member: {
         Args: { p_chapter: string; p_user: string };
@@ -5336,6 +6306,11 @@ export type Database = {
         Args: { p_conversation: string; p_title: string };
         Returns: undefined;
       };
+      reply_to_review: {
+        Args: { p_booking: string; p_text: string };
+        Returns: Json;
+      };
+      report_coach_no_show: { Args: { p_id: string }; Returns: Json };
       report_content: {
         Args: {
           p_id: string;
@@ -5352,6 +6327,16 @@ export type Database = {
       request_account_deletion: {
         Args: { p_reason?: string };
         Returns: undefined;
+      };
+      request_booking: {
+        Args: {
+          p_client_request_id: string;
+          p_listing: string;
+          p_note: string;
+          p_policy_version: string;
+          p_starts_at: string;
+        };
+        Returns: Json;
       };
       request_hub: {
         Args: { p_name: string; p_note?: string };
@@ -5412,6 +6397,42 @@ export type Database = {
         };
       };
       rsvp_promote_waitlist: { Args: { p_event_id: string }; Returns: number };
+      schedule_group_session: {
+        Args: { p_listing: string; p_starts_at: string };
+        Returns: string;
+      };
+      search_coaches: {
+        Args: {
+          p_before?: Json;
+          p_currency?: string;
+          p_delivery?: Database["public"]["Enums"]["listing_delivery"];
+          p_hub_id?: string;
+          p_lat?: number;
+          p_limit?: number;
+          p_lng?: number;
+          p_max_price_minor?: number;
+          p_query?: string;
+          p_radius_km?: number;
+        };
+        Returns: {
+          area_label: string;
+          avatar_url: string;
+          completed_count: number;
+          distance_band: string;
+          first_name: string;
+          from_currency: string;
+          from_price_minor: number;
+          handle: string;
+          headline: string;
+          hub_ids: string[];
+          in_person: boolean;
+          online: boolean;
+          page_key: Json;
+          rating_avg: number;
+          rating_count: number;
+          user_id: string;
+        }[];
+      };
       send_message: {
         Args: {
           p_body: string;
@@ -5419,6 +6440,11 @@ export type Database = {
           p_conversation: string;
           p_image_path?: string;
         };
+        Returns: Json;
+      };
+      set_availability: { Args: { p_rules: Json }; Returns: number };
+      set_booking_meeting: {
+        Args: { p_id: string; p_link: string; p_note: string };
         Returns: Json;
       };
       set_chapter_role: {
@@ -5429,6 +6455,9 @@ export type Database = {
         };
         Returns: undefined;
       };
+      set_coach_credentials: { Args: { p: Json }; Returns: number };
+      set_coach_hubs: { Args: { p_hub_ids: string[] }; Returns: number };
+      set_coach_photos: { Args: { p_urls: string[] }; Returns: number };
       set_conversation_notify: {
         Args: { p_conversation: string; p_notify: boolean };
         Returns: undefined;
@@ -5451,6 +6480,13 @@ export type Database = {
           p_lat: number;
           p_lng: number;
           p_radius_km?: number;
+        };
+        Returns: Json;
+      };
+      set_listing_status: {
+        Args: {
+          p_id: string;
+          p_status: Database["public"]["Enums"]["listing_status"];
         };
         Returns: Json;
       };
@@ -5536,6 +6572,41 @@ export type Database = {
         Args: { p_url: string };
         Returns: Record<string, unknown>;
       };
+      stripe_account_closed: { Args: { p_account: string }; Returns: boolean };
+      stripe_account_sync: {
+        Args: { p: Json; p_account: string };
+        Returns: boolean;
+      };
+      stripe_account_upsert: {
+        Args: { p: Json; p_coach: string };
+        Returns: Json;
+      };
+      stripe_checkout_heartbeat: { Args: never; Returns: undefined };
+      stripe_connect_context: { Args: { p_user: string }; Returns: Json };
+      stripe_dispatch: { Args: never; Returns: number };
+      stripe_dispatch_verify_secret: {
+        Args: { p_secret: string };
+        Returns: boolean;
+      };
+      stripe_event_begin: {
+        Args: {
+          p_account: string;
+          p_id: string;
+          p_livemode: boolean;
+          p_object: string;
+          p_type: string;
+        };
+        Returns: string;
+      };
+      stripe_event_finish: {
+        Args: { p_error?: string; p_id: string };
+        Returns: undefined;
+      };
+      stripe_job_done: {
+        Args: { p_error?: string; p_id: number; p_ok: boolean };
+        Returns: string;
+      };
+      stripe_jobs_claim: { Args: { p_limit?: number }; Returns: Json };
       submit_attendance: {
         Args: { p_attended: boolean; p_event_id: string; p_met?: string[] };
         Returns: Json;
@@ -5696,6 +6767,8 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      upsert_coach_profile: { Args: { p: Json }; Returns: Json };
+      upsert_listing: { Args: { p: Json }; Returns: Json };
       upsert_venue: {
         Args: { p_args: Json };
         Returns: {
@@ -5804,19 +6877,41 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      write_review: {
+        Args: { p_body: string; p_booking: string; p_rating: number };
+        Returns: Json;
+      };
     };
     Enums: {
       account_status: "active" | "suspended" | "banned" | "deleted";
       address_visibility: "public" | "approved_only";
       app_role: "moderator" | "admin";
+      booking_payment_state:
+        | "none"
+        | "off_platform"
+        | "due"
+        | "processing"
+        | "paid"
+        | "refund_pending"
+        | "partially_refunded"
+        | "refunded"
+        | "disputed"
+        | "failed";
+      booking_status:
+        "requested" | "confirmed" | "declined" | "expired" | "cancelled" | "completed" | "no_show";
       chapter_claim_status: "pending" | "approved" | "rejected" | "withdrawn";
       chapter_role: "member" | "captain" | "organizer";
+      coach_session_status: "scheduled" | "cancelled" | "done";
+      coach_status: "draft" | "active" | "paused" | "suspended";
       conversation_kind: "dm" | "group" | "event" | "hub" | "chapter";
       conversation_role: "owner" | "admin" | "member";
       device_platform: "web" | "ios" | "android";
       event_kind: "member" | "chapter" | "imported";
       event_status: "published" | "cancelled";
       event_visibility: "public" | "campus";
+      listing_delivery: "in_person" | "online";
+      listing_format: "one_on_one" | "group";
+      listing_status: "active" | "paused" | "archived";
       notification_channel_status: "pending" | "sent" | "skipped" | "failed";
       notification_kind:
         | "rsvp_confirmed"
@@ -5833,7 +6928,19 @@ export type Database = {
         | "chapter_claim_update"
         | "blocked_attendee"
         | "message"
-        | "message_request";
+        | "message_request"
+        | "booking_requested"
+        | "booking_confirmed"
+        | "booking_declined"
+        | "booking_cancelled"
+        | "booking_payment_due"
+        | "booking_reminder_day"
+        | "booking_reminder_2h"
+        | "booking_review_prompt"
+        | "booking_no_show"
+        | "review_received"
+        | "review_reply"
+        | "coach_payout_action";
       org_kind: "university" | "company" | "community";
       org_role: "member" | "officer" | "admin";
       place_source: "osm" | "geoapify" | "user" | "venue";
@@ -5964,14 +7071,40 @@ export const Constants = {
       account_status: ["active", "suspended", "banned", "deleted"],
       address_visibility: ["public", "approved_only"],
       app_role: ["moderator", "admin"],
+      booking_payment_state: [
+        "none",
+        "off_platform",
+        "due",
+        "processing",
+        "paid",
+        "refund_pending",
+        "partially_refunded",
+        "refunded",
+        "disputed",
+        "failed",
+      ],
+      booking_status: [
+        "requested",
+        "confirmed",
+        "declined",
+        "expired",
+        "cancelled",
+        "completed",
+        "no_show",
+      ],
       chapter_claim_status: ["pending", "approved", "rejected", "withdrawn"],
       chapter_role: ["member", "captain", "organizer"],
+      coach_session_status: ["scheduled", "cancelled", "done"],
+      coach_status: ["draft", "active", "paused", "suspended"],
       conversation_kind: ["dm", "group", "event", "hub", "chapter"],
       conversation_role: ["owner", "admin", "member"],
       device_platform: ["web", "ios", "android"],
       event_kind: ["member", "chapter", "imported"],
       event_status: ["published", "cancelled"],
       event_visibility: ["public", "campus"],
+      listing_delivery: ["in_person", "online"],
+      listing_format: ["one_on_one", "group"],
+      listing_status: ["active", "paused", "archived"],
       notification_channel_status: ["pending", "sent", "skipped", "failed"],
       notification_kind: [
         "rsvp_confirmed",
@@ -5989,6 +7122,18 @@ export const Constants = {
         "blocked_attendee",
         "message",
         "message_request",
+        "booking_requested",
+        "booking_confirmed",
+        "booking_declined",
+        "booking_cancelled",
+        "booking_payment_due",
+        "booking_reminder_day",
+        "booking_reminder_2h",
+        "booking_review_prompt",
+        "booking_no_show",
+        "review_received",
+        "review_reply",
+        "coach_payout_action",
       ],
       org_kind: ["university", "company", "community"],
       org_role: ["member", "officer", "admin"],
