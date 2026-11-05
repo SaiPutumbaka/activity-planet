@@ -62,3 +62,6 @@ coaching.sql
 coaching_rules.sql
 coaching_payments.sql
 coaching_review_fixes.sql
+listing_removal.sql
+organizer_claims.sql
+organizer_feeds.sql
