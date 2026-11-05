@@ -172,11 +172,11 @@ declare
   v      jsonb;
   i      integer;
 begin
-  insert into public.collector_regions (point, radius_km, label, priority)
-  values (extensions.ST_SetSRID(extensions.ST_MakePoint(100.1, -60.1), 4326)::extensions.geography, 25, 'APTest probe A', 999)
+  insert into public.collector_regions (point, radius_km, label, priority, timezone)
+  values (extensions.ST_SetSRID(extensions.ST_MakePoint(100.1, -60.1), 4326)::extensions.geography, 25, 'APTest probe A', 999, 'Pacific/Auckland')
   returning id into v_r;
-  insert into public.collector_regions (point, radius_km, label, priority)
-  values (extensions.ST_SetSRID(extensions.ST_MakePoint(110.1, -60.1), 4326)::extensions.geography, 25, 'APTest probe B', 999)
+  insert into public.collector_regions (point, radius_km, label, priority, timezone)
+  values (extensions.ST_SetSRID(extensions.ST_MakePoint(110.1, -60.1), 4326)::extensions.geography, 25, 'APTest probe B', 999, 'Pacific/Auckland')
   returning id into v_r2;
   perform set_config('t.r', v_r::text, true);
 
@@ -185,6 +185,8 @@ begin
     raise exception 'FAIL the probe queue was open without a passing gate';
   end if;
 
+  -- Migration 50: a region whose zone needs a country (or none) is not probed automatically, so
+  -- the test regions carry a time zone outside the EU gate.
   -- Five probe-able candidates in region A, scores 50..54; one in region B.
   for i in 0..4 loop
     insert into public.source_candidates (host, url, region_id, origin, score)

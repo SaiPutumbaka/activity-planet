@@ -1,7 +1,7 @@
 -- ============================================================================
 -- Staging check for migration 20261112000100_importer.sql (D-037).
 -- One transaction: two throwaway feed sources, synthetic batches through
--- import_upsert_batch, a fresh Atlanta user, assertions in DO blocks that
+-- import_upsert_batch, a fresh user, assertions in DO blocks that
 -- raise on failure, then ROLLBACK. Run as the staging_file of a staging_only
 -- migrate.yml run.
 -- ============================================================================
@@ -63,10 +63,18 @@ begin
     raise exception 'FAIL batch 1 skip reasons: %', v_res;
   end if;
 
-  -- Fresh Atlanta user (no hubs, no campus).
+  -- Fresh user (no hubs, no campus) whose saved home is next to the test events.
   insert into auth.users (id, instance_id, aud, role, email, created_at, updated_at)
   values (v_viewer, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
           'importer-viewer-' || substr(v_viewer::text, 1, 8) || '@example.com', now(), now());
+  -- Migration 22: events are read through viewer_is_adult (onboarded, birth date 18+);
+  -- migration 24: the feed origin is the saved home point.
+  update public.profile_private
+     set birth_date = date '1990-01-01',
+         home_point = extensions.ST_SetSRID(extensions.ST_MakePoint(-84.39, 33.75), 4326)::extensions.geography
+   where user_id = v_viewer;
+  update public.profiles set onboarding_completed_at = now(), guidelines_accepted_at = now()
+   where id = v_viewer;
   perform set_config('test.viewer', v_viewer::text, true);
 end $$;
 
@@ -253,7 +261,7 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
--- As a fresh Atlanta user: Feed v2 shows the imported rows, labels resolve,
+-- As a fresh user: Feed v2 shows the imported rows, labels resolve,
 -- the importer tables read as empty
 -- ---------------------------------------------------------------------------
 set local role authenticated;
@@ -270,7 +278,7 @@ begin
     from public.feed_events_v2(now(), now() + interval '30 days')
    where is_imported and source_name in ('Test Calendar A') and matched_by = 'nearby';
   if v_n < 4 then
-    raise exception 'FAIL feed_events_v2 shows % test imported rows to a fresh Atlanta user', v_n;
+    raise exception 'FAIL feed_events_v2 shows % test imported rows to a fresh user', v_n;
   end if;
 
   select * into v_lab from public.imported_event_labels(array(

@@ -3,7 +3,8 @@
 -- (regression test for the migration 18 review). One transaction: throwaway
 -- users and events; DO blocks raise on failure; ROLLBACK at the end. Prints
 -- only pass/fail, never user rows.
---   1 update_event: T1 -> T2 -> T1 -> T2 tells a going attendee three times;
+--   1 update_event: T1 -> T2 -> T1 -> T2 in one hour tells a going attendee once
+--     (migration 22 dedupes per hour);
 --     an edit that changes neither time nor place tells nobody.
 --   2 attendee_joined: a, b, then a leaves and rejoins counts 2; the payload
 --     holds no raw user id.
@@ -98,7 +99,9 @@ declare
 begin
   select count(*) into n from public.notifications
    where user_id = current_setting('test.a')::uuid and kind = 'event_updated';
-  if n <> 3 then raise exception 'FAIL 1 three moves gave % event_updated rows', n; end if;
+  -- Migration 22: one event_updated row per event per UTC hour, refreshed by later edits
+  -- (security_fixes.sql checks the refresh), so three moves in one transaction give one row.
+  if n <> 1 then raise exception 'FAIL 1 three moves in one hour gave % event_updated rows', n; end if;
 
   select * into x from public.notifications
    where user_id = current_setting('test.h')::uuid and kind = 'attendee_joined'
