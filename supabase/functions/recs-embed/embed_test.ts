@@ -262,3 +262,32 @@ Deno.test("a failing secret check answers 500 without claiming", async () => {
   await res.body?.cancel();
   assertEquals(calls, ["recs_embed_verify_secret"]);
 });
+
+Deno.test(
+  "the model-time budget stops the batch before the CPU limit; flushEvery 1 records each row",
+  async () => {
+    let t = 0;
+    const { model, calls } = fakeModel((_text, i) => {
+      t += 500; // 0.5 s inside the model per row
+      return unit(i);
+    });
+    const recordCalls: number[] = [];
+    const res = await runBatch(
+      {
+        model,
+        now: () => t,
+        claim: () => Promise.resolve(rows(6)),
+        record: (r) => {
+          recordCalls.push(r.length);
+          return Promise.resolve(r.length);
+        },
+        fail: () => Promise.resolve(),
+      },
+      { modelBudgetMs: 1_200, flushEvery: 1 },
+    );
+    // 0.5, 1.0, 1.5 s: the fourth row is not started.
+    assertEquals(calls.length, 3);
+    assertEquals(recordCalls, [1, 1, 1]);
+    assertEquals([res.embedded, res.recorded, res.left], [3, 3, 3]);
+  },
+);

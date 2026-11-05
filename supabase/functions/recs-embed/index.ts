@@ -54,7 +54,9 @@ Deno.serve(
     rpc,
     model,
     log: (line) => console.log(line),
-    maxRows: 24,
-    budgetMs: 50_000,
+    // Staging showed the Edge Runtime's CPU limit (about 2 s a request) stopping 24-row batches
+    // before anything was recorded: claim a few rows, stop after about 1.2 s inside the model and
+    // record every row as soon as it is embedded. Unprocessed rows stay leased for 5 minutes.
+    batch: { maxRows: 6, budgetMs: 50_000, modelBudgetMs: 1_200, flushEvery: 1 },
   }),
 );

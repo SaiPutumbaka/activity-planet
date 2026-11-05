@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 66 (schema_version 2.62). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 67 (schema_version 2.63). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -848,6 +848,38 @@ export type Database = {
           },
         ];
       };
+      coach_listing_embeddings: {
+        Row: {
+          content_hash: string;
+          embedded_at: string;
+          embedding: unknown;
+          listing_id: string;
+          model: string;
+        };
+        Insert: {
+          content_hash: string;
+          embedded_at?: string;
+          embedding: unknown;
+          listing_id: string;
+          model?: string;
+        };
+        Update: {
+          content_hash?: string;
+          embedded_at?: string;
+          embedding?: unknown;
+          listing_id?: string;
+          model?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coach_listing_embeddings_listing_id_fkey";
+            columns: ["listing_id"];
+            isOneToOne: true;
+            referencedRelation: "coach_listings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       coach_listing_private: {
         Row: {
           listing_id: string;
@@ -1675,6 +1707,38 @@ export type Database = {
           },
         ];
       };
+      event_embeddings: {
+        Row: {
+          content_hash: string;
+          embedded_at: string;
+          embedding: unknown;
+          event_id: string;
+          model: string;
+        };
+        Insert: {
+          content_hash: string;
+          embedded_at?: string;
+          embedding: unknown;
+          event_id: string;
+          model?: string;
+        };
+        Update: {
+          content_hash?: string;
+          embedded_at?: string;
+          embedding?: unknown;
+          event_id?: string;
+          model?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "event_embeddings_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: true;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       event_imports: {
         Row: {
           content_hash: string;
@@ -2472,6 +2536,38 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      hub_embeddings: {
+        Row: {
+          content_hash: string;
+          embedded_at: string;
+          embedding: unknown;
+          hub_id: string;
+          model: string;
+        };
+        Insert: {
+          content_hash: string;
+          embedded_at?: string;
+          embedding: unknown;
+          hub_id: string;
+          model?: string;
+        };
+        Update: {
+          content_hash?: string;
+          embedded_at?: string;
+          embedding?: unknown;
+          hub_id?: string;
+          model?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "hub_embeddings_hub_id_fkey";
+            columns: ["hub_id"];
+            isOneToOne: true;
+            referencedRelation: "hubs";
             referencedColumns: ["id"];
           },
         ];
@@ -4532,6 +4628,129 @@ export type Database = {
           },
         ];
       };
+      rec_dismissals: {
+        Row: {
+          created_at: string;
+          subject_id: string;
+          subject_kind: Database["public"]["Enums"]["rec_subject_kind"];
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          subject_id: string;
+          subject_kind: Database["public"]["Enums"]["rec_subject_kind"];
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          subject_id?: string;
+          subject_kind?: Database["public"]["Enums"]["rec_subject_kind"];
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rec_dismissals_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      rec_embed_queue: {
+        Row: {
+          attempts: number;
+          claimed_at: string | null;
+          failed_at: string | null;
+          last_error: string | null;
+          priority: number;
+          queued_at: string;
+          subject_id: string;
+          subject_kind: Database["public"]["Enums"]["rec_subject_kind"];
+        };
+        Insert: {
+          attempts?: number;
+          claimed_at?: string | null;
+          failed_at?: string | null;
+          last_error?: string | null;
+          priority?: number;
+          queued_at?: string;
+          subject_id: string;
+          subject_kind: Database["public"]["Enums"]["rec_subject_kind"];
+        };
+        Update: {
+          attempts?: number;
+          claimed_at?: string | null;
+          failed_at?: string | null;
+          last_error?: string | null;
+          priority?: number;
+          queued_at?: string;
+          subject_id?: string;
+          subject_kind?: Database["public"]["Enums"]["rec_subject_kind"];
+        };
+        Relationships: [];
+      };
+      rec_prefs: {
+        Row: {
+          people_suggestions: boolean;
+          personalize: boolean;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          people_suggestions?: boolean;
+          personalize?: boolean;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          people_suggestions?: boolean;
+          personalize?: boolean;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rec_prefs_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      rec_taste: {
+        Row: {
+          computed_at: string | null;
+          embedding: unknown;
+          inputs: number;
+          stale: boolean;
+          user_id: string;
+        };
+        Insert: {
+          computed_at?: string | null;
+          embedding?: unknown;
+          inputs?: number;
+          stale?: boolean;
+          user_id: string;
+        };
+        Update: {
+          computed_at?: string | null;
+          embedding?: unknown;
+          inputs?: number;
+          stale?: boolean;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rec_taste_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       reports: {
         Row: {
           created_at: string;
@@ -4690,6 +4909,30 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      scorecard_runs: {
+        Row: {
+          counts: Json;
+          error: string | null;
+          sent_at: string | null;
+          status: string;
+          week_start: string;
+        };
+        Insert: {
+          counts: Json;
+          error?: string | null;
+          sent_at?: string | null;
+          status: string;
+          week_start: string;
+        };
+        Update: {
+          counts?: Json;
+          error?: string | null;
+          sent_at?: string | null;
+          status?: string;
+          week_start?: string;
+        };
+        Relationships: [];
       };
       source_candidates: {
         Row: {
@@ -6439,6 +6682,7 @@ export type Database = {
         }[];
       };
       my_organizer_claims: { Args: never; Returns: Json };
+      my_recommendation_prefs: { Args: never; Returns: Json };
       notification_event_payload: {
         Args: { p_event_id: string };
         Returns: Json;
@@ -6657,6 +6901,22 @@ export type Database = {
         Returns: string[];
       };
       project_url: { Args: never; Returns: string };
+      public_week_near: {
+        Args: { p_lat?: number; p_limit?: number; p_lng?: number };
+        Returns: {
+          distance_band: string;
+          going_bucket: string;
+          hub: Json;
+          id: string;
+          is_free: boolean;
+          is_imported: boolean;
+          price_text: string;
+          source_name: string;
+          starts_at: string;
+          timezone: string;
+          title: string;
+        }[];
+      };
       publish_coach_profile: { Args: never; Returns: Json };
       purge_account_deletions: { Args: never; Returns: number };
       purge_admin_lookups: { Args: never; Returns: number };
@@ -6664,8 +6924,23 @@ export type Database = {
       purge_listing_removal_contacts: { Args: never; Returns: number };
       purge_messaging: { Args: never; Returns: Json };
       purge_read_notifications: { Args: never; Returns: number };
+      purge_recs: { Args: never; Returns: Json };
       purge_takedown_contacts: { Args: never; Returns: number };
       push_endpoint_allowed: { Args: { p_endpoint: string }; Returns: boolean };
+      rec_dismiss: {
+        Args: {
+          p_id: string;
+          p_kind: Database["public"]["Enums"]["rec_subject_kind"];
+        };
+        Returns: undefined;
+      };
+      rec_undismiss: {
+        Args: {
+          p_id: string;
+          p_kind: Database["public"]["Enums"]["rec_subject_kind"];
+        };
+        Returns: undefined;
+      };
       record_place_dump: {
         Args: {
           p_bytes: number;
@@ -6677,6 +6952,195 @@ export type Database = {
         };
         Returns: Json;
       };
+      recs_backfill: {
+        Args: { p_kind?: Database["public"]["Enums"]["rec_subject_kind"] };
+        Returns: number;
+      };
+      recs_coaches: {
+        Args: {
+          p_lat?: number;
+          p_limit?: number;
+          p_lng?: number;
+          p_radius_km?: number;
+        };
+        Returns: {
+          area_label: string;
+          avatar_url: string;
+          completed_count: number;
+          distance_band: string;
+          first_name: string;
+          from_currency: string;
+          from_price_minor: number;
+          handle: string;
+          headline: string;
+          hub_ids: string[];
+          in_person: boolean;
+          online: boolean;
+          rank: number;
+          rating_avg: number;
+          rating_count: number;
+          reasons: Json;
+          user_id: string;
+        }[];
+      };
+      recs_embed_claim: {
+        Args: { p_limit?: number };
+        Returns: {
+          content_hash: string;
+          subject_id: string;
+          subject_kind: Database["public"]["Enums"]["rec_subject_kind"];
+          text: string;
+        }[];
+      };
+      recs_embed_dispatch: { Args: never; Returns: number };
+      recs_embed_fail: {
+        Args: {
+          p_error: string;
+          p_id: string;
+          p_kind: Database["public"]["Enums"]["rec_subject_kind"];
+        };
+        Returns: undefined;
+      };
+      recs_embed_record: { Args: { p_rows: Json }; Returns: number };
+      recs_embed_verify_secret: { Args: { p_secret: string }; Returns: boolean };
+      recs_for_you: {
+        Args: {
+          p_lat?: number;
+          p_limit?: number;
+          p_lng?: number;
+          p_radius_km?: number;
+          p_timezone?: string;
+        };
+        Returns: {
+          address_visibility: Database["public"]["Enums"]["address_visibility"];
+          campus_id: string;
+          capacity: number;
+          chapter_id: string;
+          cover_url: string;
+          created_at: string;
+          description: string;
+          distance_band: string;
+          ends_at: string;
+          external_url: string;
+          going_count: number;
+          host_id: string;
+          hub_emoji: string;
+          hub_id: string;
+          hub_name: string;
+          hub_slug: string;
+          id: string;
+          interested_count: number;
+          is_free: boolean;
+          is_imported: boolean;
+          kind: Database["public"]["Enums"]["event_kind"];
+          location_hint: string;
+          matched_by: string;
+          members_only: boolean;
+          min_age: number;
+          min_headcount: number;
+          occurrence_date: string;
+          price_text: string;
+          rank: number;
+          reasons: Json;
+          section: string;
+          series_id: string;
+          source_name: string;
+          starts_at: string;
+          status: Database["public"]["Enums"]["event_status"];
+          timezone: string;
+          title: string;
+          updated_at: string;
+          visibility: Database["public"]["Enums"]["event_visibility"];
+          waitlist_count: number;
+          waitlist_enabled: boolean;
+        }[];
+      };
+      recs_hubs: {
+        Args: {
+          p_lat?: number;
+          p_limit?: number;
+          p_lng?: number;
+          p_radius_km?: number;
+        };
+        Returns: {
+          category_slug: string;
+          emoji: string;
+          id: string;
+          member_count: number;
+          name: string;
+          nearby_plans: number;
+          rank: number;
+          reasons: Json;
+          slug: string;
+        }[];
+      };
+      recs_people: {
+        Args: { p_limit?: number };
+        Returns: {
+          avatar_url: string;
+          first_name: string;
+          handle: string;
+          rank: number;
+          reasons: Json;
+          user_id: string;
+        }[];
+      };
+      recs_similar_events: {
+        Args: {
+          p_event_id: string;
+          p_lat?: number;
+          p_limit?: number;
+          p_lng?: number;
+          p_radius_km?: number;
+          p_timezone?: string;
+        };
+        Returns: {
+          address_visibility: Database["public"]["Enums"]["address_visibility"];
+          campus_id: string;
+          capacity: number;
+          chapter_id: string;
+          cover_url: string;
+          created_at: string;
+          description: string;
+          distance_band: string;
+          ends_at: string;
+          external_url: string;
+          going_count: number;
+          host_id: string;
+          hub_emoji: string;
+          hub_id: string;
+          hub_name: string;
+          hub_slug: string;
+          id: string;
+          interested_count: number;
+          is_free: boolean;
+          is_imported: boolean;
+          kind: Database["public"]["Enums"]["event_kind"];
+          location_hint: string;
+          matched_by: string;
+          members_only: boolean;
+          min_age: number;
+          min_headcount: number;
+          occurrence_date: string;
+          price_text: string;
+          rank: number;
+          reasons: Json;
+          section: string;
+          series_id: string;
+          source_name: string;
+          starts_at: string;
+          status: Database["public"]["Enums"]["event_status"];
+          timezone: string;
+          title: string;
+          updated_at: string;
+          visibility: Database["public"]["Enums"]["event_visibility"];
+          waitlist_count: number;
+          waitlist_enabled: boolean;
+        }[];
+      };
+      recs_status: { Args: never; Returns: Json };
+      recs_taste_refresh: { Args: { p_limit?: number }; Returns: number };
+      recs_tick: { Args: never; Returns: Json };
       refresh_hub_stats: { Args: never; Returns: number };
       refresh_meeting_spots: { Args: never; Returns: number };
       register_push_device: {
@@ -6823,6 +7287,19 @@ export type Database = {
         Args: { p_listing: string; p_starts_at: string };
         Returns: string;
       };
+      scorecard_dispatch: { Args: never; Returns: number };
+      scorecard_record: {
+        Args: {
+          p_counts: Json;
+          p_error?: string;
+          p_status: string;
+          p_week_start: string;
+        };
+        Returns: Json;
+      };
+      scorecard_run_state: { Args: { p_week_start?: string }; Returns: Json };
+      scorecard_verify_secret: { Args: { p_secret: string }; Returns: boolean };
+      scorecard_week: { Args: { p_week_start?: string }; Returns: Json };
       search_coaches: {
         Args: {
           p_before?: Json;
@@ -6918,6 +7395,10 @@ export type Database = {
       };
       set_my_timezone: { Args: { p_timezone: string }; Returns: Json };
       set_project_url: { Args: { p_url: string }; Returns: Json };
+      set_recommendation_prefs: {
+        Args: { p_people_suggestions?: boolean; p_personalize?: boolean };
+        Returns: Json;
+      };
       set_rsvp: {
         Args: {
           p_event_id: string;
@@ -7393,6 +7874,7 @@ export type Database = {
       place_source: "osm" | "geoapify" | "user" | "venue";
       place_status: "active" | "pending" | "hidden" | "closed" | "removed";
       place_tile_status: "wanted" | "filling" | "active" | "idle" | "retired";
+      rec_subject_kind: "hub" | "event" | "coach" | "person";
       rsvp_status: "going" | "interested" | "waitlisted" | "cancelled";
     };
     CompositeTypes: {
@@ -7588,6 +8070,7 @@ export const Constants = {
       place_source: ["osm", "geoapify", "user", "venue"],
       place_status: ["active", "pending", "hidden", "closed", "removed"],
       place_tile_status: ["wanted", "filling", "active", "idle", "retired"],
+      rec_subject_kind: ["hub", "event", "coach", "person"],
       rsvp_status: ["going", "interested", "waitlisted", "cancelled"],
     },
   },

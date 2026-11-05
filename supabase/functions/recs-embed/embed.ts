@@ -58,38 +58,73 @@ export function toVector(v: unknown): number[] {
   return out;
 }
 
+export interface BatchOptions {
+  /** Wall-clock budget for the whole batch. */
+  budgetMs?: number;
+  /** Rows claimed per request. */
+  maxRows?: number;
+  /**
+   * Budget for the time spent inside the model (inference is CPU-bound, and the Edge Runtime
+   * stops a request after about 2 s of CPU), so a batch stops before the limit instead of losing
+   * every row it embedded.
+   */
+  modelBudgetMs?: number;
+  /** Record after this many embeddings (1: every row is kept even if the worker is stopped). */
+  flushEvery?: number;
+}
+
 export async function runBatch(
   deps: BatchDeps,
-  { budgetMs = 50_000, maxRows = 24 }: { budgetMs?: number; maxRows?: number } = {},
+  {
+    budgetMs = 50_000,
+    maxRows = 24,
+    modelBudgetMs = Number.POSITIVE_INFINITY,
+    flushEvery = Number.POSITIVE_INFINITY,
+  }: BatchOptions = {},
 ): Promise<BatchResult> {
   const started = deps.now();
   const rows = await deps.claim(maxRows);
-  const done: RecordedRow[] = [];
+  let pending: RecordedRow[] = [];
   const errors: Record<string, number> = {};
+  let embedded = 0;
+  let recorded = 0;
   let failed = 0;
   let left = 0;
+  let modelMs = 0;
+  const flush = async () => {
+    if (pending.length) {
+      const batch = pending;
+      pending = [];
+      recorded += await deps.record(batch);
+    }
+  };
   for (const [i, row] of rows.entries()) {
-    if (deps.now() - started > budgetMs) {
+    if (deps.now() - started > budgetMs || modelMs > modelBudgetMs) {
       left = rows.length - i; // still leased; retried after 5 minutes
       break;
     }
+    const t0 = deps.now();
     try {
-      const v = toVector(await deps.model.run(row.text, { mean_pool: true, normalize: true }));
-      done.push({
+      const out = await deps.model.run(row.text, { mean_pool: true, normalize: true });
+      modelMs += deps.now() - t0;
+      pending.push({
         kind: row.subject_kind,
         id: row.subject_id,
         hash: row.content_hash,
-        embedding: v,
+        embedding: toVector(out),
       });
+      embedded++;
     } catch (e) {
+      modelMs += deps.now() - t0;
       const code = errorCode(e);
       errors[code] = (errors[code] ?? 0) + 1;
       failed++;
       await deps.fail(row, code);
     }
+    if (pending.length >= flushEvery) await flush();
   }
-  const recorded = done.length ? await deps.record(done) : 0;
-  const result = { claimed: rows.length, embedded: done.length, recorded, failed, left, errors };
+  await flush();
+  const result = { claimed: rows.length, embedded, recorded, failed, left, errors };
   deps.log?.(`recs-embed ${JSON.stringify(result)}`);
   return result;
 }
@@ -102,8 +137,7 @@ export function createHandler(opts: {
   model: () => Model;
   now?: () => number;
   log?: (line: string) => void;
-  maxRows?: number;
-  budgetMs?: number;
+  batch?: BatchOptions;
 }): (req: Request) => Promise<Response> {
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -140,7 +174,7 @@ export function createHandler(opts: {
           },
           log: opts.log,
         },
-        { maxRows: opts.maxRows, budgetMs: opts.budgetMs },
+        opts.batch,
       );
       return json(result);
     } catch (e) {
