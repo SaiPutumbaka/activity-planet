@@ -52,3 +52,4 @@ skip: image_guard_smoke.sql  # asks the deployed image-guard function for a swee
 admin_panel.sql
 safety_review_fixes.sql
 notify_worker.sql
+skip: notify_worker_smoke.sql  # calls the deployed send-notifications function, not rolled back
