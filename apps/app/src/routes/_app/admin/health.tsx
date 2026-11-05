@@ -66,7 +66,7 @@ function HealthPage() {
           <EmptyState
             icon={ShieldX}
             title="Moderators only"
-            body="This page is for the people who look after the map."
+            body="This page is for the people who look after Activity Planet."
             action={
               <Link to="/" className={buttonVariants({ variant: "secondary" })}>
                 Go home

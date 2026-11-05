@@ -38,6 +38,8 @@ const signedIn = [
   "/you/photo",
   "/you/verify",
   "/suggest-calendar",
+  "/organizer",
+  "/organizer/claim",
   "/coaches",
   "/coach",
   "/coach/profile",

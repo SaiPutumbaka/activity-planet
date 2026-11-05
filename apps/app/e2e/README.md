@@ -16,6 +16,10 @@ node apps/app/e2e/05-sweep.mjs        # every route at 390x844 and 1280x800
 node apps/app/e2e/06-offline.mjs      # "You're offline" with the service worker, recovery when back
 node apps/app/e2e/07-messaging.mjs    # photo gate, a request A to B, realtime both ways, typing,
                                       # delete, report, the Chats badge, block stops delivery
+node apps/app/e2e/09-collector.mjs    # an imported listing's removal and organizer links, start a
+                                      # claim (code, copy, Check now), /organizer, the calendar
+                                      # form, the moderator tabs; with E2E_SITE_URL (apps/web on
+                                      # :3000) also /bot and /bot/remove?event=
 E2E_PHASE=book node apps/app/e2e/08-coaching.mjs    # A coaches (profile, listing, availability,
                                                     # publish), B requests a time, A confirms, DM
 E2E_PHASE=finish node apps/app/e2e/08-coaching.mjs  # A marks it done, B reviews, cleanup
