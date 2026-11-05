@@ -169,17 +169,13 @@ function ClaimForm({
   const queryClient = useQueryClient();
   const hosts = sortHosts(target.hosts);
   const methods = CLAIM_METHODS.filter((m) =>
-    m === "feed" ? Boolean(target.feed_url) : hosts.length > 0,
+    m === "feed" ? target.feed_proof : hosts.length > 0,
   );
   const [host, setHost] = useState(hosts[0] ?? "");
   const [method, setMethod] = useState<ClaimMethod>(methods[0] ?? "meta");
   const start = useMutation({
     mutationFn: () =>
-      startClaim(
-        method === "feed"
-          ? { eventId, host: null, method, feedUrl: target.feed_url }
-          : { eventId, host, method },
-      ),
+      startClaim(method === "feed" ? { eventId, host: null, method } : { eventId, host, method }),
     onSuccess: (c) => {
       void queryClient.invalidateQueries({ queryKey: organizerKeys.claims });
       onStarted(c.claim_id);

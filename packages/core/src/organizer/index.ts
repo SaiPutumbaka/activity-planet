@@ -106,6 +106,8 @@ const FAILURES: Record<string, string> = {
   expired: "It ran out of time (7 days or 10 checks). Start again when the proof is in place.",
   already_claimed: "Someone else already proved they run this source.",
   revoked: "A moderator withdrew this claim.",
+  host_denied: "That site asked us not to collect from it, so the claim stopped.",
+  feed_mismatch: "That calendar isn't the one this listing comes from.",
   fetch_failed: "We couldn't read the page.",
   "fetch_failed:robots_disallowed":
     "Your robots.txt keeps our bot out, so we can't read the page. Use the DNS record instead.",
@@ -163,6 +165,9 @@ const ERRORS: Record<string, string> = {
   invalid_host: "Choose your website's address.",
   host_mismatch: "That address doesn't match the listing's source.",
   host_denied: "We don't collect from that site.",
+  feed_mismatch: "That calendar isn't the one this listing comes from.",
+  feed_unavailable:
+    "This listing doesn't come from a calendar feed. Choose another way to prove it.",
   already_claimed: "Someone else already proved they run this source. Ask us if that's wrong.",
   claim_not_verified: "Finish verifying the claim first.",
   feed_limit: "You can connect up to 3 calendars.",

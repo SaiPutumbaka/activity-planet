@@ -26,7 +26,8 @@ export interface ClaimTarget {
   source_kind: string;
   origin: string;
   hosts: string[];
-  feed_url: string | null;
+  /** The source is an ICS feed, so the feed proof is offered (its URL is never sent). */
+  feed_proof: boolean;
   claimed: boolean;
   mine: boolean;
   source_id: string | null;

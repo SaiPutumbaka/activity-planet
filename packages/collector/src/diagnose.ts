@@ -67,16 +67,32 @@ const SECRET_KEY =
 const MAX_URL = 200;
 
 /**
- * The URL as it may appear in a public log: the API-key redaction, plus every query value
- * whose key looks like a secret, with no user info and no fragment, capped in length.
+ * Hosted calendar services whose feed paths name a person (a Google Calendar ICS path holds the
+ * calendar's email address; Outlook, iCloud and Yahoo paths hold account or calendar ids).
  */
-export function redactForLog(url: string): string {
+const PERSONAL_CALENDAR_HOST =
+  /(?:^|\.)(?:calendar\.google\.com|outlook\.live\.com|outlook\.office365\.com|outlook\.office\.com|icloud\.com|calendar\.yahoo\.com|calendar\.proton\.me|calendar\.zoho\.com|fastmail\.com|user\.fm)$/i;
+
+/** Seeds of organizer-connected feeds (migration 62: slug org-<12 hex>), submitted by members. */
+export function isOrganizerSourceKey(sourceKey: string): boolean {
+  return /^org-[0-9a-f]{12}(?:$|[^0-9a-f])/.test(sourceKey);
+}
+
+/**
+ * The URL as it may appear in a public log: the API-key redaction, plus every query value
+ * whose key looks like a secret, with no user info and no fragment, capped in length. With
+ * hidePath (a member-submitted URL, such as an organizer-connected feed) or for a hosted
+ * calendar service, only the scheme and host are kept: those paths can hold an email address.
+ */
+export function redactForLog(url: string, opts: { hidePath?: boolean } = {}): string {
   let u: URL;
   try {
     u = new URL(redactUrl(url));
   } catch {
     return "(bad url)";
   }
+  if (opts.hidePath || PERSONAL_CALENDAR_HOST.test(u.hostname))
+    return `${u.protocol}//${u.host}/_path_hidden_`;
   u.username = "";
   u.password = "";
   u.hash = "";
@@ -132,7 +148,7 @@ export function formatDiagnostic(e: DiagnosticEntry): string {
   return [
     "[diagnose]",
     `source=${token(e.sourceKey)}`,
-    `url=${token(redactForLog(e.url))}`,
+    `url=${token(redactForLog(e.url, { hidePath: isOrganizerSourceKey(e.sourceKey) }))}`,
     `status=${status}`,
     `final_host=${token(finalHost)}`,
     `type=${mediaType(e.contentType)}`,

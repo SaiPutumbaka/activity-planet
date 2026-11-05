@@ -56,7 +56,7 @@ import { fileURLToPath } from "node:url";
 import { API_ADAPTERS, API_HOSTS, enabledAdapters, readApiBudget } from "./adapters/api.ts";
 import { collect, type CollectResult, errorKey } from "./collect.ts";
 import { citiesFor, loadCities, loadRegions } from "./config.ts";
-import { formatDiagnostic } from "./diagnose.ts";
+import { formatDiagnostic, isOrganizerSourceKey, redactForLog } from "./diagnose.ts";
 import { FileHttpCache, MemoryHttpCache } from "./net/cache.ts";
 import { MAX_REQUESTS_PER_HOST, PoliteFetcher } from "./net/fetcher.ts";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -168,7 +168,7 @@ async function main(argv: string[]): Promise<number> {
       for (const c of citiesFor(r, cities)) {
         for (const s of c.seeds)
           console.log(
-            `  ${s.enabled === false ? "off" : "on "} ${s.kind.padEnd(7)} ${s.id}  ${s.url}`,
+            `  ${s.enabled === false ? "off" : "on "} ${s.kind.padEnd(7)} ${s.id}  ${redactForLog(s.url, { hidePath: isOrganizerSourceKey(s.id) })}`,
           );
       }
     }

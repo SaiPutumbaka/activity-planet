@@ -1,20 +1,23 @@
 #!/usr/bin/env node
 // pnpm --filter collector verify --from https://<ref>.supabase.co/functions/v1/collector \
 //   [--limit 50] [--dry-run] [--refresh-out refresh.json] [--regions-out regions.json]
+//   [--denylist-out denylist-remote.json]
 //
 // The organizer claim checks that read the claimed site (design 2.3, verify.ts): reads the due
 // claims (GET /collector/claims/due), checks each (at most 3 URLs) and posts the outcomes (POST
 // /collector/claims/record). With --refresh-out and --regions-out it also writes the connected
 // feeds whose owner pressed Refresh now, as a sources file and a regions file for
 // `collect --regions-file --sources-file --only-sources`. When nothing is due it says so and
-// exits 0 at once. Logs print counts and outcomes only, never a host, a URL or a token.
+// exits 0 at once. The database-only denylist (GET /collector/denylist: hosts removed on an
+// owner's request) is merged into data/denylist.json before any claim is read, and with
+// --denylist-out written for the refresh step's `collect --denylist-file`. Logs print counts and outcomes only, never a host, a URL or a token.
 // COLLECTOR_SECRET is the only secret it reads.
 
 import { writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { PoliteFetcher } from "./net/fetcher.ts";
 import { Denylist } from "./policy/denylist.ts";
-import { call, checkService, regionFromRow } from "./regions.ts";
+import { call, checkService, fetchRemoteDenylist, regionFromRow } from "./regions.ts";
 import { parseClaims, verifyClaim } from "./verify.ts";
 
 async function main(argv: string[]): Promise<number> {
@@ -26,6 +29,7 @@ async function main(argv: string[]): Promise<number> {
       "dry-run": { type: "boolean", default: false },
       "refresh-out": { type: "string" },
       "regions-out": { type: "string" },
+      "denylist-out": { type: "string" },
     },
     allowPositionals: false,
   });
@@ -56,6 +60,16 @@ async function main(argv: string[]): Promise<number> {
       return [];
     }
   });
+  // Hosts removed on an owner's request (database only) are never fetched, by a claim check or by
+  // the refresh step. Unreadable: the run stops rather than fetch without them.
+  const remote =
+    claims.length > 0 || refreshSources.length > 0
+      ? (await fetchRemoteDenylist(svc)).denylist
+      : { entries: [], sources: [] };
+  if (values["denylist-out"]) writeFileSync(values["denylist-out"], JSON.stringify(remote));
+  console.log(
+    `[verify] remote denylist: hosts=${remote.entries.length} sources=${remote.sources.length}`,
+  );
   if (values["refresh-out"] && values["regions-out"]) {
     writeFileSync(values["refresh-out"], JSON.stringify({ sources: refreshSources }));
     writeFileSync(
@@ -68,7 +82,10 @@ async function main(argv: string[]): Promise<number> {
   );
   if (claims.length === 0) return 0;
 
-  const fetcher = new PoliteFetcher({ denylist: Denylist.load(), maxRequestsPerHost: 10 });
+  const fetcher = new PoliteFetcher({
+    denylist: Denylist.load().merge(remote),
+    maxRequestsPerHost: 10,
+  });
   const results = [];
   const outcomes: Record<string, number> = {};
   for (const job of claims) {

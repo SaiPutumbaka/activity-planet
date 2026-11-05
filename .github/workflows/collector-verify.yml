@@ -3,7 +3,8 @@ name: Collector verify
 # Organizer claim checks that read the claimed site (docs/design/collector/COLLECTOR_COMPLETION.md
 # 2.3; packages/collector/src/verify.ts): the meta tag or .well-known file on the claimed host and
 # the token in a connected calendar, through the collector's PoliteFetcher (robots.txt, one request
-# per 2 seconds per host, https and public hosts only, the denylist, 3 URLs a claim). DNS TXT
+# per 2 seconds per host, https and public hosts only, the denylist with its database-only
+# entries (hosts removed on an owner's request, GET /collector/denylist), 3 URLs a claim). DNS TXT
 # proofs are checked by the organizer-verify Edge Function instead. The same run collects the
 # connected feeds whose owner pressed Refresh now (at most 20, once an hour each).
 #
@@ -105,7 +106,8 @@ jobs:
         run: |
           mkdir -p work
           pnpm --silent --filter collector verify --from "$COLLECTOR_BASE" \
-            --refresh-out "$GITHUB_WORKSPACE/work/refresh.json" --regions-out "$GITHUB_WORKSPACE/work/refresh-regions.json"
+            --refresh-out "$GITHUB_WORKSPACE/work/refresh.json" --regions-out "$GITHUB_WORKSPACE/work/refresh-regions.json" \
+            --denylist-out "$GITHUB_WORKSPACE/work/denylist-remote.json"
           n=$(python3 -I -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["sources"]))' "$GITHUB_WORKSPACE/work/refresh.json" 2>/dev/null || echo 0)
           echo "refresh=$n" >> "$GITHUB_OUTPUT"
 
@@ -118,6 +120,7 @@ jobs:
         run: |
           pnpm --filter collector collect --regions-file "$GITHUB_WORKSPACE/work/refresh-regions.json" \
             --sources-file "$GITHUB_WORKSPACE/work/refresh.json" --only-sources --no-cache --max-run-minutes 10 \
+            --denylist-file "$GITHUB_WORKSPACE/work/denylist-remote.json" \
             --ingest "$COLLECTOR_BASE" --run-id "$RUN_ID-refresh"
 
       - name: Record the run

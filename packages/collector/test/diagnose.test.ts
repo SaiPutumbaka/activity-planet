@@ -80,6 +80,23 @@ describe("formatDiagnostic", () => {
     expect(redactForLog("not a url")).toBe("(bad url)");
   });
 
+  it("hides the path of organizer-connected feeds and hosted calendar services", () => {
+    const gcal = "https://calendar.google.com/calendar/ical/someone%40gmail.com/public/basic.ics";
+    expect(redactForLog(gcal)).toBe("https://calendar.google.com/_path_hidden_");
+    expect(redactForLog("https://p42-caldav.icloud.com/published/2/abc")).toBe(
+      "https://p42-caldav.icloud.com/_path_hidden_",
+    );
+    expect(redactForLog("https://club.example.org/me@x.org/cal.ics", { hidePath: true })).toBe(
+      "https://club.example.org/_path_hidden_",
+    );
+    const line = formatDiagnostic(
+      entry({ sourceKey: "org-0123456789ab", url: "https://club.example.org/u/jo/cal.ics" }),
+    );
+    expect(line).toContain(" url=https://club.example.org/_path_hidden_ ");
+    expect(line).not.toContain("/u/jo");
+    expect(formatDiagnostic(entry())).toContain("url=https://beltline.org/events/?ical=1");
+  });
+
   it("keeps every field on one line with a fixed character set", () => {
     const line = formatDiagnostic(
       entry({

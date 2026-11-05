@@ -8,7 +8,7 @@
 --   1 Static: grants on the new functions.
 --   2 imported_event_labels: organizer_listed after a verified claim;
 --     geocode_provider for a geocoded item.
---   3 organizer_claim_target: hosts, feed URL, claimed and mine.
+--   3 organizer_claim_target: hosts, feed proof (migration 66: never the URL), claimed and mine.
 --   4 organizer_source_detail: owner reads items and hidden flags; a stranger
 --     gets not_found.
 --   5 mod_organizer_claims: moderators only, no token, can_act.
@@ -164,7 +164,8 @@ begin
      or (v ->> 'claimed')::boolean is distinct from true
      or (v ->> 'mine')::boolean is distinct from false
      or jsonb_typeof(v -> 'source_id') <> 'null'
-     or jsonb_typeof(v -> 'feed_url') <> 'null' then
+     or v ? 'feed_url'
+     or (v ->> 'feed_proof')::boolean is distinct from false then
     raise exception 'FAIL 3 a stranger''s view of the target';
   end if;
   begin

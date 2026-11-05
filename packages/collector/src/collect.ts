@@ -20,7 +20,9 @@ import {
   isFeedType,
   jsonLdTypes,
   looksLikeChallenge,
+  isOrganizerSourceKey,
   pageHints,
+  redactForLog,
 } from "./diagnose.ts";
 import { type Candidate, dedupe, inAnyRegion, windowReason } from "./filter.ts";
 import type { Fetcher, FetchResult } from "./net/fetcher.ts";
@@ -223,7 +225,7 @@ export async function collect(opts: CollectOptions): Promise<CollectResult> {
       gap: isGap(res.reason, res.status, first),
     });
     log(
-      `skip ${sourceKey} ${redactUrl(res.url)}: ${res.reason}${res.status ? ` (${res.status})` : ""}`,
+      `skip ${sourceKey} ${redactForLog(res.url, { hidePath: isOrganizerSourceKey(sourceKey) })}: ${res.reason}${res.status ? ` (${res.status})` : ""}`,
     );
     diag(sourceKey, requested, res, `fetch_failed reason=${res.reason}`, api);
   };
