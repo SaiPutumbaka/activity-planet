@@ -27,10 +27,14 @@ import { Route as AuthForgotRouteImport } from './routes/auth/forgot'
 import { Route as AuthResetRouteImport } from './routes/auth/reset'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
+import { Route as AppAdminIndexRouteImport } from './routes/_app/admin/index'
 import { Route as AppAdminCalendarsRouteImport } from './routes/_app/admin/calendars'
 import { Route as AppAdminClaimsRouteImport } from './routes/_app/admin/claims'
 import { Route as AppAdminHealthRouteImport } from './routes/_app/admin/health'
 import { Route as AppAdminPlacesRouteImport } from './routes/_app/admin/places'
+import { Route as AppAdminReportsRouteImport } from './routes/_app/admin/reports'
+import { Route as AppAdminTakedownsRouteImport } from './routes/_app/admin/takedowns'
+import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
 import { Route as AppChaptersSlugRouteImport } from './routes/_app/chapters_.$slug'
 import { Route as AppEventsIdRouteImport } from './routes/_app/events_.$id'
 import { Route as AppHubsSlugRouteImport } from './routes/_app/hubs_.$slug'
@@ -131,6 +135,11 @@ const AuthSignUpRoute = AuthSignUpRouteImport.update({
   path: '/sign-up',
   getParentRoute: () => AuthRoute,
 } as any)
+const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminCalendarsRoute = AppAdminCalendarsRouteImport.update({
   id: '/admin/calendars',
   path: '/admin/calendars',
@@ -149,6 +158,21 @@ const AppAdminHealthRoute = AppAdminHealthRouteImport.update({
 const AppAdminPlacesRoute = AppAdminPlacesRouteImport.update({
   id: '/admin/places',
   path: '/admin/places',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminReportsRoute = AppAdminReportsRouteImport.update({
+  id: '/admin/reports',
+  path: '/admin/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminTakedownsRoute = AppAdminTakedownsRouteImport.update({
+  id: '/admin/takedowns',
+  path: '/admin/takedowns',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
   getParentRoute: () => AppRoute,
 } as any)
 const AppChaptersSlugRoute = AppChaptersSlugRouteImport.update({
@@ -225,6 +249,9 @@ export interface FileRoutesByFullPath {
   '/admin/claims': typeof AppAdminClaimsRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/places': typeof AppAdminPlacesRoute
+  '/admin/reports': typeof AppAdminReportsRoute
+  '/admin/takedowns': typeof AppAdminTakedownsRoute
+  '/admin/users': typeof AppAdminUsersRoute
   '/chapters/$slug': typeof AppChaptersSlugRoute
   '/events/$id': typeof AppEventsIdRoute
   '/hubs/$slug': typeof AppHubsSlugRoute
@@ -232,6 +259,7 @@ export interface FileRoutesByFullPath {
   '/you/notifications': typeof AppYouNotificationsRoute
   '/you/photo': typeof AppYouPhotoRoute
   '/you/verify': typeof AppYouVerifyRoute
+  '/admin/': typeof AppAdminIndexRoute
   '/chapters/$slug/dashboard': typeof AppChaptersSlugDashboardRoute
   '/chapters/$slug/schedule': typeof AppChaptersSlugScheduleRoute
   '/events/$id/edit': typeof AppEventsIdEditRoute
@@ -258,6 +286,9 @@ export interface FileRoutesByTo {
   '/admin/claims': typeof AppAdminClaimsRoute
   '/admin/health': typeof AppAdminHealthRoute
   '/admin/places': typeof AppAdminPlacesRoute
+  '/admin/reports': typeof AppAdminReportsRoute
+  '/admin/takedowns': typeof AppAdminTakedownsRoute
+  '/admin/users': typeof AppAdminUsersRoute
   '/chapters/$slug': typeof AppChaptersSlugRoute
   '/events/$id': typeof AppEventsIdRoute
   '/hubs/$slug': typeof AppHubsSlugRoute
@@ -265,6 +296,7 @@ export interface FileRoutesByTo {
   '/you/notifications': typeof AppYouNotificationsRoute
   '/you/photo': typeof AppYouPhotoRoute
   '/you/verify': typeof AppYouVerifyRoute
+  '/admin': typeof AppAdminIndexRoute
   '/chapters/$slug/dashboard': typeof AppChaptersSlugDashboardRoute
   '/chapters/$slug/schedule': typeof AppChaptersSlugScheduleRoute
   '/events/$id/edit': typeof AppEventsIdEditRoute
@@ -293,6 +325,9 @@ export interface FileRoutesById {
   '/_app/admin/claims': typeof AppAdminClaimsRoute
   '/_app/admin/health': typeof AppAdminHealthRoute
   '/_app/admin/places': typeof AppAdminPlacesRoute
+  '/_app/admin/reports': typeof AppAdminReportsRoute
+  '/_app/admin/takedowns': typeof AppAdminTakedownsRoute
+  '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/chapters_/$slug': typeof AppChaptersSlugRoute
   '/_app/events_/$id': typeof AppEventsIdRoute
   '/_app/hubs_/$slug': typeof AppHubsSlugRoute
@@ -300,6 +335,7 @@ export interface FileRoutesById {
   '/_app/you_/notifications': typeof AppYouNotificationsRoute
   '/_app/you_/photo': typeof AppYouPhotoRoute
   '/_app/you_/verify': typeof AppYouVerifyRoute
+  '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/chapters_/$slug_/dashboard': typeof AppChaptersSlugDashboardRoute
   '/_app/chapters_/$slug_/schedule': typeof AppChaptersSlugScheduleRoute
   '/_app/events_/$id_/edit': typeof AppEventsIdEditRoute
@@ -328,6 +364,9 @@ export interface FileRouteTypes {
     | '/admin/claims'
     | '/admin/health'
     | '/admin/places'
+    | '/admin/reports'
+    | '/admin/takedowns'
+    | '/admin/users'
     | '/chapters/$slug'
     | '/events/$id'
     | '/hubs/$slug'
@@ -335,6 +374,7 @@ export interface FileRouteTypes {
     | '/you/notifications'
     | '/you/photo'
     | '/you/verify'
+    | '/admin/'
     | '/chapters/$slug/dashboard'
     | '/chapters/$slug/schedule'
     | '/events/$id/edit'
@@ -361,6 +401,9 @@ export interface FileRouteTypes {
     | '/admin/claims'
     | '/admin/health'
     | '/admin/places'
+    | '/admin/reports'
+    | '/admin/takedowns'
+    | '/admin/users'
     | '/chapters/$slug'
     | '/events/$id'
     | '/hubs/$slug'
@@ -368,6 +411,7 @@ export interface FileRouteTypes {
     | '/you/notifications'
     | '/you/photo'
     | '/you/verify'
+    | '/admin'
     | '/chapters/$slug/dashboard'
     | '/chapters/$slug/schedule'
     | '/events/$id/edit'
@@ -395,6 +439,9 @@ export interface FileRouteTypes {
     | '/_app/admin/claims'
     | '/_app/admin/health'
     | '/_app/admin/places'
+    | '/_app/admin/reports'
+    | '/_app/admin/takedowns'
+    | '/_app/admin/users'
     | '/_app/chapters_/$slug'
     | '/_app/events_/$id'
     | '/_app/hubs_/$slug'
@@ -402,6 +449,7 @@ export interface FileRouteTypes {
     | '/_app/you_/notifications'
     | '/_app/you_/photo'
     | '/_app/you_/verify'
+    | '/_app/admin/'
     | '/_app/chapters_/$slug_/dashboard'
     | '/_app/chapters_/$slug_/schedule'
     | '/_app/events_/$id_/edit'
@@ -542,6 +590,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthSignUpRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_app/admin/': {
+      id: '/_app/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AppAdminIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/calendars': {
       id: '/_app/admin/calendars'
       path: '/admin/calendars'
@@ -568,6 +623,27 @@ declare module '@tanstack/react-router' {
       path: '/admin/places'
       fullPath: '/admin/places'
       preLoaderRoute: typeof AppAdminPlacesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/reports': {
+      id: '/_app/admin/reports'
+      path: '/admin/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AppAdminReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/takedowns': {
+      id: '/_app/admin/takedowns'
+      path: '/admin/takedowns'
+      fullPath: '/admin/takedowns'
+      preLoaderRoute: typeof AppAdminTakedownsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/users': {
+      id: '/_app/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AppAdminUsersRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/chapters_/$slug': {
@@ -655,6 +731,9 @@ interface AppRouteChildren {
   AppAdminClaimsRoute: typeof AppAdminClaimsRoute
   AppAdminHealthRoute: typeof AppAdminHealthRoute
   AppAdminPlacesRoute: typeof AppAdminPlacesRoute
+  AppAdminReportsRoute: typeof AppAdminReportsRoute
+  AppAdminTakedownsRoute: typeof AppAdminTakedownsRoute
+  AppAdminUsersRoute: typeof AppAdminUsersRoute
   AppChaptersSlugRoute: typeof AppChaptersSlugRoute
   AppEventsIdRoute: typeof AppEventsIdRoute
   AppHubsSlugRoute: typeof AppHubsSlugRoute
@@ -662,6 +741,7 @@ interface AppRouteChildren {
   AppYouNotificationsRoute: typeof AppYouNotificationsRoute
   AppYouPhotoRoute: typeof AppYouPhotoRoute
   AppYouVerifyRoute: typeof AppYouVerifyRoute
+  AppAdminIndexRoute: typeof AppAdminIndexRoute
   AppChaptersSlugDashboardRoute: typeof AppChaptersSlugDashboardRoute
   AppChaptersSlugScheduleRoute: typeof AppChaptersSlugScheduleRoute
   AppEventsIdEditRoute: typeof AppEventsIdEditRoute
@@ -679,6 +759,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminClaimsRoute: AppAdminClaimsRoute,
   AppAdminHealthRoute: AppAdminHealthRoute,
   AppAdminPlacesRoute: AppAdminPlacesRoute,
+  AppAdminReportsRoute: AppAdminReportsRoute,
+  AppAdminTakedownsRoute: AppAdminTakedownsRoute,
+  AppAdminUsersRoute: AppAdminUsersRoute,
   AppChaptersSlugRoute: AppChaptersSlugRoute,
   AppEventsIdRoute: AppEventsIdRoute,
   AppHubsSlugRoute: AppHubsSlugRoute,
@@ -686,6 +769,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppYouNotificationsRoute: AppYouNotificationsRoute,
   AppYouPhotoRoute: AppYouPhotoRoute,
   AppYouVerifyRoute: AppYouVerifyRoute,
+  AppAdminIndexRoute: AppAdminIndexRoute,
   AppChaptersSlugDashboardRoute: AppChaptersSlugDashboardRoute,
   AppChaptersSlugScheduleRoute: AppChaptersSlugScheduleRoute,
   AppEventsIdEditRoute: AppEventsIdEditRoute,

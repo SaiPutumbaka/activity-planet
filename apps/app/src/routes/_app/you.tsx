@@ -224,6 +224,14 @@ function YouPage() {
               ))}
               {isMod.data ? (
                 <LinkRow
+                  to="/admin"
+                  label="Moderation"
+                  value="Open"
+                  hint="Scorecard, the queue, reports and user lookup"
+                />
+              ) : null}
+              {isMod.data ? (
+                <LinkRow
                   to="/admin/claims"
                   label="Chapter claims"
                   value="Review"
