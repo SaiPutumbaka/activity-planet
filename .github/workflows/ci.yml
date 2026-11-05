@@ -36,7 +36,8 @@ jobs:
 
   # Deno unit tests for the import-feed adapters (fixture payloads; no network) and the collector
   # request parsing, the Geoapify places fill and the place-file matching (fake I/O), and the
-  # image-guard perceptual hashes (synthetic fixture images) and check/sweep runs (fake I/O).
+  # image-guard perceptual hashes (synthetic fixture images) and check/sweep runs (fake I/O), and the
+  # Stripe functions for coaching (mocked Stripe).
   functions:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -47,6 +48,10 @@ jobs:
           deno-version: v2.1.4
       - run: deno test --allow-read supabase/functions/import-feed supabase/functions/collector supabase/functions/places-fill supabase/functions/place-files supabase/functions/send-notifications
       - run: deno check supabase/functions/send-notifications/index.ts
+      # Coaching payments (migration 60): Stripe Connect, Checkout and the webhook, with a mocked
+      # Stripe (no network, no key). The index files import supabase-js from npm.
+      - run: deno test --allow-read supabase/functions/stripe-connect supabase/functions/stripe-checkout supabase/functions/stripe-webhook
+      - run: deno check --node-modules-dir=none supabase/functions/stripe-connect/index.ts supabase/functions/stripe-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/delete-account/index.ts
       # image-guard decodes JPEG and PNG with npm packages (jpeg-js, fast-png); without a
       # node_modules folder Deno must fetch them itself, hence --node-modules-dir=none.
       - run: deno test --allow-read --node-modules-dir=none supabase/functions/image-guard

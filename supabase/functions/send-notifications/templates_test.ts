@@ -115,6 +115,18 @@ Deno.test("copy names no audience or city (D-040)", () => {
     "blocked_attendee",
     "message",
     "message_request",
+    "booking_requested",
+    "booking_confirmed",
+    "booking_declined",
+    "booking_cancelled",
+    "booking_payment_due",
+    "booking_reminder_day",
+    "booking_reminder_2h",
+    "booking_review_prompt",
+    "booking_no_show",
+    "review_received",
+    "review_reply",
+    "coach_payout_action",
   ];
   for (const kind of kinds) {
     const r = render(n({ kind, payload: {} }), links);
@@ -152,4 +164,95 @@ Deno.test("chat notices name the sender or room, never the text, and open the ch
     links,
   );
   assertEquals(req.push.url, "/chats?tab=requests");
+});
+
+Deno.test("booking notices open the booking, review notices the coach page, never the note", () => {
+  const booking = "00000000-0000-4000-8000-0000000000b1";
+  const base = { event_id: null, actor_name: "Sam" };
+  const req = render(
+    n({
+      ...base,
+      kind: "booking_requested",
+      payload: {
+        booking_id: booking,
+        title: "Tennis, one hour",
+        starts_at: "2027-01-09T15:00:00Z",
+        timezone: "Europe/Berlin",
+        client_note: "secret",
+      },
+    }),
+    links,
+  );
+  assertEquals(req.subject, "Sam asked to book Tennis, one hour");
+  assertStringIncludes(req.text, "Sat, Jan 9, 4:00 PM");
+  assert(!req.text.includes("secret"));
+  assertEquals(req.push.url, `/bookings/${booking}`);
+  assertEquals(req.push.tag, `booking_requested:${booking}`);
+  const taken = render(
+    n({
+      ...base,
+      kind: "booking_declined",
+      payload: { booking_id: booking, title: "Tennis", reason: "slot_taken" },
+    }),
+    links,
+  );
+  assertEquals(taken.subject, "That time was just taken");
+  const cancelled = render(
+    n({
+      ...base,
+      kind: "booking_cancelled",
+      payload: { booking_id: booking, title: "Tennis", reason: "coach", refund_minor: 4000 },
+    }),
+    links,
+  );
+  assertEquals(cancelled.subject, "Tennis is cancelled");
+  assertStringIncludes(cancelled.text, "The coach cancelled. A refund is on its way.");
+  assert(!cancelled.subject.includes("40") && !cancelled.push.body.includes("40"));
+  const fallback = render(
+    n({
+      ...base,
+      kind: "booking_payment_due",
+      payload: { booking_id: booking, title: "Tennis", fallback: "off_platform" },
+    }),
+    links,
+  );
+  assertStringIncludes(fallback.text, "Agree on how you'll pay before you meet.");
+  const review = render(
+    n({
+      ...base,
+      kind: "review_received",
+      payload: { booking_id: booking, title: "Tennis", coach_handle: "sam_coach" },
+    }),
+    links,
+  );
+  assertEquals(review.push.url, "/coaches/sam_coach");
+  const bad = render(
+    n({ ...base, kind: "review_reply", payload: { coach_handle: "../x" } }),
+    links,
+  );
+  assertEquals(bad.push.url, "/bookings");
+  assertEquals(
+    pathFor({ kind: "coach_payout_action", event_id: null, payload: {}, hub: null, chapter: null }),
+    "/coach/payouts",
+  );
+  assertEquals(
+    pathFor({
+      kind: "coach_payout_action",
+      event_id: null,
+      payload: { reason: "dispute", booking_id: booking },
+      hub: null,
+      chapter: null,
+    }),
+    `/bookings/${booking}`,
+  );
+  assertEquals(
+    pathFor({
+      kind: "booking_confirmed",
+      event_id: null,
+      payload: { booking_id: "nope" },
+      hub: null,
+      chapter: null,
+    }),
+    "/bookings",
+  );
 });

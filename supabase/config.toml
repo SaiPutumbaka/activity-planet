@@ -108,3 +108,26 @@ verify_jwt = false
 # secret is generated inside the database and is in no file. RESEND_API_KEY and the VAPID keys
 # are optional Edge Function secrets; without them email and push are marked skipped.
 verify_jwt = false
+
+[functions.stripe-connect]
+# Coaching (migration 60, D-044): Stripe Connect Express onboarding, the dashboard link and an
+# account refresh for a signed-in coach. The function also verifies the user JWT itself against
+# the project's JWKS (role must be authenticated). STRIPE_SECRET_KEY is an optional Edge Function
+# secret; without it every request answers 503 {"error":"payments_off"}.
+verify_jwt = true
+
+[functions.stripe-checkout]
+# Two callers (migration 60): signed-in clients ({op: "create"}, the function verifies the user
+# JWT itself against the project's JWKS) and the database ({op: "job"} through pg_net and
+# public.stripe_dispatch, with the x-stripe-dispatch-secret header checked through
+# stripe_dispatch_verify_secret, service_role only; the secret is generated inside the database).
+# So the gateway JWT check is off. Without STRIPE_SECRET_KEY every request answers 503
+# {"error":"payments_off"}.
+verify_jwt = false
+
+[functions.stripe-webhook]
+# The caller is Stripe, which signs every request (Stripe-Signature, verified with
+# STRIPE_WEBHOOK_SECRET and the optional STRIPE_CONNECT_WEBHOOK_SECRET), so the gateway JWT check
+# is off. Without STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET every request answers 503
+# {"error":"payments_off"}.
+verify_jwt = false

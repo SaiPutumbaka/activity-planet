@@ -57,6 +57,10 @@ on:
       - "supabase/functions/place-files/**"
       - "supabase/functions/image-guard/**"
       - "supabase/functions/send-notifications/**"
+      - "supabase/functions/stripe-connect/**"
+      - "supabase/functions/stripe-checkout/**"
+      - "supabase/functions/stripe-webhook/**"
+      - "supabase/functions/_shared/**"
       - ".github/workflows/migrate.yml"
   workflow_dispatch:
     inputs:
@@ -201,7 +205,7 @@ jobs:
               *[!a-z0-9-]*) echo "Refusing function name: $fn"; exit 1 ;;
             esac
             test -f "supabase/functions/$fn/index.ts" || { echo "No such function: $fn"; exit 1; }
-            case "$fn" in import-feed|collector|places-fill|place-files|image-guard|send-notifications) flags="--no-verify-jwt" ;; *) flags="" ;; esac
+            case "$fn" in import-feed|collector|places-fill|place-files|image-guard|send-notifications|stripe-checkout|stripe-webhook) flags="--no-verify-jwt" ;; *) flags="" ;; esac
             supabase functions deploy "$fn" --project-ref "$STAGING_PROJECT_REF" --use-api $flags
             if [ "$fn" = "import-feed" ]; then
               supabase db query --linked \
@@ -424,6 +428,37 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy send-notifications --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
+
+      # Coaching payments (migration 60, D-044). The three functions call RPCs the push creates, so
+      # they are deployed after it. Each is key-gated: without STRIPE_SECRET_KEY (and, for the
+      # webhook, STRIPE_WEBHOOK_SECRET), optional Edge Function secrets set by hand on each project,
+      # every request answers 503 payments_off and the product runs in requests-only mode.
+      # stripe-connect keeps the gateway JWT check; stripe-checkout (called by the database with
+      # its own secret, and by users with a JWT it verifies) and stripe-webhook (signed by Stripe)
+      # do not.
+      - name: Production, deploy the stripe-connect function
+        if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy stripe-connect --project-ref "$PROD_PROJECT_REF" --use-api
+
+      - name: Production, deploy the stripe-checkout function
+        if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy stripe-checkout --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
+
+      - name: Production, deploy the stripe-webhook function
+        if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy stripe-webhook --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 
       - name: Deploy web and app
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'

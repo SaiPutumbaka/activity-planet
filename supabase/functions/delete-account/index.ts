@@ -6,7 +6,10 @@
 //   1. removes the person's avatar files from the avatars bucket, and their chat images from
 //      chat-images (<user id>/<conversation id>/<file>; migration 58);
 //   2. drops provider tokens (Apple revocation is a TODO until Capacitor ships);
-//   3. fans out to processors (TODO: none hold personal data yet);
+//   3. fans out to processors: Stripe (migration 60), when STRIPE_SECRET_KEY is set and the
+//      person has a connected account, is asked to delete it; if Stripe refuses (funds still
+//      pending), a stripe_jobs close_account row retries it later. Without the key nothing is
+//      sent and the coach_stripe_accounts row stays for when the key exists;
 //   4. soft-deletes the auth user, which frees the email address and the OAuth identities
 //      for a new signup, wipes metadata and ends every session and refresh token;
 //   5. stamps completed_at on the account_deletions row.
@@ -17,6 +20,7 @@
 // are injected by Supabase); nothing is read from code or committed files.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
+import { createStripe, stripeErrorName } from "../_shared/stripe.ts";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -142,6 +146,41 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // Messages (migration 58) are anonymized by request_account_deletion: what others received
   // stays under "Deleted user"; chat images were removed in step 1b.
   const processorsNotified: Record<string, string> = {};
+
+  // 3a. Stripe (migration 60). Booking and payment records stay 7 years under "Deleted user"
+  //     (ids and amounts only); the connected account is closed when its balance allows.
+  const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
+  const { data: stripeAccount, error: stripeLookupError } = await admin
+    .from("coach_stripe_accounts")
+    .select("stripe_account_id")
+    .eq("coach_id", userId)
+    .maybeSingle();
+  if (stripeLookupError) return json({ error: "stripe_lookup_failed" }, 500);
+  if (stripeAccount && stripeKey) {
+    const acct = stripeAccount.stripe_account_id as string;
+    const res = await createStripe(stripeKey).request(
+      "DELETE",
+      `/v1/accounts/${encodeURIComponent(acct)}`,
+    );
+    if (res.ok || res.status === 404) {
+      await admin.from("coach_stripe_accounts").delete().eq("coach_id", userId);
+      processorsNotified.stripe = "account_deleted";
+    } else {
+      const { error: jobError } = await admin.from("stripe_jobs").upsert(
+        {
+          op: "close_account",
+          stripe_account_id: acct,
+          idempotency_key: `close:${acct}`,
+          next_at: new Date(Date.now() + 8 * 24 * 3600 * 1000).toISOString(),
+        },
+        { onConflict: "idempotency_key", ignoreDuplicates: true },
+      );
+      if (jobError) return json({ error: "stripe_job_failed" }, 500);
+      processorsNotified.stripe = `close_queued:${stripeErrorName(res)}`;
+    }
+  } else if (stripeAccount) {
+    processorsNotified.stripe = "no_key";
+  }
 
   // 4. Auth user. Soft delete keeps the row as an anonymous stub (the ban holds and the
   //    tombstone's foreign key stays intact) while freeing the email and identities.

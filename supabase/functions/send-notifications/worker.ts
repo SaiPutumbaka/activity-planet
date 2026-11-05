@@ -60,10 +60,13 @@ function zero(): Record<ChannelResult, number> {
 function pushTiming(kind: string): { ttl: number; urgency: "normal" | "high" } {
   switch (kind) {
     case "event_reminder_2h":
+    case "booking_reminder_2h":
       return { ttl: 2 * 3600, urgency: "high" };
     case "event_cancelled":
     case "event_updated":
     case "waitlist_promoted":
+    case "booking_cancelled":
+    case "booking_confirmed":
       return { ttl: 12 * 3600, urgency: "high" };
     default:
       return { ttl: 24 * 3600, urgency: "normal" };

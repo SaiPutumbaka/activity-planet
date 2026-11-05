@@ -58,3 +58,6 @@ feed_distance.sql
 messaging.sql
 messaging_safety.sql
 messaging_review_fixes.sql
+coaching.sql
+coaching_rules.sql
+coaching_payments.sql

@@ -102,6 +102,7 @@ export function copyFor(
   const when = formatWhen(str(p.starts_at), str(p.timezone));
   const where = str(p.location_hint) ?? null;
   const whenWhere = [when, where].filter(Boolean).join(" · ") || null;
+  const session = str(p.title) ?? "your session";
   switch (n.kind) {
     case "rsvp_confirmed":
       return p.status === "waitlisted"
@@ -189,6 +190,79 @@ export function copyFor(
         title: n.actor_name ? `${n.actor_name} wants to message you` : "New message request",
         body: "Open Requests in Chats to accept or decline.",
       };
+    // Migration 60: bookings. Never the client's note; no amounts in a push.
+    case "booking_requested": {
+      const who = n.actor_name ?? "Someone";
+      return {
+        title: `${who} asked to book ${session}`,
+        body: when ? `${when}. Confirm or decline it.` : "Confirm or decline it.",
+      };
+    }
+    case "booking_confirmed":
+      return { title: `${session} is confirmed`, body: when };
+    case "booking_declined": {
+      const reason = str(p.reason);
+      if (reason === "expired") {
+        return {
+          title: `Your request for ${session} expired`,
+          body: "The coach didn't answer in time. Nothing was charged.",
+        };
+      }
+      if (reason === "slot_taken")
+        return { title: "That time was just taken", body: `Pick another time for ${session}.` };
+      return { title: `Your request for ${session} wasn't accepted`, body: "Nothing was charged." };
+    }
+    case "booking_cancelled": {
+      const reason = str(p.reason);
+      const refund = (num(p.refund_minor) ?? 0) > 0 ? " A refund is on its way." : "";
+      const why =
+        reason === "coach"
+          ? "The coach cancelled."
+          : reason === "client"
+            ? `${n.actor_name ?? "The client"} cancelled.`
+            : reason === "account_deleted"
+              ? "The other person closed their account."
+              : reason === "unpaid"
+                ? "It wasn't paid in time."
+                : reason === "moderator" || reason === "banned" || reason === "listing_removed"
+                  ? "Our moderators cancelled it."
+                  : "It was cancelled.";
+      return { title: `${session} is cancelled`, body: `${why}${refund}` };
+    }
+    case "booking_payment_due":
+      return p.fallback === "off_platform"
+        ? {
+            title: `Arrange payment for ${session} directly`,
+            body: "In-app payment isn't available for this booking. Agree on how you'll pay before you meet.",
+          }
+        : { title: `Pay for ${session}`, body: "Pay in the app to keep your booking." };
+    case "booking_reminder_day":
+      return { title: `Coming up: ${session}`, body: when };
+    case "booking_reminder_2h":
+      return { title: `${session} starts soon`, body: when };
+    case "booking_review_prompt":
+      return { title: `How was ${session}?`, body: "Leave a review for your coach." };
+    case "booking_no_show":
+      return p.party === "coach"
+        ? {
+            title: `${n.actor_name ?? "Your client"} reported that you missed ${session}`,
+            body: "If you were there, you can contest it within 48 hours.",
+          }
+        : {
+            title: `You were marked absent from ${session}`,
+            body: "If you were there, you can contest it within 48 hours.",
+          };
+    case "review_received":
+      return { title: "You have a new review", body: str(p.title) ?? null };
+    case "review_reply":
+      return { title: "Your coach replied to your review", body: str(p.title) ?? null };
+    case "coach_payout_action":
+      return p.reason === "dispute"
+        ? {
+            title: `A payment for ${session} is disputed`,
+            body: "Our team reviews it. Open the booking for details.",
+          }
+        : { title: "Stripe needs a few details to pay you", body: "Open your payout settings." };
     default:
       return { title: "You have an update on Activity Planet", body: null };
   }
@@ -196,6 +270,7 @@ export function copyFor(
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,80}$/;
+const HANDLE_RE = /^[A-Za-z0-9_]{3,24}$/;
 
 /** App path for a notification (same rules as notificationLink in the app). */
 export function pathFor(
@@ -206,6 +281,19 @@ export function pathFor(
     if (n.kind === "message" && conv && UUID_RE.test(conv)) return `/chats/${conv}`;
     return n.kind === "message_request" ? "/chats?tab=requests" : "/chats";
   }
+  // Migration 60: bookings and reviews.
+  if (
+    n.kind.startsWith("booking_") ||
+    (n.kind === "coach_payout_action" && n.payload?.reason === "dispute")
+  ) {
+    const id = str(n.payload?.booking_id);
+    return id && UUID_RE.test(id) ? `/bookings/${id}` : "/bookings";
+  }
+  if (n.kind === "review_received" || n.kind === "review_reply") {
+    const handle = str(n.payload?.coach_handle);
+    return handle && HANDLE_RE.test(handle) ? `/coaches/${handle}` : "/bookings";
+  }
+  if (n.kind === "coach_payout_action") return "/coach/payouts";
   if (n.kind === "chapter_claim_update") {
     const slug = n.chapter?.slug ?? str(n.payload?.chapter_slug);
     if (n.payload?.status === "approved" && slug && SLUG_RE.test(slug)) return `/chapters/${slug}`;
@@ -231,6 +319,13 @@ function chatTag(n: Pick<ClaimedNotification, "kind" | "payload">): string | nul
   if (n.kind !== "message" && n.kind !== "message_request") return null;
   const conv = str(n.payload?.conversation_id);
   return conv && UUID_RE.test(conv) ? `${n.kind}:${conv}`.slice(0, 64) : null;
+}
+
+/** One push per booking and kind on the lock screen. */
+function bookingTag(n: Pick<ClaimedNotification, "kind" | "payload">): string | null {
+  if (!n.kind.startsWith("booking_")) return null;
+  const id = str(n.payload?.booking_id);
+  return id && UUID_RE.test(id) ? `${n.kind}:${id}`.slice(0, 64) : null;
 }
 
 export function render(n: ClaimedNotification, links: Links): Rendered {
@@ -278,7 +373,8 @@ ${bodyHtml}<p style="margin:0 0 24px"><a href="${escapeHtml(url)}" style="displa
       title: oneLine(title, 120),
       body: body ? oneLine(body, 180) : "",
       url: pathFor(n),
-      tag: chatTag(n) ?? (n.event_id ? `${n.kind}:${n.event_id}`.slice(0, 64) : n.id),
+      tag:
+        chatTag(n) ?? bookingTag(n) ?? (n.event_id ? `${n.kind}:${n.event_id}`.slice(0, 64) : n.id),
     },
     headers,
   };
