@@ -36,7 +36,20 @@ export async function placeRowId(id: string): Promise<string> {
     "place-files/place",
     { body: { osm_ref: ref, tile } },
   );
-  if (error) throw new PlaceUnavailableError("request_failed");
+  if (error) {
+    // 403 onboarding_required and 429 rate_limited (60 an hour) carry their reason in the body.
+    let reason = "request_failed";
+    try {
+      const ctx = (error as { context?: unknown }).context;
+      if (ctx instanceof Response) {
+        const b = (await ctx.json()) as { reason?: unknown };
+        if (b?.reason === "rate_limited" || b?.reason === "onboarding_required") reason = b.reason;
+      }
+    } catch {
+      // keep request_failed
+    }
+    throw new PlaceUnavailableError(reason);
+  }
   if (typeof data?.id === "string" && UUID.test(data.id)) return data.id;
   throw new PlaceUnavailableError(typeof data?.reason === "string" ? data.reason : "unknown");
 }

@@ -109,7 +109,10 @@ function SuggestCalendarPage() {
               Send suggestion
             </Button>
             <ul className="flex list-disc flex-col gap-1 pl-5 text-[13px] text-text-2">
-              <li>We keep only the link, not who sent it.</li>
+              <li>
+                We keep only the link, not who sent it. To hold suggestions to 5 a day, we count
+                yours for one day, then delete the count.
+              </li>
               <li>
                 We read only what the site allows (robots.txt), link every event back to it, and
                 remove a source on request.

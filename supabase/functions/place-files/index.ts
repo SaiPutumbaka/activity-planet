@@ -9,6 +9,9 @@
 //                             the Auth API). Body {osm_ref, tile}: the database row of a place
 //                             that only its tile's file holds, so it can be reported, corrected or
 //                             used for "Start a plan here". Answers {id} or {id: null, reason}.
+//                             Active, onboarded members only, 60 calls an hour each
+//                             (place_file_request_take, migration 50): 403 onboarding_required,
+//                             429 rate_limited.
 //
 // The gateway JWT check is off (config.toml) because the match caller is the database; the place
 // route checks the member's token itself. Files are read from PLACES_BASE_URL (an optional Edge
@@ -110,6 +113,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (!user?.id || user.role !== "authenticated") {
       await req.body?.cancel();
       return json({ error: "sign_in_required" }, 401);
+    }
+    // Active, onboarded members only, 60 calls an hour each (migration 50): each call reads a
+    // whole tile file and can create a row.
+    const take = (await rpc("place_file_request_take", { p_user_id: user.id })) as {
+      ok?: unknown;
+      error?: unknown;
+    } | null;
+    if (take?.ok !== true) {
+      await req.body?.cancel();
+      const reason = take?.error === "rate_limited" ? "rate_limited" : "onboarding_required";
+      return json({ id: null, reason }, reason === "rate_limited" ? 429 : 403);
     }
     let body: unknown = null;
     try {
