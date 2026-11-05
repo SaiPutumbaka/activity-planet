@@ -35,10 +35,10 @@ begin
     raise exception 'setup: need two general hubs on staging';
   end if;
 
-  if exists (select 1 from public.collector_regions r
-              where extensions.ST_DWithin(r.point, v_london, r.radius_km * 1000.0)) then
-    raise exception 'setup: a collector region already covers London on staging';
-  end if;
+  -- A member who saved a London home on staging (the browser QA account does) leaves a region
+  -- there; this check needs London uncovered, so drop it inside the transaction (rolled back).
+  delete from public.collector_regions r
+   where extensions.ST_DWithin(r.point, v_london, r.radius_km * 1000.0);
   perform set_config('test.regions_before', (select count(*) from public.collector_regions)::text, true);
 
   -- Public events in a hub nobody here joins: 3 km and 40 km north of London,
