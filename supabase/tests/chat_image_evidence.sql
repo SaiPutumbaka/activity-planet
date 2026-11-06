@@ -120,7 +120,8 @@ begin
   if not pg_temp.evidence_has(v_r) then
     raise exception 'FAIL 2 a reported photo was not listed for its evidence copy';
   end if;
-  if public.chat_image_evidence_saved(v_r, 'other.jpg') or public.chat_image_evidence_saved(v_r, null) then
+  -- (A null path marks the original missing since migration 73; chat_image_evidence_fixes.sql.)
+  if public.chat_image_evidence_saved(v_r, 'other.jpg') then
     raise exception 'FAIL 2 a copy under another name was recorded';
   end if;
   if not public.chat_image_evidence_saved(v_r, v_r::text || '.jpg') or pg_temp.evidence_has(v_r) then

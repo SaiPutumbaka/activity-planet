@@ -78,3 +78,4 @@ not_found_404.sql
 write_not_found_404.sql
 chat_image_classifier.sql
 chat_image_evidence.sql
+chat_image_evidence_fixes.sql

@@ -43,6 +43,15 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+/** The HTTP status a Storage error carries, when it carries one. */
+function storageStatus(error: unknown): number | null {
+  if (!error || typeof error !== "object") return null;
+  const e = error as { status?: unknown; statusCode?: unknown };
+  const raw = e.status ?? e.statusCode;
+  const n = typeof raw === "number" ? raw : typeof raw === "string" ? Number(raw) : NaN;
+  return Number.isFinite(n) ? n : null;
+}
+
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -110,25 +119,47 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   // 1b. Chat images (migration 58). The RPC kept the messages others received under the
   //     tombstone and set their images to removed; the files go here. Reported images are
-  //     copied to chat-evidence by image-guard's sweep (migration 72); a copy still pending for
-  //     this account's photos is made here first, so the evidence outlives the original.
+  //     copied to chat-evidence by image-guard's sweep (migration 72); every copy still pending
+  //     for this account's photos is made here first (migration 73: this account's own list,
+  //     not the oldest of everyone's), so the evidence outlives the original. A copy that
+  //     cannot be made stops the run before any original is deleted (support finishes it from
+  //     the ledger); an original that is gone is recorded as missing.
   const { data: pendingEvidence, error: evidenceListError } = await admin.rpc(
-    "chat_image_evidence_list",
-    { p_limit: 100 },
+    "chat_image_evidence_list_for",
+    { p_user: userId },
   );
   if (evidenceListError) return json({ error: "chat_evidence_list_failed" }, 500);
   for (const row of (pendingEvidence ?? []) as { report_id: string; path: string }[]) {
     if (!row.path.startsWith(`${userId}/`)) continue;
-    const { data: original, error: downloadError } = await admin.storage
-      .from("chat-images")
-      .download(row.path);
-    if (downloadError || !original) continue;
+    let original: Blob | null = null;
+    let missing = false;
+    for (let attempt = 0; attempt < 3 && !original && !missing; attempt++) {
+      const { data, error: downloadError } = await admin.storage
+        .from("chat-images")
+        .download(row.path);
+      if (data) original = data;
+      else if (storageStatus(downloadError) === 404 || storageStatus(downloadError) === 400)
+        missing = true;
+    }
+    if (missing) {
+      const { error: missingError } = await admin.rpc("chat_image_evidence_saved", {
+        p_report: row.report_id,
+        p_path: null,
+      });
+      if (missingError) return json({ error: "chat_evidence_save_failed" }, 500);
+      continue;
+    }
+    if (!original) return json({ error: "chat_evidence_copy_failed" }, 500);
     const target = `${row.report_id}.jpg`;
     const { error: copyError } = await admin.storage
       .from("chat-evidence")
       .upload(target, original, { contentType: "image/jpeg", upsert: true });
     if (copyError) return json({ error: "chat_evidence_copy_failed" }, 500);
-    await admin.rpc("chat_image_evidence_saved", { p_report: row.report_id, p_path: target });
+    const { error: savedError } = await admin.rpc("chat_image_evidence_saved", {
+      p_report: row.report_id,
+      p_path: target,
+    });
+    if (savedError) return json({ error: "chat_evidence_save_failed" }, 500);
   }
   const chatPaths: string[] = [];
   const { data: chatFolders, error: chatListError } = await listAll("chat-images", userId);

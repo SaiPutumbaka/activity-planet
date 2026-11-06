@@ -180,7 +180,7 @@ export async function runClassify(
   const slot = (await deps.rpc("chat_classifier_reserve", {
     p_path: path,
     p_operations: reserved,
-  })) as { pending?: boolean; allowed?: boolean } | null;
+  })) as { pending?: boolean; allowed?: boolean; month?: string } | null;
   if (!slot?.pending) return { skipped: "not_pending" };
   if (!slot.allowed) {
     const messages = await record(deps, path, "queued", { reason: "cap", category: "other" });
@@ -244,7 +244,13 @@ export async function runClassify(
     };
   } finally {
     if (used !== reserved) {
-      await deps.rpc("chat_classifier_settle", { p_reserved: reserved, p_used: used });
+      // Migration 73: settled in the month it was reserved in (a call across midnight UTC at a
+      // month's end corrects the right month).
+      await deps.rpc("chat_classifier_settle", {
+        p_reserved: reserved,
+        p_used: used,
+        p_month: typeof slot.month === "string" ? slot.month : null,
+      });
     }
   }
 }

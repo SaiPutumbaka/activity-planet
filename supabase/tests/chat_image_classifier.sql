@@ -70,11 +70,11 @@ begin
     raise exception 'FAIL 1 chat images are not off';
   end if;
   if has_function_privilege('authenticated', 'public.chat_classifier_reserve(text,integer)', 'execute')
-     or has_function_privilege('authenticated', 'public.chat_classifier_settle(integer,integer)', 'execute')
+     or has_function_privilege('authenticated', 'public.chat_classifier_settle(integer,integer,date)', 'execute')
      or has_function_privilege('authenticated', 'public.chat_image_classified(text,text,text,jsonb)', 'execute')
      or has_function_privilege('authenticated', 'public.image_guard_tick()', 'execute')
      or not has_function_privilege('service_role', 'public.chat_classifier_reserve(text,integer)', 'execute')
-     or not has_function_privilege('service_role', 'public.chat_classifier_settle(integer,integer)', 'execute') then
+     or not has_function_privilege('service_role', 'public.chat_classifier_settle(integer,integer,date)', 'execute') then
     raise exception 'FAIL 1 classifier RPC grants';
   end if;
   if has_function_privilege('anon', 'public.mod_chat_image(uuid,text,text)', 'execute')

@@ -94,7 +94,8 @@ export async function runCheck(
 /**
  * Migration 72: copies reported chat photos into the private chat-evidence bucket
  * (<report id>.jpg) before anything deletes the original, at most 25 a run. Returns how many
- * were copied; a missing original is recorded as such so it is not asked again.
+ * were copied; a missing original is recorded as such (image_evidence_missing_at, migration 73)
+ * so it is not asked again.
  */
 export async function runEvidenceCopy(deps: GuardDeps): Promise<number> {
   const list = ((await deps.rpc("chat_image_evidence_list", { p_limit: 25 })) ?? []) as {

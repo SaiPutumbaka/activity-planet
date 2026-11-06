@@ -82,6 +82,7 @@ function fake(opts: {
           allowed: opts.allowed ?? true,
           used: 4,
           cap: 1800,
+          month: "2026-11-01",
         });
       }
       if (name === "chat_image_classified") return Promise.resolve(1);
@@ -280,7 +281,7 @@ Deno.test(
       assertEquals("reason" in r && r.reason, "classifier_error", JSON.stringify(reply));
       assertEquals(verdictCall(f)?.p_verdict, "queued");
       const settle = f.calls.find((c) => c.name === "chat_classifier_settle");
-      assertEquals(settle?.args, { p_reserved: 4, p_used: 0 });
+      assertEquals(settle?.args, { p_reserved: 4, p_used: 0, p_month: "2026-11-01" });
     }
   },
 );
@@ -291,6 +292,7 @@ Deno.test("classify: a different operation count is settled", async () => {
   assertEquals(f.calls.find((c) => c.name === "chat_classifier_settle")?.args, {
     p_reserved: 4,
     p_used: 3,
+    p_month: "2026-11-01",
   });
 });
 
@@ -303,6 +305,7 @@ Deno.test("classify: a missing or oversized object is blocked without a call", a
     assertEquals(f.calls.find((c) => c.name === "chat_classifier_settle")?.args, {
       p_reserved: 4,
       p_used: 0,
+      p_month: "2026-11-01",
     });
   }
 });
