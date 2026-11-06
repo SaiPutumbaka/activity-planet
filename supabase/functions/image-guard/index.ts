@@ -4,6 +4,12 @@
 //   POST /image-guard {op: "check", bucket, path} -> hashes one Storage object and records it
 //                                                     (image_guard_record); deletes it when it
 //                                                     matches a removed image.
+//   POST /image-guard {op: "classify", bucket: "chat-images", path}
+//                                                  -> migration 71: classifies one chat image with
+//                                                     Sightengine (classify.ts) and records the
+//                                                     verdict; {skipped: "no_key"} and the image
+//                                                     blocked without SIGHTENGINE_API_USER and
+//                                                     SIGHTENGINE_API_SECRET (fails closed).
 //   POST /image-guard {op: "sweep"}               -> deletes the objects waiting for deletion.
 //
 // The caller is the database (the image reference triggers, mod_takedown_block_image and the
@@ -13,9 +19,12 @@
 // image_guard_secret, generated inside the database by migration 52; it never leaves the
 // database except in that pg_net header). Free, server-side, no paid API: the hashes are
 // computed here in plain TypeScript. Only hashes are stored; the bytes are never logged or kept.
+// The optional classifier (Sightengine's free plan) is called only for chat images and only
+// when both of its secrets are set; it receives the image bytes and nothing about the person.
 // Responses carry the outcome and counts only. SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are
 // injected by Supabase.
 import { type GuardDeps, MAX_BYTES, parseGuardRequest, runCheck, runSweep } from "./guard.ts";
+import { readKeys, runClassify, SIGHTENGINE_URL } from "./classify.ts";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -118,6 +127,34 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const deleted = await runSweep(deps);
       console.log("image-guard sweep", JSON.stringify({ deleted }));
       return json({ deleted });
+    }
+    if (parsed.op === "classify") {
+      const result = await runClassify(
+        {
+          ...deps,
+          keys: readKeys((name) => Deno.env.get(name)),
+          sightengine: async (form) => {
+            const res = await fetch(SIGHTENGINE_URL, {
+              method: "POST",
+              body: form,
+              signal: AbortSignal.timeout(20_000),
+            });
+            const text = await res.text();
+            let body: unknown = null;
+            try {
+              body = text ? JSON.parse(text) : null;
+            } catch {
+              body = null;
+            }
+            return { status: res.status, body };
+          },
+        },
+        parsed,
+      );
+      const deleted =
+        "verdict" in result && result.verdict === "blocked" ? await runSweep(deps) : 0;
+      console.log("image-guard classify", JSON.stringify({ ...result, deleted }));
+      return json({ ...result, deleted });
     }
     const result = await runCheck(deps, parsed);
     console.log("image-guard check", JSON.stringify(result));

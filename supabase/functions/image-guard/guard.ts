@@ -1,4 +1,5 @@
-// image-guard: request parsing and the check and sweep runs (fake I/O in guard_test.ts).
+// image-guard: request parsing and the check and sweep runs (fake I/O in guard_test.ts). The
+// classify run (chat images, migration 71) is in classify.ts.
 //
 //   check  download one Storage object with the service role, hash it (hash.ts; decode.ts for
 //          JPEG and PNG) and hand the hashes to image_guard_record, which decides: allowed,
@@ -15,7 +16,10 @@ import { hashPixels, sha256Hex } from "./hash.ts";
 /** Largest object downloaded (the avatars bucket allows 2 MiB; older projects 5 MiB). */
 export const MAX_BYTES = 6 * 1024 * 1024;
 
-export type GuardRequest = { op: "check"; bucket: string; path: string } | { op: "sweep" };
+export type GuardRequest =
+  | { op: "check"; bucket: string; path: string }
+  | { op: "classify"; bucket: "chat-images"; path: string }
+  | { op: "sweep" };
 
 const BUCKET = /^[a-z0-9][a-z0-9_-]{0,62}$/;
 const PATH = /^[A-Za-z0-9._~-]+(\/[A-Za-z0-9._~-]+)*$/;
@@ -25,11 +29,14 @@ export function parseGuardRequest(body: unknown): GuardRequest | null {
   if (!body || typeof body !== "object") return null;
   const b = body as Record<string, unknown>;
   if (b.op === "sweep") return { op: "sweep" };
-  if (b.op !== "check") return null;
+  if (b.op !== "check" && b.op !== "classify") return null;
   const { bucket, path } = b;
   if (typeof bucket !== "string" || typeof path !== "string") return null;
   if (!BUCKET.test(bucket) || path.length > 400 || !PATH.test(path)) return null;
   if (path.split("/").some((seg) => seg === "." || seg === "..")) return null;
+  // Migration 71: only chat images are classified.
+  if (b.op === "classify")
+    return bucket === "chat-images" ? { op: "classify", bucket, path } : null;
   return { op: "check", bucket, path };
 }
 
