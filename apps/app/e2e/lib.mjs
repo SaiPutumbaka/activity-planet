@@ -40,6 +40,13 @@ export const VIEWPORTS = {
 };
 
 /**
+ * The width a single-width flow runs at: the phone unless E2E_VIEWPORT=desktop. Flows that
+ * already walk both widths (02, 05, 08, 09, 11) ignore it.
+ */
+export const MAIN_VIEWPORT =
+  process.env.E2E_VIEWPORT === "desktop" ? VIEWPORTS.desktop : VIEWPORTS.phone;
+
+/**
  * A browser context per viewport, with console errors, page errors and failed requests collected
  * (only their messages and URLs without query strings, so tokens never reach the output).
  */

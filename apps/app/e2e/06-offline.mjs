@@ -2,7 +2,15 @@
 // waits for the worker to take control, goes offline and opens a few routes: each must show the
 // "You're offline" screen (not a spinner or "Something broke"), and the screen must recover on
 // its own once the connection is back. Screenshots: offline-<route>.png in E2E_QA_DIR.
-import { env, skipUnless, loadPlaywright, shot, signIn, makeRunner, VIEWPORTS } from "./lib.mjs";
+import {
+  env,
+  skipUnless,
+  loadPlaywright,
+  shot,
+  signIn,
+  makeRunner,
+  MAIN_VIEWPORT,
+} from "./lib.mjs";
 
 skipUnless(env.email && env.password, "E2E_EMAIL and E2E_PASSWORD are not set");
 const pw = loadPlaywright();
@@ -10,7 +18,7 @@ skipUnless(pw, "playwright is not installed");
 
 const routes = ["/", "/hubs", "/you"];
 const browser = await pw.chromium.launch();
-const context = await browser.newContext({ viewport: VIEWPORTS.phone });
+const context = await browser.newContext({ viewport: MAIN_VIEWPORT });
 const page = await context.newPage();
 const run = makeRunner("offline");
 const bodyText = async () => (await page.locator("body").innerText()).replace(/\s+/g, " ");

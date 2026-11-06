@@ -14,6 +14,7 @@ import {
   makeRunner,
   assertNoHorizontalScroll,
   VIEWPORTS,
+  MAIN_VIEWPORT,
 } from "./lib.mjs";
 
 skipUnless(
@@ -32,7 +33,7 @@ let failed = 0;
 
 /* B acts on A from A's plan */
 {
-  const { context, page, problems } = await openContext(browser, VIEWPORTS.phone);
+  const { context, page, problems } = await openContext(browser, MAIN_VIEWPORT);
   const r = makeRunner("safety");
   let hostName = "";
   const openPerson = async () => {

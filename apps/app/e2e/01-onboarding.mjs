@@ -11,7 +11,7 @@ import {
   signIn,
   makeRunner,
   assertNoHorizontalScroll,
-  VIEWPORTS,
+  MAIN_VIEWPORT,
 } from "./lib.mjs";
 
 const email = process.env.E2E_ONBOARD_EMAIL || env.email;
@@ -23,7 +23,7 @@ skipUnless(pw, "playwright is not installed");
 const city = process.env.E2E_CITY || "Atlanta";
 const tag = process.env.E2E_TAG || "a";
 const browser = await pw.chromium.launch();
-const { page, problems } = await openContext(browser, VIEWPORTS.phone);
+const { page, problems } = await openContext(browser, MAIN_VIEWPORT);
 const r = makeRunner(`onboarding-${tag}`);
 
 await r.step("sign-up page renders", async () => {

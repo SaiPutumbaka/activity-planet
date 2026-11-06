@@ -13,6 +13,7 @@ import {
   makeRunner,
   assertNoHorizontalScroll,
   VIEWPORTS,
+  MAIN_VIEWPORT,
 } from "./lib.mjs";
 
 skipUnless(
@@ -34,7 +35,7 @@ async function acceptGuidelinesIfAsked(page) {
 
 /* Host */
 {
-  const { context, page, problems } = await openContext(browser, VIEWPORTS.phone);
+  const { context, page, problems } = await openContext(browser, MAIN_VIEWPORT);
   await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: env.base });
   const r = makeRunner("plan-host");
   await r.step("sign in", () => signIn(page, env.email, env.password));
@@ -116,7 +117,7 @@ async function acceptGuidelinesIfAsked(page) {
 
 /* Guest */
 if (eventId) {
-  const { context, page, problems } = await openContext(browser, VIEWPORTS.phone);
+  const { context, page, problems } = await openContext(browser, MAIN_VIEWPORT);
   const r = makeRunner("plan-guest");
   await r.step("sign in", () => signIn(page, env.emailB, env.passwordB));
   await r.step("RSVP going", async () => {

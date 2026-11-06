@@ -16,7 +16,7 @@ import {
   signIn,
   makeRunner,
   assertNoHorizontalScroll,
-  VIEWPORTS,
+  MAIN_VIEWPORT,
 } from "./lib.mjs";
 
 skipUnless(
@@ -30,8 +30,8 @@ const eventId =
   process.env.E2E_EVENT_ID || (existsSync(idFile) ? readFileSync(idFile, "utf8").trim() : "");
 
 const browser = await pw.chromium.launch();
-const A = await openContext(browser, VIEWPORTS.phone);
-const B = await openContext(browser, VIEWPORTS.phone);
+const A = await openContext(browser, MAIN_VIEWPORT);
+const B = await openContext(browser, MAIN_VIEWPORT);
 const pa = A.page;
 const pb = B.page;
 const r = makeRunner("messaging");

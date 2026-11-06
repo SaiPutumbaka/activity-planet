@@ -17,6 +17,7 @@ import {
   makeRunner,
   assertNoHorizontalScroll,
   VIEWPORTS,
+  MAIN_VIEWPORT,
 } from "./lib.mjs";
 
 skipUnless(env.email && env.password, "E2E_EMAIL and E2E_PASSWORD are not set");
@@ -35,7 +36,7 @@ let failed = 0;
 /* Rows, signed in, phone width                                          */
 /* ------------------------------------------------------------------ */
 if (only !== "landing") {
-  const { context, page, problems } = await openContext(browser, VIEWPORTS.phone);
+  const { context, page, problems } = await openContext(browser, MAIN_VIEWPORT);
   const r = makeRunner("recs");
   const forYou = page.getByTestId("for-you");
   const cards = forYou.getByTestId("rec-event-card");

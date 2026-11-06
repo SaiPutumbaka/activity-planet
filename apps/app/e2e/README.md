@@ -51,6 +51,9 @@ notifications of the QA accounts, older than a day) are removed by
 `supabase/staging/qa_cleanup.sql`, run the same way. It keeps the QA accounts, the demo accounts
 (`demo_*`), the demo chapter and demo plans.
 
+02, 05, 08, 09 and 11 walk both widths (390x844 and 1280x800) themselves; the single-width
+flows (01, 03, 04, 06, 07, 10) run at the phone width, or at 1280x800 with `E2E_VIEWPORT=desktop`.
+
 Use test accounts on staging only, never production. Screenshots go to `E2E_QA_DIR`
 (default `./e2e-output`, git-ignored). Output names flows and steps only, never user rows.
 The map canvas needs the OpenFreeMap tile host; where it is unreachable the Map tab falls back
