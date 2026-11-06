@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 69 (schema_version 2.65). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 70 (schema_version 2.66). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -7464,6 +7464,10 @@ export type Database = {
         Returns: Json;
       };
       source_candidates_record: { Args: { p_results: Json }; Returns: Json };
+      source_candidates_rescore: {
+        Args: { p_dry_run?: boolean; p_region: string; p_scores: Json };
+        Returns: Json;
+      };
       source_discovery_allowed:
         | { Args: { p_country: string; p_origin: string }; Returns: boolean }
         | {
