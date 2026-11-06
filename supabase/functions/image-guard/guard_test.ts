@@ -1,7 +1,14 @@
 // deno test --allow-read supabase/functions/image-guard
 import { assert, assertEquals } from "jsr:@std/assert@1.0.19";
 
-import { type GuardDeps, MAX_BYTES, parseGuardRequest, runCheck, runSweep } from "./guard.ts";
+import {
+  type GuardDeps,
+  MAX_BYTES,
+  parseGuardRequest,
+  runCheck,
+  runEvidenceCopy,
+  runSweep,
+} from "./guard.ts";
 
 const base = await Deno.readFile(new URL("./fixtures/base.jpg", import.meta.url));
 const webp = await Deno.readFile(new URL("./fixtures/base.webp", import.meta.url));
@@ -9,17 +16,23 @@ const webp = await Deno.readFile(new URL("./fixtures/base.webp", import.meta.url
 interface Fake extends GuardDeps {
   calls: { name: string; args: Record<string, unknown> }[];
   removed: { bucket: string; paths: string[] }[];
+  uploaded: { bucket: string; path: string; size: number }[];
 }
 
 function fake(opts: {
   bytes: Uint8Array | null | "too_large";
   outcome?: string;
   purge?: { id: string; bucket: string; path: string }[];
+  evidence?: { report_id: string; path: string }[];
+  chatPurge?: { bucket: string; path: string }[];
 }): Fake {
   let purge = [...(opts.purge ?? [])];
+  let evidence = [...(opts.evidence ?? [])];
+  let chatPurge = [...(opts.chatPurge ?? [])];
   const f: Fake = {
     calls: [],
     removed: [],
+    uploaded: [],
     rpc(name, args) {
       f.calls.push({ name, args });
       if (name === "image_guard_record")
@@ -30,11 +43,25 @@ function fake(opts: {
         purge = purge.filter((p) => !ids.includes(p.id));
         return Promise.resolve(ids.length);
       }
+      if (name === "chat_image_evidence_list") return Promise.resolve(evidence);
+      if (name === "chat_image_evidence_saved") {
+        evidence = evidence.filter((e) => e.report_id !== args.p_report);
+        return Promise.resolve(true);
+      }
+      if (name === "chat_image_purge_list") {
+        const page = chatPurge;
+        chatPurge = [];
+        return Promise.resolve(page);
+      }
       return Promise.reject(new Error(`unexpected ${name}`));
     },
     download: () => Promise.resolve(opts.bytes),
     remove(bucket, paths) {
       f.removed.push({ bucket, paths });
+      return Promise.resolve();
+    },
+    upload(bucket, path, bytes) {
+      f.uploaded.push({ bucket, path, size: bytes.length });
       return Promise.resolve();
     },
   };
@@ -124,4 +151,41 @@ Deno.test("sweep: groups by bucket and stops when the list is empty", async () =
   assertEquals(await runSweep(f), 2);
   assertEquals(f.removed.length, 2);
   assertEquals(f.calls.filter((c) => c.name === "image_guard_purge_list").length, 1);
+});
+
+Deno.test("evidence: reported chat photos are copied before the sweep deletes", async () => {
+  const f = fake({
+    bytes: base,
+    evidence: [{ report_id: "r1", path: `${uid}/c/1.jpg` }],
+    chatPurge: [{ bucket: "chat-images", path: `${uid}/c/2.jpg` }],
+  });
+  assertEquals(await runSweep(f), 1);
+  assertEquals(f.uploaded, [{ bucket: "chat-evidence", path: "r1.jpg", size: base.length }]);
+  const saved = f.calls.find((c) => c.name === "chat_image_evidence_saved")!;
+  assertEquals(saved.args, { p_report: "r1", p_path: "r1.jpg" });
+  const names = f.calls.map((c) => c.name);
+  assert(names.indexOf("chat_image_evidence_saved") < names.indexOf("chat_image_purge_list"));
+  assertEquals(f.removed, [{ bucket: "chat-images", paths: [`${uid}/c/2.jpg`] }]);
+});
+
+Deno.test("evidence: a missing original is recorded, nothing uploaded", async () => {
+  const f = fake({ bytes: null, evidence: [{ report_id: "r2", path: `${uid}/c/3.jpg` }] });
+  assertEquals(await runEvidenceCopy(f), 0);
+  assertEquals(f.uploaded, []);
+  assertEquals(f.calls.find((c) => c.name === "chat_image_evidence_saved")?.args, {
+    p_report: "r2",
+    p_path: null,
+  });
+});
+
+Deno.test("sweep: the chat purge list only ever deletes in the chat buckets", async () => {
+  const f = fake({
+    bytes: null,
+    chatPurge: [
+      { bucket: "chat-evidence", path: "old.jpg" },
+      { bucket: "avatars", path: `${uid}/1.jpg` },
+    ],
+  });
+  assertEquals(await runSweep(f), 1);
+  assertEquals(f.removed, [{ bucket: "chat-evidence", paths: ["old.jpg"] }]);
 });

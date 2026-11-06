@@ -10,7 +10,9 @@
 //                                                     verdict; {skipped: "no_key"} and the image
 //                                                     blocked without SIGHTENGINE_API_USER and
 //                                                     SIGHTENGINE_API_SECRET (fails closed).
-//   POST /image-guard {op: "sweep"}               -> deletes the objects waiting for deletion.
+//   POST /image-guard {op: "sweep"}               -> copies reported chat photos to chat-evidence
+//                                                     (migration 72), then deletes the objects
+//                                                     waiting for deletion.
 //
 // The caller is the database (the image reference triggers, mod_takedown_block_image and the
 // pg_cron job image-guard-tick, all through pg_net and public.image_guard_dispatch), not a user,
@@ -110,6 +112,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
       }
       const bytes = new Uint8Array(await res.arrayBuffer());
       return bytes.length > MAX_BYTES ? "too_large" : bytes;
+    },
+    upload: async (bucket, path, bytes) => {
+      const res = await fetch(objectUrl(supabaseUrl, bucket, path), {
+        method: "POST",
+        headers: { ...auth, "Content-Type": "image/jpeg", "x-upsert": "true" },
+        body: bytes,
+      });
+      await res.body?.cancel();
+      if (!res.ok) throw new Error(`storage_upload_http_${res.status}`);
     },
     remove: async (bucket, paths) => {
       const res = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}`, {

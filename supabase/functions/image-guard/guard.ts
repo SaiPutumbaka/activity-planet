@@ -46,6 +46,8 @@ export interface GuardDeps {
   download(bucket: string, path: string): Promise<Uint8Array | null | "too_large">;
   /** Deletes objects in one bucket; missing ones are not an error. */
   remove(bucket: string, paths: string[]): Promise<void>;
+  /** Migration 72: writes (or overwrites) one JPEG object with the service role. */
+  upload(bucket: string, path: string, bytes: Uint8Array): Promise<void>;
 }
 
 export type Outcome = "ok" | "blocked" | "unreadable" | "missing";
@@ -89,8 +91,40 @@ export async function runCheck(
   return { outcome, copies: Number(res?.copies ?? 0), deleted };
 }
 
-/** Deletes what waits for deletion (at most 4 pages of 50). Returns how many were deleted. */
+/**
+ * Migration 72: copies reported chat photos into the private chat-evidence bucket
+ * (<report id>.jpg) before anything deletes the original, at most 25 a run. Returns how many
+ * were copied; a missing original is recorded as such so it is not asked again.
+ */
+export async function runEvidenceCopy(deps: GuardDeps): Promise<number> {
+  const list = ((await deps.rpc("chat_image_evidence_list", { p_limit: 25 })) ?? []) as {
+    report_id: string;
+    path: string;
+  }[];
+  if (!Array.isArray(list)) return 0;
+  let copied = 0;
+  for (const row of list) {
+    const bytes = await deps.download("chat-images", row.path);
+    if (bytes === null || bytes === "too_large") {
+      await deps.rpc("chat_image_evidence_saved", { p_report: row.report_id, p_path: null });
+      continue;
+    }
+    const target = `${row.report_id}.jpg`;
+    await deps.upload("chat-evidence", target, bytes);
+    await deps.rpc("chat_image_evidence_saved", { p_report: row.report_id, p_path: target });
+    copied++;
+  }
+  return copied;
+}
+
+/**
+ * Deletes what waits for deletion (at most 4 pages of 50): blocked and unreadable objects
+ * (image_guard_purge_list), then (migration 72) chat photos their sender or a host deleted, chat
+ * uploads never sent, and evidence copies whose report record is gone (chat_image_purge_list).
+ * Reported chat photos are copied first (runEvidenceCopy). Returns how many were deleted.
+ */
 export async function runSweep(deps: GuardDeps): Promise<number> {
+  await runEvidenceCopy(deps);
   let deleted = 0;
   for (let page = 0; page < 4; page++) {
     const list = ((await deps.rpc("image_guard_purge_list", { p_limit: 50 })) ?? []) as {
@@ -112,6 +146,22 @@ export async function runSweep(deps: GuardDeps): Promise<number> {
       done.push(...g.ids);
     }
     deleted += Number((await deps.rpc("image_guard_mark_purged", { p_ids: done })) ?? 0);
+    if (list.length < 50) break;
+  }
+  for (let page = 0; page < 4; page++) {
+    const list = ((await deps.rpc("chat_image_purge_list", { p_limit: 50 })) ?? []) as {
+      bucket: string;
+      path: string;
+    }[];
+    if (!Array.isArray(list) || list.length === 0) break;
+    const byBucket = new Map<string, string[]>();
+    for (const row of list)
+      byBucket.set(row.bucket, [...(byBucket.get(row.bucket) ?? []), row.path]);
+    for (const [bucket, paths] of byBucket) {
+      if (bucket !== "chat-images" && bucket !== "chat-evidence") continue;
+      await deps.remove(bucket, paths);
+      deleted += paths.length;
+    }
     if (list.length < 50) break;
   }
   return deleted;
