@@ -180,9 +180,10 @@ begin
     raise exception 'FAIL 3 an image was shown before its pHash check passed';
   end if;
   -- Visible once.
-  if public.chat_image_classified('chat-images', v_p1, 'visible', '{"reason": "classified"}'::jsonb) <> 1
-     or pg_temp.state(v_p1) <> 'visible' then
-    raise exception 'FAIL 3 a passed image did not become visible';
+  v_n := public.chat_image_classified('chat-images', v_p1, 'visible', '{"reason": "classified"}'::jsonb);
+  if v_n <> 1 or pg_temp.state(v_p1) <> 'visible' then
+    raise exception 'FAIL 3 a passed image did not become visible (changed %, state %, hash %)', v_n,
+      pg_temp.state(v_p1), (select h.status from public.image_hashes h where h.bucket = 'chat-images' and h.path = v_p1);
   end if;
   if public.chat_image_classified('chat-images', v_p1, 'blocked', '{}'::jsonb) <> 0 or pg_temp.state(v_p1) <> 'visible' then
     raise exception 'FAIL 3 a repeated verdict changed a decided image';
