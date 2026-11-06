@@ -228,15 +228,16 @@ describe("candidates", () => {
     expect(hosts).toEqual(["alliancetheatre.org", "atlantahistorycenter.com", "mariettaga.gov"]);
     const marietta = candidates.find((c) => c.host === "mariettaga.gov")!;
     expect(marietta.places).toBe(3);
-    expect(marietta.place_kind).toBe("sports_centre");
+    // A government's site is scored as a city site, whatever places name it.
+    expect(marietta.place_kind).toBe("community");
     expect(marietta.url).toBe("https://www.mariettaga.gov/");
     expect(dropped).toEqual({ denylisted: 1, known_source: 1 });
     expect(wikidataIds.get("Q2945111")).toBe("atlantahistorycenter.com");
     const alliance = candidates.find((c) => c.host === "alliancetheatre.org")!;
     expect(alliance.extra_urls).toEqual(["https://www.alliancetheatre.org/content/shows-events"]);
-    // kind prior x 20, +25 Wikidata (COLLECTOR_COMPLETION 2.9), +2 per extra place up to 10.
-    expect(cheapScore({ place_kind: "arts_venue", wikidata_id: "Q1", places: 1 })).toBe(37);
-    expect(marietta.score).toBe(12);
+    // kind prior x 20, +10 Wikidata, +2 per extra place up to 10.
+    expect(cheapScore({ place_kind: "arts_venue", wikidata_id: "Q1", places: 1 })).toBe(22);
+    expect(marietta.score).toBe(18);
   });
 
   it("builds Wikidata queries and reads their answers", () => {
@@ -634,9 +635,9 @@ describe("discovery tuning", () => {
       KIND_PRIOR.school,
       KIND_PRIOR.library,
     ]).toEqual([0.7, 0.15, 0.5, 0.8]);
-    expect(WIKIDATA_BONUS).toBe(25);
+    expect(WIKIDATA_BONUS).toBe(10);
     expect(score2({ place_kind: "community", places: 1 })).toBe(14);
-    expect(score2({ place_kind: "community", wikidata_id: "Q1", places: 1 })).toBe(39);
+    expect(score2({ place_kind: "community", wikidata_id: "Q1", places: 1 })).toBe(24);
   });
   it("switches a kind to its learned yield at 30 probes", () => {
     const below = { cinema: { probed: LEARNED_MIN_PROBES - 1, good: 20 } };

@@ -1,0 +1,191 @@
+# The Atlanta gate's candidate list as of run 42131965214 (staging, Nov 5 2026), reduced to what
+# the cheap score reads. 'osm <host> <kinds> <places> <wikidata 0|1> [events]': an OSM host, the
+# place kinds that name it (art arts_venue, sch school, com community, lib library, att
+# attraction, mak maker, cin cinema, spo sports_centre, his historic, nat nature, par park, mar
+# market, bar, bre brewery), how many places name it, whether a place or Wikidata ties it to an
+# item, and whether a place links its events page. 'wikidata <host> <kind>': a Wikidata-only
+# venue. OSM hosts that no score can lift past 18 (no item, at most 2 places, no deeper link) are
+# left out; the real list holds 5 to 9 more hosts above the gate's seeds than this one.
+osm 7stages.org art 1 1
+osm afpls.org lib 5 1
+osm agnesscott.edu art,sch 2 1
+osm alliancetheatre.org art 1 0 ev
+osm amctheatres.com cin 12 1
+osm apexmuseum.org art 2 1
+osm atlanta.braves.mlb.com spo 1 1
+osm atlanta.regency.hyatt.com art 1 1
+osm atlantabg.org att,lib 2 1
+osm atlantabrewing.com bar 1 1
+osm atlantacontemporary.org art 1 1
+osm atlantaga.gov com,his,par 3 0
+osm atlantahistorycenter.com art 1 1
+osm atlantatech.edu sch 1 1
+osm atlm.edu sch 1 1
+osm auroracineplex.com cin 1 1
+osm avenueeastcobb.com art,bre,par 3 0
+osm beltline.org par 2 1
+osm besharatgallery.com art 1 1
+osm carlos.emory.edu art 1 1
+osm cau.edu sch 1 1
+osm cem.va.gov his 1 1
+osm centennialpark.com par 1 1
+osm cfbhall.com art 1 1
+osm childrensmuseumatlanta.org art 1 1
+osm cityofmiltonga.us com,par 3 1
+osm civilandhumanrights.org art 1 1
+osm cmxcinemas.com cin 1 1
+osm cobbcounty.gov com,par 3 0
+osm cobbcounty.org com,lib,nat,par 32 0 ev
+osm decaturga.com his,par,spo 3 0
+osm dekalblibrary.org lib 21 1
+osm deltamuseum.org art 1 1
+osm dramatech.org art 1 1
+osm earlsmithstrand.org art 1 1
+osm emory.edu sch 1 1
+osm encoreparkamphitheatre.com art 1 1
+osm fandango.com cin 1 1
+osm fernbankmuseum.org art,cin 2 1
+osm findagrave.com his 26 0
+osm foxtheatre.org art,bar 2 1
+osm fulcolibrary.org lib 12 1
+osm fultonschools.org art 1 1
+osm gastateparks.org nat,par 3 1
+osm georgiahistory.com his 3 0
+osm georgiatheatrecompany.com cin 1 1
+osm gov.georgia.gov com 1 1
+osm gsu.edu sch 1 1
+osm gwinnettcounty.com com,par 3 0
+osm gwinnettpl.org lib 6 1
+osm gwinnetttech.edu sch 2 1
+osm hammondshouse.org art 1 1
+osm high.org art,his 2 1
+osm ipic.com cin 1 1
+osm jimmycarterlibrary.gov art 1 1
+osm kennesaw.edu sch 1 1
+osm landmarktheatres.com cin 1 1
+osm library.gsu.edu lib 2 1
+osm lucidprivateoffices.com com 3 0
+osm mariettaconfederatecemetery.org his 1 1
+osm mariettaga.gov art,his,par,spo 26 0
+osm marcustheatres.com cin 1 1
+osm midtownatl.com art,par 3 0
+osm mocaga.org art 1 1
+osm morehouse.edu sch 1 1
+osm msm.edu sch 1 1
+osm museum.spelman.edu art 1 1
+osm museumofdesign.org art 1 1
+osm ncgmovies.com cin 1 1
+osm newvisiontheatres.com cin 1 1
+osm nps.gov his,nat,par 9 1
+osm oaklandcemetery.com his 1 1
+osm parks.forsythco.com par 3 0
+osm pictureshowent.com cin 1 1
+osm piedmontpark.org art,mar,par 4 1
+osm plazaatlanta.com cin 1 1
+osm poncecitymarket.com his 1 1
+osm regmovies.com cin 5 1
+osm rhodeshall.org art 1 1
+osm rialto.gsu.edu art 1 1
+osm roswellgov.com art,com,par,spo 5 1
+osm sandboxatl.org mak 1 1
+osm scad.edu art,lib,sch 3 0
+osm sixflags.com att 1 1
+osm smyrnacity.com com,par 5 1
+osm springscinema.com cin 1 1
+osm starlightdrivein.com cin 1 1
+osm stjamesmarietta.com his 1 1
+osm stonemountainpark.com par 1 1
+osm studentcenter.gatech.edu art,com 2 1
+osm studiomoviegrill.com cin 2 1
+osm sweetwaterbrew.com bar,bre 2 1
+osm thebreman.org art 1 1
+osm theherndonfoundation.org art 1 1
+osm variety-playhouse.com art 1 1
+osm venturecinema.net cin 1 1
+osm wgrls.org lib 4 0
+osm woodruffcenter.org art,his 3 1
+osm worldofcoca-cola.com art 1 1
+osm ymca.org com 1 1
+osm ymcaatlanta.org com,spo 6 0
+osm academytheatre.org art 1 1
+osm avondaleestates.org com 1 1
+osm callanwolde.org art 1 1
+osm cdc.gov art 1 1
+osm centerstage-atlanta.com art 1 1
+osm clarkstonga.gov com 1 1
+osm claytonpl.org lib 2 1
+osm dekalbhistory.org art 2 1
+osm dunwoodyga.gov com 1 1
+osm henrylibraries.org lib 1 1
+osm life.edu sch 1 1
+osm mablehouse.org art 1 1
+osm madamecjwalkermuseum.com art 1 1
+osm museum.oglethorpe.edu art 1 1
+osm puppet.org art 1 1
+osm sandyspringsga.org com 1 1
+osm shakespearetavern.com art 1 1
+osm smyrnaga.gov com,par 2 1
+osm synchrotheatre.com art 1 1
+osm thegatemuseum.org art 1 1
+osm tuckerga.gov com 1 1
+osm zooatlanta.org art 1 1
+wikidata allsaintsatlanta.org lib
+wikidata artstation.org art
+wikidata atl.com art
+wikidata atlanta.besharatgallery.com art
+wikidata atlanta.sciencegallery.com art
+wikidata atlantacyclorama.org art
+wikidata atlmemorialpark.org par
+wikidata aucenter.edu sch
+wikidata auctr.edu lib
+wikidata austellga.gov com
+wikidata brookhavenga.gov com
+wikidata chambleega.com com
+wikidata cityofsouthfultonga.gov art
+wikidata clayton.edu sch
+wikidata collegeparkga.com com
+wikidata coxcollege.edu sch
+wikidata devry.edu sch
+wikidata discoveratlanta.com com
+wikidata doravillega.us com
+wikidata eastpointcity.org com
+wikidata forestparkga.org com
+wikidata frbatlanta.org art
+wikidata fsc.fernbank.edu art
+wikidata fultonarts.org art
+wikidata georgiaaquarium.org par
+wikidata georgialibraries.org lib
+wikidata gpc.edu sch
+wikidata gptc.edu sch
+wikidata gtcmovies.com cin
+wikidata hapeville.org com
+wikidata heritagesandysprings.org art
+wikidata herndonhome.org art
+wikidata historichapeville.org art
+wikidata holocaust.georgia.gov art
+wikidata jmccatlanta.com art
+wikidata lakecityga.net com
+wikidata laurus.edu sch
+wikidata libs.uga.edu art
+wikidata mlb.com spo
+wikidata morrisbrown.edu sch
+wikidata museumofminiaturechairs.com art
+wikidata nationalblackgolfhalloffame.com art
+wikidata oglethorpe.edu sch
+wikidata omenalagriot.com art
+wikidata pinelakega.com com
+wikidata redbrickbrewing.com bar
+wikidata riverdalega.gov com
+wikidata salvationarmyhistory.org art
+wikidata smyrnahistoricalsociety.org art
+wikidata spruillarts.org art
+wikidata spsu.edu sch
+wikidata stonemountaincity.org com
+wikidata tabernacleatl.com art
+wikidata thecontemporary.org art
+wikidata thewebbuilder.com art
+wikidata unioncityga.org com
+wikidata uofa.edu sch
+wikidata venturecinema12.com cin
+wikidata wrensnest.org art
+wikidata ymca.net com

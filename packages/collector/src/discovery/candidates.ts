@@ -130,6 +130,34 @@ function better(a: Candidate, kind: string): boolean {
 }
 
 /**
+ * Whether a host is a government's own website: a .gov domain (or gov., gouv., gob., govt. under
+ * a country code), a US locality domain (alpharetta.ga.us, co.dekalb.ga.us), or a first label
+ * that says so (cityofmiltonga.us, townof..., roswellgov.com).
+ */
+export function isGovernmentHost(host: string): boolean {
+  const h = normalHost(host);
+  if (/\.gov$/.test(h) || /\.(?:gov|gouv|gob|govt)\.[a-z]{2}$/.test(h)) return true;
+  if (/\.[a-z]{2}\.us$/.test(h)) return true;
+  const first = h.split(".")[0] ?? "";
+  return (
+    /^(?:cityof|townof|villageof|countyof|boroughof)[a-z0-9-]/.test(first) ||
+    /[a-z0-9]gov$/.test(first)
+  );
+}
+
+/**
+ * The kind a site is scored as. A government's site is a city (or county) site, "community", the
+ * kind Wikidata's city classes map to: OpenStreetMap names it from the places it serves (a fire
+ * museum makes mariettaga.gov an arts_venue, a park a park), but what it publishes is the city's
+ * calendar, and city sites are the best-yielding kind (COLLECTOR_COMPLETION.md 2.9). A place kind
+ * with a higher prior (a library system on a .gov) keeps its own.
+ */
+export function siteKind(host: string, kind: string | undefined): string | undefined {
+  if (!isGovernmentHost(host)) return kind;
+  return (KIND_PRIOR[kind ?? ""] ?? 0) >= (KIND_PRIOR.community ?? 0) ? kind : "community";
+}
+
+/**
  * Candidates from OSM tile rows inside the region: event-likely kinds with a website, one per
  * host. Denylisted hosts (Facebook pages and the like) are dropped and counted.
  */
@@ -198,7 +226,11 @@ export function osmCandidates(
       c.extra_urls = [...new Set([...(c.extra_urls ?? []), s.url])].slice(0, 5);
     }
   }
-  const candidates = [...by.values()].map(({ c }) => ({ ...c, score: cheapScore(c) }));
+  const candidates = [...by.values()].map(({ c }) => {
+    const k = siteKind(c.host, c.place_kind);
+    const out = k ? { ...c, place_kind: k } : { ...c };
+    return { ...out, score: cheapScore(out) };
+  });
   return { candidates, wikidataIds, dropped };
 }
 
@@ -221,10 +253,16 @@ export function parseYield(body: unknown): KindYield {
 /** A kind's yield replaces its static prior once it has this many probes worldwide. */
 export const LEARNED_MIN_PROBES = 30;
 /**
- * Wikidata candidates yield about three times as well as OSM ones on staging (20% against 6.6%),
- * so a Wikidata item is worth +25 (was +10).
+ * A Wikidata item is worth +10, as much as the other two structural signals (many places name the
+ * host, a place links its events page), and never more. COLLECTOR_COMPLETION.md 2.9 raised it to
+ * +25 from the staging yield by origin (Wikidata 11 of 54 against OSM 15 of 226), but those 54
+ * were the candidates the +10 had already ranked first, many of them city sites (a kind effect
+ * the kind prior already counts). At +25 a Wikidata tag alone outranked every untagged host: on
+ * the same Atlanta rows and Wikidata answers the gate's probed 150 found 18 calendars with items
+ * against 23 at +10, and two seeds (a city site 26 places name, a theatre linking its events
+ * page) fell from ranks 95 and 60 to 176 and 175, past the cap (run 42131965214).
  */
-export const WIKIDATA_BONUS = 25;
+export const WIKIDATA_BONUS = 10;
 
 /** The prior for a kind: max(0.1, (good + 1) / (probed + 5)) after 30 probes, else the static one. */
 export function learnedPrior(kind: string | undefined, yields?: KindYield): number {
@@ -235,7 +273,7 @@ export function learnedPrior(kind: string | undefined, yields?: KindYield): numb
 
 /**
  * The score from signals known before any request (design 6.3): kind prior x 20 (learned once
- * the kind has 30 probes), Wikidata +25, up to +10 for a host many places name (a city or park
+ * the kind has 30 probes), Wikidata +10, up to +10 for a host many places name (a city or park
  * system's site), and +10 when a place links an events page of it.
  */
 export function cheapScore(
@@ -355,7 +393,11 @@ export function parseAround(
       ...(s.url !== s.home ? { extra_urls: [s.url] } : {}),
     });
   }
-  return [...by.values()].map((c) => ({ ...c, score: cheapScore(c) }));
+  return [...by.values()].map((c) => {
+    const k = siteKind(c.host, c.place_kind);
+    const out = k ? { ...c, place_kind: k } : c;
+    return { ...out, score: cheapScore(out) };
+  });
 }
 
 /**
@@ -408,7 +450,11 @@ export function mergeCandidates(
     by.set(c.host, { ...c });
   }
   return [...by.values()]
-    .map((c) => ({ ...c, score: cheapScore(c, yields) }))
+    .map((c) => {
+      const k = siteKind(c.host, c.place_kind);
+      const out = k ? { ...c, place_kind: k } : c;
+      return { ...out, score: cheapScore(out, yields) };
+    })
     .sort((a, b) => b.score - a.score || a.host.localeCompare(b.host))
     .slice(0, Math.max(0, max));
 }
