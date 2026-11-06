@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 72 (schema_version 2.68). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 73 (schema_version 2.69). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -51,6 +51,7 @@ export type Database = {
           id: string;
           moderator_id: string | null;
           query: string | null;
+          report_id: string | null;
           result_count: number;
           target_user_id: string | null;
           via: string;
@@ -60,6 +61,7 @@ export type Database = {
           id?: string;
           moderator_id?: string | null;
           query?: string | null;
+          report_id?: string | null;
           result_count?: number;
           target_user_id?: string | null;
           via: string;
@@ -69,6 +71,7 @@ export type Database = {
           id?: string;
           moderator_id?: string | null;
           query?: string | null;
+          report_id?: string | null;
           result_count?: number;
           target_user_id?: string | null;
           via?: string;
@@ -79,6 +82,13 @@ export type Database = {
             columns: ["moderator_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "admin_lookups_report_id_fkey";
+            columns: ["report_id"];
+            isOneToOne: false;
+            referencedRelation: "reports";
             referencedColumns: ["id"];
           },
           {
@@ -3051,6 +3061,7 @@ export type Database = {
           conversation_id: string | null;
           conversation_kind: Database["public"]["Enums"]["conversation_kind"];
           created_at: string;
+          image_evidence_missing_at: string | null;
           image_evidence_path: string | null;
           message_id: string | null;
           report_id: string;
@@ -3063,6 +3074,7 @@ export type Database = {
           conversation_id?: string | null;
           conversation_kind: Database["public"]["Enums"]["conversation_kind"];
           created_at?: string;
+          image_evidence_missing_at?: string | null;
           image_evidence_path?: string | null;
           message_id?: string | null;
           report_id: string;
@@ -3075,6 +3087,7 @@ export type Database = {
           conversation_id?: string | null;
           conversation_kind?: Database["public"]["Enums"]["conversation_kind"];
           created_at?: string;
+          image_evidence_missing_at?: string | null;
           image_evidence_path?: string | null;
           message_id?: string | null;
           report_id?: string;
@@ -5820,7 +5833,7 @@ export type Database = {
         Returns: Json;
       };
       chat_classifier_settle: {
-        Args: { p_reserved: number; p_used: number };
+        Args: { p_month?: string; p_reserved: number; p_used: number };
         Returns: number;
       };
       chat_image_classified: {
@@ -5833,6 +5846,7 @@ export type Database = {
         Returns: number;
       };
       chat_image_evidence_list: { Args: { p_limit?: number }; Returns: Json };
+      chat_image_evidence_list_for: { Args: { p_user: string }; Returns: Json };
       chat_image_evidence_saved: {
         Args: { p_path: string; p_report: string };
         Returns: boolean;
