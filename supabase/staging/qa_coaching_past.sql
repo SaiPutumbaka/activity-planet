@@ -8,41 +8,48 @@
 -- row. Run as the staging_file of a staging_only migrate.yml run between the
 -- flow's "book" and "finish" phases (never on production). Idempotent: a
 -- booking already in the past is left alone. The booking the last "book" run
--- made (the latest-starting one) is the one that ends five minutes ago.
+-- made (the latest-starting one) ends five minutes ago when that time is free;
+-- each one takes the latest free slot before that (a run at both widths moves
+-- two).
 -- ============================================================================
-with qa as (
-  select u.id from auth.users u where u.email like 'qa-e2e-%@example.com'
-), moved as (
-  -- Several bookings (a run stopped before its finish phase leaves one) end a day apart, the
-  -- latest-starting one five minutes ago, or just before an earlier run's session that is still
-  -- scheduled in the last day, so no two scheduled sessions overlap (coach_sessions_no_overlap).
-  select b.id, b.session_id, b.ends_at - b.starts_at as len,
-         least(now() - interval '5 minutes',
-               coalesce((select min(s.starts_at) from public.coach_sessions s
-                          where s.coach_id = b.coach_id and s.status = 'scheduled'
-                            and s.starts_at <= now() and s.ends_at > now() - interval '1 day'),
-                        now() - interval '5 minutes'))
-           - (b.ends_at - b.starts_at)
-           - (row_number() over (order by b.starts_at desc) - 1) * interval '1 day' as new_start
-    from public.bookings b
-   where b.status = 'confirmed'
-     and b.starts_at > now()
-     and b.coach_id in (select id from qa)
-     and b.client_id in (select id from qa)
-), sessions as (
-  update public.coach_sessions s
-     set starts_at = m.new_start, ends_at = m.new_start + m.len
-    from moved m
-   where s.id = m.session_id and s.status = 'scheduled'
-  returning s.id
-)
-update public.bookings b
-   set starts_at = m.new_start,
-       ends_at = m.new_start + m.len,
-       free_cancel_until = m.new_start - interval '24 hours',
-       expires_at = least(b.expires_at, m.new_start)
-  from moved m
- where b.id = m.id;
+-- Each booking, latest-starting first, gets the latest free slot that ends at or before five
+-- minutes ago, stepping back half an hour at a time past any scheduled session of the coach
+-- (coach_sessions_no_overlap), including the ones moved just before it.
+do $$
+declare
+  b record;
+  len interval;
+  t_end timestamptz;
+begin
+  for b in
+    select x.id, x.session_id, x.coach_id, x.ends_at - x.starts_at as len
+      from public.bookings x
+     where x.status = 'confirmed'
+       and x.starts_at > now()
+       and x.coach_id in (select u.id from auth.users u where u.email like 'qa-e2e-%@example.com')
+       and x.client_id in (select u.id from auth.users u where u.email like 'qa-e2e-%@example.com')
+     order by x.starts_at desc
+  loop
+    len := b.len;
+    t_end := now() - interval '5 minutes';
+    while exists (select 1 from public.coach_sessions s
+                   where s.coach_id = b.coach_id and s.status = 'scheduled'
+                     and s.id is distinct from b.session_id
+                     and s.starts_at < t_end and s.ends_at > t_end - len) loop
+      t_end := t_end - interval '30 minutes';
+    end loop;
+    update public.coach_sessions s
+       set starts_at = t_end - len, ends_at = t_end
+     where s.id = b.session_id and s.status = 'scheduled';
+    update public.bookings x
+       set starts_at = t_end - len,
+           ends_at = t_end,
+           free_cancel_until = t_end - len - interval '24 hours',
+           expires_at = least(x.expires_at, t_end - len)
+     where x.id = b.id;
+  end loop;
+end
+$$;
 
 select count(*) as qa_bookings_ended
   from public.bookings b
