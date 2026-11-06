@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 70 (schema_version 2.66). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 72 (schema_version 2.68). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -5815,6 +5815,14 @@ export type Database = {
       };
       chapter_public_card: { Args: { p_chapter: string }; Returns: Json };
       chapter_slug_for: { Args: { p_name: string }; Returns: string };
+      chat_classifier_reserve: {
+        Args: { p_operations: number; p_path: string };
+        Returns: Json;
+      };
+      chat_classifier_settle: {
+        Args: { p_reserved: number; p_used: number };
+        Returns: number;
+      };
       chat_image_classified: {
         Args: {
           p_bucket: string;
@@ -5824,6 +5832,12 @@ export type Database = {
         };
         Returns: number;
       };
+      chat_image_evidence_list: { Args: { p_limit?: number }; Returns: Json };
+      chat_image_evidence_saved: {
+        Args: { p_path: string; p_report: string };
+        Returns: boolean;
+      };
+      chat_image_purge_list: { Args: { p_limit?: number }; Returns: Json };
       chat_list: {
         Args: {
           p_before?: string;
@@ -6560,6 +6574,11 @@ export type Database = {
         Args: { p_action: string; p_id: string; p_note?: string };
         Returns: Json;
       };
+      mod_chat_image: {
+        Args: { p_decision: string; p_message: string; p_note?: string };
+        Returns: Json;
+      };
+      mod_chat_image_queue: { Args: { p_limit?: number }; Returns: Json };
       mod_coaching_numbers: { Args: never; Returns: Json };
       mod_collector_health: { Args: never; Returns: Json };
       mod_listing_removal_queue: {

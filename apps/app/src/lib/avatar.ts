@@ -34,9 +34,9 @@ export function checkSourceFile(file: File): void {
   if (file.size > MAX_SOURCE_BYTES) throw new AvatarError("too_large");
 }
 
-type Drawable = ImageBitmap | HTMLImageElement;
+export type Drawable = ImageBitmap | HTMLImageElement;
 
-async function decode(file: File): Promise<Drawable> {
+export async function decodeImageFile(file: File): Promise<Drawable> {
   // createImageBitmap honours EXIF orientation ("from-image" is the default where supported).
   if (typeof createImageBitmap === "function") {
     try {
@@ -67,7 +67,7 @@ export async function prepareAvatar(file: File): Promise<Blob> {
   checkSourceFile(file);
   let image: Drawable;
   try {
-    image = await decode(file);
+    image = await decodeImageFile(file);
   } catch (err) {
     throw err instanceof AvatarError ? err : new AvatarError("unreadable");
   }

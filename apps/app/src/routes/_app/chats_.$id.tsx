@@ -9,12 +9,23 @@ import {
 } from "react";
 import { Link, createFileRoute, getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Ban, Check, Flag, Info, MessageCircle, SendHorizontal, Trash2, X } from "lucide-react";
+import {
+  Ban,
+  Check,
+  Flag,
+  ImagePlus,
+  Info,
+  MessageCircle,
+  SendHorizontal,
+  Trash2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   MESSAGE_MAX,
   SEND_TRIES,
   bodyProblem,
+  canAttachImages,
   chatError,
   chatErrorMessage,
   cleanBody,
@@ -53,6 +64,12 @@ import {
   useConversationLive,
   useMarkRead,
 } from "@/lib/messaging";
+import {
+  chatImageErrorMessage,
+  discardChatImage,
+  prepareChatImage,
+  uploadChatImage,
+} from "@/lib/chat-image";
 import { blockUser, safetyErrorMessage } from "@/lib/safety";
 import { SITE_URL } from "@/lib/site";
 
@@ -147,6 +164,8 @@ function Conversation({ info }: { info: ConversationInfo }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
+  const [photoSending, setPhotoSending] = useState(false);
 
   const members = useMemo(() => {
     const ids = new Set<string>();
@@ -276,6 +295,47 @@ function Conversation({ info }: { info: ConversationInfo }) {
     void deliver({ clientId, body });
   }
 
+  // Migration 71: a photo (only while chat images are on). The draft is its caption. Others see
+  // it once image-guard's pHash check and the classifier pass; until then it reads as checked.
+  async function sendPhoto(file: File) {
+    if (photoSending) return;
+    const caption = cleanBody(draft);
+    const problem = caption ? bodyProblem(draft, { linksAllowed: info.request !== "sent" }) : null;
+    if (problem === "too_long" || problem === "link_not_allowed") {
+      setSendError(
+        problem === "too_long"
+          ? `Messages are up to ${MESSAGE_MAX.toLocaleString("en-US")} characters.`
+          : chatErrorMessage({ message: "link_not_allowed" }),
+      );
+      return;
+    }
+    setSendError(null);
+    setPhotoSending(true);
+    let path: string | null = null;
+    try {
+      const blob = await prepareChatImage(file);
+      path = await uploadChatImage(userId, id, blob);
+      const r = await chat.send(id, crypto.randomUUID(), caption, path);
+      if ("error" in r) {
+        setSendError(chatErrorMessage(r));
+        void discardChatImage(path);
+        return;
+      }
+      setDraft("");
+      await fetchNewer(queryClient, id);
+      void queryClient.invalidateQueries({ queryKey: ["chats", "list", userId] });
+      bottomRef.current?.scrollIntoView({ block: "end" });
+    } catch (err) {
+      if (path) void discardChatImage(path);
+      setSendError(chatImageErrorMessage(err) || chatErrorMessage(err));
+      const { code } = chatError(err);
+      if (code === "images_disabled") refreshInfo();
+    } finally {
+      setPhotoSending(false);
+      if (photoRef.current) photoRef.current.value = "";
+    }
+  }
+
   const pending = pendingBubbles(outbox, id, messages);
   const canPost = info.can_post === null;
   const notice = composerNotice(info.can_post);
@@ -376,6 +436,34 @@ function Conversation({ info }: { info: ConversationInfo }) {
         <FormError>{sendError}</FormError>
         {canPost ? (
           <form onSubmit={onSubmit} className="flex items-end gap-2 pt-1">
+            {canAttachImages(info) ? (
+              <>
+                <input
+                  ref={photoRef}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void sendPhoto(file);
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="secondary"
+                  className="rounded-full"
+                  aria-label={photoSending ? "Sending photo" : "Send a photo"}
+                  loading={photoSending}
+                  disabled={photoSending}
+                  onClick={() => photoRef.current?.click()}
+                >
+                  <ImagePlus className="size-5" aria-hidden="true" />
+                </Button>
+              </>
+            ) : null}
             <label htmlFor="composer" className="sr-only">
               Message
             </label>

@@ -480,6 +480,7 @@ export const adminKeys = {
   scorecard: ["admin", "scorecard"] as const,
   queue: ["admin", "queue"] as const,
   reports: ["admin", "reports"] as const,
+  chatImages: ["admin", "chat-images"] as const,
   takedowns: (closed: boolean) => ["admin", "takedowns", closed] as const,
   search: (q: string) => ["admin", "user-search", q] as const,
   user: (id: string) => ["admin", "user", id] as const,
@@ -607,6 +608,60 @@ export async function resolveTakedown(
   const { error } = await supabase.rpc("mod_takedown_resolve", {
     p_request: requestId,
     p_action: action,
+    ...(note?.trim() ? { p_note: note.trim() } : {}),
+  });
+  if (error) throw error;
+}
+
+// ---------------------------------------------------------------------------
+// Chat photos the classifier queued (migration 71: mod_chat_image_queue, mod_chat_image)
+// ---------------------------------------------------------------------------
+
+export interface ChatImageQueueItem {
+  message_id: string;
+  image_path: string;
+  conversation_kind: string;
+  created_at: string;
+  author: { id: string; first_name: string } | null;
+  reason: string | null;
+  note: string | null;
+  own: boolean;
+}
+
+export type ChatImageDecision = "allow" | "block";
+
+export const chatImageQueueQuery = () =>
+  queryOptions({
+    queryKey: adminKeys.chatImages,
+    queryFn: async (): Promise<ChatImageQueueItem[]> => {
+      const { data, error } = await supabase.rpc("mod_chat_image_queue", { p_limit: 100 });
+      if (error) throw error;
+      return (data ?? []) as unknown as ChatImageQueueItem[];
+    },
+    staleTime: 15_000,
+  });
+
+/** A signed URL (10 minutes) for a queued photo; the storage policy allows moderators only. */
+export const chatImagePreviewQuery = (path: string) =>
+  queryOptions({
+    queryKey: [...adminKeys.chatImages, "preview", path] as const,
+    queryFn: async (): Promise<string> => {
+      const { data, error } = await supabase.storage.from("chat-images").createSignedUrl(path, 600);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+    staleTime: 8 * 60_000,
+    retry: false,
+  });
+
+export async function decideChatImage(
+  messageId: string,
+  decision: ChatImageDecision,
+  note?: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("mod_chat_image", {
+    p_message: messageId,
+    p_decision: decision,
     ...(note?.trim() ? { p_note: note.trim() } : {}),
   });
   if (error) throw error;

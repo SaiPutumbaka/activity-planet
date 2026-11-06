@@ -6,6 +6,7 @@
 export * from "./api";
 export * from "./display";
 export * from "./errors";
+export * from "./images";
 export * from "./outbox";
 export * from "./realtime";
 export * from "./schemas";

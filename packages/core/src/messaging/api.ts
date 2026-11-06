@@ -146,12 +146,19 @@ export function createMessagingApi(client: AppSupabaseClient) {
       ).conversation_id;
     },
 
-    async send(conversationId: string, clientId: string, body: string): Promise<SendResult> {
+    /** Sends text, or a photo (an uploaded chat-images path, chatImagePath) with an optional caption. */
+    async send(
+      conversationId: string,
+      clientId: string,
+      body: string,
+      imagePath?: string | null,
+    ): Promise<SendResult> {
       return sendResultSchema.parse(
         await rpcJson("send_message", {
           p_conversation: conversationId,
           p_client_id: clientId,
           p_body: body,
+          ...(imagePath ? { p_image_path: imagePath } : {}),
         }),
       );
     },

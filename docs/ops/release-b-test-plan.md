@@ -27,7 +27,7 @@ New in Release B (release A's scope table still applies):
 | PWA polish           | Install card (Chromium prompt, iPhone instructions, hidden when installed), "A new version is ready" toast, app badge, the full manifest and iOS splash screens                                                                      |
 | Site pages           | `/bot`, `/bot/remove`, `/support`, `/terms` (draft), `/privacy` (draft), `/guidelines` (draft), `/coach-terms` (draft), `/refund-policy` (draft), `/safety`, `/safety/intimate-images`, `/map-data`, `/account/delete`, the 404 page |
 
-Out of scope: chat images (off until the classifier exists, section 6), live payments, the
+Out of scope: chat images (built, off until the Sightengine keys exist, section 6), live payments, the
 assistant, store apps, and email or push delivery before the keys exist (FOUNDER-TODO, top).
 
 ## 2. Environments
@@ -288,10 +288,18 @@ Release B ships by Jan 4 only when all of these hold on the release candidate me
   footer (Nov 5, written from TRUST-SAFETY-LEGAL, D-031 retention, the processors the code uses
   and the data the schema stores). Release criterion 5 is met in form; the attorney read
   (FOUNDER-TODO item 13) is what turns them from drafts into the terms in effect.
-- **Chat images stay off.** `meta.chat_images` is `off` and the composer has no photo button.
-  Image-guard's `classify` op (Sightengine, design section 13) is not built yet, so adding the
-  Sightengine keys alone does not turn images on. Building it is about a day and a half (the op,
-  the monthly cap, the evidence copy and a staging smoke).
+- **Chat images are built and stay off.** `meta.chat_images` is `off` and the composer has no
+  photo button. Built Nov 6 (migrations 71 and 72, schema 2.68): image-guard's `classify` op
+  (Sightengine `nudity-2.1`, `weapon`, `offensive-2.0`, `gore-2.0`; only with
+  `SIGHTENGINE_API_USER` and `SIGHTENGINE_API_SECRET`), shown only after the pHash check and the
+  classifier pass, blocked at high confidence, queued for a moderator at medium (Moderation,
+  Reports, "Chat photos to check": Allow or Block), failing closed without a key, past the
+  monthly cap (`chat_classifier_monthly_cap`, 1,800 operations) or on a classifier error; the
+  evidence copy of reported photos into `chat-evidence`; the sweep of deleted, unsent and expired
+  objects. Staging: `chat_image_classifier.sql` and `chat_image_evidence.sql` pass, and the
+  deployed function answers `skipped: no_key` to a probe (`staging_classify_now`). Left: Sai adds
+  the two secrets (FOUNDER-TODO 10) and Claude sets `chat_images` on; then a hand check on
+  staging with a clean photo (shown), and the sender's view while it is checked.
 - **Payments are off.** Stripe Checkout, Connect onboarding and the webhook have only mocked unit
   tests and the SQL suite; they get a staging run once Sai adds the Stripe test keys.
 - **Not-found answers are HTTP 404, reads and writes.** Migration 69 moved the read RPCs a

@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Ellipsis, ExternalLink, ImageOff, RotateCw } from "lucide-react";
-import { removedLabel, splitLinks, timeLabel, type ChatMessage } from "@ap/core/messaging";
+import {
+  imageLabel,
+  imageLoadable,
+  removedLabel,
+  splitLinks,
+  timeLabel,
+  type ChatMessage,
+} from "@ap/core/messaging";
 
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -67,23 +74,40 @@ export function MessageText({ text }: { text: string }) {
   );
 }
 
-function ChatImage({ path, checking }: { path: string | null; checking: boolean }) {
-  const url = useQuery({ ...chatImageUrlQuery(path ?? ""), enabled: Boolean(path) && !checking });
-  if (!path || checking || !url.data) {
+/**
+ * A photo bubble (migration 71): others only ever receive visible photos; the sender sees their
+ * own while it is checked, labelled, and a label alone once it is blocked or removed.
+ */
+function ChatImage({ message: m }: { message: ChatMessage }) {
+  const path = m.image?.path ?? null;
+  const loadable = imageLoadable(m);
+  const label = imageLabel(m);
+  const url = useQuery({ ...chatImageUrlQuery(path ?? ""), enabled: loadable && Boolean(path) });
+  if (!loadable || !url.data) {
     return (
       <span className="flex h-40 w-56 max-w-full flex-col items-center justify-center gap-2 rounded-input bg-surface-3 text-[13px] text-text-2">
         <ImageOff className="size-5" aria-hidden="true" />
-        {checking ? "Photo is being checked" : "Photo"}
+        {label ?? "Photo"}
       </span>
     );
   }
   return (
-    <img
-      src={url.data}
-      alt="Photo"
-      className="max-h-72 w-auto max-w-full rounded-input object-cover"
-      loading="lazy"
-    />
+    <span className="relative inline-flex max-w-full">
+      <img
+        src={url.data}
+        alt="Photo"
+        className={cn(
+          "max-h-72 w-auto max-w-full rounded-input object-cover",
+          label ? "opacity-60" : null,
+        )}
+        loading="lazy"
+      />
+      {label ? (
+        <span className="absolute inset-x-2 bottom-2 rounded-full bg-surface/90 px-2.5 py-1 text-center text-[12px] font-semibold text-text">
+          {label}
+        </span>
+      ) : null}
+    </span>
   );
 }
 
@@ -98,7 +122,6 @@ export interface BubbleProps {
 export function MessageBubble({ message: m, showAuthor, onOpenActions }: BubbleProps) {
   const removed = removedLabel(m);
   const name = m.author?.first_name ?? "Deleted user";
-  const checking = m.kind === "image" && m.image?.state !== "visible";
   return (
     <div className={cn("flex w-full gap-2", m.mine ? "justify-end" : "justify-start")}>
       {!m.mine ? (
@@ -126,7 +149,7 @@ export function MessageBubble({ message: m, showAuthor, onOpenActions }: BubbleP
             removed
           ) : m.kind === "image" ? (
             <span className="flex flex-col gap-1.5">
-              <ChatImage path={m.image?.path ?? null} checking={checking} />
+              <ChatImage message={m} />
               {m.body ? <MessageText text={m.body} /> : null}
             </span>
           ) : (

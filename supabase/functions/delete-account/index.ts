@@ -109,8 +109,27 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   // 1b. Chat images (migration 58). The RPC kept the messages others received under the
-  //     tombstone and set their images to removed; the files go here. Reported images were
-  //     copied to chat-evidence when the report was filed, so the originals can always go.
+  //     tombstone and set their images to removed; the files go here. Reported images are
+  //     copied to chat-evidence by image-guard's sweep (migration 72); a copy still pending for
+  //     this account's photos is made here first, so the evidence outlives the original.
+  const { data: pendingEvidence, error: evidenceListError } = await admin.rpc(
+    "chat_image_evidence_list",
+    { p_limit: 100 },
+  );
+  if (evidenceListError) return json({ error: "chat_evidence_list_failed" }, 500);
+  for (const row of (pendingEvidence ?? []) as { report_id: string; path: string }[]) {
+    if (!row.path.startsWith(`${userId}/`)) continue;
+    const { data: original, error: downloadError } = await admin.storage
+      .from("chat-images")
+      .download(row.path);
+    if (downloadError || !original) continue;
+    const target = `${row.report_id}.jpg`;
+    const { error: copyError } = await admin.storage
+      .from("chat-evidence")
+      .upload(target, original, { contentType: "image/jpeg", upsert: true });
+    if (copyError) return json({ error: "chat_evidence_copy_failed" }, 500);
+    await admin.rpc("chat_image_evidence_saved", { p_report: row.report_id, p_path: target });
+  }
   const chatPaths: string[] = [];
   const { data: chatFolders, error: chatListError } = await listAll("chat-images", userId);
   if (chatListError) return json({ error: "chat_images_list_failed" }, 500);

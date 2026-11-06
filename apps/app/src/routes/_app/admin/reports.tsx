@@ -19,11 +19,16 @@ import {
   dueTone,
   formatWhen,
   minutesUntil,
+  chatImagePreviewQuery,
+  chatImageQueueQuery,
+  decideChatImage,
   moderate,
   reasonLabel,
   removeExplainer,
   reportQueueQuery,
   targetKindLabel,
+  type ChatImageDecision,
+  type ChatImageQueueItem,
   type ModerateAction,
   type ReportGroup,
 } from "@/lib/admin";
@@ -33,6 +38,8 @@ import {
  * grouped by what was reported, most urgent first with the SLA timer. Never who reported. Hide
  * holds it for review, Remove is the soft delete, Dismiss closes the reports and undoes an
  * automatic hide. A moderator's own items say so and offer nothing; the RPC refuses them anyway.
+ * Above them, chat photos the image classifier was unsure about (migration 71): hidden until a
+ * moderator allows or blocks them. The section is absent when none wait.
  */
 export const Route = createFileRoute("/_app/admin/reports")({
   component: ReportsPage,
@@ -45,6 +52,7 @@ function ReportsPage() {
       <main className="flex flex-col gap-4 pt-2 pb-8 safe-px">
         <AdminTabs current="/admin/reports" />
         <ModeratorGate>
+          <ChatPhotoQueue />
           <Queue />
         </ModeratorGate>
       </main>
@@ -237,6 +245,100 @@ function ReportCard({ group }: { group: ReportGroup }) {
               ))}
             </div>
           )}
+        </>
+      )}
+    </article>
+  );
+}
+
+function ChatPhotoQueue() {
+  const queue = useQuery(chatImageQueueQuery());
+  if (!queue.data?.length) return null;
+  return (
+    <section className="flex flex-col gap-3" aria-labelledby="chat-photos-heading">
+      <h2 id="chat-photos-heading" className="text-[17px] font-bold">
+        Chat photos to check ({queue.data.length})
+      </h2>
+      <p className="text-[14px] text-text-2">
+        The image check was unsure, or could not run. Nobody but the sender sees these until you
+        decide.
+      </p>
+      <ul className="flex flex-col gap-3">
+        {queue.data.map((item) => (
+          <li key={item.message_id}>
+            <ChatPhotoCard item={item} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function ChatPhotoCard({ item }: { item: ChatImageQueueItem }) {
+  const queryClient = useQueryClient();
+  const [note, setNote] = useState("");
+  const preview = useQuery({ ...chatImagePreviewQuery(item.image_path), enabled: !item.own });
+  const act = useMutation({
+    mutationFn: (decision: ChatImageDecision) => decideChatImage(item.message_id, decision, note),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.all });
+      toast.success("Done.");
+    },
+    onError: (err) => toast.error(adminErrorMessage(err)),
+  });
+  return (
+    <article className="flex flex-col gap-3 rounded-card border border-border p-4">
+      <p className="text-[13px] text-text-2">
+        Chat photo{item.reason ? ` · ${reasonLabel(item.reason)}` : ""} · sent{" "}
+        {formatWhen(item.created_at)}
+        {item.author ? ` by ${item.author.first_name}` : ""}
+      </p>
+      {item.note ? <p className="text-[14px] text-text-2">{item.note}</p> : null}
+      {item.own ? (
+        <p className="text-[14px] text-text-2">
+          This one involves you. Another moderator handles it.
+        </p>
+      ) : (
+        <>
+          {preview.data ? (
+            <img
+              src={preview.data}
+              alt="The photo waiting for a decision"
+              className="max-h-80 w-auto max-w-full self-start rounded-input object-contain"
+            />
+          ) : (
+            <p className="text-[14px] text-text-2">
+              {preview.isError ? "The photo couldn't be loaded." : "Loading the photo…"}
+            </p>
+          )}
+          <FieldTextArea
+            label="Note for the log (optional)"
+            rows={2}
+            maxLength={500}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            disabled={act.isPending}
+          />
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={act.isPending && act.variables === "allow"}
+              disabled={act.isPending}
+              onClick={() => act.mutate("allow")}
+            >
+              Allow
+            </Button>
+            <Button
+              size="sm"
+              variant="danger"
+              loading={act.isPending && act.variables === "block"}
+              disabled={act.isPending}
+              onClick={() => act.mutate("block")}
+            >
+              Block
+            </Button>
+          </div>
         </>
       )}
     </article>
