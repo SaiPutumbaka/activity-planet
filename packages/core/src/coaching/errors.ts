@@ -3,6 +3,9 @@
  * app says about them. A block reads like "not available", never as a block (design section 2).
  */
 
+import { MAX_RADIUS_KM } from "../feed";
+import { formatKmRange, viewerPrefs, type DistanceUnit } from "../locale";
+
 /** The code of a PostgREST error, else "". */
 export function coachingErrorCode(err: unknown): string {
   if (typeof err !== "object" || err === null) return "";
@@ -51,8 +54,6 @@ const COPY: Record<string, string> = {
   incomplete_profile:
     "Add a headline, at least one active listing and your weekly availability (or a group session) before publishing.",
   timezone_invalid: "Pick a valid time zone.",
-  invalid_area:
-    "Pick where you coach in person (a point and a radius of 1 to 50 km), or coach online.",
   invalid_text: "Some of that text can't be saved. Check the lengths and wording.",
   invalid_listing: "Check the listing details and try again.",
   invalid_shape:
@@ -101,8 +102,17 @@ const COPY: Record<string, string> = {
   listing_unavailable: "This listing isn't taking bookings right now.",
 };
 
-export function coachingErrorMessage(err: unknown): string {
+/**
+ * What the app says about a coaching error. Copy with a distance uses the viewer's unit (the
+ * browser's locale by default; packages/core/src/locale).
+ */
+export function coachingErrorMessage(
+  err: unknown,
+  unit: DistanceUnit = viewerPrefs().unit,
+): string {
   const code = coachingErrorCode(err);
+  if (code === "invalid_area")
+    return `Pick where you coach in person (a point and a radius of ${formatKmRange(1, MAX_RADIUS_KM, unit)}), or coach online.`;
   const copy = COPY[code];
   if (copy) return copy;
   const m =

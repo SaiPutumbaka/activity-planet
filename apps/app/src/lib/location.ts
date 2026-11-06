@@ -1,6 +1,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { queryOptions, useQuery } from "@tanstack/react-query";
-import { clampRadiusKm, roundPoint } from "@ap/core/feed";
+import { clampRadiusKm, MAX_RADIUS_KM, roundPoint } from "@ap/core/feed";
+import { formatKmRange } from "@ap/core/locale";
 import {
   feedOriginLabel,
   geoapifyCityToPlace,
@@ -10,6 +11,7 @@ import {
 import type { Database } from "@ap/core/types";
 
 import { supabase } from "./supabase";
+import { DISTANCE_UNIT } from "./units";
 import { geoapifyKey } from "./venues";
 
 /**
@@ -182,7 +184,7 @@ const AREA_MESSAGES: Record<string, string> = {
   not_authenticated: "Your session ended. Sign in again.",
   area_required: "Pick an area.",
   area_not_found: "That area isn't available anymore. Pick another one.",
-  radius_out_of_range: "Pick a distance between 1 and 50 km.",
+  radius_out_of_range: `Pick a distance from ${formatKmRange(1, MAX_RADIUS_KM, DISTANCE_UNIT)}.`,
   profile_missing: "Your profile is missing. Sign in again.",
   invalid_coordinates: "That place couldn't be found. Pick another one.",
   label_too_long: "That place name is too long. Pick another one.",

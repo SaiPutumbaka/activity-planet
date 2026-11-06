@@ -249,6 +249,8 @@ describe("labels and errors", () => {
     expect(coachingErrorCode({ message: "slot_unavailable" })).toBe("slot_unavailable");
     expect(coachingErrorCode({ message: "duplicate key value" })).toBe("");
     expect(coachingErrorMessage({ message: "invalid_shape" })).toMatch(/Online group/);
+    expect(coachingErrorMessage({ message: "invalid_area" }, "km")).toMatch(/1 to 50 km/);
+    expect(coachingErrorMessage({ message: "invalid_area" }, "mi")).toMatch(/1 to 31 mi/);
     expect(coachingErrorMessage({ message: "whatever_else" })).toBe(
       "Something went wrong. Try again.",
     );

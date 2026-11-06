@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Count tag uses on taginfo
         run: python3 -I scripts/places/taginfo_check.py out
       - name: Regenerate the seed and filter with these counts
@@ -50,7 +50,7 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           cat out/gen_stats.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: places-taginfo
           path: out/

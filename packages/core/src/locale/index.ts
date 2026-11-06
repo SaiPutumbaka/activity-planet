@@ -237,6 +237,15 @@ export function formatKm(km: number, unit: DistanceUnit): string {
 }
 
 /**
+ * A range of whole distances held in km, in the viewer's unit, for "Pick a distance from ..."
+ * copy: "1 to 50 km", or "1 to 31 mi" (each end rounded to a whole mile, at least 1).
+ */
+export function formatKmRange(lowKm: number, highKm: number, unit: DistanceUnit): string {
+  const low = formatKm(lowKm, unit).replace(/ (km|mi)$/, "");
+  return `${low} to ${formatKm(highKm, unit)}`;
+}
+
+/**
  * A rough size held in km, for "about ..." copy: "1 km" or "half a mile"; "10 km" or "6 mi".
  */
 export function formatKmRough(km: number, unit: DistanceUnit): string {

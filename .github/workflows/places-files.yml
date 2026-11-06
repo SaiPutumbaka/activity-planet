@@ -77,7 +77,7 @@ jobs:
       target: ${{ steps.mode.outputs.target }}
       built: ${{ steps.build.outputs.built }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Decide target
         id: mode
@@ -122,7 +122,7 @@ jobs:
           echo "target=$target tiles=${tiles:-queue} all=$all max_tiles=$max"
           { echo "target=$target"; echo "project_ref=$ref"; echo "tiles=$tiles"; echo "all=$all"; echo "max=$max"; } >> "$GITHUB_OUTPUT"
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         if: steps.mode.outputs.target != 'none'
         with:
           version: 2.122.0
@@ -177,7 +177,7 @@ jobs:
 
       - name: Upload the files (artifact)
         if: steps.mode.outputs.target != 'none'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: places-files-${{ steps.mode.outputs.target }}
           path: site
@@ -230,11 +230,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: repo
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: places-files-production
           path: site
@@ -269,12 +269,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: places-files-production
           path: site
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.122.0
       - name: Record the published files

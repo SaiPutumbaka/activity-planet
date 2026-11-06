@@ -42,7 +42,14 @@ run first. Once B has accepted, later runs find an open DM and say so instead of
 `E2E_PHASE=book` and `E2E_PHASE=finish`, run `supabase/staging/qa_coaching_past.sql` as the
 `staging_file` of a staging-only `migrate.yml` run; it moves the test accounts' confirmed bookings
 into the past. Run 07 before 08, not between its phases: 07 blocks and unblocks the pair, and a
-block cancels their open bookings.
+block cancels their open bookings. Both phases run at 390x844 and then at 1280x800, each width
+with its own listing and booking (two booking requests a run; the app allows ten a day);
+`E2E_WIDTHS=phone` or `E2E_WIDTHS=desktop` runs one width.
+
+Leftovers from earlier runs (plans, listings, bookings, chat messages, test reports, claims and
+notifications of the QA accounts, older than a day) are removed by
+`supabase/staging/qa_cleanup.sql`, run the same way. It keeps the QA accounts, the demo accounts
+(`demo_*`), the demo chapter and demo plans.
 
 Use test accounts on staging only, never production. Screenshots go to `E2E_QA_DIR`
 (default `./e2e-output`, git-ignored). Output names flows and steps only, never user rows.

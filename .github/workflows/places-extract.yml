@@ -113,7 +113,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 300
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Decide target and region
         id: mode
@@ -196,7 +196,7 @@ jobs:
             echo "run_id=gh-${{ github.run_id }}-${{ github.run_attempt }}"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         if: steps.mode.outputs.post == 'true'
         with:
           version: 2.122.0
@@ -275,7 +275,7 @@ jobs:
 
       - name: Cache the Geofabrik index
         if: steps.tiles.outputs.tiles != ''
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: geofabrik/index-v1.json
           key: geofabrik-index-${{ steps.mode.outputs.week }}
@@ -359,7 +359,7 @@ jobs:
       - name: Restore the extracts for the week
         id: pbfcache
         if: steps.budget.outputs.tiles != ''
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: geofabrik/pbf
           key: geofabrik-${{ steps.budget.outputs.key }}-${{ steps.mode.outputs.week }}
@@ -391,7 +391,7 @@ jobs:
 
       - name: Save the extracts for the week
         if: steps.budget.outputs.tiles != '' && steps.pbfcache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: geofabrik/pbf
           key: geofabrik-${{ steps.budget.outputs.key }}-${{ steps.mode.outputs.week }}
@@ -544,7 +544,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       # Counts only (stats and post results); the row files stay on the runner.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always() && steps.budget.outputs.tiles != ''
         with:
           name: places-extract-stats

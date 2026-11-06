@@ -109,7 +109,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 70
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Decide targets
         id: mode
@@ -167,21 +167,21 @@ jobs:
             echo "started=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
       # Conditional GET across runs (ETag and Last-Modified per URL).
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: packages/collector/.cache
           key: collector-http-${{ github.run_id }}
           restore-keys: collector-http-
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.122.0
 

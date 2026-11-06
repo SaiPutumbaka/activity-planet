@@ -58,7 +58,7 @@ jobs:
       target: ${{ steps.mode.outputs.target }}
       month: ${{ steps.mode.outputs.month }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Decide target and month
         id: mode
@@ -90,7 +90,7 @@ jobs:
           echo "target=$target month=$month"
           { echo "target=$target"; echo "project_ref=$ref"; echo "month=$month"; } >> "$GITHUB_OUTPUT"
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         if: steps.mode.outputs.target != 'none'
         with:
           version: 2.122.0
@@ -125,7 +125,7 @@ jobs:
 
       - name: Upload the files (artifact)
         if: steps.mode.outputs.target != 'none'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: places-${{ steps.mode.outputs.month }}-${{ steps.mode.outputs.target }}
           path: |
@@ -144,8 +144,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: places-${{ needs.build.outputs.month }}-production
           path: dump
@@ -181,11 +181,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: places-${{ needs.build.outputs.month }}-${{ needs.build.outputs.target }}
           path: dump
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.122.0
       - name: Record the run

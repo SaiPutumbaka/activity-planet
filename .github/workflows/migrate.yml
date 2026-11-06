@@ -19,8 +19,8 @@ name: Migrate database then deploy
 # deployed the same way; its secret is generated inside each database by migration 28.
 #
 # The CLI is pinned (2.122.0, the TypeScript rewrite) so the cutover runs exactly the binary the
-# dry run proved; bump it only after a fresh dry run. With a fixed version setup-cli downloads the
-# release asset directly and never calls the GitHub API.
+# dry run proved; bump it only after a fresh dry run. setup-cli v3 (a composite action on Node 24)
+# installs that exact version from npm, falling back to the GitHub release asset.
 #
 # Secrets (all set 2026-10-27):
 #   SUPABASE_ACCESS_TOKEN        scoped personal access token for both projects. Needed scopes:
@@ -128,8 +128,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
+      - uses: actions/checkout@v7
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.122.0
 
@@ -153,8 +153,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
+      - uses: actions/checkout@v7
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.122.0
 

@@ -11,6 +11,7 @@ import {
   formatDayClock,
   formatWeekdayClock,
   formatKm,
+  formatKmRange,
   formatKmRough,
   formatMeters,
   localePrefs,
@@ -98,6 +99,8 @@ describe("distances", () => {
     expect(formatKm(25, "mi")).toBe("16 mi");
     expect(formatKm(5, "mi")).toBe("3 mi");
     expect(formatKm(1, "mi")).toBe("1 mi");
+    expect(formatKmRange(1, 50, "km")).toBe("1 to 50 km");
+    expect(formatKmRange(1, 50, "mi")).toBe("1 to 31 mi");
   });
   it("gives rough sizes for copy", () => {
     expect(formatKmRough(1, "km")).toBe("1 km");
