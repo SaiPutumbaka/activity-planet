@@ -5,6 +5,7 @@ import {
   parseApiBudgetReturnBody,
   parseApiBudgetTakeBody,
   parseCandidatesBody,
+  parseRescoreBody,
   parseClaimsRecordBody,
   parseGeocodeRecordBody,
   parseRunsRecordBody,
@@ -513,6 +514,38 @@ Deno.test("candidates body: url and automatic origin only", () => {
   }
   assertEquals(parseCandidatesBody([]), { ok: false, error: "invalid_body" });
   assertEquals(rpcError(JSON.stringify({ message: "candidates_invalid" })).status, 400);
+});
+
+Deno.test("rescore body: one region, scores 0 to 100 (migration 70)", () => {
+  const region = "0f1e2d3c-4b5a-4968-8776-655443322110";
+  assertEquals(matchRoute("POST", `${base}/candidates/rescore`), { kind: "candidates_rescore" });
+  assertEquals(matchRoute("GET", `${base}/candidates/rescore`).kind, "not_found");
+  const s = { url: "https://lib.example.org/", score: 42 };
+  assertEquals(parseRescoreBody({ region_id: region.toUpperCase(), scores: [s] }), {
+    ok: true,
+    args: { p_region: region, p_scores: [s], p_dry_run: false },
+  });
+  assertEquals(parseRescoreBody({ region_id: region, scores: [], dry_run: true }), {
+    ok: true,
+    args: { p_region: region, p_scores: [], p_dry_run: true },
+  });
+  for (const bad of [
+    { url: "https://a.org/" },
+    { url: "https://a.org/", score: 101 },
+    { score: 5 },
+    null,
+  ]) {
+    assertEquals(parseRescoreBody({ region_id: region, scores: [bad] }), {
+      ok: false,
+      error: "invalid_scores",
+    });
+  }
+  assertEquals(parseRescoreBody({ region_id: "x", scores: [] }).ok, false);
+  assertEquals(parseRescoreBody({ region_id: region, scores: [], dry_run: "yes" }).ok, false);
+  const many = Array.from({ length: 501 }, () => s);
+  assertEquals(parseRescoreBody({ region_id: region, scores: many }).ok, false);
+  assertEquals(rpcError(JSON.stringify({ message: "region_not_found" })).status, 404);
+  assertEquals(rpcError(JSON.stringify({ message: "scores_invalid" })).status, 400);
 });
 
 Deno.test("discovery routes: gate, probe queue and regions (migration 47)", () => {

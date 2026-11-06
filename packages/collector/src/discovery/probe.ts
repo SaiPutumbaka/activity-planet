@@ -65,7 +65,12 @@ export interface ProbeResult {
   platforms: string[];
   items: number;
   in_region: number;
+  /** Requests this probe sent, on every host it touched (a redirect can add a second host). */
   requests: number;
+  /** The most it sent to one host: never above the per-host cap (8). */
+  requests_max_host: number;
+  /** Hosts it sent requests to. */
+  request_hosts: number;
   errors: number;
   complete: boolean;
   /** The run deadline came before the probe finished: not recorded, retried next night. */
@@ -153,36 +158,53 @@ export function tecRoots(scan: PageScan): string[] {
  * One probe's view of the shared fetcher: the same per-host spacing, robots.txt and run deadline
  * (it is the same PoliteFetcher), plus a cap on this probe's requests per host and a memory of
  * the pages it already read, so collect() never asks twice.
+ *
+ * The probe counts only the requests it sent itself (the fetcher reports each one, robots.txt
+ * and redirect hops included, through FetchOptions.onRequest), by host. Before, it read the
+ * shared fetcher's per-host counts, so a concurrent probe's requests to a host both touched
+ * (atlantacyclorama.org redirects to atlantahistorycenter.com, itself a candidate) were counted
+ * as its own. Its cap holds per host: no request goes to a host this probe already sent `cap`
+ * to (FetchOptions.mayRequest, asked before every hop and robots.txt read). A probe that follows
+ * a redirect to a second host can send more than `cap` in all: `requests` is that total,
+ * `maxPerHost` the most to one host, never above `cap`.
  */
 export class ProbeFetcher implements Fetcher {
   private readonly memo = new Map<string, Promise<FetchResult>>();
-  /** The shared fetcher's per-host counts when this probe started. */
-  private readonly start: Map<string, number>;
   readonly pages = new Map<string, { body: string; type: string; xRobotsTag: string | null }>();
   gaps = 0;
-  /** Hosts this probe asked for (and landed on), for its request count. */
-  private readonly touched = new Set<string>();
+  /** This probe's own requests by host, robots.txt and redirect hops included. */
+  readonly own = new Map<string, number>();
   /** One line per request (host, path, status or failure): for the gate's log of public sites. */
   readonly trace: string[] = [];
   deadline = false;
 
   private readonly inner: PoliteFetcher | Fetcher;
   private readonly cap: number;
+  private readonly onRequest = (host: string) => {
+    this.own.set(host, (this.own.get(host) ?? 0) + 1);
+  };
+  private readonly mayRequest = (host: string) => (this.own.get(host) ?? 0) < this.cap;
 
   constructor(inner: PoliteFetcher | Fetcher, cap: number) {
     this.inner = inner;
     this.cap = cap;
-    this.start = new Map(inner.requests);
   }
 
   get requests(): Map<string, number> {
     return this.inner.requests;
   }
 
-  /** Requests this probe sent, robots.txt and redirect hops included. */
+  /** Requests this probe sent, robots.txt and redirect hops included, on every host. */
   get sent(): number {
     let n = 0;
-    for (const h of this.touched) n += (this.inner.requests.get(h) ?? 0) - (this.start.get(h) ?? 0);
+    for (const v of this.own.values()) n += v;
+    return n;
+  }
+
+  /** The most requests this probe sent to one host (at most the cap). */
+  get maxPerHost(): number {
+    let n = 0;
+    for (const v of this.own.values()) n = Math.max(n, v);
     return n;
   }
 
@@ -204,15 +226,17 @@ export class ProbeFetcher implements Fetcher {
   }
 
   private async fetch(url: string, opts: FetchOptions): Promise<FetchResult> {
-    const host = hostOf(url);
-    const used = this.inner.requests.get(host) ?? 0;
-    const start = this.start.get(host) ?? 0;
     // This probe's requests to the host so far, robots.txt and redirect hops included.
-    if (used - start >= this.cap) return { ok: false, url, reason: "host_budget_spent" };
-    this.touched.add(host);
+    if (!this.mayRequest(hostOf(url))) return { ok: false, url, reason: "host_budget_spent" };
     const sentBefore = this.sent;
-    const res = await this.inner.get(url, opts);
-    this.touched.add(hostOf(res.url));
+    const res = await this.inner.get(url, {
+      ...opts,
+      onRequest: (h) => {
+        this.onRequest(h);
+        opts.onRequest?.(h);
+      },
+      mayRequest: (h) => this.mayRequest(h) && (opts.mayRequest?.(h) ?? true),
+    });
     if (this.trace.length < 40) {
       let path = res.url;
       try {
@@ -333,6 +357,8 @@ export async function probe(c: ProbeInput, ctx: ProbeContext): Promise<ProbeResu
       items,
       in_region: inRegion,
       requests: pf.sent,
+      requests_max_host: pf.maxPerHost,
+      request_hosts: pf.own.size,
       errors: pf.gaps,
       complete: !pf.deadline,
       deadline: pf.deadline,

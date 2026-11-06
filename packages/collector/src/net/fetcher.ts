@@ -78,6 +78,16 @@ export interface FetchOptions {
   accept?: string;
   /** Request headers to add (never credentials in URLs that get logged). */
   headers?: Record<string, string>;
+  /**
+   * Called with the host of every request this call actually sends (redirect hops and the
+   * robots.txt read it triggers included), so a caller sharing the fetcher can count its own.
+   */
+  onRequest?: (host: string) => void;
+  /**
+   * Asked before this call sends anything to a host (each redirect hop, before its robots.txt
+   * read too): false refuses it as host_budget_spent. The discovery probe's per-host cap.
+   */
+  mayRequest?: (host: string) => boolean;
 }
 
 export interface FetcherOptions {
@@ -211,10 +221,12 @@ export class PoliteFetcher {
       const hopOpts = host === originalHost ? opts : { ...opts, headers: undefined };
       const spent = this.budgetProblem(host);
       if (spent) return { ok: false, url: current, reason: spent };
+      if (opts.mayRequest && !opts.mayRequest(host))
+        return { ok: false, url: current, reason: "host_budget_spent" };
 
       let interval = this.minIntervalMs;
       if (!opts.api) {
-        const robots = await this.robotsFor(current);
+        const robots = await this.robotsFor(current, opts.onRequest);
         const late = this.budgetProblem(host);
         if (late) return { ok: false, url: current, reason: late };
         if (!robots.isAllowed(current)) {
@@ -241,8 +253,11 @@ export class PoliteFetcher {
     return { ok: false, url: current, reason: "too_many_redirects" };
   }
 
-  /** robots.txt for the URL's host, fetched once per run through the same politeness. */
-  robotsFor(url: string): Promise<Robots> {
+  /**
+   * robots.txt for the URL's host, fetched once per run through the same politeness. The call
+   * that triggers the read is told about its requests (onRequest).
+   */
+  robotsFor(url: string, onRequest?: (host: string) => void): Promise<Robots> {
     const u = new URL(url);
     const key = `${u.protocol}//${u.host}`;
     let p = this.robots.get(key);
@@ -258,6 +273,7 @@ export class PoliteFetcher {
             return DISALLOW_ALL;
           const res = await this.request(target, new URL(target).host, this.minIntervalMs, {
             accept: "text/plain",
+            onRequest,
           });
           // A status (4xx: no rules; 5xx: disallow) or a network failure (disallow).
           if (!res.ok)
@@ -332,6 +348,8 @@ export class PoliteFetcher {
     // queued for one host count against its budget in the order they are sent.
     const spent = this.budgetProblem(host);
     if (spent) return { ok: false, url, reason: spent };
+    if (opts.mayRequest && !opts.mayRequest(host))
+      return { ok: false, url, reason: "host_budget_spent" };
     // API URLs carry keys (apikey=, client_id=): they never reach the persisted cache.
     const cached = opts.api ? undefined : this.cache.get(url);
     const headers: Record<string, string> = {
@@ -345,6 +363,7 @@ export class PoliteFetcher {
     if (cached?.lastModified) headers["if-modified-since"] = cached.lastModified;
 
     this.requests.set(host, (this.requests.get(host) ?? 0) + 1);
+    opts.onRequest?.(host);
     let response: Response;
     try {
       response = await this.transport(url, {

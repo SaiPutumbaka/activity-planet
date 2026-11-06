@@ -29,6 +29,7 @@ export type Route =
   | { kind: "sources_record" }
   | { kind: "candidates"; limit: number; regions: string[] | null }
   | { kind: "candidates_add" }
+  | { kind: "candidates_rescore" }
   | { kind: "gate_status"; hash: string }
   | { kind: "gate_record" }
   | {
@@ -144,6 +145,8 @@ export function matchRoute(method: string, url: string): Route {
     return { kind: "candidates", limit, regions };
   }
   if (method === "POST" && path === "/candidates") return { kind: "candidates_add" };
+  // Migration 70: stored scores from the current discovery code (discover rescore).
+  if (method === "POST" && path === "/candidates/rescore") return { kind: "candidates_rescore" };
   // The discovery probe and its Atlanta gate (D-042 slice 8, migration 47).
   if (method === "GET" && path === "/discovery/gate") {
     const hash = (u.searchParams.get("hash") ?? "").toLowerCase();
@@ -592,6 +595,42 @@ export function parseCandidatesBody(
 }
 
 /**
+ * Body of POST /collector/candidates/rescore: {region_id, scores: [{url, score 0..100}],
+ * dry_run?}. source_candidates_rescore (migration 70) only changes stored osm and wikidata
+ * candidates of that region, and with dry_run only counts.
+ */
+export function parseRescoreBody(
+  body: unknown,
+): Parsed<{ p_region: string; p_scores: { url: string; score: number }[]; p_dry_run: boolean }> {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return { ok: false, error: "invalid_body" };
+  }
+  const b = body as Record<string, unknown>;
+  if (typeof b.region_id !== "string" || !UUID.test(b.region_id))
+    return { ok: false, error: "invalid_region" };
+  if (b.dry_run !== undefined && typeof b.dry_run !== "boolean")
+    return { ok: false, error: "invalid_body" };
+  const list = b.scores;
+  if (!Array.isArray(list) || list.length > DISCOVERY_MAX)
+    return { ok: false, error: "invalid_scores" };
+  const out: { url: string; score: number }[] = [];
+  for (const c of list) {
+    if (typeof c !== "object" || c === null || Array.isArray(c))
+      return { ok: false, error: "invalid_scores" };
+    const o = c as Record<string, unknown>;
+    if (typeof o.url !== "string" || o.url.length > 500)
+      return { ok: false, error: "invalid_scores" };
+    if (typeof o.score !== "number" || !Number.isFinite(o.score) || o.score < 0 || o.score > 100)
+      return { ok: false, error: "invalid_scores" };
+    out.push({ url: o.url, score: o.score });
+  }
+  return {
+    ok: true,
+    args: { p_region: b.region_id.toLowerCase(), p_scores: out, p_dry_run: b.dry_run === true },
+  };
+}
+
+/**
  * Body of POST /collector/discovery/gate: {run_id, probe_hash, region, expected, required, found,
  * found_sites?, counts?}. source_discovery_gate_record checks it again and decides "passed" itself.
  */
@@ -841,6 +880,8 @@ const RPC_ERRORS: Record<string, number> = {
   regions_invalid: 400,
   results_invalid: 400,
   candidates_invalid: 400,
+  scores_invalid: 400,
+  region_not_found: 404,
   gate_invalid: 400,
   discovery_gate_closed: 409,
   api_invalid: 400,

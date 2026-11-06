@@ -34,6 +34,10 @@
 //   GET  /collector/candidates?limit=150&regions=<ids>    -> source_candidates_due() (to probe)
 //   POST /collector/candidates {candidates: [{url, origin, ...}]}
 //                                                         -> source_candidates_add()
+//   POST /collector/candidates/rescore {region_id, scores: [{url, score}], dry_run?}
+//                                                         -> source_candidates_rescore() (stored
+//                                                            scores from the current discovery
+//                                                            code; migration 70)
 //   GET  /collector/discovery/gate?hash=<probe hash>      -> source_discovery_gate_status() (the
 //                                                            Atlanta gate; D-042 slice 8,
 //                                                            migration 47)
@@ -80,6 +84,7 @@ import {
   parseFilesRecordBody,
   parseIngestBody,
   parseCandidatesBody,
+  parseRescoreBody,
   parseClaimsRecordBody,
   parseGeocodeRecordBody,
   parseRunsRecordBody,
@@ -378,6 +383,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!parsed.ok) return json({ error: parsed.error }, 400);
       const result = await rpc("source_candidates_add", { ...parsed.args });
       console.log("collector candidates", JSON.stringify(result));
+      return json(result);
+    }
+
+    if (route.kind === "candidates_rescore") {
+      const parsed = parseRescoreBody(body);
+      if (!parsed.ok) return json({ error: parsed.error }, 400);
+      const result = await rpc("source_candidates_rescore", { ...parsed.args });
+      console.log("collector rescore", JSON.stringify(result));
       return json(result);
     }
 

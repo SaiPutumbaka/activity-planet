@@ -17,6 +17,10 @@ name: Source discovery
 #     posted to the lifecycle (probation after one good day; the nightly collector run enables a
 #     source after a second). The database refuses the probe queue while the gate is closed for
 #     this code (discovery_gate_closed), so a failing gate stops discovery everywhere.
+#   * rescore, rescore-dry (workflow_dispatch only, one-off): rebuild every collector region's
+#     candidates with the current code (tile rows and Wikidata; no candidate host is fetched, no
+#     gate) and set the stored scores of the candidates already there (migration 70,
+#     POST /collector/candidates/rescore). rescore-dry only counts. Logs carry counts only.
 #
 # Where it runs:
 #   * STAGING for a push to a branch other than main that changes the collector's code or data
@@ -40,7 +44,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "gate (Atlanta quality gate on staging) or nightly (gate if needed, candidates, probes)"
+        description: "gate (Atlanta quality gate on staging), nightly (gate if needed, candidates, probes), or rescore / rescore-dry (stored candidate scores from the current code; dispatch only)"
         type: string
         default: nightly
       max_hosts:
@@ -99,10 +103,10 @@ jobs:
               hosts=$(python3 -I -c 'import json,sys;print(json.load(open(sys.argv[1])).get("max_hosts", ""))' "$req")
             fi
           fi
-          case "$mode" in gate|nightly) ;; *) echo "Refusing mode: $mode"; exit 1 ;; esac
+          case "$mode" in gate|nightly) ;; rescore|rescore-dry) if [ "$EVENT" != "workflow_dispatch" ]; then echo "Refusing mode $mode outside workflow_dispatch"; exit 1; fi ;; *) echo "Refusing mode: $mode"; exit 1 ;; esac
           case "$hosts" in ""|[0-9]|[0-9][0-9]|[0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]) ;; *) echo "Refusing max_hosts: $hosts"; exit 1 ;; esac
           production=false
-          if [ "$mode" = "nightly" ] && [ "$EVENT" != "push" ] && [ "$REF" = "refs/heads/main" ] && [ "$PROD_VAR" = "true" ]; then production=true; fi
+          if { [ "$mode" = "nightly" ] || [ "$mode" = "rescore" ] || [ "$mode" = "rescore-dry" ]; } && [ "$EVENT" != "push" ] && [ "$REF" = "refs/heads/main" ] && [ "$PROD_VAR" = "true" ]; then production=true; fi
           echo "event=$EVENT mode=$mode production=$production max_hosts=${hosts:-default}"
           {
             echo "mode=$mode"
@@ -175,6 +179,17 @@ jobs:
         env:
           RUN_ID: ${{ steps.mode.outputs.run_id }}
         run: pnpm --silent --filter collector discover probe --from "$COLLECTOR_BASE" --run-id "$RUN_ID"
+
+      - name: Rescore stored candidates (one-off)
+        if: steps.mode.outputs.mode == 'rescore' || steps.mode.outputs.mode == 'rescore-dry'
+        env:
+          MODE: ${{ steps.mode.outputs.mode }}
+        run: |
+          if [ "$MODE" = "rescore-dry" ]; then
+            pnpm --silent --filter collector discover rescore --from "$COLLECTOR_BASE" --dry-run
+          else
+            pnpm --silent --filter collector discover rescore --from "$COLLECTOR_BASE"
+          fi
 
       # The run's record for the collector health panel (migration 63, collector_job_runs): counts
       # only. A project or function without the route answers 404, which is ignored.

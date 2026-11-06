@@ -22,9 +22,10 @@ export function createBrowserSupabaseClient(
 }
 
 /**
- * SQLSTATEs of a database "not found" answer. Read RPCs raise PT404 (PostgREST answers HTTP 404,
- * migration 69); mutations and databases before migration 69 raise P0002 (HTTP 500). The message
- * is the documented code either way (not_found, place_not_found, ...).
+ * SQLSTATEs of a database "not found" answer. Read RPCs (migration 69) and write RPCs (migration
+ * 70) raise PT404, which PostgREST answers with HTTP 404; databases before those migrations, and
+ * the few service-role paths left on it, raise P0002 (HTTP 500). The message is the documented
+ * code either way (not_found, place_not_found, ...).
  */
 export const NOT_FOUND_CODES: readonly string[] = ["PT404", "P0002"];
 

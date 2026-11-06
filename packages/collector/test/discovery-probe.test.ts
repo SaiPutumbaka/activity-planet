@@ -22,7 +22,7 @@ import {
   tilesForRegion,
 } from "../src/discovery/candidates.ts";
 import { loadDiscoveryConfig, parseDiscoveryConfig } from "../src/discovery/config.ts";
-import { foundCalendar, gateReport, probeAll } from "../src/discovery/discover.ts";
+import { foundCalendar, gateReport, maxPerHost, probeAll } from "../src/discovery/discover.ts";
 import { candidateGate, euGated, zoneCountry } from "../src/discovery/eu.ts";
 import { guessedPaths, keywordsFor, keywordStrength } from "../src/discovery/keywords.ts";
 import {
@@ -561,6 +561,95 @@ describe("probe request cap", () => {
     expect(log.filter((l) => l.url.startsWith(HOME)).length).toBe(8);
     expect(probeHostAllowance(8)("www.trumba.com")).toBeUndefined();
     expect(probeHostAllowance(8)("museum.example.org")).toBe(8);
+  });
+});
+
+describe("probe request count (runs 42131965214 and 42134891047)", () => {
+  const allow = "User-agent: *\nAllow: /\n";
+
+  it("counts only its own requests when another probe reads the same host at once", async () => {
+    // atlantacyclorama.org redirects to the history center's site, itself a candidate probed in
+    // the same run: each probe's count is its own, and the two add up to what was sent.
+    const routes: Record<string, FakeResponse> = {
+      "https://cyclorama.example.org/robots.txt": { body: allow },
+      "https://cyclorama.example.org/": {
+        status: 301,
+        headers: { location: "https://www.history.example.org/cyclorama/" },
+      },
+      "https://www.history.example.org/robots.txt": { body: allow },
+    };
+    for (const p of ["", "cyclorama/", "events/", "a/", "b/", "c/"])
+      routes[`https://www.history.example.org/${p}`] = { body: "x" };
+    const c = fakeClock();
+    const { transport, log } = fakeTransport(routes, c.clock);
+    const fetcher = new PoliteFetcher({
+      denylist,
+      transport,
+      now: c.now,
+      sleep: c.sleep,
+      maxRequestsFor: probeHostAllowance(8),
+    });
+    const a = new ProbeFetcher(fetcher, 8);
+    const b = new ProbeFetcher(fetcher, 8);
+    await Promise.all([
+      (async () => {
+        await a.get("https://cyclorama.example.org/");
+        await a.get("https://www.history.example.org/events/");
+      })(),
+      (async () => {
+        for (const p of ["", "a/", "b/", "c/"]) await b.get(`https://www.history.example.org/${p}`);
+      })(),
+    ]);
+    expect(a.sent + b.sent).toBe(log.length);
+    // a: cyclorama robots.txt and home (2), then the history site's pages (2), and the history
+    // site's robots.txt goes to whichever probe asked first.
+    expect(a.own.get("cyclorama.example.org")).toBe(2);
+    expect(a.own.get("www.history.example.org")! + b.own.get("www.history.example.org")!).toBe(
+      log.filter((l) => l.url.startsWith("https://www.history.example.org/")).length,
+    );
+    expect(a.own.size).toBe(2);
+    expect(a.maxPerHost).toBeLessThanOrEqual(8);
+  });
+
+  it("never sends one host more than the cap, even through redirect hops", async () => {
+    // A shared calendar platform keeps the fetcher's larger run allowance, so only the probe's
+    // own cap holds it: robots.txt, then a 301 and its target for each page.
+    const host = "https://www.trumba.com";
+    const routes: Record<string, FakeResponse> = { [`${host}/robots.txt`]: { body: allow } };
+    for (let i = 0; i < 10; i++) {
+      routes[`${host}/calendars/p${i}`] = {
+        status: 301,
+        headers: { location: `${host}/calendars/p${i}/` },
+      };
+      routes[`${host}/calendars/p${i}/`] = { body: "x" };
+    }
+    const c = fakeClock();
+    const { transport, log } = fakeTransport(routes, c.clock);
+    const fetcher = new PoliteFetcher({
+      denylist,
+      transport,
+      now: c.now,
+      sleep: c.sleep,
+      maxRequestsFor: probeHostAllowance(8),
+    });
+    const pf = new ProbeFetcher(fetcher, 8);
+    for (let i = 0; i < 10; i++) await pf.get(`${host}/calendars/p${i}`);
+    expect(log.filter((l) => l.url.startsWith(host)).length).toBe(8);
+    expect(pf.sent).toBe(8);
+    expect(pf.maxPerHost).toBe(8);
+  });
+
+  it("reports the run's most requests to one host, capped hosts and platforms apart", () => {
+    const m = new Map([
+      ["www.history.example.org", 8],
+      ["cyclorama.example.org", 2],
+      ["www.trumba.com", 23],
+    ]);
+    expect(maxPerHost(m, 8)).toEqual({ requests_max_host: 8, requests_max_platform_host: 23 });
+    expect(maxPerHost(new Map(), 8)).toEqual({
+      requests_max_host: 0,
+      requests_max_platform_host: 0,
+    });
   });
 });
 

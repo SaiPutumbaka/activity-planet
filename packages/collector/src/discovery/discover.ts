@@ -23,7 +23,7 @@ import {
   tilesForRegion,
 } from "./candidates.ts";
 import type { DiscoveryCaps, GateExpectation } from "./config.ts";
-import { probe, type ProbeInput, type ProbeResult } from "./probe.ts";
+import { probe, probeHostAllowance, type ProbeInput, type ProbeResult } from "./probe.ts";
 
 /** Rows of a region's place tiles from GET /collector/tiles/{id}/rows (5,000 a page). */
 export async function fetchTileRows(
@@ -183,6 +183,21 @@ export async function probeAll(
     Array.from({ length: Math.max(1, Math.min(o.caps.probeConcurrency, inputs.length)) }, worker),
   );
   return out;
+}
+
+/** The most requests one host got in the run: capped candidate hosts and shared platforms apart. */
+export function maxPerHost(
+  requests: Map<string, number>,
+  perHost: number,
+): { requests_max_host: number; requests_max_platform_host: number } {
+  const allowance = probeHostAllowance(perHost);
+  let capped = 0;
+  let platform = 0;
+  for (const [host, n] of requests) {
+    if (allowance(host) === undefined) platform = Math.max(platform, n);
+    else capped = Math.max(capped, n);
+  }
+  return { requests_max_host: capped, requests_max_platform_host: platform };
 }
 
 /** A result that found a calendar: items inside the region, or Localist (needs permission). */

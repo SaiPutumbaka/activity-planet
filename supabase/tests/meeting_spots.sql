@@ -376,12 +376,12 @@ begin
   begin
     perform public.venue_for_place(gen_random_uuid());
     raise exception 'FAIL a missing place gave a venue';
-  exception when no_data_found then null;
+  exception when sqlstate 'PT404' then null;  -- place_not_found (migration 70)
   end;
   begin
     perform public.venue_for_place(current_setting('test.pin')::uuid);
     raise exception 'FAIL a private pin gave a venue';
-  exception when no_data_found then null;
+  exception when sqlstate 'PT404' then null;  -- place_not_found (migration 70)
   end;
   insert into msp_lines (line) values ('venue_for_place: ok');
 end $$;

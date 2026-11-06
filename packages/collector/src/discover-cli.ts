@@ -26,6 +26,14 @@
 //       cross a border) and the sites of hand-written seeds, posts them (POST /collector/candidates) and stamps the
 //       regions (POST /collector/discovery/regions/record).
 //
+//   pnpm --filter collector discover rescore --from <base> [--dry-run] [--limit 100]
+//       One-off (discovery.yml mode rescore or rescore-dry): rebuilds the candidates of every
+//       collector region outside the EU gate with this code (tile rows, Wikidata, the learned
+//       yield; no candidate host is fetched) and sets the stored score of the osm and wikidata
+//       candidates already there (POST /collector/candidates/rescore, migration 70). Nothing is
+//       added. A region whose Wikidata calls failed is skipped, so a lost bonus is never written.
+//       --dry-run only counts. Logs carry counts only.
+//
 //   pnpm --filter collector discover probe --from <base> --run-id <id> [--per-region 150]
 //       Probes the candidates the database offers (GET /collector/discovery/queue, refused until
 //       the gate passed for this code) and posts each result to the lifecycle
@@ -41,6 +49,7 @@ import {
   fetchTileRows,
   foundCalendar,
   gateReport,
+  maxPerHost,
   probeAll,
 } from "./discovery/discover.ts";
 import { candidateGate, euGated, zoneCountry } from "./discovery/eu.ts";
@@ -92,6 +101,7 @@ async function main(argv: string[]): Promise<number> {
       "no-wikidata": { type: "boolean", default: false },
       limit: { type: "string" },
       "per-region": { type: "string" },
+      "dry-run": { type: "boolean", default: false },
     },
     allowPositionals: false,
   });
@@ -177,7 +187,7 @@ async function main(argv: string[]): Promise<number> {
         const mark = expectedSites.has(siteOf(r.candidate.host)) ? " *" : "";
         if (mark || foundCalendar(r))
           console.log(
-            `[probe] ${r.candidate.host}${mark} outcome=${r.outcome} kind=${r.kind ?? "-"} platform=${r.platform ?? "-"} platforms=${r.platforms.join(",") || "-"} items=${r.items} in_region=${r.in_region} requests=${r.requests} errors=${r.errors} score=${r.score} notes=${r.notes.join("|")}`,
+            `[probe] ${r.candidate.host}${mark} outcome=${r.outcome} kind=${r.kind ?? "-"} platform=${r.platform ?? "-"} platforms=${r.platforms.join(",") || "-"} items=${r.items} in_region=${r.in_region} requests=${r.requests} max_per_host=${r.requests_max_host} hosts=${r.request_hosts} errors=${r.errors} score=${r.score} notes=${r.notes.join("|")}`,
           );
         // The gate's own sites: every request, so a miss can be explained (public pages only).
         if (mark) for (const t of r.trace) console.log(`[trace] ${r.candidate.host} ${t}`);
@@ -194,6 +204,9 @@ async function main(argv: string[]): Promise<number> {
       calendars_with_items: found.filter((r) => r.outcome === "ok").length,
       requests: Object.values(Object.fromEntries(fetcher.requests)).reduce((a, b) => a + b, 0),
       hosts: fetcher.requests.size,
+      // The run's most to one host: capped hosts (8 each, robots.txt and redirects included) and
+      // the shared calendar platforms and Wikidata (the fetcher's default), apart.
+      ...maxPerHost(fetcher.requests, caps.requestsPerHostPerProbe),
       seconds: Math.round((Date.now() - started) / 1000),
       ...Object.fromEntries(Object.entries(tally(results)).map(([k, v]) => [`outcome_${k}`, v])),
       ...Object.fromEntries(Object.entries(built.counts).map(([k, v]) => [`build_${k}`, v])),
@@ -333,6 +346,67 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
 
+  if (command === "rescore") {
+    const limit = values.limit ? Number(values.limit) : 100;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new Error("bad --limit");
+    const dryRun = values["dry-run"] === true;
+    const rr = await call(svc, `/regions?due=0&limit=${limit}`);
+    const rows = (rr.body as { regions?: unknown[] } | null)?.regions;
+    if (rr.status !== 200 || !Array.isArray(rows))
+      throw new Error(`GET /regions failed: ${rr.status}`);
+    const skip = seedSites();
+    const fetcher = fetcherFor(caps.probeRunMinutes, denylist);
+    const yieldRes = await call(svc, "/discovery/yield");
+    const yields = yieldRes.status === 200 ? parseYield(yieldRes.body) : undefined;
+    const sum: Record<string, number> = {
+      regions: rows.length,
+      eu_gated: 0,
+      wikidata_failed_regions: 0,
+      rebuilt: 0,
+      sent: 0,
+    };
+    for (const row of rows) {
+      const { region } = regionFromRow(row);
+      if (euGated(region.timezone, cfg.euGate)) {
+        sum.eu_gated = (sum.eu_gated ?? 0) + 1;
+        continue;
+      }
+      const tiles = await fetchTileRows(svc, region);
+      const built = await buildCandidates({
+        region,
+        rows: tiles.rows,
+        fetcher,
+        denylist,
+        caps,
+        country: zoneCountry(region.timezone),
+        skipSites: skip,
+        yields,
+      });
+      // A Wikidata failure drops bonuses this build would otherwise give: keep the stored scores.
+      if (built.counts.wikidata_failed > 0) {
+        sum.wikidata_failed_regions = (sum.wikidata_failed_regions ?? 0) + 1;
+        continue;
+      }
+      const scores = built.candidates
+        .filter((c) => !candidateGate(c, region.timezone, cfg.euGate).gated)
+        .map((c) => ({ url: c.url, score: c.score }));
+      sum.rebuilt = (sum.rebuilt ?? 0) + scores.length;
+      for (let i = 0; i < scores.length; i += 500) {
+        const chunk = scores.slice(i, i + 500);
+        const r = await call(svc, "/candidates/rescore", {
+          method: "POST",
+          body: JSON.stringify({ region_id: region.id, scores: chunk, dry_run: dryRun }),
+        });
+        if (r.status !== 200) throw new Error(`POST /candidates/rescore failed: ${r.status}`);
+        sum.sent = (sum.sent ?? 0) + chunk.length;
+        for (const [k, v] of Object.entries(r.body as Record<string, unknown>))
+          if (typeof v === "number") sum[k] = (sum[k] ?? 0) + v;
+      }
+    }
+    console.log(`[rescore] ${dryRun ? "dry_run " : ""}${JSON.stringify(sum)}`);
+    return 0;
+  }
+
   if (command === "probe") {
     const runId = values["run-id"] ?? "";
     if (!RUN_ID.test(runId)) throw new Error("probe needs --run-id");
@@ -444,7 +518,7 @@ async function main(argv: string[]): Promise<number> {
   }
 
   console.error(
-    "usage: discover gate|candidates|probe --from <collector base URL> (see src/discover-cli.ts)",
+    "usage: discover gate|candidates|rescore|probe --from <collector base URL> (see src/discover-cli.ts)",
   );
   return 2;
 }

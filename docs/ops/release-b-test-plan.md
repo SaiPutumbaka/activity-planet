@@ -294,14 +294,16 @@ Release B ships by Jan 4 only when all of these hold on the release candidate me
   the monthly cap, the evidence copy and a staging smoke).
 - **Payments are off.** Stripe Checkout, Connect onboarding and the webhook have only mocked unit
   tests and the SQL suite; they get a staging run once Sai adds the Stripe test keys.
-- **Not-found answers on mutations are still HTTP 500.** Migration 69 moved the read RPCs a
+- **Not-found answers are HTTP 404, reads and writes.** Migration 69 moved the read RPCs a
   screen calls on load (`get_coach`, `coach_reviews_page`, `coach_slots`, `get_booking`,
   `conversation_info`, `get_messages`, `mod_message_evidence`, `place_detail`,
   `venue_preview_for_place`, `organizer_source_detail`, `recs_similar_events`, `chapter_dashboard`,
   `mod_user_lookup`) to SQLSTATE `PT404`, which PostgREST answers with HTTP 404; the message is the
-  same documented code, so the app behaves as before (`supabase/tests/not_found_404.sql`). Writes
-  on a missing row (cancel, send, respond and the rest) keep P0002 and a 500: they are rare, and a
-  5xx there is worth a look.
+  same documented code, so the app behaves as before (`supabase/tests/not_found_404.sql`).
+  Migration 70 did the same for the 66 write RPCs that act on a missing row (cancel, send,
+  respond, confirm, decline, complete, report, moderate and the rest), with every auth and
+  forbidden check where it was (`supabase/tests/write_not_found_404.sql`). P0002 is left only on
+  `profile_missing` and `coach_profile_required` and on the service-role collector paths.
 - **Units and formats follow the viewer's locale** (Nov 5, `packages/core/src/locale`): miles or
   kilometres, a 12- or 24-hour clock and month-first or day-first dates, from the browser's
   language, across the app (feed radius, You, coaches, map distances, plan, chat, booking, admin
