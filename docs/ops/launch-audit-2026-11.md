@@ -9,7 +9,7 @@ Commits:
 - `78b1bbc` migrations 77 (`20270109000100_launch_audit_ops.sql`, schema 2.73) and 78 (`20270110000100_launch_audit_safety.sql`, schema 2.74) with `supabase/tests/launch_audit_ops.sql` and `launch_audit_safety.sql`; `8dc6aea` a test fixture fix.
 - `c058973` Edge Functions, app and site.
 - `6d923cd` GitHub Actions.
-- The docs commit that adds this file (and the accessibility follow-ups listed under L21).
+- `c4cb17a` this file, the runbooks, FOUNDER-TODO and the L21 follow-ups; `4739740`, `ca043f4` the staging sweep probe.
 
 ## Status by finding
 
@@ -70,9 +70,10 @@ Rejected or not reproduced (from the triage, unchanged): DB-02 draft plans (no d
 ## Test results
 
 - `pnpm typecheck`, `pnpm lint`, `pnpm test` (core 256, collector 295, app 251 tests) and `pnpm build`: pass.
-- Deno: `delete-account` (6, new), `send-verification-code` (3, new), `send-notifications` (28), `weekly-scorecard` (7): pass.
-- Staging: migrations 77 and 78 rehearsed on a fresh database and applied to staging; `launch_audit_ops.sql` and `launch_audit_safety.sql` pass; the full regression suite result is in the final report of this pass.
+- Deno: `delete-account` (6, new), `send-verification-code` (3, new), `send-notifications` (28), `weekly-scorecard` (7): 44 pass.
+- Staging: migrations 77 and 78 rehearsed on a fresh database and applied (migrate runs 192 to 194); `launch_audit_ops.sql` and `launch_audit_safety.sql` pass; the full regression suite passes, 75 of 75 (run 196). `delete-account`, `send-notifications`, `send-verification-code` and `weekly-scorecard` deployed to staging (run 195); the deletion sweep answers 200 `{"finished":0,"failed":0,"purged":0}` through the pg_net path with the database's secret (`supabase/staging/deletion_sweep_probe.sql`).
 - Types regenerated from staging (schema 2.74).
+- Browser flows on the built app against staging (vite preview :4231, next start :3231): 01 onboarding, 02 browse (both widths), 04 safety and You (both widths), 07 messaging, 09 collector (both widths), 11 site (both widths, 32 checks): all pass. Extra checks: no request to Google Fonts, the active tab is marked, Download my data saves the export, `/auth/reset` without a link does not open the form. Not exercised: first-run onboarding (the QA accounts are already onboarded, so the acceptance record and the under-18 path are covered by unit and staging tests only).
 
 ## Go-live checklist
 
