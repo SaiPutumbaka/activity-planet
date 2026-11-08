@@ -173,7 +173,10 @@ jobs:
           # The headers to set when the same layout moves to Cloudflare R2 (Pages cannot set them).
           printf '%s\n' '{"places/v*/*.json.gz": {"Content-Type": "application/json", "Content-Encoding": "gzip", "Cache-Control": "public, max-age=31536000, immutable", "Access-Control-Allow-Origin": "*"}, "rules/*.json.gz": {"Content-Type": "application/json", "Content-Encoding": "gzip", "Cache-Control": "public, max-age=31536000, immutable", "Access-Control-Allow-Origin": "*"}, "places/manifest.json": {"Cache-Control": "public, max-age=300", "Access-Control-Allow-Origin": "*"}}' > site/headers.json
           cat site/stats.json
-          du -sb site/places site/rules
+          # A run with no tile to build has no site/places (Nov 6 and 7 production runs failed here,
+          # so gh-pages was never created); the rules and the manifest are still published.
+          du -sb site/rules
+          if [ -d site/places ]; then du -sb site/places; else echo "site/places: no tile built this run"; fi
 
       - name: Upload the files (artifact)
         if: steps.mode.outputs.target != 'none'
