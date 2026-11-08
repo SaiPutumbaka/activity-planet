@@ -77,9 +77,12 @@ env:
 jobs:
   discover:
     runs-on: ubuntu-latest
+    # Launch audit H5: production secrets live in the GitHub Environment "production", limited to
+    # main; every other ref runs under "staging" and never receives them.
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Decide mode and target
         id: mode
@@ -115,14 +118,14 @@ jobs:
             echo "run_id=gh-${{ github.run_id }}-${{ github.run_attempt }}"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      - uses: supabase/setup-cli@v3
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with:
           version: 2.122.0
 

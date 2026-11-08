@@ -111,9 +111,12 @@ env:
 jobs:
   extract:
     runs-on: ubuntu-latest
+    # Launch audit H5: production secrets live in the GitHub Environment "production", limited to
+    # main; every other ref runs under "staging" and never receives them.
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     timeout-minutes: 300
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Decide target and region
         id: mode
@@ -196,7 +199,7 @@ jobs:
             echo "run_id=gh-${{ github.run_id }}-${{ github.run_attempt }}"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: supabase/setup-cli@v3
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         if: steps.mode.outputs.post == 'true'
         with:
           version: 2.122.0
@@ -275,7 +278,7 @@ jobs:
 
       - name: Cache the Geofabrik index
         if: steps.tiles.outputs.tiles != ''
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: geofabrik/index-v1.json
           key: geofabrik-index-${{ steps.mode.outputs.week }}
@@ -359,7 +362,7 @@ jobs:
       - name: Restore the extracts for the week
         id: pbfcache
         if: steps.budget.outputs.tiles != ''
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: geofabrik/pbf
           key: geofabrik-${{ steps.budget.outputs.key }}-${{ steps.mode.outputs.week }}
@@ -391,7 +394,7 @@ jobs:
 
       - name: Save the extracts for the week
         if: steps.budget.outputs.tiles != '' && steps.pbfcache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: geofabrik/pbf
           key: geofabrik-${{ steps.budget.outputs.key }}-${{ steps.mode.outputs.week }}
@@ -544,7 +547,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       # Counts only (stats and post results); the row files stay on the runner.
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && steps.budget.outputs.tiles != ''
         with:
           name: places-extract-stats

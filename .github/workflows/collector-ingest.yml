@@ -107,9 +107,12 @@ env:
 jobs:
   ingest:
     runs-on: ubuntu-latest
+    # Launch audit H5: production secrets live in the GitHub Environment "production", limited to
+    # main; every other ref runs under "staging" and never receives them.
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     timeout-minutes: 70
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Decide targets
         id: mode
@@ -167,21 +170,21 @@ jobs:
             echo "started=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
       # Conditional GET across runs (ETag and Last-Modified per URL).
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: packages/collector/.cache
           key: collector-http-${{ github.run_id }}
           restore-keys: collector-http-
 
-      - uses: supabase/setup-cli@v3
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with:
           version: 2.122.0
 

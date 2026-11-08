@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+# Launch audit L6: read-only token.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -20,11 +24,11 @@ jobs:
       VITE_SUPABASE_URL: https://example.supabase.co
       VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 9.15.9
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: pnpm
@@ -42,8 +46,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: denoland/setup-deno@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
           deno-version: v2.1.4
       - run: deno test --allow-read supabase/functions/import-feed supabase/functions/collector supabase/functions/places-fill supabase/functions/place-files supabase/functions/send-notifications supabase/functions/organizer-verify supabase/functions/eventbrite-connect
@@ -55,6 +59,10 @@ jobs:
       # Coaching payments (migration 60): Stripe Connect, Checkout and the webhook, with a mocked
       # Stripe (no network, no key). The index files import supabase-js from npm.
       - run: deno test --allow-read supabase/functions/stripe-connect supabase/functions/stripe-checkout supabase/functions/stripe-webhook
+      # Launch audit: delete-account (the evidence hold and the sweep's cleanup, fake Supabase) and
+      # the verification email copy.
+      - run: deno test --allow-read --node-modules-dir=none supabase/functions/delete-account supabase/functions/send-verification-code
+      - run: deno check --node-modules-dir=none supabase/functions/send-verification-code/index.ts
       - run: deno check --node-modules-dir=none supabase/functions/stripe-connect/index.ts supabase/functions/stripe-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/delete-account/index.ts supabase/functions/organizer-verify/index.ts supabase/functions/eventbrite-connect/index.ts
       # image-guard decodes JPEG and PNG with npm packages (jpeg-js, fast-png); without a
       # node_modules folder Deno must fetch them itself, hence --node-modules-dir=none.
@@ -68,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Rebuild hub_place_rules.json from scripts/places/rules
         run: python3 -I scripts/places/build_rules_json.py
       - name: Regenerate supabase/seed/place_rules.sql and scripts/places/filters.txt

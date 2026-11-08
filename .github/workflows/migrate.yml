@@ -110,9 +110,15 @@ on:
         type: boolean
         default: false
 
+# Launch audit L16: one group per ref, so a second branch's staging run never silently replaces a
+# pending main run (GitHub keeps one pending run per group).
 concurrency:
-  group: migrate-main
+  group: migrate-${{ github.ref }}
   cancel-in-progress: false
+
+# Launch audit L6: read-only token.
+permissions:
+  contents: read
 
 env:
   STAGING_PROJECT_REF: gzrscndzzggxmcwnvvcq
@@ -129,8 +135,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v7
-      - uses: supabase/setup-cli@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with:
           version: 2.122.0
 
@@ -154,8 +160,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
-      - uses: supabase/setup-cli@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with:
           version: 2.122.0
 
@@ -337,6 +343,22 @@ jobs:
           supabase gen types --linked --lang typescript --schema public
           echo "----- END database.ts -----"
 
+  # Launch audit H5: production steps run in their own job under the GitHub Environment
+  # "production" (Settings, Environments: limited to main, required reviewers, and the
+  # SUPABASE_PROD_DB_PASSWORD and VERCEL_DEPLOY_HOOK_* secrets moved there), so a workflow on any
+  # other branch never receives them. Until the environment is configured, GitHub creates it
+  # unprotected on first use and the repository secrets still apply.
+  production:
+    needs: migrate
+    if: ${{ !cancelled() && needs.migrate.result == 'success' && inputs.staging_only != true && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
+        with:
+          version: 2.122.0
       - name: Production, link and list migrations
         if: inputs.staging_only != true && github.ref == 'refs/heads/main'
         env:
@@ -378,6 +400,7 @@ jobs:
       # deployed after the push. Migration 77: without the gateway JWT check, so pg_cron can call
       # its sweep with the database's own secret; the function verifies member JWTs itself.
       - name: Production, deploy the delete-account function
+        id: deploy_delete_account
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
@@ -390,6 +413,7 @@ jobs:
       # Sai set RESEND_API_KEY on both projects on Nov 8, so it now ships with every main push. It
       # keeps the gateway JWT check and also verifies the caller's JWT itself (config.toml).
       - name: Production, deploy the send-verification-code function
+        id: deploy_send_verification_code
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
@@ -401,6 +425,7 @@ jobs:
       # RPCs; its URL goes into this project's vault entry. Production feed sources stay
       # disabled (D-037), so no job is scheduled until a data change enables one.
       - name: Production, deploy the import-feed function
+        id: deploy_import_feed
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
@@ -414,6 +439,7 @@ jobs:
       # collector (D-041 slice 4) is the hub map jobs' ingest path; it calls RPCs the push creates,
       # so it is deployed after it. Its shared secret is generated inside the database.
       - name: Production, deploy the collector function
+        id: deploy_collector
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
@@ -425,6 +451,7 @@ jobs:
       # creates, so it is deployed after it. It needs no GitHub secret: GEOAPIFY_SERVER_KEY is an
       # optional Supabase Edge Function secret, and without it every run answers skipped: no key.
       - name: Production, deploy the places-fill function
+        id: deploy_places_fill
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
@@ -436,6 +463,7 @@ jobs:
       # signed-in members (a file place's row); it calls RPCs the push creates, so it is deployed
       # after it. No secret of its own: it reads the published files from meta.places_base_url.
       - name: Production, deploy the place-files function
+        id: deploy_place_files
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
@@ -447,6 +475,7 @@ jobs:
       # calls it through pg_net with a secret generated inside the database, and it calls RPCs the
       # push creates, so it is deployed after it. No secret of its own.
       - name: Production, deploy the image-guard function
+        id: deploy_image_guard
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
@@ -460,6 +489,7 @@ jobs:
       # VAPID_PRIVATE_KEY / VAPID_SUBJECT are optional Edge Function secrets set by hand on each
       # project; without them every email and push is marked skipped, never sent.
       - name: Production, deploy the send-notifications function
+        id: deploy_send_notifications
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
@@ -475,6 +505,7 @@ jobs:
       # its own secret, and by users with a JWT it verifies) and stripe-webhook (signed by Stripe)
       # do not.
       - name: Production, deploy the stripe-connect function
+        id: deploy_stripe_connect
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
@@ -483,6 +514,7 @@ jobs:
           supabase functions deploy stripe-connect --project-ref "$PROD_PROJECT_REF" --use-api
 
       - name: Production, deploy the stripe-checkout function
+        id: deploy_stripe_checkout
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
@@ -491,6 +523,7 @@ jobs:
           supabase functions deploy stripe-checkout --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 
       - name: Production, deploy the stripe-webhook function
+        id: deploy_stripe_webhook
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
@@ -504,6 +537,7 @@ jobs:
       # answers {"skipped":"no key"}) and its sync caller is the collector job, so the gateway check
       # is off. Both call RPCs the push creates, so they are deployed after it.
       - name: Production, deploy the organizer-verify function
+        id: deploy_organizer_verify
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
@@ -512,6 +546,7 @@ jobs:
           supabase functions deploy organizer-verify --project-ref "$PROD_PROJECT_REF" --use-api
 
       - name: Production, deploy the eventbrite-connect function
+        id: deploy_eventbrite_connect
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
@@ -524,6 +559,7 @@ jobs:
       # weekly-scorecard is key-gated (without RESEND_API_KEY and SCORECARD_TO every run is recorded
       # as skipped_no_key). Both call RPCs the push creates, so they are deployed after it.
       - name: Production, deploy the recs-embed function
+        id: deploy_recs_embed
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
@@ -532,6 +568,7 @@ jobs:
           supabase functions deploy recs-embed --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 
       - name: Production, deploy the weekly-scorecard function
+        id: deploy_weekly_scorecard
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
@@ -549,3 +586,17 @@ jobs:
           if [ -z "$HOOK_WEB" ]; then echo "No deploy hooks configured; skipping."; exit 0; fi
           curl -fsS -X POST "$HOOK_WEB" >/dev/null
           if [ -n "$HOOK_APP" ]; then curl -fsS -X POST "$HOOK_APP" >/dev/null; fi
+
+      # Launch audit M6: the deploy steps above are continue-on-error so one failure does not stop
+      # the rest; this step turns any of them red at the end, so a failed deploy is never a green run.
+      - name: Fail if any function deploy failed
+        if: ${{ !cancelled() && inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main' }}
+        env:
+          STEPS: ${{ toJSON(steps) }}
+        run: |
+          failed=$(echo "$STEPS" | jq -r 'to_entries[] | select(.key | startswith("deploy_")) | select(.value.outcome == "failure") | .key')
+          if [ -n "$failed" ]; then
+            echo "::error::Function deploys failed:"; echo "$failed"
+            exit 1
+          fi
+          echo "Every function deploy succeeded."

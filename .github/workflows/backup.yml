@@ -1,0 +1,150 @@
+name: Back up production
+
+# Launch audit C2: production is on the Supabase Free plan, which has no daily backups or point in
+# time restore. Every day this dumps production's roles, schema and data with the Supabase CLI,
+# copies the private and public Storage buckets (dumps do not include files), encrypts the bundle
+# with age to a public key, and uploads only the encrypted file as a release asset of a PRIVATE
+# repository. Nothing readable ever reaches this public repository's logs or artifacts: every
+# command's output that could hold data goes to /dev/null, and the plaintext never leaves the
+# runner's temporary disk. Restore steps: docs/ops/backup-restore.md.
+#
+# Runs from main only (the production environment). Until Sai sets all three of these it is a
+# no-op that says what is missing:
+#   vars.BACKUP_AGE_RECIPIENT  the age public key (age1...); the private key stays offline with Sai
+#   vars.BACKUP_REPO           the private repository for the encrypted files (owner/name)
+#   secrets.BACKUP_REPO_TOKEN  a fine-grained token with Contents read-write on that one repository
+# Kept: the newest 30 daily releases. verify_restore restores the dump into a throwaway local
+# database on the runner (never staging or production) and prints pass or fail only.
+
+on:
+  schedule:
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+    inputs:
+      verify_restore:
+        description: "Also restore the dump into a throwaway local database on the runner (pass or fail only)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+env:
+  PROD_PROJECT_REF: gtesfiqxqontescqpllo
+  SUPABASE_CLI_VERSION: 2.122.0
+
+jobs:
+  backup:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    steps:
+      - name: Check the configuration
+        id: cfg
+        env:
+          RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+          REPO: ${{ vars.BACKUP_REPO }}
+          TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: |
+          missing=""
+          case "$RECIPIENT" in age1*) ;; *) missing="$missing BACKUP_AGE_RECIPIENT" ;; esac
+          case "$REPO" in */*) ;; *) missing="$missing BACKUP_REPO" ;; esac
+          [ -n "$TOKEN" ] || missing="$missing BACKUP_REPO_TOKEN"
+          if [ -n "$missing" ]; then
+            echo "::warning::Backups are off until these are set:$missing (docs/ops/backup-restore.md)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.cfg.outputs.ready == 'true'
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
+        if: steps.cfg.outputs.ready == 'true'
+        with:
+          version: 2.122.0
+
+      - name: Install age
+        if: steps.cfg.outputs.ready == 'true'
+        run: sudo apt-get update -qq > /dev/null && sudo apt-get install -y -qq age > /dev/null
+
+      - name: Dump roles, schema and data
+        if: steps.cfg.outputs.ready == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          dir="$RUNNER_TEMP/ap-backup"; mkdir -p "$dir/storage"
+          supabase link --project-ref "$PROD_PROJECT_REF" > /dev/null 2>&1
+          supabase db dump --linked --role-only -f "$dir/roles.sql" > /dev/null 2>&1
+          supabase db dump --linked -f "$dir/schema.sql" > /dev/null 2>&1
+          supabase db dump --linked --data-only --use-copy -f "$dir/data.sql" > /dev/null 2>&1
+          for f in roles schema data; do
+            test -s "$dir/$f.sql" || { echo "::error::$f dump is empty"; exit 1; }
+          done
+          echo "Dumps written: $(du -sh "$dir" | cut -f1)"
+
+      # Storage files are not in the database dump. Each bucket is copied on its own; a bucket that
+      # cannot be copied fails the run (a backup without the evidence buckets is not a backup).
+      - name: Copy the Storage buckets
+        if: steps.cfg.outputs.ready == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/ap-backup/storage"
+          for b in avatars chat-images chat-evidence legal-hold; do
+            mkdir -p "$dir/$b"
+            supabase --experimental storage cp -r "ss:///$b" "$dir/$b" --linked > /dev/null 2>&1 \
+              || { echo "::error::could not copy bucket $b"; exit 1; }
+            echo "bucket $b: $(find "$dir/$b" -type f | wc -l) files"
+          done
+
+      - name: Restore into a throwaway local database (pass or fail only)
+        if: steps.cfg.outputs.ready == 'true' && inputs.verify_restore == true
+        run: |
+          set -uo pipefail
+          dir="$RUNNER_TEMP/ap-backup"
+          supabase start -x realtime,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor --ignore-health-check > /dev/null 2>&1
+          url="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          if psql "$url" --single-transaction --variable ON_ERROR_STOP=1 --quiet \
+               --file "$dir/roles.sql" --file "$dir/schema.sql" \
+               --command 'SET session_replication_role = replica' --file "$dir/data.sql" > /dev/null 2>&1; then
+            echo "RESTORE PASS"
+          else
+            echo "::error::RESTORE FAIL (output suppressed: it can contain data)"; exit 1
+          fi
+          supabase stop --no-backup > /dev/null 2>&1 || true
+
+      - name: Encrypt and upload to the private repository
+        if: steps.cfg.outputs.ready == 'true'
+        env:
+          RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+          REPO: ${{ vars.BACKUP_REPO }}
+          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          stamp=$(date -u +%Y%m%dT%H%MZ)
+          out="$RUNNER_TEMP/activity-planet-prod-$stamp.tar.gz.age"
+          tar -C "$RUNNER_TEMP" -czf - ap-backup | age -r "$RECIPIENT" -o "$out"
+          rm -rf "$RUNNER_TEMP/ap-backup"
+          gh release create "backup-$stamp" "$out" --repo "$REPO" --title "Production backup $stamp" \
+            --notes "Encrypted with age (docs/ops/backup-restore.md)." > /dev/null
+          echo "Uploaded $(du -h "$out" | cut -f1) as backup-$stamp."
+          rm -f "$out"
+          # Keep the newest 30.
+          gh release list --repo "$REPO" --limit 200 --json tagName --jq '.[].tagName' \
+            | grep '^backup-' | sort -r | tail -n +31 \
+            | while read -r tag; do gh release delete "$tag" --repo "$REPO" --yes --cleanup-tag > /dev/null; done
+
+      - name: Clean up
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/ap-backup" "$RUNNER_TEMP"/activity-planet-prod-*.age

@@ -53,12 +53,15 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Launch audit H5: production secrets live in the GitHub Environment "production", limited to
+    # main; every other ref runs under "staging" and never receives them.
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     timeout-minutes: 30
     outputs:
       target: ${{ steps.mode.outputs.target }}
       month: ${{ steps.mode.outputs.month }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Decide target and month
         id: mode
@@ -90,7 +93,7 @@ jobs:
           echo "target=$target month=$month"
           { echo "target=$target"; echo "project_ref=$ref"; echo "month=$month"; } >> "$GITHUB_OUTPUT"
 
-      - uses: supabase/setup-cli@v3
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         if: steps.mode.outputs.target != 'none'
         with:
           version: 2.122.0
@@ -125,7 +128,7 @@ jobs:
 
       - name: Upload the files (artifact)
         if: steps.mode.outputs.target != 'none'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: places-${{ steps.mode.outputs.month }}-${{ steps.mode.outputs.target }}
           path: |
@@ -144,8 +147,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: places-${{ needs.build.outputs.month }}-production
           path: dump
@@ -179,13 +182,16 @@ jobs:
     needs: [build, release]
     if: ${{ !cancelled() && needs.build.result == 'success' && needs.build.outputs.target != 'none' }}
     runs-on: ubuntu-latest
+    # Launch audit H5: production secrets live in the GitHub Environment "production", limited to
+    # main; every other ref runs under "staging" and never receives them.
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     timeout-minutes: 10
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: places-${{ needs.build.outputs.month }}-${{ needs.build.outputs.target }}
           path: dump
-      - uses: supabase/setup-cli@v3
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with:
           version: 2.122.0
       - name: Record the run

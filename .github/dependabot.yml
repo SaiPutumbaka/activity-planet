@@ -1,0 +1,12 @@
+# Launch audit M5: keeps the commit-pinned actions in .github/workflows current. Dependabot opens a
+# pull request with the new commit SHA and version comment; review it like any other change
+# (these jobs hold production secrets).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

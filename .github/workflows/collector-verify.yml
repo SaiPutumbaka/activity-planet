@@ -39,6 +39,9 @@ env:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # Launch audit H5: production secrets live in the GitHub Environment "production", limited to
+    # main; every other ref runs under "staging" and never receives them.
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     timeout-minutes: 30
     strategy:
       max-parallel: 1
@@ -64,18 +67,18 @@ jobs:
             echo "started=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: steps.mode.outputs.run == 'true'
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         if: steps.mode.outputs.run == 'true'
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.mode.outputs.run == 'true'
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         if: steps.mode.outputs.run == 'true'
-      - uses: supabase/setup-cli@v3
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         if: steps.mode.outputs.run == 'true'
         with:
           version: 2.122.0
@@ -87,7 +90,7 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           TARGET: ${{ matrix.target }}
           STAGING_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
-          PROD_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
+          PROD_DB_PASSWORD: ${{ matrix.target == 'production' && secrets.SUPABASE_PROD_DB_PASSWORD || '' }}
         run: |
           if [ "$TARGET" = "production" ]; then ref="$PROD_PROJECT_REF"; pw="$PROD_DB_PASSWORD"; else ref="$STAGING_PROJECT_REF"; pw="$STAGING_DB_PASSWORD"; fi
           SUPABASE_DB_PASSWORD="$pw" supabase link --project-ref "$ref" > /dev/null
