@@ -6306,10 +6306,7 @@ export type Database = {
         Args: { p_event_id: string };
         Returns: undefined;
       };
-      event_owner_ok: {
-        Args: { p_host: string; p_hub: string };
-        Returns: boolean;
-      };
+      event_owner_ok: { Args: { p_event: string }; Returns: boolean };
       event_post_rate_check: { Args: { p_series: boolean }; Returns: undefined };
       event_rules_check: {
         Args: {
