@@ -26,6 +26,11 @@ node apps/app/e2e/10-recs.mjs        # For you with chips, Not interested (and U
                                       # toast on a waiting worker; with E2E_SITE_URL (apps/web,
                                       # next build + next start) the landing page at both widths
                                       # (E2E_ONLY=landing runs only that part)
+node apps/app/e2e/12-chat-images.mjs  # chat photos (meta.chat_images on, Sightengine keys): A sends
+                                      # a drawn landscape, "being checked" for A, hidden from B until
+                                      # it passes, then visible to both; B reports it
+node apps/app/e2e/13-shows.mjs        # the Shows and games row on Home and the Map layer (needs a
+                                      # Ticketmaster or SeatGeek run near A's home)
 E2E_SITE_URL=http://localhost:3000 node apps/app/e2e/11-site.mjs  # the public site at both
                                       # widths: landing, /bot, Safety Center, policy pages,
                                       # /account/delete, internal links, the 404 (no account)
@@ -58,3 +63,8 @@ Use test accounts on staging only, never production. Screenshots go to `E2E_QA_D
 (default `./e2e-output`, git-ignored). Output names flows and steps only, never user rows.
 The map canvas needs the OpenFreeMap tile host; where it is unreachable the Map tab falls back
 to its list.
+
+Email is live on staging since Nov 8 (Resend, custom SMTP). The QA accounts use reserved
+`@example.com` addresses, which `send-notifications` never sends to; never point a flow at a made-up
+address. To see a real email, swap an account's address for Resend's test inbox with
+`supabase/staging/switchon_email_swap.sql` and put it back with `switchon_email_restore.sql`.

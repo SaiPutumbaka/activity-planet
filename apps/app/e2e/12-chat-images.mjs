@@ -114,13 +114,11 @@ await r.step("A sends a plain landscape photo; A sees it as being checked", asyn
   await pb.goto(`${env.base}${convPath}`);
   await composer(pb).waitFor({ timeout: 20000 });
   before = await history(pb).getByRole("img", { name: "Photo" }).count();
-  await pa
-    .locator('input[type="file"][accept="image/*"]')
-    .setInputFiles({
-      name: "landscape.jpg",
-      mimeType: "image/jpeg",
-      buffer: await landscapeJpeg(),
-    });
+  await pa.locator('input[type="file"][accept="image/*"]').setInputFiles({
+    name: "landscape.jpg",
+    mimeType: "image/jpeg",
+    buffer: await landscapeJpeg(),
+  });
   // The pending label shows on A's own copy until both checks pass (it can clear quickly).
   const pending = await history(pa)
     .getByText("Photo is being checked")

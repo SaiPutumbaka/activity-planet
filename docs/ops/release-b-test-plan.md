@@ -173,6 +173,49 @@ Unchanged from release A section 3.4 (five demo members in Atlanta, Decatur and 
 chapter, seven plans, one report and one pending claim). The QA accounts additionally hold chats, a
 completed coaching booking with a review and a paused coach page from 07 and 08.
 
+### 3.6 Switch-on pass (Nov 8, the keys are in)
+
+Sai added the Edge Function secrets on both projects on Nov 8 (VAPID, Geoapify server key,
+Ticketmaster, SeatGeek, Sightengine, Resend, `SCORECARD_TO`), custom SMTP through Resend and the
+`token_hash` templates. Migration 74 (`20270106000100_switch_on_keys.sql`, schema 2.70) turns on
+what still needed a database switch, and staging was checked end to end before production. All
+runs are on `main-r1pc3k`; counts only.
+
+| Item                      | What was proven on staging                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Runs                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| Migration 74              | Applied; `switch_on_keys.sql` passed (chat images on, enable-on-create for Ticketmaster, SeatGeek and `calgary-city-events`, never a `disc-`, organizer or denylisted row, share card attribution)                                                                                                                                                                                                                                                                                                                             | migrate 42491423466                                     |
+| Chat photos               | 12-chat-images: 8 of 8 steps. A saw "Photo is being checked"; B saw nothing until both checks passed, then the photo (about 21 s); B reported it and the next sweep copied it to `chat-evidence` (1 evidence copy, 1 object). The classify probe answers `not_pending` (keys present). The month's `sightengine_ops` went 0 to 3: 4 are reserved per photo and settled to what Sightengine reported (`request.operations` was 3)                                                                                               | migrate 42491423466                                     |
+| City of Calgary           | Dry run: 14 rows, 11 items, all with a point. A fresh Calgary area (`supabase/staging/switchon_calgary_area.sql`) added a collector region; the staging ingest created `calgary-city-events` on and published 11 events (the next run: 11 unchanged). The attribution "Contains information licensed under the Open Government Licence – City of Calgary." is on the app's plan page, the share page `/e/<id>` and the new "Open data we list" section of `/bot`, at 390 and 1280                                              | dry run 42491432013, ingest 42492192958 and 42493123181 |
+| Ticketmaster and SeatGeek | Atlanta: Ticketmaster 746 items (712 new), SeatGeek 730 (624 new, the rest linked to listings we already had); Calgary 152 and 154; Freiburg 12 and Leipzig 44 Ticketmaster, SeatGeek none in the EU; London 982 Ticketmaster (a partial read). 12 and 13 API calls of the 1,000 a day. 13-shows: the Shows and games row on Home (22 cards, the sellers' credit) and the Map chip and list ("300 shows and games" in the view)                                                                                                | ingest 42493123181                                      |
+| Geoapify server key       | The new Calgary tile was filled by places-fill from the tile's insert ping: 2 requests, 100 features, 17 places (source geoapify). Venue geocoding asked Geoapify before Nominatim: 14 Geoapify calls (13 found), 1 Nominatim, 18 matched our own places                                                                                                                                                                                                                                                                       | migrate 42491769533, ingest 42493123181                 |
+| Web push                  | The worker built a VAPID-signed, encrypted push for a probe device (an FCM endpoint no browser registered, keys made for the test); FCM answered that the registration is gone and the device was revoked (push `skipped`, not `no_vapid_keys`). Not proven: delivery to a real browser; headless Chromium holds no push subscription and the app's `VITE_VAPID_PUBLIC_KEY` lives only in Vercel. Check on the iPhone (section 4)                                                                                              | migrate 42492845816 and 42493945714                     |
+| Email                     | One notification email sent to Resend's test inbox `delivered@resend.dev` (QA account B's address swapped for the check, then restored); a password reset for that address went out through the custom SMTP (`recovery_sent_at` set); the signed unsubscribe link on a local build of the site pointed at staging: the link redirects to the page, the form and the one-click POST turn email off, a tampered token is refused (400). `send-verification-code` was redeployed to staging and now ships to production from main | migrate 42492203225 and 42492504722                     |
+| Weekly scorecard          | Sent once to `SCORECARD_TO` (week of Oct 26, 33 rows), recorded `sent`; asking again sent nothing                                                                                                                                                                                                                                                                                                                                                                                                                              | migrate 42492203225                                     |
+| Regression                | All 71 files passed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | migrate 42493945714                                     |
+
+Fixed during the pass:
+
+1. **Emails to reserved domains.** Seven of staging's eight confirmed accounts are
+   `@example.com` test accounts; with `RESEND_API_KEY` set, their next notice would have bounced
+   and hurt the new domain. `send-notifications` now skips `example.com/net/org`, `.test`,
+   `.invalid`, `.example`, `.localhost` and `.local` addresses as `reserved_domain` before calling
+   Resend. Never point an email check at a made-up address; use `delivered@resend.dev` as above.
+2. **Large ticketing batches timed out** (502 `rpc_failed` after three tries for 730 to 980
+   items). The collector now posts a batch over 200 items in chunks: the earlier ones partial under
+   their own run ids, the last one under the run's id with every earlier id as seen, so missed runs
+   are still counted once.
+3. **A Geoapify 400 ended a tile's fill after one page** (an unknown category in the second
+   request group). places-fill now skips the refused group and reads the others. Which hub category
+   Geoapify refuses is not known yet (the job does not log response bodies); `activity.club` is the
+   likeliest.
+4. **places-files failed on a run with no tile to build** (production, Nov 6 and 7), so
+   `gh-pages` was never created. It now publishes the rules and the manifest on such a run (checked on staging with an empty queue, places-files run on `main-r1pc3k`).
+
+Notes for later passes: since `COLLECTOR_PRODUCTION` is on, the nightly collector reads its regions
+from production, so staging's regions are collected only by a run on a branch (`region: due`).
+The Map canvas did not load in the container (the tile host is blocked); the shows were checked in
+its list panel.
+
 ## 4. Manual checklist: Sai's iPhone, installed web app
 
 Do release A's section 4 first (install, sign up and in, location prompt, notifications, map with
@@ -330,8 +373,8 @@ Release B ships by Jan 4 only when all of these hold on the release candidate me
   exist.
 - **Map tiles and imported images were not loaded in the test container** (their hosts are
   blocked); the map is checked through its list panel and by hand.
-- **Web push, email and the weekly scorecard are skipped** until the VAPID keys, `RESEND_API_KEY`
-  and `SCORECARD_TO` exist.
+- **Web push, email and the weekly scorecard are on since Nov 8** (section 3.6). Push delivery to
+  a real browser is still to be seen on the iPhone.
 - **08-coaching runs at phone width only**; the coaching screens at 1280 were checked by hand.
 - **The QA coach account's "E2E tennis" listings are archived** (Nov 5,
   `supabase/staging/qa_e2e_listings_cleanup.sql`: run 42064423565 archived 4, and run 42070857194
