@@ -374,3 +374,66 @@ Deno.test("no tile to fill: one plan call, no requests", async () => {
     ["places_fill_plan"],
   );
 });
+
+Deno.test(
+  "a 400 on one group skips that group only; the tile's other groups are still read",
+  async () => {
+    const db = fakeDb(
+      plan({
+        categories: [
+          ["sport.pitch", 43],
+          ["activity.club", 3],
+          ["catering.cafe", 8],
+        ],
+      }),
+    );
+    const asked: (string | null)[] = [];
+    const r = await runFill({
+      key: "k",
+      rpc: db.rpc,
+      fetch: (url) => {
+        const cats = new URL(url).searchParams.get("categories");
+        asked.push(cats);
+        if (cats === "activity.club") return Promise.resolve(new Response("bad", { status: 400 }));
+        const id = cats === "sport.pitch" ? 1 : 2;
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              features: [
+                feature(
+                  { place_id: `x${id}`, name: `Spot ${id}` },
+                  cats === "catering.cafe"
+                    ? { leisure: undefined, sport: undefined, amenity: "cafe", osm_id: 70 + id }
+                    : { osm_id: 70 + id },
+                ),
+              ],
+            }),
+          ),
+        );
+      },
+      sleep: noSleep,
+      log: quiet,
+    });
+    assertEquals(asked, ["sport.pitch", "activity.club", "catering.cafe"]);
+    assertEquals(r.stopped, undefined);
+    const t = r.tiles[0]!;
+    assertEquals(t.outcome, "filled");
+    assertEquals(t.reason, "geoapify_http_400");
+    assertEquals(t.dropped.refused_group, 1);
+    assertEquals(t.requests, 3);
+    assertEquals(t.rows, 2);
+  },
+);
+
+Deno.test("only 400s: nothing answered, the tile is released", async () => {
+  const db = fakeDb(plan());
+  const r = await runFill({
+    key: "k",
+    rpc: db.rpc,
+    fetch: () => Promise.resolve(new Response("bad", { status: 400 })),
+    sleep: noSleep,
+    log: quiet,
+  });
+  assertEquals(r.tiles[0]!.outcome, "released");
+  assertEquals(db.calls.filter(([n]) => n === "ingest_places").length, 0);
+});

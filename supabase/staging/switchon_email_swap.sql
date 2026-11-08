@@ -35,6 +35,8 @@ select public.enqueue_notification(
   from auth.users u where u.email = 'delivered@resend.dev';
 commit;
 
-select public.notify_worker_dispatch() is not null as worker_requested;
-select (select status from public.scorecard_runs s where s.week_start = private.scorecard_last_week()) as scorecard_before,
+-- Only the last statement's result is printed (supabase db query).
+select (select count(*) from auth.users where email = 'delivered@resend.dev') as accounts_on_test_inbox,
+       public.notify_worker_dispatch() is not null as worker_requested,
+       (select status from public.scorecard_runs s where s.week_start = private.scorecard_last_week()) as scorecard_before,
        public.scorecard_dispatch() is not null as scorecard_requested;

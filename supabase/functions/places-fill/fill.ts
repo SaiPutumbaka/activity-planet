@@ -440,6 +440,7 @@ export async function runFill(deps: FillDeps): Promise<FillResult> {
     const refs = new Set<string>();
     // Round-robin: every group gets a first page before any group gets a second.
     const queue = groups.map((cats) => ({ cats, offset: 0 }));
+    let failed = 0;
     while (queue.length > 0 && res.requests < MAX_REQUESTS_PER_TILE) {
       const next = queue.shift()!;
       const left = await deps.rpc("places_fill_spend", { p_credits: CREDITS_PER_PAGE });
@@ -457,6 +458,14 @@ export async function runFill(deps: FillDeps): Promise<FillResult> {
         if (!r.ok) {
           await r.body?.cancel();
           res.reason = `geoapify_http_${r.status}`;
+          failed += 1;
+          // A 400 refuses that request's category list only (a category Geoapify does not know):
+          // the tile's other groups are still asked for (Nov 8 staging run: the second group's
+          // 400 had ended the tile after one page).
+          if (r.status === 400) {
+            res.dropped.refused_group = (res.dropped.refused_group ?? 0) + 1;
+            continue;
+          }
           // A refused key or a used-up plan stops the whole run; anything else only this tile.
           if (r.status === 401 || r.status === 403 || r.status === 429) stopped = res.reason;
           break;
@@ -464,6 +473,7 @@ export async function runFill(deps: FillDeps): Promise<FillResult> {
         body = (await r.json()) as { features?: unknown[] };
       } catch (_err) {
         res.reason = "geoapify_unreachable";
+        failed += 1;
         break;
       }
       const features = Array.isArray(body.features) ? body.features : [];
@@ -491,7 +501,7 @@ export async function runFill(deps: FillDeps): Promise<FillResult> {
     }
 
     // Nothing came back from Geoapify (budget or an error before the first page): free the tile.
-    const answered = res.requests - (res.reason ? 1 : 0);
+    const answered = res.requests - failed;
     if (answered <= 0) {
       res.reason = res.reason ?? stopped ?? "no_request";
       await deps.rpc("places_fill_release", { p_tile_id: tile.id });

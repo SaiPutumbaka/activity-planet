@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { collect } from "../src/collect.ts";
 import { formatDiagnostic } from "../src/diagnose.ts";
@@ -349,6 +351,16 @@ describe("text dates (startFormat text_range)", () => {
     expect(circleOverlapsBbox({ lat: 51.05, lng: -114.07, radiusKm: 25 }, cal.bbox)).toBe(true);
     expect(r.radiusKm).toBeGreaterThan(15);
     expect(r.timezone).toBe("America/Edmonton");
+  });
+  it("every dataset that is on is credited word for word on the site (@ap/core OPEN_DATA_CREDITS)", () => {
+    const credits = readFileSync(
+      fileURLToPath(new URL("../../core/src/imports/index.ts", import.meta.url)),
+      "utf8",
+    );
+    for (const d of loadRegistry().filter((x) => x.enabled === true)) {
+      expect(credits).toContain(`id: "${d.id}"`);
+      expect(credits).toContain(JSON.stringify(d.attribution));
+    }
   });
   it("the Calgary dataset is on with the licence's attribution, word for word", () => {
     const cal = loadRegistry().find((d) => d.id === "calgary-city-events")!;
