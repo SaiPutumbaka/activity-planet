@@ -110,7 +110,9 @@ export default function BotPage() {
       <section className="flex flex-col gap-3">
         <h2 className="text-2xl font-semibold tracking-tight">How it identifies itself</h2>
         <p className="text-text-2">Every request carries this User-Agent:</p>
-        <code className={code}>{USER_AGENT}</code>
+        <code className={code} tabIndex={0}>
+          {USER_AGENT}
+        </code>
       </section>
 
       <section className="flex flex-col gap-3">
@@ -119,7 +121,9 @@ export default function BotPage() {
           Add these lines to the robots.txt at the root of your site. The bot reads robots.txt
           before anything else and stops at the next run.
         </p>
-        <code className={code}>{"User-agent: ActivityPlanetBot\nDisallow: /"}</code>
+        <code className={code} tabIndex={0}>
+          {"User-agent: ActivityPlanetBot\nDisallow: /"}
+        </code>
         <p className="text-text-2">
           To keep it off only part of your site, disallow just those paths. Blocking the bot stops
           new reads; to take down what is already listed, use the removal form below.

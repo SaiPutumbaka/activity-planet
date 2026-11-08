@@ -24,7 +24,9 @@
 begin;
 
 -- Migration 77: the account-wide email budget must not hide the rows under test.
-insert into public.meta (key, value) values ('email_daily_cap_total', '9999999'), ('email_monthly_cap_total', '9999999')
+-- Staging's notify_email_daily_cap is 5 since migration 77; section 6 sets its own.
+insert into public.meta (key, value) values ('email_daily_cap_total', '9999999'), ('email_monthly_cap_total', '9999999'),
+                                            ('notify_email_daily_cap', '99999')
   on conflict (key) do update set value = excluded.value;
 
 -- ---------------------------------------------------------------------------

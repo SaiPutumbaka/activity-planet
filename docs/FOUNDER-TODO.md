@@ -2,6 +2,23 @@
 
 Claude cannot create accounts, enter payment details, or sign anything. Everything below needs you. Ordered by lead time. Cash this week: about $16 (domain $9.99 the first year, $15/yr after; DMCA agent $6). Everything else is free until the triggers in `FINANCIAL-PLAN.md` fire; the store accounts ($124) come after the evidence test.
 
+## Launch audit (Nov 8, 2026): what only you or the attorney can do, in priority order
+
+The full list, what Claude fixed and the go-live checklist: `docs/ops/launch-audit-2026-11.md`. Nothing below goes in chat, the repo or a `.env` file in git.
+
+1. **Make yourself admin on production, and name the second moderator** (C1; item 18). In the production SQL editor, signed in as yourself in the app first: `insert into public.user_roles (user_id, role) select id, 'admin' from auth.users where email = '<your email>' on conflict do nothing;` Then open `/admin` in the app. Do it from your own session or the dashboard so your user id never lands in the repo. Until a moderator exists, the new report, takedown and health alerts reach nobody and held chat photos stay hidden.
+2. **Switch on backups** (C2; `docs/ops/backup-restore.md`): make an `age` key pair (keep the private key offline), a private GitHub repository for the files, a fine-grained token for that repository only; set `BACKUP_AGE_RECIPIENT` and `BACKUP_REPO` (variables) and `BACKUP_REPO_TOKEN` (secret); run "Back up production" once from main with `verify_restore`.
+3. **GitHub Environment `production`** (H5): Settings, Environments, New environment `production`; Deployment branches: `main` only (required reviewers are optional: if you add them, every scheduled main job, the nightly collector included, waits for your approval). Move `SUPABASE_PROD_DB_PASSWORD`, `VERCEL_DEPLOY_HOOK_WEB`, `VERCEL_DEPLOY_HOOK_APP` and `BACKUP_REPO_TOKEN` into it and delete the repository-level copies. Create an empty `staging` environment too (branch workflows run under it). If Supabase lets you, use one access token per project.
+4. **`support@activityplanet.app` forwarder** (H6, item 16) and send it a test email.
+5. **Restrict the browser Geoapify key** (M4) to `https://activity-planet-app.vercel.app` (and the custom domain later) in the Geoapify dashboard, in a separate Geoapify project from the server key. Tell Claude whether staging and production share one Sightengine account (M3) and one Resend account (H1); the caps assume they do.
+6. **Monitoring** (M11): set the repository variable `HEALTH_URL` to the site's `/api/health` once the site is reachable without Vercel Authentication; add free UptimeRobot checks on the app and the site.
+7. **Postal address** (M13): a P.O. box or virtual mailbox; then set the Edge Function secret `MAILING_ADDRESS` on both projects (it goes in every email footer) and give it to the attorney.
+8. **DMCA agent** (M14, item 2) once the address exists; publish the agent's details on `/terms` (tell Claude).
+9. **Supabase Auth on production** (H1, L3): Authentication, Rate limits, emails sent per hour about 20; confirm the password rules match `config.toml` (8 characters, letters and digits).
+10. **Remove `http://localhost:3001/**`** from production's Auth Redirect URLs and Site URL (L18; `docs/ops/supabase-auth.md`).
+11. **Attorney read** (H3, H7, M12, L14): Terms and Privacy Policy 2026-11.2 (chat photos and Sightengine, the evidence hold, device storage, imported covers, data download), the GDPR and UK GDPR list (controller identity and address, lawful basis per purpose, EU and UK representative, transfer mechanism, response times), which notification emails count as commercial (CAN-SPAM), Sightengine's processing location and retention, and the repeat-infringer rule. After sign-off Claude removes the DRAFT banners.
+12. **Monthly** (L17): first Monday, check that the scheduled workflows still run (GitHub disables them after 60 idle days) and that a backup release exists (`docs/ops/runbooks.md` section 8).
+
 ## Start here: what only you can do, in priority order (updated Nov 8, keys in)
 
 Release B is built and passes its QA pass (`docs/ops/release-b-test-plan.md`). On Nov 8 you put in every key on the list below; Claude switched on what they unlock on staging, checked each end to end (test plan section 3.6) and prepared production: migration 74 turns the same switches on when Claude merges to main. Secrets go into the dashboards named, never into chat, the repo or `.env` files in git. "Both projects" means production and staging Supabase, Project Settings, Edge Functions, Secrets. The numbers in this list are its own; "item N" points to the numbered items further down.

@@ -344,7 +344,12 @@ export default function PrivacyPage() {
           removed at once, calendars you connected stop, and your sign-in is closed. What we keep
           afterwards:
         </p>
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto"
+          tabIndex={0}
+          role="region"
+          aria-label="What is kept after an account is deleted"
+        >
           <table className="w-full min-w-[32rem] border-collapse text-left text-sm">
             <caption className="sr-only">What is kept after an account is deleted</caption>
             <thead>

@@ -190,7 +190,12 @@ export function ListPanel({
               onSelect={onSelectEvent}
             />
           ))}
-          {shows.length > 0 ? <ShowsCredit className="px-1" /> : null}
+          {/* Launch audit L21: every child of the list is an <li>. */}
+          {shows.length > 0 ? (
+            <li>
+              <ShowsCredit className="px-1" />
+            </li>
+          ) : null}
         </Section>
         <MapAttribution className="pt-4" geoapify={view.places.some((f) => f.geoapify)} />
       </div>
