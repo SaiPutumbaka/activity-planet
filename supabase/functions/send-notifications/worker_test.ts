@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1.0.19";
-import { runBatch, type WorkerDeps } from "./worker.ts";
+import { runBatch, undeliverableAddress, type WorkerDeps } from "./worker.ts";
 
 const links = { appUrl: "https://app.example.com", siteUrl: "https://example.com" };
 
@@ -12,7 +12,7 @@ function row(id: string, over: Record<string, unknown> = {}) {
     actor_name: null,
     hub: null,
     chapter: null,
-    email: { to: `${id}@example.com`, unsubscribe_token: `${id}.sig` },
+    email: { to: `${id}@members.activityplanet.app`, unsubscribe_token: `${id}.sig` },
     push: [
       { device_id: `d-${id}`, endpoint: "https://fcm.googleapis.com/x", p256dh: "k", auth: "a" },
     ],
@@ -149,4 +149,55 @@ Deno.test("the push payload carries the copy, an in-app path and the row id", as
     tag: "event_reminder_day:11111111-2222-4333-8444-555555555555",
     nid: "1",
   });
+});
+
+Deno.test("reserved domains are skipped, never handed to Resend", async () => {
+  const sent: string[] = [];
+  const { deps, calls } = fake(
+    [
+      row("1", { email: { to: "qa-e2e-a@example.com", unsubscribe_token: "1.sig" }, push: null }),
+      row("2", { email: { to: "someone@mail.test", unsubscribe_token: "2.sig" }, push: null }),
+      row("3", { email: { to: "delivered@resend.dev", unsubscribe_token: "3.sig" }, push: null }),
+    ],
+    {
+      sendEmails: (ms) => {
+        sent.push(...ms.map((m) => m.id));
+        return Promise.resolve(ms.map(() => "sent" as const));
+      },
+    },
+  );
+  const s = await runBatch(deps);
+  assertEquals(sent, ["3"]);
+  assertEquals(s.email, { sent: 1, skipped: 2, failed: 0, retry: 0 });
+  const done = calls.find((c) => c.name === "complete_notification_delivery")!;
+  const results = done.args.p_results as { id: string; email: string; error?: string }[];
+  assertEquals(
+    results.map((r) => [r.id, r.email, r.error ?? null]),
+    [
+      ["1", "skipped", "reserved_domain"],
+      ["2", "skipped", "reserved_domain"],
+      ["3", "sent", null],
+    ],
+  );
+});
+
+Deno.test("undeliverableAddress", () => {
+  for (const a of [
+    "a@example.com",
+    "a@sub.example.org",
+    "a@x.test",
+    "a@x.invalid",
+    "a@localhost",
+    "a@",
+  ]) {
+    assertEquals(undeliverableAddress(a), true, a);
+  }
+  for (const a of [
+    "a@gmail.com",
+    "delivered@resend.dev",
+    "a@example-mail.com",
+    "a@myexample.com",
+  ]) {
+    assertEquals(undeliverableAddress(a), false, a);
+  }
 });

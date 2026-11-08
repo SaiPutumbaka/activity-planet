@@ -52,6 +52,18 @@ export interface RunSummary {
 
 const BATCH = 50;
 
+/**
+ * Addresses that can never receive mail: the reserved example domains and special-use names
+ * (RFC 2606, RFC 6761). Staging's test accounts use them; sending there bounces and harms the
+ * sending domain's reputation, so such an email is skipped (reserved_domain), never sent.
+ */
+export function undeliverableAddress(to: string): boolean {
+  const domain = to.trim().toLowerCase().split("@").pop() ?? "";
+  if (!domain || !domain.includes(".")) return true;
+  if (/^(.+\.)?example\.(com|net|org)$/.test(domain)) return true;
+  return /\.(example|test|invalid|localhost|local)$/.test(domain);
+}
+
 function zero(): Record<ChannelResult, number> {
   return { sent: 0, skipped: 0, failed: 0, retry: 0 };
 }
@@ -108,7 +120,18 @@ export async function runBatch(deps: WorkerDeps, limit = BATCH): Promise<RunSumm
   const rendered = new Map(claimed.map((n) => [n.id, render(n, deps.links)]));
 
   // Email: one result per message (resend.ts sends them one at a time).
-  const emailRows = claimed.filter((n) => n.email && n.email.to);
+  // Reserved domains (staging's test accounts) are skipped before anything is sent.
+  for (const n of claimed) {
+    if (n.email && n.email.to && undeliverableAddress(n.email.to)) {
+      const r = result(n.id);
+      r.email = "skipped";
+      r.error = "reserved_domain";
+      summary.email.skipped++;
+    }
+  }
+  const emailRows = claimed.filter(
+    (n) => n.email && n.email.to && !undeliverableAddress(n.email.to),
+  );
   if (emailRows.length > 0) {
     let outcomes: ChannelResult[];
     if (!deps.sendEmails) {

@@ -23,6 +23,9 @@
 -- ============================================================================
 begin;
 
+-- Migration 74 turns meta.chat_images on; this file checks the paths with it off (rolled back).
+update public.meta set value = 'off' where key = 'chat_images';
+
 create function pg_temp.uid(p_name text) returns uuid language sql stable as $$
   select current_setting('test.' || p_name)::uuid;
 $$;
@@ -65,9 +68,6 @@ do $$
 begin
   if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 67] then
     raise exception 'FAIL 1 schema_version is older than 2.67';
-  end if;
-  if (select value from public.meta where key = 'chat_images') is distinct from 'off' then
-    raise exception 'FAIL 1 chat images are not off';
   end if;
   if has_function_privilege('authenticated', 'public.chat_classifier_reserve(text,integer)', 'execute')
      or has_function_privilege('authenticated', 'public.chat_classifier_settle(integer,integer,date)', 'execute')

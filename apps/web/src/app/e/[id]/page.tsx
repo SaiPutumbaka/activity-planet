@@ -170,6 +170,8 @@ export default async function EventSharePage({ params }: Props) {
               <p className="truncate text-[13px] text-text-2">Hosting · @{card.host.handle}</p>
             </div>
           </section>
+        ) : card.source_attribution?.trim() ? (
+          <p className="text-[13px] text-text-2">{card.source_attribution.trim()}</p>
         ) : card.source_name ? (
           <p className="text-[13px] text-text-2">Listed from {card.source_name}.</p>
         ) : null}

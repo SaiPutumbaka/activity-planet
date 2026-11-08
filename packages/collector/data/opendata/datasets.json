@@ -6,7 +6,7 @@
       "kind": "socrata",
       "url": "https://data.calgary.ca/resource/n625-9k5x.json",
       "name": "City of Calgary Events",
-      "attribution": "Listed from City of Calgary open data (data.calgary.ca), Open Government Licence – City of Calgary.",
+      "attribution": "Contains information licensed under the Open Government Licence – City of Calgary.",
       "bbox": [-114.32, 50.84, -113.86, 51.21],
       "timezone": "America/Edmonton",
       "licence": {
@@ -27,9 +27,9 @@
       "geoColumn": "point",
       "host_org": "The City of Calgary",
       "hubs": [],
-      "enabled": false,
+      "enabled": true,
       "verified": true,
-      "note": "The City's public events calendar (dataset n625-9k5x; columns read with the scout's inspect on 2026-11-05: title, event_type, event_group, notes, more_info_url, host_organization, all_dates, next_date_times as text such as \"November 7 2026 9 - 10 a.m.\", address, latitude, longitude, point). The portal labels its licence \"See Terms of Use\", which is the Open Government Licence – City of Calgary (reuse for any purpose with attribution). Off until a person has read the current licence text, which could not be fetched from the build environment (FOUNDER-TODO); the endpoint was checked live with the dry run."
+      "note": "The City's public events calendar (dataset n625-9k5x; columns read with the scout's inspect on 2026-11-05: title, event_type, event_group, notes, more_info_url, host_organization, all_dates, next_date_times as text such as \"November 7 2026 9 - 10 a.m.\", address, latitude, longitude, point). The portal labels its licence \"See Terms of Use\", which is the Open Government Licence – City of Calgary (reuse for any purpose with attribution). Switched on 2026-11-08 at Sai's direction, with the attribution he gave (\"Contains information licensed under the Open Government Licence – City of Calgary.\"), shown on the event page, the share page and the /bot open-data list."
     }
   ]
 }

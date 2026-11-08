@@ -31,6 +31,8 @@ const shareCardSchema = z.object({
   interested_count: z.number(),
   external_url: z.string().nullable(),
   source_name: z.string().nullable(),
+  /** Migration 74: the listing source's attribution (open-data licence lines); older servers omit it. */
+  source_attribution: z.string().nullable().optional(),
   series_id: z.string().nullable(),
   hub: z.object({
     id: z.string(),

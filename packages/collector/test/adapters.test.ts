@@ -350,4 +350,11 @@ describe("text dates (startFormat text_range)", () => {
     expect(r.radiusKm).toBeGreaterThan(15);
     expect(r.timezone).toBe("America/Edmonton");
   });
+  it("the Calgary dataset is on with the licence's attribution, word for word", () => {
+    const cal = loadRegistry().find((d) => d.id === "calgary-city-events")!;
+    expect(cal.enabled).toBe(true);
+    expect(cal.attribution).toBe(
+      "Contains information licensed under the Open Government Licence – City of Calgary.",
+    );
+  });
 });

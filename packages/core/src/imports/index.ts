@@ -167,3 +167,32 @@ export function sourceLine(label: {
   if (own) return own;
   return `Listed from ${label.source_name?.trim() || "a public calendar"}.`;
 }
+
+/** An open-data dataset the collector lists events from, and the credit its licence asks for. */
+export interface OpenDataCredit {
+  /** The dataset id in packages/collector/data/opendata (also the feed_sources slug). */
+  id: string;
+  name: string;
+  /** Shown word for word wherever the dataset's items appear (the source's attribution). */
+  attribution: string;
+  licence: { name: string; url: string };
+  portal: string;
+}
+
+/**
+ * The open-data datasets that are switched on, for the public /bot page. Kept in step with the
+ * collector's registry (packages/collector/data/opendata/datasets.json) by a test.
+ */
+export const OPEN_DATA_CREDITS: readonly OpenDataCredit[] = [
+  {
+    id: "calgary-city-events",
+    name: "City of Calgary Events",
+    attribution:
+      "Contains information licensed under the Open Government Licence – City of Calgary.",
+    licence: {
+      name: "Open Government Licence – City of Calgary",
+      url: "https://www.calgary.ca/research/open-data.html",
+    },
+    portal: "https://data.calgary.ca/",
+  },
+];

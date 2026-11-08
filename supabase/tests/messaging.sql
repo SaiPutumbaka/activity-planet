@@ -33,6 +33,9 @@
 -- ============================================================================
 begin;
 
+-- Migration 74 turns meta.chat_images on; this file checks the paths with it off (rolled back).
+update public.meta set value = 'off' where key = 'chat_images';
+
 -- ---------------------------------------------------------------------------
 -- Helpers (this session only)
 -- ---------------------------------------------------------------------------
@@ -98,9 +101,6 @@ begin
      or not has_function_privilege('authenticated', 'private.chat_can_read(uuid)', 'execute')
      or has_function_privilege('anon', 'private.chat_can_read(uuid)', 'execute') then
     raise exception 'FAIL 1 function grants';
-  end if;
-  if (select value from public.meta where key = 'chat_images') is distinct from 'off' then
-    raise exception 'FAIL 1 chat images are not off';
   end if;
   if exists (select 1 from storage.buckets where id in ('chat-images', 'chat-evidence') and public)
      or (select count(*) from storage.buckets where id in ('chat-images', 'chat-evidence')) <> 2 then

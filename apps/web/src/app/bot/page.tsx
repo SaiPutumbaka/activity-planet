@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { OPEN_DATA_CREDITS } from "@ap/core/imports";
+
 import { APP_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -62,6 +64,29 @@ export default function BotPage() {
           up with you. It does not copy images unless you license them to us.
         </p>
       </section>
+
+      {OPEN_DATA_CREDITS.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-2xl font-semibold tracking-tight">Open data we list</h2>
+          <p className="text-text-2">
+            Events from these open-data portals are listed under their licences. Each listing from
+            them carries the same credit.
+          </p>
+          <ul className="flex flex-col gap-3">
+            {OPEN_DATA_CREDITS.map((c) => (
+              <li key={c.id} className="flex flex-col gap-1 rounded-xl bg-surface-2 px-4 py-3">
+                <a href={c.portal} className={`${link} w-fit break-words`}>
+                  {c.name}
+                </a>
+                <p className="text-text-2">{c.attribution}</p>
+                <a href={c.licence.url} className={`${link} w-fit text-sm break-words`}>
+                  {c.licence.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-2xl font-semibold tracking-tight">What it never reads</h2>

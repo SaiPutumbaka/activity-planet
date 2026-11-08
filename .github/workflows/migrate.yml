@@ -51,6 +51,7 @@ on:
       - "supabase/migrations/**"
       - "supabase/seed/**"
       - "supabase/functions/delete-account/**"
+      - "supabase/functions/send-verification-code/**"
       - "supabase/functions/import-feed/**"
       - "supabase/functions/collector/**"
       - "supabase/functions/places-fill/**"
@@ -374,8 +375,7 @@ jobs:
           supabase db query --linked --file supabase/seed/place_rules.sql
 
       # delete-account calls request_account_deletion(), which the migrations create, so it is
-      # deployed after the push. send-verification-code is deployed only together with its
-      # RESEND_API_KEY secret (without the key it logs codes instead of emailing them).
+      # deployed after the push.
       - name: Production, deploy the delete-account function
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
@@ -383,6 +383,18 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy delete-account --project-ref "$PROD_PROJECT_REF" --use-api
+
+      # send-verification-code (campus email codes, PLAN.md 4.1) was held back until its
+      # RESEND_API_KEY secret existed (without it the code is logged as skipped, never emailed).
+      # Sai set RESEND_API_KEY on both projects on Nov 8, so it now ships with every main push. It
+      # keeps the gateway JWT check and also verifies the caller's JWT itself (config.toml).
+      - name: Production, deploy the send-verification-code function
+        if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy send-verification-code --project-ref "$PROD_PROJECT_REF" --use-api
 
       # import-feed is called by pg_cron, so it is deployed after the push that creates its
       # RPCs; its URL goes into this project's vault entry. Production feed sources stay
