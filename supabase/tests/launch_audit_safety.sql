@@ -249,8 +249,10 @@ begin
     insert into public.messages (conversation_id, seq, author_id, kind, body, image_path, image_state)
     values (v_conv, i, v_a, 'image', '', v_path, case when i < 6 then 'visible' else 'pending' end);
   end loop;
-  insert into public.image_hashes (bucket, path, owner_id, status) values ('chat-images', v_path, v_a, 'hashed')
-    on conflict (bucket, path) do update set status = 'hashed';
+  insert into public.image_hashes (bucket, path, owner_id, status, sha256, phash, dhash)
+  values ('chat-images', v_path, v_a, 'hashed', md5(v_path) || md5(v_path), 1, 1)
+    on conflict (bucket, path) do update set status = 'hashed', sha256 = excluded.sha256,
+                                             phash = excluded.phash, dhash = excluded.dhash;
   insert into public.meta (key, value) values ('chat_classifier_monthly_cap', '9999999')
     on conflict (key) do update set value = excluded.value;
   v_res := public.chat_classifier_reserve(v_path, 4);
