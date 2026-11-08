@@ -44,8 +44,31 @@ export class DryRunIngest implements Ingest {
   }
 }
 
-/** The largest item set one request carries (routes.ts MAX_EVENT_ITEMS). */
+/** The largest item set one source batch carries (routes.ts MAX_EVENT_ITEMS). */
 export const MAX_EVENT_ITEMS = 2000;
+
+/**
+ * The most items one request carries. collector_ingest_events runs under the API's statement
+ * timeout, and the Nov 8 staging run timed out (502 rpc_failed, three tries) on Ticketmaster and
+ * SeatGeek batches of 730 to 980 items while 150-item batches took about 3 seconds. A larger
+ * batch goes as several requests: the first ones partial (complete false) under their own run
+ * ids, the last under the run's id with every earlier id as seen, so a complete batch still
+ * counts missed runs once.
+ */
+export const POST_CHUNK_ITEMS = 200;
+
+/** collector_ingest_events' largest seen-id list (routes.ts MAX_SEEN_IDS). */
+const MAX_SEEN_IDS = 2000;
+
+const SUM_KEYS = [
+  "inserted",
+  "updated",
+  "unchanged",
+  "linked_duplicates",
+  "missed",
+  "cancelled",
+  "handed_off",
+] as const;
 
 /** Result keys printed per source: counts and flags only. */
 const RESULT_KEYS = [
@@ -102,7 +125,49 @@ export class HttpIngest implements Ingest {
       );
       return r;
     }
-    return this.post(batch.source, batch.items, batch.seen ?? [], batch.complete, batch.sourceKey);
+    if (batch.items.length <= POST_CHUNK_ITEMS) {
+      return this.post(
+        batch.source,
+        batch.items,
+        batch.seen ?? [],
+        batch.complete,
+        batch.sourceKey,
+      );
+    }
+    const chunks: SourceBatch["items"][] = [];
+    for (let i = 0; i < batch.items.length; i += POST_CHUNK_ITEMS) {
+      chunks.push(batch.items.slice(i, i + POST_CHUNK_ITEMS));
+    }
+    const sum: Record<string, number> = {};
+    const earlier: string[] = [];
+    let last: IngestResult | null = null;
+    for (let k = 0; k < chunks.length; k++) {
+      const chunk = chunks[k]!;
+      const final = k === chunks.length - 1;
+      const seen = final ? [...(batch.seen ?? []), ...earlier] : (batch.seen ?? []);
+      const fits = seen.length <= MAX_SEEN_IDS;
+      const r = await this.post(
+        batch.source,
+        chunk,
+        fits ? seen : (batch.seen ?? []).slice(0, MAX_SEEN_IDS),
+        final && fits ? batch.complete : false,
+        `${batch.sourceKey}#${k + 1}/${chunks.length}`,
+        final ? this.opts.runId : `${this.opts.runId}-p${k + 1}`,
+        false,
+      );
+      last = r;
+      if (r.error) break;
+      for (const key of SUM_KEYS) {
+        const v = r.result?.[key];
+        if (typeof v === "number") sum[key] = (sum[key] ?? 0) + v;
+      }
+      for (const item of chunk) earlier.push(item.external_id);
+    }
+    const out: IngestResult = { sourceKey: batch.sourceKey, sent: batch.items.length };
+    if (last?.error) out.error = last.error;
+    else out.result = { ...(last?.result ?? {}), ...sum, chunks: chunks.length };
+    this.results.push(out);
+    return out;
   }
 
   private async post(
@@ -111,6 +176,8 @@ export class HttpIngest implements Ingest {
     seen: string[],
     complete: boolean,
     key: string,
+    runId: string = this.opts.runId,
+    record = true,
   ): Promise<IngestResult> {
     const f = this.opts.fetch ?? fetch;
     let status = 0;
@@ -127,7 +194,7 @@ export class HttpIngest implements Ingest {
             "x-collector-secret": this.opts.secret,
           },
           body: JSON.stringify({
-            run_id: this.opts.runId,
+            run_id: runId,
             source,
             items,
             seen,
@@ -161,7 +228,7 @@ export class HttpIngest implements Ingest {
       r.error = `${status}:${err}`;
       this.out(`[ingest] source=${key} sent=${items.length} error=${r.error}`);
     }
-    this.results.push(r);
+    if (record) this.results.push(r);
     return r;
   }
 }

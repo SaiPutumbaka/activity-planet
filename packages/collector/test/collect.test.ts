@@ -321,6 +321,58 @@ describe("collect (fixtures, no network)", () => {
     expect(byKey["test-meetup"]!.complete).toBe(true);
   });
 
+  it("posts a large batch in chunks: partial ones first, the last complete with the earlier ids as seen", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const lines: string[] = [];
+    const fakeFetch = (async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+      bodies.push(body);
+      const n = (body.items as unknown[]).length;
+      return new Response(JSON.stringify({ enabled: true, inserted: n, updated: 0, total: n }), {
+        status: 200,
+      });
+    }) as unknown as typeof fetch;
+    const http = new HttpIngest({
+      baseUrl: "https://abc.supabase.co/functions/v1/collector",
+      secret: "s".repeat(64),
+      runId: "gh-9-1-staging",
+      enable: false,
+      fetch: fakeFetch,
+      out: (l) => lines.push(l),
+    });
+    const items = Array.from({ length: 450 }, (_, i) => ({
+      external_id: `tm-${i}`,
+      title: `Show ${i}`,
+      starts_at: "2026-12-01T20:00:00Z",
+    }));
+    const r = await http.send({
+      sourceKey: "ticketmaster-r1",
+      sourceName: "Ticketmaster",
+      attribution: "Event data from the Ticketmaster Discovery API (ticketmaster.com).",
+      regionId: "r1",
+      source: { slug: "ticketmaster-r1" },
+      items,
+      seen: ["tm-old"],
+      skipped: {},
+      complete: true,
+    } as unknown as Parameters<HttpIngest["send"]>[0]);
+    expect(bodies.map((b) => (b.items as unknown[]).length)).toEqual([200, 200, 50]);
+    expect(bodies.map((b) => b.run_id)).toEqual([
+      "gh-9-1-staging-p1",
+      "gh-9-1-staging-p2",
+      "gh-9-1-staging",
+    ]);
+    expect(bodies.map((b) => b.complete)).toEqual([false, false, true]);
+    expect((bodies[2]!.seen as string[]).length).toBe(401);
+    expect(bodies[2]!.seen).toContain("tm-0");
+    expect(bodies[2]!.seen).toContain("tm-old");
+    expect(r.error).toBeUndefined();
+    expect(r.sent).toBe(450);
+    expect(r.result).toMatchObject({ inserted: 450, chunks: 3 });
+    expect(http.results).toHaveLength(1);
+    expect(lines).toHaveLength(3);
+  });
+
   it("refuses a base URL that is not a collector function, and a short secret", () => {
     expect(
       () =>
