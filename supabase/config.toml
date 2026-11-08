@@ -51,8 +51,10 @@ file_size_limit = "5MiB"
 [functions.delete-account]
 # Advisory only: on staging a request carrying just the publishable key still reached the
 # function, so the function verifies the user JWT itself against the project's JWKS (role must
-# be authenticated) and refuses unless request_account_deletion() ran.
-verify_jwt = true
+# be authenticated) and refuses unless request_account_deletion() ran. Migration 77: the gateway
+# check is off so pg_cron can call the sweep ({op: sweep} with the x-deletion-secret header, a
+# vault secret generated inside the database); member calls are still verified by the function.
+verify_jwt = false
 
 [functions.send-verification-code]
 # Same pattern as delete-account: the gateway check is advisory, so the function verifies the

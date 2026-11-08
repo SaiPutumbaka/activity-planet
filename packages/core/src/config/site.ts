@@ -11,3 +11,13 @@ export function resolveUrl(fallback: string, ...candidates: (string | null | und
   const found = candidates.find((c) => typeof c === "string" && c.trim() !== "");
   return (found ?? fallback).trim().replace(/\/+$/, "");
 }
+
+/**
+ * The published versions of the Terms of Service and the Privacy Policy (apps/web /terms and
+ * /privacy show them). Bump one when its text changes; the app records the versions a member
+ * accepted (accept_legal_terms, migration 77) when they finish onboarding.
+ */
+export const LEGAL_VERSIONS = {
+  terms: "terms 2026-11.2",
+  privacy: "privacy 2026-11.2",
+} as const;

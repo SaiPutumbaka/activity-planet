@@ -1,34 +1,22 @@
 import { createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
+import { clientIp, hostsOf, verifyTurnstile } from "@ap/core/turnstile";
 import { parseTakedownRequest, takedownErrorCode, takedownRpcArgs } from "@ap/core/validation";
 
+import { siteUrl } from "@/lib/site";
 import { createServiceServerClient } from "@/lib/supabase-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const TURNSTILE_VERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-
-/** The caller's address as Vercel reports it (the first x-forwarded-for hop), or null. */
-function clientIp(request: Request): string | null {
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || request.headers.get("x-real-ip")?.trim() || null;
-}
-
-/** Cloudflare Turnstile, when TURNSTILE_SECRET_KEY is set; true when it is not configured. */
-async function turnstileOk(token: unknown, ip: string | null): Promise<boolean> {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret) return true;
-  if (typeof token !== "string" || token === "" || token.length > 2048) return false;
-  const form = new URLSearchParams({ secret, response: token });
-  if (ip) form.set("remoteip", ip);
-  try {
-    const res = await fetch(TURNSTILE_VERIFY, { method: "POST", body: form });
-    const answer = (await res.json()) as { success?: boolean };
-    return answer.success === true;
-  } catch {
-    return false;
-  }
+/** Turnstile, shared with the other public form (launch audit L9: fails closed in production
+ * without its secret, and checks the answer's hostname). */
+function turnstile(token: unknown, ip: string | null) {
+  return verifyTurnstile(token, ip, {
+    secret: process.env.TURNSTILE_SECRET_KEY,
+    vercelEnv: process.env.VERCEL_ENV,
+    hostnames: hostsOf(siteUrl(), process.env.TURNSTILE_HOSTNAMES),
+  });
 }
 
 /**
@@ -56,9 +44,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "unavailable" }, { status: 503 });
   }
 
-  const ip = clientIp(request);
+  const ip = clientIp(request.headers);
   const token = (body as { turnstileToken?: unknown }).turnstileToken;
-  if (!(await turnstileOk(token, ip))) {
+  const verdict = await turnstile(token, ip);
+  if (verdict === "not_configured") {
+    console.error("Turnstile: TURNSTILE_SECRET_KEY is not configured in production");
+    return NextResponse.json({ error: "unavailable" }, { status: 503 });
+  }
+  if (verdict !== "ok") {
     return NextResponse.json({ error: "verification_failed" }, { status: 400 });
   }
   const clientHash = ip

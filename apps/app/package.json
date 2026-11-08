@@ -14,6 +14,7 @@
   "dependencies": {
     "@ap/core": "workspace:^",
     "@ap/ui": "workspace:^",
+    "@fontsource-variable/figtree": "5",
     "@hookform/resolvers": "^6.0.0",
     "@supabase/supabase-js": "^2.118.0",
     "@tanstack/react-query": "^5.104.4",

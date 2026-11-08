@@ -110,6 +110,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     links: {
       appUrl: baseUrl(Deno.env.get("APP_URL"), "https://app.activityplanet.app"),
       siteUrl: baseUrl(Deno.env.get("SITE_URL"), "https://activityplanet.app"),
+      // Launch audit M13: the postal address for the email footer, once Sai has one.
+      postalAddress: Deno.env.get("MAILING_ADDRESS")?.trim() || undefined,
     },
   };
 

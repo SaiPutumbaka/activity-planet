@@ -51,7 +51,7 @@ export function ImportedShelf({ events }: { events: FeedEvent[] }) {
       ) : null}
       <p className="text-[13px] text-text-2">
         Missing a calendar near you?{" "}
-        <Link to="/suggest-calendar" className="font-semibold text-primary hover:underline">
+        <Link to="/suggest-calendar" className="font-semibold text-primary-text hover:underline">
           Suggest it
         </Link>
       </p>

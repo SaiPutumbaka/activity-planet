@@ -127,6 +127,18 @@ export async function runScorecard(
   if (state.status === "sent") return { status: "already_sent", week_start: week };
   const counts = (await deps.rpc("scorecard_week", { p_week_start: week })) as Counts;
   const { subject, text, html } = render(week, counts, state.previous_counts, deps);
+  // Migration 77: the scorecard counts against the account-wide email budget (which keeps a
+  // reserve for sign-up and password email); past it nothing is sent and the run is failed.
+  const allowed = await deps.rpc("email_budget_take", { p_source: "scorecard", p_n: 1 });
+  if (allowed !== true) {
+    await deps.rpc("scorecard_record", {
+      p_week_start: week,
+      p_counts: counts,
+      p_status: "failed",
+      p_error: "email_budget",
+    });
+    return { status: "failed", week_start: week, rows: flatten(counts, null).length };
+  }
   const result = await deps.send({
     id: `scorecard-${week}`,
     to: deps.to,

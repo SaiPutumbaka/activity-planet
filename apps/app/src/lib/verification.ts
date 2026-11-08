@@ -183,6 +183,9 @@ export function verificationErrorMessage(err: unknown): string {
     return "Too many codes. One a minute and three an hour; wait and try again.";
   }
   if (message.includes("invalid_email")) return "Enter a valid email.";
+  if (message.includes("email_budget")) {
+    return "We've sent all the email we can today. Try again tomorrow.";
+  }
   if (message.includes("send_failed")) {
     return "We couldn't send the email just now. Wait a minute and try again.";
   }

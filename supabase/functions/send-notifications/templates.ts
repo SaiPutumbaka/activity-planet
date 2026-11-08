@@ -20,6 +20,9 @@ export interface ClaimedNotification {
 export interface Links {
   appUrl: string; // https://app.activityplanet.app
   siteUrl: string; // https://activityplanet.app
+  /** Migration 77 (launch audit M13): the sender's postal address for the footer, from the
+   * MAILING_ADDRESS secret; left out while it is unset. */
+  postalAddress?: string;
 }
 
 export interface Rendered {
@@ -263,10 +266,58 @@ export function copyFor(
             body: "Our team reviews it. Open the booking for details.",
           }
         : { title: "Stripe needs a few details to pay you", body: "Open your payout settings." };
+    // Migration 77: moderators only (counts, queue names and due times; never who or what).
+    case "report_new": {
+      const due = formatWhen(str(p.due_at), undefined);
+      return num(p.priority) === 0
+        ? {
+            title: "New child-safety report",
+            body: `Due within 4 hours${due ? ` (by ${due})` : ""}. Follow the NCMEC runbook.`,
+          }
+        : { title: "New report to review", body: "Open the report queue." };
+    }
+    case "takedown_new":
+      if (p.queue === "listing_removal")
+        return { title: "New listing removal request", body: "Open the takedown queue." };
+      return {
+        title:
+          p.minor === true
+            ? "New intimate-image takedown (may show a minor)"
+            : "New intimate-image takedown",
+        body:
+          p.minor === true
+            ? "Due within 4 hours. Remove first, then review."
+            : "Due within 48 hours (Take It Down Act).",
+      };
+    case "moderation_due": {
+      const parts = [
+        [num(p.reports_overdue), "reports overdue"],
+        [num(p.reports_due), "reports due within 4 hours"],
+        [num(p.takedowns_overdue), "takedowns overdue"],
+        [num(p.takedowns_due), "takedowns due within 4 hours"],
+        [num(p.images_waiting), "chat photos waiting over 12 hours"],
+        [num(p.deletions_stuck), "account deletions unfinished"],
+        [num(p.listing_removals_waiting), "listing removals waiting over 3 days"],
+      ]
+        .filter(([n]) => typeof n === "number" && (n as number) > 0)
+        .map(([n, label]) => `${n} ${label}`);
+      return { title: "Moderation queue needs a look", body: parts.join(". ") || null };
+    }
+    case "ops_alert":
+      return {
+        title: "Activity Planet health alert",
+        body: OPS_ALERTS[str(p.alert) ?? ""] ?? null,
+      };
     default:
       return { title: "You have an update on Activity Planet", body: null };
   }
 }
+
+const OPS_ALERTS: Record<string, string> = {
+  http_errors: "Server calls failed in the last day. Check the function logs.",
+  cron_failures: "Scheduled jobs failed in the last day. Check cron.job_run_details.",
+  no_upcoming_events: "There are no upcoming plans in the feed. Check the collector.",
+};
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,80}$/;
@@ -294,6 +345,11 @@ export function pathFor(
     return handle && HANDLE_RE.test(handle) ? `/coaches/${handle}` : "/bookings";
   }
   if (n.kind === "coach_payout_action") return "/coach/payouts";
+  // Migration 77: moderator alerts open their queue.
+  if (n.kind === "report_new") return "/admin/reports";
+  if (n.kind === "takedown_new") return "/admin/takedowns";
+  if (n.kind === "moderation_due") return "/admin";
+  if (n.kind === "ops_alert") return "/admin/health";
   if (n.kind === "chapter_claim_update") {
     const slug = n.chapter?.slug ?? str(n.payload?.chapter_slug);
     if (n.payload?.status === "approved" && slug && SLUG_RE.test(slug)) return `/chapters/${slug}`;
@@ -346,6 +402,7 @@ export function render(n: ClaimedNotification, links: Links): Rendered {
     "You're getting this because of your Activity Planet notification settings.",
     `Change what you get: ${settings}`,
     `Stop these emails: ${unsub}`,
+    links.postalAddress ? `Activity Planet, ${oneLine(links.postalAddress, 300)}` : "",
   ]
     .filter((l) => l !== "")
     .join("\n");
@@ -356,7 +413,11 @@ export function render(n: ClaimedNotification, links: Links): Rendered {
   const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#ffffff;color:#0e0f11;font-family:Figtree,-apple-system,Segoe UI,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5">
 <p style="margin:0 0 12px;font-size:20px;font-weight:700">${escapeHtml(title)}</p>
 ${bodyHtml}<p style="margin:0 0 24px"><a href="${escapeHtml(url)}" style="display:inline-block;padding:10px 18px;border-radius:999px;background:#0e0f11;color:#ffffff;text-decoration:none;font-weight:600">Open in Activity Planet</a></p>
-<p style="margin:0;color:#8a8f98;font-size:13px">You're getting this because of your Activity Planet notification settings. <a href="${escapeHtml(settings)}" style="color:#5b5f66">Change what you get</a> · <a href="${escapeHtml(unsub)}" style="color:#5b5f66">Unsubscribe from these emails</a></p>
+<p style="margin:0;color:#8a8f98;font-size:13px">You're getting this because of your Activity Planet notification settings. <a href="${escapeHtml(settings)}" style="color:#5b5f66">Change what you get</a> · <a href="${escapeHtml(unsub)}" style="color:#5b5f66">Unsubscribe from these emails</a></p>${
+    links.postalAddress
+      ? `\n<p style="margin:8px 0 0;color:#8a8f98;font-size:13px">Activity Planet, ${escapeHtml(oneLine(links.postalAddress, 300))}</p>`
+      : ""
+  }
 </body></html>`;
 
   const headers: Record<string, string> = {};

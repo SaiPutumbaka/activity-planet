@@ -42,6 +42,8 @@ export const REPORT_REASONS = [
   "unsafe",
   "ncii",
   "child_safety",
+  // Launch audit M14 (migration 78): counted for the repeat-infringer policy.
+  "copyright",
   "other",
 ] as const;
 /** Booking reports also take these (migration 60): a missed session or a payment problem. */
@@ -62,6 +64,7 @@ export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
   unsafe: "Unsafe meetup or place",
   ncii: "Intimate image shared without consent",
   child_safety: "Child safety",
+  copyright: "Uses my work without permission (copyright)",
   other: "Something else",
   no_show: "A missed session",
   payment: "A payment problem",

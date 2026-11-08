@@ -42,8 +42,20 @@ export const notificationKeys = {
 
 /** What the producers put in notifications.payload. Every field is optional on read. */
 export interface NotificationPayload {
-  /** collector_alert (migration 63): which alert; count is how many jobs or sources. */
+  /** collector_alert (migration 63) and ops_alert (migration 77): which alert; count is how many. */
   alert?: string;
+  /** Moderator alerts (migration 77). */
+  queue?: string;
+  priority?: number;
+  due_at?: string;
+  minor?: boolean;
+  reports_due?: number;
+  reports_overdue?: number;
+  takedowns_due?: number;
+  takedowns_overdue?: number;
+  images_waiting?: number;
+  deletions_stuck?: number;
+  listing_removals_waiting?: number;
   title?: string;
   starts_at?: string;
   ends_at?: string;
@@ -104,6 +116,18 @@ export function parsePayload(raw: unknown): NotificationPayload {
     party: str(r.party),
     fallback: str(r.fallback),
     refund_minor: num(r.refund_minor),
+    alert: str(r.alert),
+    queue: str(r.queue),
+    priority: num(r.priority),
+    due_at: str(r.due_at),
+    minor: typeof r.minor === "boolean" ? r.minor : undefined,
+    reports_due: num(r.reports_due),
+    reports_overdue: num(r.reports_overdue),
+    takedowns_due: num(r.takedowns_due),
+    takedowns_overdue: num(r.takedowns_overdue),
+    images_waiting: num(r.images_waiting),
+    deletions_stuck: num(r.deletions_stuck),
+    listing_removals_waiting: num(r.listing_removals_waiting),
   };
 }
 
@@ -448,9 +472,51 @@ export function notificationCopy(item: CopyInput, now: Date = new Date()): Notif
         title: "Event collector needs a look",
         body: COLLECTOR_ALERTS[p.alert ?? ""] ?? null,
       };
+    // Migration 77: moderators only. Counts and queue names, never who or what.
+    case "report_new":
+      return p.priority === 0
+        ? {
+            title: "New child-safety report",
+            body: "Due within 4 hours. Follow the NCMEC runbook.",
+          }
+        : { title: "New report to review", body: null };
+    case "takedown_new":
+      if (p.queue === "listing_removal")
+        return { title: "New listing removal request", body: null };
+      return p.minor
+        ? {
+            title: "New intimate-image takedown (may show a minor)",
+            body: "Due within 4 hours. Remove first, then review.",
+          }
+        : { title: "New intimate-image takedown", body: "Due within 48 hours." };
+    case "moderation_due":
+      return { title: "Moderation queue needs a look", body: dueSummary(p) };
+    case "ops_alert":
+      return { title: "Activity Planet health alert", body: OPS_ALERTS[p.alert ?? ""] ?? null };
     default:
       return { title: "Update", body: null };
   }
+}
+
+const OPS_ALERTS: Record<string, string> = {
+  http_errors: "Server calls failed in the last day.",
+  cron_failures: "Scheduled jobs failed in the last day.",
+  no_upcoming_events: "There are no upcoming plans in the feed.",
+};
+
+/** "2 reports overdue. 1 takedowns due within 4 hours" (zero counts left out). */
+export function dueSummary(p: NotificationPayload): string | null {
+  const parts: [number | undefined, string][] = [
+    [p.reports_overdue, "reports overdue"],
+    [p.reports_due, "reports due within 4 hours"],
+    [p.takedowns_overdue, "takedowns overdue"],
+    [p.takedowns_due, "takedowns due within 4 hours"],
+    [p.images_waiting, "chat photos waiting over 12 hours"],
+    [p.deletions_stuck, "account deletions unfinished"],
+    [p.listing_removals_waiting, "listing removals waiting over 3 days"],
+  ];
+  const out = parts.filter(([n]) => typeof n === "number" && n > 0).map(([n, l]) => `${n} ${l}`);
+  return out.length ? out.join(". ") : null;
 }
 
 const COLLECTOR_ALERTS: Record<string, string> = {
@@ -469,7 +535,10 @@ export type NotificationLink =
   | { to: "/bookings" }
   | { to: "/coaches/$handle"; params: { handle: string } }
   | { to: "/coach/payouts" }
-  | { to: "/admin/health"; search: { tab: "events" } };
+  | { to: "/admin/health"; search: { tab: "events" } }
+  | { to: "/admin/reports" }
+  | { to: "/admin/takedowns" }
+  | { to: "/admin" };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HANDLE_RE = /^[A-Za-z0-9_]{3,24}$/;
@@ -494,6 +563,11 @@ export function notificationLink(item: LinkInput): NotificationLink | null {
   }
   if (item.kind === "coach_payout_action") return { to: "/coach/payouts" };
   if (item.kind === "collector_alert") return { to: "/admin/health", search: { tab: "events" } };
+  // Migration 77: moderator alerts open their queue.
+  if (item.kind === "report_new") return { to: "/admin/reports" };
+  if (item.kind === "takedown_new") return { to: "/admin/takedowns" };
+  if (item.kind === "moderation_due") return { to: "/admin" };
+  if (item.kind === "ops_alert") return { to: "/admin/health", search: { tab: "events" } };
   if (item.kind === "chapter_claim_update") {
     const chapterSlug = item.chapter?.slug ?? item.payload.chapter_slug;
     if (item.payload.status === "approved" && chapterSlug) {

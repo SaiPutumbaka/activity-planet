@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 76 (schema_version 2.72). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 78 (schema_version 2.74). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -15,8 +15,12 @@ export type Database = {
       account_deletions: {
         Row: {
           apple_token_revoked_at: string | null;
+          attempts: number;
           completed_at: string | null;
           email_hash: string;
+          last_attempt_at: string | null;
+          last_error: string | null;
+          legal_hold_until: string | null;
           processors_notified: Json;
           reason: string | null;
           requested_at: string;
@@ -25,8 +29,12 @@ export type Database = {
         };
         Insert: {
           apple_token_revoked_at?: string | null;
+          attempts?: number;
           completed_at?: string | null;
           email_hash: string;
+          last_attempt_at?: string | null;
+          last_error?: string | null;
+          legal_hold_until?: string | null;
           processors_notified?: Json;
           reason?: string | null;
           requested_at?: string;
@@ -35,8 +43,12 @@ export type Database = {
         };
         Update: {
           apple_token_revoked_at?: string | null;
+          attempts?: number;
           completed_at?: string | null;
           email_hash?: string;
+          last_attempt_at?: string | null;
+          last_error?: string | null;
+          legal_hold_until?: string | null;
           processors_notified?: Json;
           reason?: string | null;
           requested_at?: string;
@@ -1544,6 +1556,24 @@ export type Database = {
           },
         ];
       };
+      email_send_days: {
+        Row: {
+          day: string;
+          sent: number;
+          source: string;
+        };
+        Insert: {
+          day: string;
+          sent?: number;
+          source: string;
+        };
+        Update: {
+          day?: string;
+          sent?: number;
+          source?: string;
+        };
+        Relationships: [];
+      };
       email_verification_codes: {
         Row: {
           attempts: number;
@@ -2964,6 +2994,71 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      legal_acceptances: {
+        Row: {
+          accepted_at: string;
+          privacy_version: string;
+          terms_version: string;
+          user_id: string;
+        };
+        Insert: {
+          accepted_at?: string;
+          privacy_version: string;
+          terms_version: string;
+          user_id: string;
+        };
+        Update: {
+          accepted_at?: string;
+          privacy_version?: string;
+          terms_version?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "legal_acceptances_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      legal_holds: {
+        Row: {
+          byte_size: number | null;
+          created_at: string;
+          id: string;
+          path: string;
+          purged_at: string | null;
+          retain_until: string;
+          source_bucket: string;
+          source_path: string;
+          user_id: string;
+        };
+        Insert: {
+          byte_size?: number | null;
+          created_at?: string;
+          id?: string;
+          path: string;
+          purged_at?: string | null;
+          retain_until: string;
+          source_bucket: string;
+          source_path: string;
+          user_id: string;
+        };
+        Update: {
+          byte_size?: number | null;
+          created_at?: string;
+          id?: string;
+          path?: string;
+          purged_at?: string | null;
+          retain_until?: string;
+          source_bucket?: string;
+          source_path?: string;
+          user_id?: string;
+        };
+        Relationships: [];
       };
       listing_removal_requests: {
         Row: {
@@ -5643,6 +5738,26 @@ export type Database = {
     Functions: {
       accept_coach_terms: { Args: { p_version: string }; Returns: Json };
       accept_guidelines: { Args: never; Returns: string };
+      accept_legal_terms: {
+        Args: { p_privacy: string; p_terms: string };
+        Returns: Json;
+      };
+      account_deletion_dispatch: {
+        Args: { p_force?: boolean };
+        Returns: number;
+      };
+      account_deletion_failed: {
+        Args: { p_error: string; p_user: string };
+        Returns: undefined;
+      };
+      account_deletion_sweep_claim: {
+        Args: { p_limit?: number };
+        Returns: Json;
+      };
+      account_deletion_verify_secret: {
+        Args: { p_secret: string };
+        Returns: boolean;
+      };
       add_availability_exception: { Args: { p: Json }; Returns: string };
       add_group_members: {
         Args: { p_conversation: string; p_users: string[] };
@@ -6139,6 +6254,10 @@ export type Database = {
         Args: { p_event_id: string };
         Returns: undefined;
       };
+      email_budget_take: {
+        Args: { p_n?: number; p_source: string };
+        Returns: boolean;
+      };
       enqueue_due_reminders: { Args: never; Returns: number };
       enqueue_notification: {
         Args: {
@@ -6187,6 +6306,10 @@ export type Database = {
         Args: { p_event_id: string };
         Returns: undefined;
       };
+      event_owner_ok: {
+        Args: { p_host: string; p_hub: string };
+        Returns: boolean;
+      };
       event_post_rate_check: { Args: { p_series: boolean }; Returns: undefined };
       event_rules_check: {
         Args: {
@@ -6215,6 +6338,7 @@ export type Database = {
         Returns: undefined;
       };
       event_share_card: { Args: { p_event_id: string }; Returns: Json };
+      export_my_data: { Args: never; Returns: Json };
       feed_event_area: { Args: { p_event_id: string }; Returns: unknown };
       feed_events: {
         Args: { p_from: string; p_limit?: number; p_to: string };
@@ -6538,6 +6662,18 @@ export type Database = {
         Args: { p_conversation: string };
         Returns: undefined;
       };
+      legal_hold_for: { Args: { p_user: string }; Returns: string };
+      legal_hold_purge_list: { Args: { p_limit?: number }; Returns: Json };
+      legal_hold_purged: { Args: { p_ids: string[] }; Returns: number };
+      legal_hold_saved: {
+        Args: {
+          p_bytes?: number;
+          p_source_bucket: string;
+          p_source_path: string;
+          p_user: string;
+        };
+        Returns: string;
+      };
       map_in_view: {
         Args: {
           p_east: number;
@@ -6595,6 +6731,7 @@ export type Database = {
       mod_chat_image_queue: { Args: { p_limit?: number }; Returns: Json };
       mod_coaching_numbers: { Args: never; Returns: Json };
       mod_collector_health: { Args: never; Returns: Json };
+      mod_copyright_strikes: { Args: { p_user: string }; Returns: number };
       mod_listing_removal_queue: {
         Args: { p_closed?: boolean; p_limit?: number };
         Returns: Json;
@@ -6670,6 +6807,7 @@ export type Database = {
       };
       mod_user_lookup: { Args: { p_user: string }; Returns: Json };
       mod_user_search: { Args: { p_query: string }; Returns: Json };
+      moderation_due_alerts: { Args: never; Returns: number };
       moderation_is_own: {
         Args: { p_id: string; p_kind: string; p_target_user: string };
         Returns: boolean;
@@ -6786,6 +6924,7 @@ export type Database = {
       open_chapter_chat: { Args: { p_chapter: string }; Returns: Json };
       open_event_chat: { Args: { p_event: string }; Returns: Json };
       open_hub_chat: { Args: { p_hub: string }; Returns: Json };
+      ops_health_alerts: { Args: never; Returns: number };
       organizer_claim_apply: { Args: { p_claim: string }; Returns: undefined };
       organizer_claim_check: { Args: { p_claim: string }; Returns: Json };
       organizer_claim_proofs: {
@@ -6984,6 +7123,7 @@ export type Database = {
       purge_account_deletions: { Args: never; Returns: number };
       purge_admin_lookups: { Args: never; Returns: number };
       purge_coaching: { Args: never; Returns: Json };
+      purge_handle_history: { Args: never; Returns: number };
       purge_listing_removal_contacts: { Args: never; Returns: number };
       purge_messaging: { Args: never; Returns: Json };
       purge_read_notifications: { Args: never; Returns: number };
@@ -7935,7 +8075,11 @@ export type Database = {
         | "review_received"
         | "review_reply"
         | "coach_payout_action"
-        | "collector_alert";
+        | "collector_alert"
+        | "report_new"
+        | "takedown_new"
+        | "moderation_due"
+        | "ops_alert";
       org_kind: "university" | "company" | "community";
       org_role: "member" | "officer" | "admin";
       place_source: "osm" | "geoapify" | "user" | "venue";
@@ -8131,6 +8275,10 @@ export const Constants = {
         "review_reply",
         "coach_payout_action",
         "collector_alert",
+        "report_new",
+        "takedown_new",
+        "moderation_due",
+        "ops_alert",
       ],
       org_kind: ["university", "company", "community"],
       org_role: ["member", "officer", "admin"],

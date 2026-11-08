@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LEGAL_VERSIONS } from "@ap/core/site";
 
 export const metadata: Metadata = {
   title: "Terms of Service (draft)",
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 /** The version this page shows. Bump it when the text changes. */
-const VERSION = "terms 2026-11.1";
+const VERSION = LEGAL_VERSIONS.terms;
 
 const SUPPORT_EMAIL = "support@activityplanet.app";
 
@@ -114,8 +115,11 @@ export default function TermsPage() {
       <Section title="Messages">
         <p>
           You can message members you share a plan, group or chapter with; a first message to anyone
-          else is a request they can accept or decline. Moderators can read a message only when
-          someone reports it, to decide the report. Chat photos are not available yet.
+          else is a request they can accept or decline. Moderators can read a message when someone
+          reports it, to decide the report. Photos you send in a chat get an automatic check by our
+          image-checking service before anyone sees them; when the check is unsure, unavailable or
+          over its monthly allowance, a moderator looks at the photo before it is shown, even if
+          nobody reported it. A photo that breaks the Community Guidelines is not delivered.
         </p>
       </Section>
 
@@ -195,7 +199,9 @@ export default function TermsPage() {
           you believe in good faith the use is not authorised, a statement that your notice is
           accurate and, under penalty of perjury, that you are the owner or authorised to act for
           them, and your physical or electronic signature. We remove infringing material and close
-          the accounts of repeat infringers. For an intimate image shared without consent, use{" "}
+          the accounts of repeat infringers (three upheld copyright reports in three years). You can
+          also report a post as a copyright problem in the app. For an intimate image shared without
+          consent, use{" "}
           <a href="/safety/intimate-images" className={link}>
             the intimate image removal page
           </a>{" "}

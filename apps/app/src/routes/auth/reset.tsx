@@ -13,6 +13,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { authErrorMessage } from "@/lib/auth";
 import { SWITCH_CANCELLED, completeAuthLink } from "@/lib/auth-links";
 import { useAccountSwitchPrompt } from "@/lib/use-account-switch";
+import { takeRecoveryVerified } from "@/lib/recovery";
 import { supabase } from "@/lib/supabase";
 
 const searchSchema = z.object({
@@ -58,9 +59,13 @@ function ResetPage() {
     if (started.current) return;
     started.current = true;
     const hasLink = Boolean(search.token_hash || search.code || search.error);
+    // Launch audit L8: without a link, only a recovery verified on this tab moments ago (by
+    // /auth/confirm) opens the form; a session alone never does.
     (hasLink
       ? completeAuthLink(search, confirm)
-      : supabase.auth.getSession().then((r) => r.data.session)
+      : takeRecoveryVerified()
+        ? supabase.auth.getSession().then((r) => r.data.session)
+        : Promise.resolve(null)
     )
       .then((session) => {
         if (session) setStage("ready");

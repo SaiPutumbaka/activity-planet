@@ -256,3 +256,36 @@ Deno.test("booking notices open the booking, review notices the coach page, neve
     "/bookings",
   );
 });
+
+// Migration 77 (launch audit H2, M13).
+Deno.test("moderator alerts name the queue and open it", () => {
+  const cs = n({
+    kind: "report_new",
+    event_id: null,
+    payload: { priority: 0, due_at: "2026-11-15T04:00:00Z" },
+  });
+  assertEquals(copyFor(cs).title, "New child-safety report");
+  assertStringIncludes(copyFor(cs).body ?? "", "4 hours");
+  assertEquals(pathFor(cs), "/admin/reports");
+  const td = n({ kind: "takedown_new", event_id: null, payload: { queue: "ncii", minor: true } });
+  assertStringIncludes(copyFor(td).title, "may show a minor");
+  assertEquals(pathFor(td), "/admin/takedowns");
+  const due = n({
+    kind: "moderation_due",
+    event_id: null,
+    payload: { reports_overdue: 2, takedowns_due: 1, images_waiting: 0 },
+  });
+  assertEquals(copyFor(due).body, "2 reports overdue. 1 takedowns due within 4 hours");
+  assertEquals(pathFor(due), "/admin");
+  const ops = n({ kind: "ops_alert", event_id: null, payload: { alert: "no_upcoming_events" } });
+  assertStringIncludes(copyFor(ops).body ?? "", "no upcoming plans");
+  assertEquals(pathFor(ops), "/admin/health");
+});
+
+Deno.test("the postal address joins the footer only when set", () => {
+  const plain = render(n({}), links);
+  assert(!plain.text.includes("Activity Planet, "));
+  const withAddr = render(n({}), { ...links, postalAddress: "PO Box 1 <Atlanta>" });
+  assertStringIncludes(withAddr.text, "Activity Planet, PO Box 1 <Atlanta>");
+  assertStringIncludes(withAddr.html, "PO Box 1 &lt;Atlanta&gt;");
+});

@@ -28,8 +28,32 @@ const imgSrc = ["'self'", "data:", "blob:", storageOrigin(), MAP_TILE_HOST, ...I
   .filter(Boolean)
   .join(" ");
 
+/**
+ * Launch audit M10: the full policy, Report-Only first (browsers log what it would block). Next
+ * injects inline bootstrap scripts, so script-src keeps 'unsafe-inline' until a nonce middleware
+ * lands; Turnstile loads from challenges.cloudflare.com on the two request forms.
+ */
+const reportOnly = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+  "style-src 'self' 'unsafe-inline'",
+  `img-src ${imgSrc}`,
+  "font-src 'self' data:",
+  `connect-src 'self' ${storageOrigin()} https://challenges.cloudflare.com`,
+  "frame-src https://challenges.cloudflare.com",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+
 const securityHeaders = [
-  { key: "Content-Security-Policy", value: `img-src ${imgSrc}` },
+  // Enforced: images, plus the directives that cannot break a page.
+  {
+    key: "Content-Security-Policy",
+    value: `img-src ${imgSrc}; object-src 'none'; base-uri 'self'; frame-ancestors 'none'`,
+  },
+  { key: "Content-Security-Policy-Report-Only", value: reportOnly },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -39,6 +63,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@ap/core", "@ap/ui"],
+  // Launch audit L11: no X-Powered-By header.
+  poweredByHeader: false,
   typedRoutes: true,
   async headers() {
     return [

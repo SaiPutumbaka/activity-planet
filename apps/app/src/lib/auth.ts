@@ -1,4 +1,4 @@
-import type { Session } from "@supabase/supabase-js";
+import { isAuthApiError, type Session } from "@supabase/supabase-js";
 import { queryOptions, type QueryClient } from "@tanstack/react-query";
 
 import { clearFeedLocation } from "./location";
@@ -42,6 +42,9 @@ export async function signOut(): Promise<void> {
   clearFeedLocation();
 }
 
+/** What completeAuthLink throws for an error carried in the link's URL (fixed copy). */
+export const LINK_INVALID = "That link is not valid.";
+
 /** Maps Supabase Auth error codes to sentences a person can act on. */
 export function authErrorMessage(err: unknown): string {
   const code = typeof err === "object" && err && "code" in err ? String(err.code) : "";
@@ -76,8 +79,13 @@ export function authErrorMessage(err: unknown): string {
       return "Open the link on the same device and browser you started from, or sign in with your password.";
     case "validation_failed":
       return "Check the form and try again.";
+    case "access_denied":
+      return "That sign-in was cancelled.";
     default:
-      return err instanceof Error && err.message ? err.message : "Something went wrong. Try again.";
+      // Launch audit L7: only Supabase Auth's own answers keep their text; anything else (a link's
+      // URL, a script) gets the generic line.
+      if (err instanceof Error && err.message === LINK_INVALID) return LINK_INVALID;
+      return isAuthApiError(err) && err.message ? err.message : "Something went wrong. Try again.";
   }
 }
 

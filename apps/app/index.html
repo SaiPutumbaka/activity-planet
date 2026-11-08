@@ -63,12 +63,6 @@
       href="/splash/iphone-750x1334.png"
       media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
     />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400..800;1,400..800&display=swap"
-      rel="stylesheet"
-    />
     <title>Activity Planet</title>
     <script>
       // Apply the stored theme before first paint so a dark-mode user never sees a white flash.
@@ -79,7 +73,23 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Launch audit L20: a static shell while the bundle loads on a slow start; React replaces it. -->
+      <div
+        aria-busy="true"
+        aria-label="Loading Activity Planet"
+        style="
+          min-height: 100dvh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: system-ui, sans-serif;
+          color: #696e76;
+        "
+      >
+        Loading…
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

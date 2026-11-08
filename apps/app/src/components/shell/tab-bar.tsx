@@ -23,8 +23,11 @@ export function TabBar() {
             key={to}
             to={to}
             activeOptions={{ exact: "exact" in tab ? tab.exact : false }}
-            className="flex w-16 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-text-3"
+            className="flex w-16 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold"
             activeProps={{ className: "text-text", "aria-current": "page" }}
+            // Launch audit M15: the inactive colour only on inactive tabs, so it never beats the
+            // active one in the stylesheet.
+            inactiveProps={{ className: "text-text-3" }}
           >
             {({ isActive }) => (
               <>

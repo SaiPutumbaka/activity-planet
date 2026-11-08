@@ -15,6 +15,7 @@ import { Field, FormError, inputClassName } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { InstallCard } from "@/components/shell/install-card";
 import { cn } from "@/lib/cn";
+import { SITE_URL } from "@/lib/site";
 import { homeChoiceLabel, type HomeChoice } from "@/lib/location";
 import { campusesQuery, hubCatalogQuery, type CatalogHub } from "@/lib/profile";
 import { supabase } from "@/lib/supabase";
@@ -100,7 +101,7 @@ export function UnderageScreen({
   return (
     <StepFrame
       title="Thanks for checking out Activity Planet"
-      body="Right now it's for people 18 and over. We didn't save anything from this screen. We'll let you know when that changes."
+      body="Right now it's for people 18 and over, so we've closed this account and deleted what you entered. You can't sign up again from this device for now."
       footer={
         <Button variant="secondary" size="lg" block loading={signingOut} onClick={onSignOut}>
           Sign out
@@ -442,6 +443,17 @@ export function AffiliationStep({
               Finish
             </Button>
           </div>
+          <p className="text-center text-[12px] leading-relaxed text-text-3">
+            By finishing you agree to the{" "}
+            <a href={`${SITE_URL}/terms`} className="underline underline-offset-2">
+              Terms
+            </a>{" "}
+            and the{" "}
+            <a href={`${SITE_URL}/privacy`} className="underline underline-offset-2">
+              Privacy Policy
+            </a>
+            .
+          </p>
         </>
       }
     >

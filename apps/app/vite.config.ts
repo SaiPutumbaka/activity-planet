@@ -10,7 +10,8 @@ import { VitePWA } from "vite-plugin-pwa";
  * bundled Capacitor app, where vercel.json headers never apply. The database accepts only
  * own-storage URLs for avatars and human-made covers; imported events keep their feeds' own
  * https covers (D-037), so those image hosts are listed too. The map tile host is OpenFreeMap
- * (D-038). Only img-src is set. Keep this list in step with apps/web/next.config.ts.
+ * (D-038). img-src, object-src and base-uri are enforced here; the full policy is Report-Only in
+ * vercel.json (launch audit M10). Keep this list in step with apps/web/next.config.ts.
  */
 const IMPORTED_IMAGE_HOSTS = [
   "https://localist-images.azureedge.net", // GSU Localist
@@ -34,7 +35,12 @@ function imageCsp(supabaseUrl: string | undefined): Plugin {
     transformIndexHtml: () => [
       {
         tag: "meta",
-        attrs: { "http-equiv": "Content-Security-Policy", content: `img-src ${sources}` },
+        // Launch audit M10: also object-src and base-uri, which cannot break anything. The full
+        // policy ships as Content-Security-Policy-Report-Only in vercel.json first.
+        attrs: {
+          "http-equiv": "Content-Security-Policy",
+          content: `img-src ${sources}; object-src 'none'; base-uri 'self'`,
+        },
         injectTo: "head-prepend",
       },
     ],
@@ -155,5 +161,6 @@ export default defineConfig(({ mode }) => ({
   ],
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   server: { port: 3001 },
-  build: { sourcemap: true },
+  // Launch audit L11: source maps are built for debugging but not linked from the bundle.
+  build: { sourcemap: "hidden" },
 }));

@@ -8,6 +8,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { authErrorMessage } from "@/lib/auth";
 import { SWITCH_CANCELLED, completeAuthLink } from "@/lib/auth-links";
 import { useAccountSwitchPrompt } from "@/lib/use-account-switch";
+import { markRecoveryVerified } from "@/lib/recovery";
 import { internalTo } from "@/lib/navigation";
 
 const searchSchema = z.object({
@@ -39,7 +40,10 @@ function ConfirmPage() {
     started.current = true;
     completeAuthLink(search, confirm)
       .then(() => {
-        if (search.type === "recovery") return navigate({ to: "/auth/reset", replace: true });
+        if (search.type === "recovery") {
+          markRecoveryVerified();
+          return navigate({ to: "/auth/reset", replace: true });
+        }
         // internalTo keeps `next` to a same-origin relative path (no open redirect).
         return navigate({ to: internalTo(search.next), replace: true });
       })

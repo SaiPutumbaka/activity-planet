@@ -61,7 +61,7 @@ function DeleteAccountPage() {
     }
 
     // From here the account is closed whatever happens next. The function frees the email
-    // address and ends every session; if it fails, support finishes it from the ledger.
+    // address and ends every session; if it fails, the sweep (migration 77) retries it.
     const { error: fnError } = await supabase.functions.invoke("delete-account", {
       method: "POST",
     });
@@ -74,7 +74,7 @@ function DeleteAccountPage() {
 
     if (fnError) {
       toast.warning(
-        "Your account is closed. Freeing your email address didn't finish; email support@activityplanet.app if you need it sooner.",
+        "Your account is closed. Removing your photos and freeing your email address didn't finish here; it is retried automatically within the hour.",
         { duration: 10_000 },
       );
     } else {

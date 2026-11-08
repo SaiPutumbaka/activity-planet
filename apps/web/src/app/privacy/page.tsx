@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LEGAL_VERSIONS } from "@ap/core/site";
 
 export const metadata: Metadata = {
   title: "Privacy Policy (draft)",
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 /** The version this page shows. Bump it when the text changes. */
-const VERSION = "privacy 2026-11.1";
+const VERSION = LEGAL_VERSIONS.privacy;
 
 const SUPPORT_EMAIL = "support@activityplanet.app";
 
@@ -85,6 +86,10 @@ const PROCESSORS: [string, React.ReactNode][] = [
     "If you turn on notifications on a device, your browser's push service (run by Apple, Google or Mozilla, depending on the browser) delivers them and receives the notification's text.",
   ],
   [
+    "Sightengine",
+    "Checks every photo sent in a chat before anyone sees it, for nudity, violence, hate symbols and similar content. Our servers send it the photo itself and nothing about you or the conversation; Sightengine returns scores and handles the photo under its own terms as our processor. When the check is unsure, unavailable or over its monthly allowance, a moderator looks at the photo instead.",
+  ],
+  [
     "Cloudflare Turnstile",
     "Where it is switched on, a bot check on the public request forms (intimate image removal and listing removal).",
   ],
@@ -134,6 +139,11 @@ const RETENTION: [string, string, string][] = [
     "Copies of reported messages (with a few messages around them)",
     "90 days after the report is closed; one year for child-safety, intimate-image and underage reports",
     "So moderators can review the report and any appeal.",
+  ],
+  [
+    "Your photos, when a child-safety or intimate-image report or removal request about your account was made in the year before you delete it",
+    "One year, in private storage only moderators can open",
+    "The law requires us to keep evidence of possible child sexual abuse material for a year (and to report it), and to handle intimate-image removal requests. Nothing else is kept.",
   ],
   [
     "Fingerprints (hashes) of images that were blocked for abuse",
@@ -203,6 +213,14 @@ export default function PrivacyPage() {
               "The messages you send and receive and when you read them. A deleted message's text is kept 30 days for safety reviews, then removed.",
             ],
             [
+              "Chat photos",
+              "Photos you send in a chat are stored privately, for the people in that conversation only. Each one is fingerprinted (a hash, to block images removed for abuse) and checked automatically by Sightengine before it is shown; when that check is unsure, unavailable or over its monthly allowance, a moderator looks at it first, even if nobody reported it. A photo is deleted when its message is deleted, when the conversation expires, or with your account. If a photo is reported, a copy is kept as evidence for the report (see the table below).",
+            ],
+            [
+              "Your agreement",
+              "Which version of the Terms of Service and of this policy you accepted, and when.",
+            ],
+            [
               "Coaching",
               "If you coach: your coach profile, listings, credentials (shown as self-reported), photos, availability and the rough point and radius you coach in. If you book: your bookings, times, notes and the reviews you write.",
             ],
@@ -250,6 +268,30 @@ export default function PrivacyPage() {
           and lose your name when you delete your account. To decide which areas of the map to keep,
           we look at whether any active member&rsquo;s saved home area falls in a roughly 50 km
           square; we store only the day this was last true for that square, never who.
+        </p>
+      </Section>
+
+      <Section id="device" title="On your device">
+        <p>
+          The app keeps a few things in your browser&rsquo;s storage so it works: your sign-in
+          session (so you stay signed in), your theme, the last map view, whether you dismissed a
+          prompt or said no to location, and, for the open tab only, your rounded location if you
+          tapped &ldquo;Use my location&rdquo;. It also keeps an offline copy of the app itself so
+          it opens on a poor connection, and, if you turn notifications on, a push subscription your
+          browser manages. None of this is used for tracking or advertising, and there are no
+          analytics or third-party cookies. Signing out removes your session; clearing the
+          site&rsquo;s data in your browser removes the rest. This site uses no cookies except the
+          bot check on the request forms.
+        </p>
+      </Section>
+
+      <Section title="Imported listings">
+        <p>
+          Some plans are imported from public calendars and from Ticketmaster and SeatGeek. Their
+          cover pictures may be loaded directly from the source&rsquo;s own servers (for example
+          Ticketmaster&rsquo;s or SeatGeek&rsquo;s image hosts, or the organizer&rsquo;s website),
+          so that server receives your IP address when you see the picture. Following a listing link
+          takes you to the source under its own privacy policy.
         </p>
       </Section>
 
@@ -339,7 +381,8 @@ export default function PrivacyPage() {
           <a href="/account/delete" className={link}>
             the account deletion page
           </a>
-          ; deletion is immediate, with no waiting period. To ask for a copy of your data, a
+          ; deletion is immediate, with no waiting period. You can download a copy of your data in
+          the app (You, Download my data), as a file you can take to another service. For a
           correction, or anything else about your data, email{" "}
           <a href={`mailto:${SUPPORT_EMAIL}`} className={link}>
             {SUPPORT_EMAIL}

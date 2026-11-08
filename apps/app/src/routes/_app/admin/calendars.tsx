@@ -128,7 +128,7 @@ function SuggestionCard({ item }: { item: PendingSuggestion }) {
           href={item.url}
           target="_blank"
           rel="noopener noreferrer nofollow"
-          className="inline-flex max-w-full items-center gap-1 text-[14px] text-primary underline-offset-2 hover:underline"
+          className="inline-flex max-w-full items-center gap-1 text-[14px] text-primary-text underline-offset-2 hover:underline"
         >
           <span className="truncate">{item.url}</span>
           <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />

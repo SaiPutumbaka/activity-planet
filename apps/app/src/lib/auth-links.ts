@@ -82,12 +82,11 @@ export async function completeAuthLink(
   const hash = readHashParams();
   const error = params.error ?? hash.error;
   if (error) {
-    throw Object.assign(
-      new Error(params.error_description ?? hash.error_description ?? "That link is not valid."),
-      {
-        code: params.error_code ?? hash.error_code ?? error,
-      },
-    );
+    // Launch audit L7: the code only. error_description comes from the URL, so anyone who
+    // sends a link could write it; authErrorMessage maps the code to fixed copy.
+    throw Object.assign(new Error("That link is not valid."), {
+      code: String(params.error_code ?? hash.error_code ?? error).slice(0, 64),
+    });
   }
 
   if (params.token_hash && params.type && isOtpType(params.type)) {

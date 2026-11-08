@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { ButtonRow, LinkRow } from "@/components/you/link-row";
 import { authErrorMessage, signOut } from "@/lib/auth";
+import { downloadMyData } from "@/lib/data-export";
 import { myCoachStatusQuery } from "@/lib/coaching";
 import { isModeratorQuery, myManagedChaptersQuery, roleLabel } from "@/lib/chapters";
 import { feedPrefsQuery, useFeedOrigin } from "@/lib/location";
@@ -47,6 +48,19 @@ function YouPage() {
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
   const [areaSheetOpen, setAreaSheetOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  async function onExport() {
+    setExporting(true);
+    try {
+      await downloadMyData();
+      toast.success("Your data is downloading.");
+    } catch {
+      toast.error("Couldn't prepare your data. Try again.");
+    } finally {
+      setExporting(false);
+    }
+  }
   const origin = useFeedOrigin(session.user.id);
   const radius = useQuery(feedPrefsQuery(session.user.id));
   const radiusKm = radius.data?.radiusKm ?? 10;
@@ -369,6 +383,9 @@ function YouPage() {
         <section className="flex flex-col gap-3">
           <Button variant="secondary" block loading={signingOut} onClick={onSignOut}>
             Sign out
+          </Button>
+          <Button variant="secondary" block loading={exporting} onClick={onExport}>
+            Download my data
           </Button>
           <Link
             to="/you/delete"

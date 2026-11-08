@@ -87,6 +87,11 @@ const ICONS: Record<NotificationKind, LucideIcon> = {
   coach_payout_action: ShieldCheck,
   // Collector health (migration 63): in-app only, moderators only.
   collector_alert: ShieldAlert,
+  // Moderator alerts (migration 77).
+  report_new: ShieldAlert,
+  takedown_new: ShieldAlert,
+  moderation_due: ShieldAlert,
+  ops_alert: ShieldAlert,
 };
 
 function InboxPage() {

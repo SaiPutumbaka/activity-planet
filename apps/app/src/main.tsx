@@ -1,3 +1,6 @@
+// Figtree, self-hosted (launch audit M9: no request to Google Fonts, so Google never sees members' IP addresses).
+import "@fontsource-variable/figtree/wght.css";
+import "@fontsource-variable/figtree/wght-italic.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider, createRouter } from "@tanstack/react-router";

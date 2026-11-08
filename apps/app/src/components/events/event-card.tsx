@@ -19,7 +19,7 @@ import { ImportedCardFooter, ImportedChips } from "./imported-source";
  *
  * Imported listings (kind "imported") have no Going button: they show where they came from, the
  * source's chip and "Open to the public" where the source says so, a "Register at source" link
- * out, a "Request removal" email and, for Georgia State sources, the not-affiliated line
+ * out (the event page has "Request removal") and, for organization sources, the not-affiliated line
  * (D-014, D-022, D-037). `importLabel` comes from imported_event_labels(). The distance is a band from
  * feed_events_v2, never a number; an approved-only address reads "Approximate area".
  */

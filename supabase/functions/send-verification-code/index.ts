@@ -24,6 +24,9 @@
 //   403 { error: 'user_not_found' }               no active profile for the token's user
 //   422 { error: 'domain_not_recognized' }        not a campus email we know yet
 //   429 { error: 'too_many_sends' }               one a minute, three an hour
+//   503 { error: 'email_budget' }                 migration 77: the account-wide daily or monthly
+//                                                 email budget is used up (email_budget_take); try
+//                                                 again tomorrow
 //   502 { error: 'send_failed' }                  Resend refused; the code exists, ask again in a minute
 //   500 { error: 'misconfigured' | 'rpc_failed' }
 //
@@ -31,6 +34,7 @@
 // are injected by Supabase; RESEND_API_KEY is a project secret); nothing is read from code.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
+import { disclaimerFor, subjectFor } from "./copy.ts";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -39,7 +43,6 @@ const CORS_HEADERS = {
 };
 
 const FROM = "Activity Planet <hello@activityplanet.app>";
-const SUBJECT = "Your campus verification code";
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 function json(body: unknown, status = 200): Response {
@@ -73,14 +76,14 @@ function codeEmail(code: string, orgName: string): { text: string; html: string 
     "",
     "If you didn't ask for this, you can ignore this email; nothing changes without the code.",
     "",
-    "Activity Planet · Not affiliated with or endorsed by Georgia State University.",
+    disclaimerFor(orgName),
   ].join("\n");
   const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#ffffff;color:#0e0f11;font-family:Figtree,-apple-system,Segoe UI,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5">
 <p style="margin:0 0 16px">Your Activity Planet verification code is</p>
 <p style="margin:0 0 16px;font-size:40px;font-weight:800;letter-spacing:0.2em;font-variant-numeric:tabular-nums">${code}</p>
 <p style="margin:0 0 16px">Enter it in the app to verify your ${escapeHtml(orgName)} email. The code works for <strong>15 minutes</strong>.</p>
 <p style="margin:0 0 16px;color:#5b5f66">If you didn't ask for this, you can ignore this email; nothing changes without the code.</p>
-<p style="margin:0;color:#8a8f98;font-size:13px">Activity Planet · Not affiliated with or endorsed by Georgia State University.</p>
+<p style="margin:0;color:#8a8f98;font-size:13px">${escapeHtml(disclaimerFor(orgName))}</p>
 </body></html>`;
   return { text, html };
 }
@@ -91,12 +94,12 @@ function alreadyVerifiedEmail(orgName: string): { text: string; html: string } {
     "",
     `If that was you, sign in to the account that verified your ${orgName} email. If it wasn't, you can ignore this email; no code was sent and nothing changes.`,
     "",
-    "Activity Planet · Not affiliated with or endorsed by Georgia State University.",
+    disclaimerFor(orgName),
   ].join("\n");
   const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#ffffff;color:#0e0f11;font-family:Figtree,-apple-system,Segoe UI,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5">
 <p style="margin:0 0 16px">Someone asked to verify this email address on Activity Planet, but it is already linked to an account.</p>
 <p style="margin:0 0 16px">If that was you, sign in to the account that verified your ${escapeHtml(orgName)} email. If it wasn't, you can ignore this email; no code was sent and nothing changes.</p>
-<p style="margin:0;color:#8a8f98;font-size:13px">Activity Planet · Not affiliated with or endorsed by Georgia State University.</p>
+<p style="margin:0;color:#8a8f98;font-size:13px">${escapeHtml(disclaimerFor(orgName))}</p>
 </body></html>`;
   return { text, html };
 }
@@ -104,6 +107,7 @@ function alreadyVerifiedEmail(orgName: string): { text: string; html: string } {
 async function sendWithResend(
   apiKey: string,
   to: string,
+  subject: string,
   body: { text: string; html: string },
 ): Promise<boolean> {
   const res = await fetch("https://api.resend.com/emails", {
@@ -112,13 +116,23 @@ async function sendWithResend(
     body: JSON.stringify({
       from: FROM,
       to: [to],
-      subject: SUBJECT,
+      subject,
       text: body.text,
       html: body.html,
     }),
   });
   if (!res.ok) {
-    console.error(`resend refused the email: ${res.status} ${await res.text().catch(() => "")}`);
+    // Status and error name only: Resend's body can echo the address (the logs are public).
+    let name = "unknown";
+    try {
+      const body: unknown = await res.json();
+      if (body && typeof body === "object" && "name" in body && typeof body.name === "string") {
+        name = body.name.replace(/[^a-z_]/gi, "").slice(0, 40);
+      }
+    } catch {
+      /* not JSON */
+    }
+    console.error(`resend refused the email: ${res.status} ${name}`);
     return false;
   }
   return true;
@@ -192,16 +206,34 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   // Linked to another account (no code): tell only the address owner, by email, and answer
   // exactly as for a fresh code so the caller cannot tell the two apart.
+  // Migration 77: every email counts against the account-wide budget, which keeps a reserve for
+  // sign-up and password email; past it nothing is sent.
+  async function budgetAllows(): Promise<boolean> {
+    if (!resendKey) return true;
+    const { data: ok, error: budgetError } = await admin.rpc("email_budget_take", {
+      p_source: "verification",
+      p_n: 1,
+    });
+    return !budgetError && ok === true;
+  }
+  const subject = subjectFor(result.org_name);
+
   if (!result.code) {
-    if (resendKey) {
-      await sendWithResend(resendKey, email, alreadyVerifiedEmail(result.org_name));
+    if (resendKey && (await budgetAllows())) {
+      await sendWithResend(resendKey, email, subject, alreadyVerifiedEmail(result.org_name));
     } else {
       console.log(`RESEND_API_KEY not set: already-linked notice not emailed for user ${userId}`);
     }
     return json({ status: "sent", expires_at: result.expires_at });
   }
   if (resendKey) {
-    const sent = await sendWithResend(resendKey, email, codeEmail(result.code, result.org_name));
+    if (!(await budgetAllows())) return json({ error: "email_budget" }, 503);
+    const sent = await sendWithResend(
+      resendKey,
+      email,
+      subject,
+      codeEmail(result.code, result.org_name),
+    );
     if (!sent) return json({ error: "send_failed" }, 502);
   } else {
     // Staging: no mail provider yet. Never log the code; the developer reads one from the

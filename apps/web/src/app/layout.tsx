@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+import { SiteFooter } from "@/components/site-footer";
 import { siteUrl } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -26,7 +27,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-dvh antialiased">{children}</body>
+      <body className="min-h-dvh antialiased">
+        {children}
+        <SiteFooter />
+      </body>
     </html>
   );
 }

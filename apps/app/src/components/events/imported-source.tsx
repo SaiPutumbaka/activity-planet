@@ -176,8 +176,9 @@ export function ImportedCardFooter({
   return (
     <div className="mt-1 flex flex-col gap-1">
       <p className="text-[13px] text-text-2">{listedByLine(source, label?.host_org)}</p>
-      <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <RequestRemovalLink event={event} className="relative z-[2]" />
+      {/* Launch audit L22: "Request removal" lives on the event page (ImportedSourceSection),
+          not as a main action on every card. */}
+      <div className="flex min-h-11 flex-wrap items-center justify-end gap-x-3 gap-y-1">
         {event.external_url ? (
           <RegisterAtSource
             url={event.external_url}

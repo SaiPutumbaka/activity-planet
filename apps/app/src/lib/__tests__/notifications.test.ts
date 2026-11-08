@@ -373,3 +373,38 @@ describe("coaching notifications (migration 60)", () => {
     ).toBe("Ana asked to book Tennis");
   });
 });
+
+describe("moderator alerts (migration 77)", () => {
+  it("names the queue and opens it", () => {
+    const cs = item("report_new", { event_id: null, payload: parsePayload({ priority: 0 }) });
+    expect(notificationCopy(cs, NOW).title).toBe("New child-safety report");
+    expect(notificationLink(cs)).toEqual({ to: "/admin/reports" });
+    const td = item("takedown_new", {
+      event_id: null,
+      payload: parsePayload({ queue: "ncii", minor: true }),
+    });
+    expect(notificationCopy(td, NOW).title).toContain("may show a minor");
+    expect(notificationLink(td)).toEqual({ to: "/admin/takedowns" });
+    const due = item("moderation_due", {
+      event_id: null,
+      payload: parsePayload({ reports_overdue: 2, takedowns_due: 1, images_waiting: 0 }),
+    });
+    expect(notificationCopy(due, NOW).body).toBe(
+      "2 reports overdue. 1 takedowns due within 4 hours",
+    );
+    expect(notificationLink(due)).toEqual({ to: "/admin" });
+  });
+
+  it("reads the alert name, so collector and ops alerts have a body", () => {
+    const ops = item("ops_alert", {
+      event_id: null,
+      payload: parsePayload({ alert: "no_upcoming_events" }),
+    });
+    expect(notificationCopy(ops, NOW).body).toContain("no upcoming plans");
+    const col = item("collector_alert", {
+      event_id: null,
+      payload: parsePayload({ alert: "sources_stale" }),
+    });
+    expect(notificationCopy(col, NOW).body).toContain("not read");
+  });
+});

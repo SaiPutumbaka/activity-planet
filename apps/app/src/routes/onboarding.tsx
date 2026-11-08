@@ -3,6 +3,7 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Mark } from "@ap/ui/brand";
 import { deviceTimeZone } from "@ap/core/feed";
+import { LEGAL_VERSIONS } from "@ap/core/site";
 import { ageOn } from "@ap/core/validation";
 
 import {
@@ -13,6 +14,7 @@ import {
   LocationStep,
   UnderageScreen,
 } from "@/components/onboarding/steps";
+import { ageBlocked, closeUnderageAccount } from "@/lib/age-gate";
 import { authErrorMessage, getSession, rpcErrorMessage, signOut } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import {
@@ -70,7 +72,9 @@ function OnboardingPage() {
   const navigate = useNavigate();
 
   const [step, setStep] = useState<Step>("birthday");
-  const [underage, setUnderage] = useState(false);
+  // Launch audit M8: a block entered on this device holds across reloads and Back.
+  const [underage, setUnderage] = useState(() => ageBlocked());
+  const [closed, setClosed] = useState(false);
   const [birthDate, setBirthDate] = useState("");
   const [firstName, setFirstName] = useState(profile.first_name);
   const [handle, setHandle] = useState("");
@@ -94,6 +98,22 @@ function OnboardingPage() {
     }
   }
 
+  /** Under 18: remember it here and close the account (no profile or email is kept). */
+  async function blockUnderage() {
+    setUnderage(true);
+    const ok = await closeUnderageAccount().catch(() => false);
+    setClosed(ok);
+  }
+
+  async function onUnderageSignOut() {
+    if (closed) {
+      clearFeedLocation();
+      await navigate({ to: "/auth/sign-in", replace: true });
+      return;
+    }
+    await onSignOut();
+  }
+
   async function finish(chosenCampus: string | null) {
     setCampusId(chosenCampus);
     setSubmitting(chosenCampus ? "finish" : "skip");
@@ -115,7 +135,7 @@ function OnboardingPage() {
     if (error) {
       const message = rpcErrorMessage(error);
       if (message.includes("18 and over")) {
-        setUnderage(true);
+        await blockUnderage();
         return;
       }
       const locationCode = LOCATION_ERRORS.find((code) => message.includes(code));
@@ -134,6 +154,13 @@ function OnboardingPage() {
       return;
     }
     queryClient.setQueryData(profileQuery(session.user.id).queryKey, data);
+    // Launch audit H7: which Terms and Privacy Policy versions were accepted, and when.
+    const accept = () =>
+      supabase.rpc("accept_legal_terms", {
+        p_terms: LEGAL_VERSIONS.terms,
+        p_privacy: LEGAL_VERSIONS.privacy,
+      });
+    if ((await accept()).error) await accept(); // one retry; the account works either way
     // The device's zone for Today / This week (D-040); best effort, Home saves it again if missing.
     const zone = deviceTimeZone();
     if (zone) await setMyTimezone(zone).catch(() => undefined);
@@ -190,11 +217,11 @@ function OnboardingPage() {
 
       <main className="flex flex-1 flex-col">
         {underage ? (
-          <UnderageScreen onSignOut={onSignOut} signingOut={signingOut} />
+          <UnderageScreen onSignOut={onUnderageSignOut} signingOut={signingOut} />
         ) : step === "birthday" ? (
           <BirthdayStep
             initial={birthDate}
-            onUnderage={() => setUnderage(true)}
+            onUnderage={() => void blockUnderage()}
             onContinue={(d) => {
               setBirthDate(d);
               setStep("about");
