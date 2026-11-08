@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode, SVGProps } from "react";
 import { googleCalendarUrl } from "@ap/core/calendar";
+import { ticketSeller } from "@ap/core/imports";
 import { DefaultCover, Mark } from "@ap/ui/brand";
 
 import {
@@ -170,6 +171,8 @@ export default async function EventSharePage({ params }: Props) {
               <p className="truncate text-[13px] text-text-2">Hosting · @{card.host.handle}</p>
             </div>
           </section>
+        ) : card.kind === "imported" ? (
+          <ImportedSource card={card} />
         ) : card.source_attribution?.trim() ? (
           <p className="text-[13px] text-text-2">{card.source_attribution.trim()}</p>
         ) : card.source_name ? (
@@ -208,6 +211,52 @@ export default async function EventSharePage({ params }: Props) {
         </section>
       </div>
     </Frame>
+  );
+}
+
+/**
+ * Where an imported listing came from (D-004, D-040, D-042 slice 10), as the app's event page
+ * shows it: the source's attribution (an open-data licence line, for example), the link out to
+ * the source ("Tickets on <seller>" for a ticketing source), the seller's credit linking to its
+ * homepage wherever the seller's data appears, and "Request removal".
+ */
+function ImportedSource({ card }: { card: EventShareCard }) {
+  const seller = ticketSeller(card.source_kind);
+  const source = card.source_name?.trim() || seller?.name || "the organizer";
+  const attribution = card.source_attribution?.trim();
+  const link =
+    card.external_url && /^https?:\/\//i.test(card.external_url) ? card.external_url : null;
+  const quiet =
+    "inline-flex min-h-11 items-center self-start text-[13px] font-semibold text-text-2 underline underline-offset-2 hover:text-text";
+  return (
+    <section className="flex flex-col gap-1.5">
+      <p className="text-[13px] text-text-2">{attribution || `Listed from ${source}.`}</p>
+      <p className="text-[13px] text-text-2">
+        {seller
+          ? `Activity Planet doesn't sell tickets: details can change, so check them and buy on ${seller.name}.`
+          : "Activity Planet isn't the organizer: details can change, so check and sign up on the source's page."}
+      </p>
+      {link ? (
+        <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-12 items-center justify-center rounded-control border border-border-strong px-5 text-[16px] font-semibold text-text hover:bg-surface-2"
+        >
+          {seller?.linkLabel ?? "Register at source"}
+          <span className="sr-only"> on {source} (opens in a new tab)</span>
+        </a>
+      ) : null}
+      {seller ? (
+        <a href={seller.homeUrl} target="_blank" rel="noopener noreferrer" className={quiet}>
+          {seller.credit}
+          <span className="sr-only"> (opens {seller.name} in a new tab)</span>
+        </a>
+      ) : null}
+      <Link href={`/bot/remove?event=${encodeURIComponent(card.id)}`} className={quiet}>
+        Request removal
+      </Link>
+    </section>
   );
 }
 

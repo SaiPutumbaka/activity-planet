@@ -110,19 +110,21 @@ await r.step("the photo button shows while chat images are on", async () => {
 });
 
 let before = 0;
+let aPendingBefore = 0;
+const pendingLabels = (page) => history(page).getByText("Photo is being checked");
 await r.step("A sends a plain landscape photo; A sees it as being checked", async () => {
   await pb.goto(`${env.base}${convPath}`);
   await composer(pb).waitFor({ timeout: 20000 });
   before = await history(pb).getByRole("img", { name: "Photo" }).count();
+  aPendingBefore = await pendingLabels(pa).count();
   await pa.locator('input[type="file"][accept="image/*"]').setInputFiles({
     name: "landscape.jpg",
     mimeType: "image/jpeg",
     buffer: await landscapeJpeg(),
   });
   // The pending label shows on A's own copy until both checks pass (it can clear quickly).
-  const pending = await history(pa)
-    .getByText("Photo is being checked")
-    .first()
+  const pending = await pendingLabels(pa)
+    .nth(aPendingBefore)
     .waitFor({ timeout: 20000 })
     .then(() => true)
     .catch(() => false);
@@ -131,13 +133,27 @@ await r.step("A sends a plain landscape photo; A sees it as being checked", asyn
     console.log("NOTE chat-images / pending: the verdict came before the label was seen");
 });
 
-await r.step("B does not see it before the verdict, then sees it once it passes", async () => {
-  // Right after sending, B's history holds no new photo (never shown unchecked).
+await r.step("B does not see it while it is being checked", async () => {
+  // B looks first, then A's copy is read again: when A's copy is still labelled after B's look,
+  // B's look happened before the verdict, so B must not have had the new photo. When the verdict
+  // came first nothing is proven and the step fails as inconclusive (run the flow again).
   await pb.reload();
   await composer(pb).waitFor({ timeout: 20000 });
   const early = await history(pb).getByRole("img", { name: "Photo" }).count();
+  await pa.reload();
+  await composer(pa).waitFor({ timeout: 20000 });
+  await history(pa).getByRole("listitem").first().waitFor({ timeout: 20000 });
+  const stillPending = (await pendingLabels(pa).count()) > aPendingBefore;
+  if (stillPending && early > before)
+    throw new Error("B saw the new photo while A's copy was still being checked");
+  if (!stillPending)
+    throw new Error("inconclusive: the verdict came before B's first look; run the flow again");
+  await shot(pb, "chatimg-03a-recipient-pending");
+});
+
+await r.step("B sees it once it passes", async () => {
   const t0 = Date.now();
-  let now = early;
+  let now = before;
   while (now <= before && Date.now() - t0 < VERDICT_MS) {
     await pb.waitForTimeout(10000);
     await pb.reload();
@@ -151,8 +167,7 @@ await r.step("B does not see it before the verdict, then sees it once it passes"
     throw new Error(`no visible photo for B after ${VERDICT_MS / 1000}s (labels: ${label})`);
   }
   console.log(
-    `NOTE chat-images / verdict: visible for B after about ${Math.round((Date.now() - t0) / 1000)}s` +
-      (early > before ? " (already on the first look)" : ""),
+    `NOTE chat-images / verdict: visible for B after about ${Math.round((Date.now() - t0) / 1000)}s`,
   );
   await history(pb).getByRole("img", { name: "Photo" }).first().scrollIntoViewIfNeeded();
   await shot(pb, "chatimg-03-recipient-visible");

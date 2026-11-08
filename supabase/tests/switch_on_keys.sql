@@ -7,7 +7,7 @@
 --   1 Static: schema_version 2.70 or later; meta.chat_images on and
 --     private.chat_images_enabled() true; meta.collector_enable_on_create
 --     lists ticketmaster, seatgeek and calgary-city-events; the trigger
---     exists; the private helpers are not callable by anon or authenticated;
+--     exists (until migration 75 dropped it); the private helpers are not callable by anon or authenticated;
 --     event_share_card stays callable by anon.
 --   2 Enable on create: through collector_ingest_events with p_enable false
 --     (production's call), a new ticketmaster row and a new row whose slug is
@@ -42,21 +42,22 @@ begin
   if v_tokens is null or not (v_tokens @> array['ticketmaster', 'seatgeek', 'calgary-city-events']) then
     raise exception 'FAIL 1 collector_enable_on_create does not list the approved sources';
   end if;
-  if not exists (select 1 from pg_trigger where tgname = 'feed_sources_enable_on_create'
-                  and tgrelid = 'public.feed_sources'::regclass and not tgisinternal) then
+  -- Migration 75 moved enable-on-create into collector_ingest_events and dropped the trigger.
+  if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 71]
+     and not exists (select 1 from pg_trigger where tgname = 'feed_sources_enable_on_create'
+                      and tgrelid = 'public.feed_sources'::regclass and not tgisinternal) then
     raise exception 'FAIL 1 trigger feed_sources_enable_on_create missing';
   end if;
   if has_function_privilege('anon', 'private.collector_enable_on_create(text,text)', 'execute')
-     or has_function_privilege('authenticated', 'private.collector_enable_on_create(text,text)', 'execute')
-     or has_function_privilege('authenticated', 'private.feed_sources_enable_on_create()', 'execute') then
+     or has_function_privilege('authenticated', 'private.collector_enable_on_create(text,text)', 'execute') then
     raise exception 'FAIL 1 private helper grants';
   end if;
   if not has_function_privilege('anon', 'public.event_share_card(uuid)', 'execute') then
     raise exception 'FAIL 1 event_share_card is not callable by anon';
   end if;
-  if not (select p.prosecdef from pg_proc p where p.oid = 'private.feed_sources_enable_on_create()'::regprocedure)
-     or (select p.proconfig from pg_proc p where p.oid = 'private.feed_sources_enable_on_create()'::regprocedure)
-        is distinct from array['search_path=""'] then
+  -- Gone since migration 75; checked only while it exists.
+  if exists (select 1 from pg_proc p where p.oid = to_regprocedure('private.feed_sources_enable_on_create()')
+              and (not p.prosecdef or p.proconfig is distinct from array['search_path=""'])) then
     raise exception 'FAIL 1 trigger function is not definer with an empty search_path';
   end if;
   insert into sok_lines (line) values ('static: ok');

@@ -80,3 +80,4 @@ chat_image_classifier.sql
 chat_image_evidence.sql
 chat_image_evidence_fixes.sql
 switch_on_keys.sql
+switch_on_review_fixes.sql

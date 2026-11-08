@@ -33,6 +33,8 @@ const shareCardSchema = z.object({
   source_name: z.string().nullable(),
   /** Migration 74: the listing source's attribution (open-data licence lines); older servers omit it. */
   source_attribution: z.string().nullable().optional(),
+  /** Migration 75: the listing source's kind (ticketmaster, seatgeek, ...); older servers omit it. */
+  source_kind: z.string().nullable().optional(),
   series_id: z.string().nullable(),
   hub: z.object({
     id: z.string(),
