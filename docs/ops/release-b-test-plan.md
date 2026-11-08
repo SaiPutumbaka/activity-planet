@@ -211,6 +211,25 @@ Fixed during the pass:
 4. **places-files failed on a run with no tile to build** (production, Nov 6 and 7), so
    `gh-pages` was never created. It now publishes the rules and the manifest on such a run (checked on staging with an empty queue, places-files run on `main-r1pc3k`).
 
+Review fixes after the pass (migration 75, `20270107000100_switch_on_review_fixes.sql`, schema
+2.71; migrate 42495583991: `switch_on_review_fixes.sql` and the full regression suite passed):
+
+5. **Ticketing terms on the public share page.** `/e/<id>` for an imported item now shows the
+   source's attribution, "Tickets on Ticketmaster/SeatGeek" (or "Register at source") linking to
+   the listing, the seller's credit ("Powered by SeatGeek", "Event data from Ticketmaster")
+   linking to the seller's homepage, and "Request removal" (D-040). `event_share_card` returns
+   `source_kind` for it. Checked with a local build of the site against staging: a SeatGeek show
+   and a City of Calgary item.
+6. **Enable on create ignored a source's own off switch.** Migration 74's trigger could not tell
+   "off because production" from "off because the seed is off". `collector_ingest_events` now
+   decides at the insert (approved and the seed on); the trigger is gone.
+7. **12-chat-images proved less than the Chat photos row says.** If B already saw the photo on
+   the first look, the step passed anyway. B's look is now checked while A's copy is still
+   labelled, and a verdict before that look fails the step as inconclusive. The Chat photos row
+   above comes from the earlier version of the flow (the photo became visible to B after about
+   21 s, so B's first look came before the verdict, but the flow did not assert it); re-run the
+   new flow to record it (no QA credentials in the review session).
+
 Notes for later passes: since `COLLECTOR_PRODUCTION` is on, the nightly collector reads its regions
 from production, so staging's regions are collected only by a run on a branch (`region: due`).
 The Map canvas did not load in the container (the tile host is blocked); the shows were checked in
