@@ -76,7 +76,7 @@ jobs:
       - name: Dump roles, schema and data
         if: steps.cfg.outputs.ready == 'true'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
         run: |
           set -euo pipefail
@@ -96,7 +96,7 @@ jobs:
       - name: Copy the Storage buckets
         if: steps.cfg.outputs.ready == 'true'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -euo pipefail
           dir="$RUNNER_TEMP/ap-backup/storage"
@@ -107,21 +107,41 @@ jobs:
             echo "bucket $b: $(find "$dir/$b" -type f | wc -l) files"
           done
 
+      # The restore target is a fresh, empty Supabase stack started in an empty directory (like a
+      # new project: Supabase's own auth and storage schemas, none of ours). Starting it in the
+      # checkout would apply every migration and the seed first, so the first "already exists"
+      # in schema.sql would stop the restore (launch audit follow-up). On failure it prints only
+      # where it stopped: the file and line, and the error text for roles.sql and schema.sql
+      # (schema, never rows). For data.sql only the line number is printed (rows stay hidden).
       - name: Restore into a throwaway local database (pass or fail only)
         if: steps.cfg.outputs.ready == 'true' && inputs.verify_restore == true
         run: |
           set -uo pipefail
           dir="$RUNNER_TEMP/ap-backup"
-          supabase start -x realtime,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor --ignore-health-check > /dev/null 2>&1
+          work="$RUNNER_TEMP/ap-restore"
+          rm -rf "$work"; mkdir -p "$work"; cd "$work"
+          supabase init > /dev/null 2>&1 || { echo "::error::RESTORE FAIL (supabase init)"; exit 1; }
+          supabase start -x realtime,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor --ignore-health-check > /dev/null 2>&1 \
+            || { echo "::error::RESTORE FAIL (the empty local stack did not start)"; exit 1; }
           url="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          log="$RUNNER_TEMP/ap-restore.log"
           if psql "$url" --single-transaction --variable ON_ERROR_STOP=1 --quiet \
                --file "$dir/roles.sql" --file "$dir/schema.sql" \
-               --command 'SET session_replication_role = replica' --file "$dir/data.sql" > /dev/null 2>&1; then
+               --command 'SET session_replication_role = replica' --file "$dir/data.sql" > /dev/null 2> "$log"; then
             echo "RESTORE PASS"
+            ok=1
           else
-            echo "::error::RESTORE FAIL (output suppressed: it can contain data)"; exit 1
+            where=$(grep -m1 -o 'psql:[^:]*/\(roles\|schema\|data\)\.sql:[0-9]*' "$log" | sed 's|.*/||')
+            case "$where" in
+              roles.sql:*|schema.sql:*) msg=$(grep -m1 -o 'ERROR: .*' "$log" | cut -c1-200) ;;
+              *) msg="(error text hidden: it can contain row data)" ;;
+            esac
+            echo "::error::RESTORE FAIL at ${where:-unknown}: $msg"
+            ok=0
           fi
+          rm -f "$log"
           supabase stop --no-backup > /dev/null 2>&1 || true
+          [ "$ok" = 1 ]
 
       - name: Encrypt and upload to the private repository
         if: steps.cfg.outputs.ready == 'true'
@@ -147,4 +167,4 @@ jobs:
 
       - name: Clean up
         if: always()
-        run: rm -rf "$RUNNER_TEMP/ap-backup" "$RUNNER_TEMP"/activity-planet-prod-*.age
+        run: rm -rf "$RUNNER_TEMP/ap-backup" "$RUNNER_TEMP/ap-restore" "$RUNNER_TEMP/ap-restore.log" "$RUNNER_TEMP"/activity-planet-prod-*.age

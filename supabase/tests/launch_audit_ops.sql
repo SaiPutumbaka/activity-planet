@@ -122,6 +122,10 @@ begin
     on conflict (key) do update set value = excluded.value;
   insert into public.meta (key, value) values ('email_monthly_cap_total', '9999999')
     on conflict (key) do update set value = excluded.value;
+  -- Migration 79 keeps the staff reserve out of email_budget_take; launch_audit_followups.sql
+  -- checks the reserve itself.
+  insert into public.meta (key, value) values ('email_staff_reserve', '0')
+    on conflict (key) do update set value = excluded.value;
   if not public.email_budget_take('verification') then
     raise exception 'FAIL 2 the last email of the day was refused';
   end if;

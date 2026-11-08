@@ -117,8 +117,9 @@ export default function TermsPage() {
           You can message members you share a plan, group or chapter with; a first message to anyone
           else is a request they can accept or decline. Moderators can read a message when someone
           reports it, to decide the report. Photos you send in a chat get an automatic check by our
-          image-checking service before anyone sees them; when the check is unsure, unavailable or
-          over its monthly allowance, a moderator looks at the photo before it is shown, even if
+          image-checking service before anyone sees them; when the check is unsure or unavailable,
+          or a usage limit is reached (our monthly or daily allowance, or more than a few photos
+          from one person in a day), a moderator looks at the photo before it is shown, even if
           nobody reported it. A photo that breaks the Community Guidelines is not delivered.
         </p>
       </Section>

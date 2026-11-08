@@ -23,7 +23,19 @@ name: Migrate database then deploy
 # installs that exact version from npm, falling back to the GitHub release asset.
 #
 # Secrets (all set 2026-10-27):
-#   SUPABASE_ACCESS_TOKEN        scoped personal access token for both projects. Needed scopes:
+#   Launch audit H5: one Supabase access token per project, never one for both.
+#   SUPABASE_STAGING_ACCESS_TOKEN repository secret: a token that can reach ONLY the staging
+#                                project. Every staging step, on any branch, uses this one.
+#   SUPABASE_PROD_ACCESS_TOKEN   secret of the `production` environment only (not a repository
+#                                secret): a token that can reach ONLY production. Only jobs that
+#                                run in that environment (main only, by its branch rule) see it.
+#   SUPABASE_ACCESS_TOKEN        legacy token for both projects. Every step still falls back to it
+#                                while the two above are missing, so H5 stays open until Sai
+#                                creates them and deletes this repository secret (FOUNDER-TODO 3).
+#                                The "check the token cannot reach production" step warns while
+#                                the staging token can read production, and fails once the split
+#                                token is set but still can.
+#   Each token needs these scopes on its own project:
 #                                Project Settings Read (link reads the project), API Keys Read and
 #                                API Key Secrets Read (link reveals the keys), Connection Pooling
 #                                Read (link saves the IPv4 pooler URL; GitHub runners have no IPv6
@@ -165,9 +177,26 @@ jobs:
         with:
           version: 2.122.0
 
+      - name: Staging, check the token cannot reach production (launch audit H5)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
+          SPLIT: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN != '' && 'yes' || '' }}
+        run: |
+          # HTTP status only; the response body is discarded.
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" "https://api.supabase.com/v1/projects/$PROD_PROJECT_REF" || true)
+          if [ "$code" = "200" ]; then
+            if [ -n "$SPLIT" ]; then
+              echo "::error::SUPABASE_STAGING_ACCESS_TOKEN can read the production project. Replace it with a staging-only token."
+              exit 1
+            fi
+            echo "::warning::Launch audit H5 is open: the token staging steps use can read production. Create SUPABASE_STAGING_ACCESS_TOKEN (staging only) and SUPABASE_PROD_ACCESS_TOKEN (production environment only), then delete the repository secret SUPABASE_ACCESS_TOKEN."
+          else
+            echo "The staging token cannot read production (HTTP $code)."
+          fi
+
       - name: Staging, link and list migrations
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
           supabase link --project-ref "$STAGING_PROJECT_REF"
@@ -175,14 +204,14 @@ jobs:
 
       - name: Staging, probe the Management API query path
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
           supabase db query --linked "select 1 as ok"
 
       - name: Staging, push migrations
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
           # --include-all: files older than the newest applied version are still pushed (a
@@ -199,7 +228,7 @@ jobs:
       # query endpoint. place_rules.sql (D-041, generated) needs the hubs, so it runs second.
       - name: Staging, seed hubs and place rules
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
           supabase db query --linked --file supabase/seed/hubs.sql
@@ -211,7 +240,7 @@ jobs:
       - name: Staging, deploy the requested functions
         if: inputs.staging_only == true && inputs.staging_functions != ''
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
           FUNCTIONS: ${{ inputs.staging_functions }}
         run: |
@@ -233,7 +262,7 @@ jobs:
       - name: Staging, run the requested file
         if: inputs.staging_file != ''
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
           STAGING_FILE: ${{ inputs.staging_file }}
         run: |
@@ -246,7 +275,7 @@ jobs:
       - name: Staging, run the regression suite
         if: inputs.staging_only == true && inputs.staging_tests == true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
           KEEP_GOING: ${{ inputs.staging_tests_keep_going == true && '1' || '' }}
         run: |
@@ -279,7 +308,7 @@ jobs:
       - name: Staging, import once
         if: inputs.staging_only == true && inputs.staging_import_now == true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
           supabase db query --linked "select public.import_dispatch_all() as requests"
@@ -293,7 +322,7 @@ jobs:
       - name: Staging, places fill once
         if: inputs.staging_only == true && inputs.staging_fill_now == true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
           supabase db query --linked "select public.places_fill_dispatch('check', true) as request"
@@ -307,7 +336,7 @@ jobs:
       - name: Staging, place match once
         if: inputs.staging_only == true && inputs.staging_match_now == true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
           supabase db query --linked "select public.place_match_dispatch(true) as request"
@@ -323,7 +352,7 @@ jobs:
       - name: Staging, image classify probe once
         if: inputs.staging_only == true && inputs.staging_classify_now == true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
           probe="00000000-0000-4000-8000-000000000000/00000000-0000-4000-8000-000000000000/00000000-0000-4000-8000-000000000071.jpg"
@@ -337,7 +366,7 @@ jobs:
       - name: Staging, print generated Database types
         if: inputs.staging_only == true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           echo "----- BEGIN database.ts -----"
           supabase gen types --linked --lang typescript --schema public
@@ -362,7 +391,7 @@ jobs:
       - name: Production, link and list migrations
         if: inputs.staging_only != true && github.ref == 'refs/heads/main'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
         run: |
           supabase link --project-ref "$PROD_PROJECT_REF"
@@ -371,7 +400,7 @@ jobs:
       - name: Production, probe the Management API query path
         if: inputs.staging_only != true && github.ref == 'refs/heads/main'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
         run: |
           supabase db query --linked "select 1 as ok"
@@ -379,7 +408,7 @@ jobs:
       - name: Production, push migrations
         if: inputs.staging_only != true && github.ref == 'refs/heads/main'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
         run: |
           supabase db push --linked --include-all --yes $DRY_RUN
@@ -390,7 +419,7 @@ jobs:
       - name: Production, seed hubs and place rules
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
         run: |
           supabase db query --linked --file supabase/seed/hubs.sql
@@ -404,7 +433,7 @@ jobs:
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy delete-account --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 
@@ -417,7 +446,7 @@ jobs:
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy send-verification-code --project-ref "$PROD_PROJECT_REF" --use-api
 
@@ -429,7 +458,7 @@ jobs:
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
         run: |
           supabase functions deploy import-feed --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
@@ -443,7 +472,7 @@ jobs:
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy collector --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 
@@ -455,7 +484,7 @@ jobs:
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy places-fill --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 
@@ -467,7 +496,7 @@ jobs:
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy place-files --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 
@@ -479,7 +508,7 @@ jobs:
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy image-guard --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 
@@ -493,7 +522,7 @@ jobs:
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy send-notifications --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 
@@ -509,7 +538,7 @@ jobs:
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy stripe-connect --project-ref "$PROD_PROJECT_REF" --use-api
 
@@ -518,7 +547,7 @@ jobs:
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy stripe-checkout --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 
@@ -527,7 +556,7 @@ jobs:
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy stripe-webhook --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 
@@ -541,7 +570,7 @@ jobs:
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy organizer-verify --project-ref "$PROD_PROJECT_REF" --use-api
 
@@ -550,7 +579,7 @@ jobs:
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy eventbrite-connect --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 
@@ -563,7 +592,7 @@ jobs:
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy recs-embed --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 
@@ -572,7 +601,7 @@ jobs:
         if: inputs.dry_run != true && inputs.staging_only != true && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase functions deploy weekly-scorecard --project-ref "$PROD_PROJECT_REF" --use-api --no-verify-jwt
 

@@ -102,7 +102,7 @@ jobs:
       - name: Link the target and read the collector secret
         if: steps.mode.outputs.target != 'none'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ steps.mode.outputs.target == 'production' && (secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) || (secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) }}
           SUPABASE_DB_PASSWORD: ${{ steps.mode.outputs.target == 'production' && secrets.SUPABASE_PROD_DB_PASSWORD || secrets.SUPABASE_STAGING_DB_PASSWORD }}
           PROJECT_REF: ${{ steps.mode.outputs.project_ref }}
         run: |
@@ -196,7 +196,7 @@ jobs:
           version: 2.122.0
       - name: Record the run
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ needs.build.outputs.target == 'production' && (secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) || (secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) }}
           SUPABASE_DB_PASSWORD: ${{ needs.build.outputs.target == 'production' && secrets.SUPABASE_PROD_DB_PASSWORD || secrets.SUPABASE_STAGING_DB_PASSWORD }}
           PROJECT_REF: ${{ needs.build.outputs.target == 'production' && env.PROD_PROJECT_REF || env.STAGING_PROJECT_REF }}
           PUBLISHED: ${{ needs.release.result == 'success' }}

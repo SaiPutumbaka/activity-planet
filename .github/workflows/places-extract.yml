@@ -209,7 +209,7 @@ jobs:
         if: steps.mode.outputs.post == 'true'
         id: link
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ steps.mode.outputs.target == 'production' && (secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) || (secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) }}
           SUPABASE_DB_PASSWORD: ${{ steps.mode.outputs.target == 'production' && secrets.SUPABASE_PROD_DB_PASSWORD || secrets.SUPABASE_STAGING_DB_PASSWORD }}
           PROJECT_REF: ${{ steps.mode.outputs.project_ref }}
         run: |
@@ -226,7 +226,7 @@ jobs:
         if: steps.mode.outputs.post == 'true'
         id: before
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ steps.mode.outputs.target == 'production' && (secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) || (secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) }}
         run: |
           out=$(supabase db query --linked "select 'DBBYTES:' || pg_database_size(current_database()) || ':' || pg_total_relation_size('public.places') as v")
           db=$(printf '%s' "$out" | grep -o 'DBBYTES:[0-9]*:[0-9]*' | head -1)
@@ -243,7 +243,7 @@ jobs:
       - name: Add wanted tiles (staging)
         if: steps.mode.outputs.post == 'true' && steps.mode.outputs.want != '' && steps.mode.outputs.target == 'staging'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ steps.mode.outputs.target == 'production' && (secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) || (secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) }}
           WANT: ${{ steps.mode.outputs.want }}
         run: |
           case "$WANT" in *[!0-9,]*) echo "bad want_tiles"; exit 1 ;; esac
@@ -338,7 +338,7 @@ jobs:
       - name: Previous counts
         if: steps.budget.outputs.tiles != '' && steps.mode.outputs.post == 'true'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ steps.mode.outputs.target == 'production' && (secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) || (secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) }}
           TILES: ${{ steps.budget.outputs.tiles }}
         run: |
           case "$TILES" in *[!0-9,]*) echo "bad tiles"; exit 1 ;; esac
@@ -486,7 +486,7 @@ jobs:
       - name: Database size after
         if: always() && steps.budget.outputs.tiles != '' && steps.mode.outputs.post == 'true'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ steps.mode.outputs.target == 'production' && (secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) || (secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) }}
           TILES: ${{ steps.budget.outputs.tiles }}
         run: |
           case "$TILES" in *[!0-9,]*) echo "bad tiles"; exit 1 ;; esac
@@ -500,7 +500,7 @@ jobs:
       - name: Record queue reasons
         if: always() && steps.mode.outputs.post == 'true' && steps.tiles.outputs.tiles != ''
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ steps.mode.outputs.target == 'production' && (secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) || (secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) }}
           TILES: ${{ steps.budget.outputs.tiles }}
         run: |
           python3 -I - <<'EOF'

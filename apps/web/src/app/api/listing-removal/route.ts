@@ -1,27 +1,17 @@
 import { createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
-import { clientIp, hostsOf, verifyTurnstile } from "@ap/core/turnstile";
+import { clientIp } from "@ap/core/turnstile";
 import {
   listingRemovalErrorCode,
   listingRemovalRpcArgs,
   parseListingRemoval,
 } from "@ap/core/validation";
 
-import { siteUrl } from "@/lib/site";
+import { turnstileFor } from "@/lib/turnstile";
 import { createServiceServerClient } from "@/lib/supabase-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-/** Turnstile, shared with the other public form (launch audit L9: fails closed in production
- * without its secret, and checks the answer's hostname). */
-function turnstile(token: unknown, ip: string | null) {
-  return verifyTurnstile(token, ip, {
-    secret: process.env.TURNSTILE_SECRET_KEY,
-    vercelEnv: process.env.VERCEL_ENV,
-    hostnames: hostsOf(siteUrl(), process.env.TURNSTILE_HOSTNAMES),
-  });
-}
 
 /**
  * POST /api/listing-removal: the public request to take down an imported listing or its whole
@@ -50,7 +40,7 @@ export async function POST(request: Request) {
 
   const ip = clientIp(request.headers);
   const token = (body as { turnstileToken?: unknown }).turnstileToken;
-  const verdict = await turnstile(token, ip);
+  const verdict = await turnstileFor(request, token, ip);
   if (verdict === "not_configured") {
     console.error("Turnstile: TURNSTILE_SECRET_KEY is not configured in production");
     return NextResponse.json({ error: "unavailable" }, { status: 503 });

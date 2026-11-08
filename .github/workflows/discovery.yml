@@ -132,7 +132,7 @@ jobs:
       # The secret is captured, never echoed; ::add-mask:: hides it if anything ever prints it.
       - name: Read the collector secret
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ steps.mode.outputs.production == 'true' && (secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) || (secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) }}
           PRODUCTION: ${{ steps.mode.outputs.production }}
           STAGING_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
           PROD_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}

@@ -191,7 +191,7 @@ jobs:
       # The secret is captured, never echoed; ::add-mask:: hides it if anything ever prints it.
       - name: Staging, read the collector secret
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
           supabase link --project-ref "$STAGING_PROJECT_REF" > /dev/null
@@ -206,9 +206,10 @@ jobs:
       - name: Production, read the collector secret
         if: steps.mode.outputs.production == 'true'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
           STAGING_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+          STAGING_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase link --project-ref "$PROD_PROJECT_REF" > /dev/null
           out=$(supabase db query --linked "select 'CSECRET:' || ds.decrypted_secret as v from vault.decrypted_secrets ds where ds.name = 'collector_secret'" 2>/dev/null || true)
@@ -219,7 +220,7 @@ jobs:
           echo "PROD_COLLECTOR_SECRET=$secret" >> "$GITHUB_ENV"
           echo "Production collector secret read (masked)."
           # Relink staging for the staging steps below.
-          SUPABASE_DB_PASSWORD="$STAGING_DB_PASSWORD" supabase link --project-ref "$STAGING_PROJECT_REF" > /dev/null
+          SUPABASE_ACCESS_TOKEN="$STAGING_ACCESS_TOKEN" SUPABASE_DB_PASSWORD="$STAGING_DB_PASSWORD" supabase link --project-ref "$STAGING_PROJECT_REF" > /dev/null
 
       # Counts and region ids only; the regions file (points) stays on the runner.
       - name: Regions, fetch
@@ -348,7 +349,7 @@ jobs:
       - name: Staging, counts by source and hub
         if: steps.mode.outputs.mode == 'city' || steps.regions.outputs.collector_regions != '0'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           supabase db query --linked --file supabase/tests/collector_ingest_counts.sql
 

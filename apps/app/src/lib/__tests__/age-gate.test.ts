@@ -7,7 +7,7 @@ vi.mock("../supabase", () => ({
   supabase: { rpc, functions: { invoke }, auth: { signOut } },
 }));
 
-const { AGE_BLOCK_KEY, ageBlocked, closeUnderageAccount, rememberAgeBlock } =
+const { AGE_BLOCK_KEY, AGE_BLOCK_MS, ageBlocked, closeUnderageAccount, rememberAgeBlock } =
   await import("../age-gate");
 
 function memory(): Storage {
@@ -23,12 +23,26 @@ function memory(): Storage {
 }
 
 describe("age gate", () => {
-  it("remembers a block as a flag only", () => {
+  it("remembers a block as an expiry time only, for one day", () => {
     const s = memory();
-    expect(ageBlocked(s)).toBe(false);
-    rememberAgeBlock(s);
-    expect(ageBlocked(s)).toBe(true);
-    expect(s.getItem(AGE_BLOCK_KEY)).toBe("1");
+    const now = 1_800_000_000_000;
+    expect(ageBlocked(s, now)).toBe(false);
+    rememberAgeBlock(s, now);
+    expect(ageBlocked(s, now)).toBe(true);
+    expect(s.getItem(AGE_BLOCK_KEY)).toBe(String(now + AGE_BLOCK_MS));
+    expect(ageBlocked(s, now + AGE_BLOCK_MS - 1)).toBe(true);
+    expect(ageBlocked(s, now + AGE_BLOCK_MS)).toBe(false);
+    expect(s.getItem(AGE_BLOCK_KEY)).toBeNull();
+  });
+
+  it("clears the old permanent flag and tampered values", () => {
+    const now = 1_800_000_000_000;
+    for (const v of ["1", "garbage", String(now + 10 * AGE_BLOCK_MS)]) {
+      const s = memory();
+      s.setItem(AGE_BLOCK_KEY, v);
+      expect(ageBlocked(s, now)).toBe(false);
+      expect(s.getItem(AGE_BLOCK_KEY)).toBeNull();
+    }
   });
 
   it("survives storage that throws", () => {

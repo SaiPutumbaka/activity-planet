@@ -84,3 +84,4 @@ switch_on_review_fixes.sql
 atlanta_calendars_production.sql
 launch_audit_ops.sql
 launch_audit_safety.sql
+launch_audit_followups.sql

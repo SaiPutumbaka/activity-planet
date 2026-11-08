@@ -101,7 +101,7 @@ export function UnderageScreen({
   return (
     <StepFrame
       title="Thanks for checking out Activity Planet"
-      body="Right now it's for people 18 and over, so we've closed this account and deleted what you entered. You can't sign up again from this device for now."
+      body="Right now it's for people 18 and over, so we've closed this account and deleted what you entered. You can't sign up again from this device until tomorrow."
       footer={
         <Button variant="secondary" size="lg" block loading={signingOut} onClick={onSignOut}>
           Sign out

@@ -93,14 +93,14 @@ jobs:
 
       - name: Link staging
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: supabase link --project-ref "$STAGING_PROJECT_REF" > /dev/null
 
       - name: Save the home point
         if: steps.in.outputs.step == 'home'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           TRIAL: ${{ steps.in.outputs.trial }}
         run: |
           python3 -I scripts/places/region_trial.py home-sql --trial "$TRIAL" > home.sql
@@ -111,7 +111,7 @@ jobs:
       - name: Report
         if: steps.in.outputs.step == 'report'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
           TRIAL: ${{ steps.in.outputs.trial }}
         run: |
           mkdir -p trial

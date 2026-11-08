@@ -87,7 +87,7 @@ jobs:
       - name: Read the collector secret
         if: steps.mode.outputs.run == 'true'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ matrix.target == 'production' && (secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) || (secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN) }}
           TARGET: ${{ matrix.target }}
           STAGING_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
           PROD_DB_PASSWORD: ${{ matrix.target == 'production' && secrets.SUPABASE_PROD_DB_PASSWORD || '' }}

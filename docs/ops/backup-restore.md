@@ -8,7 +8,7 @@ Every day at 03:41 UTC, from `main` only, under the `production` GitHub Environm
 
 1. `supabase db dump` three times: roles (`--role-only`), schema, data (`--data-only --use-copy`).
 2. Copies the Storage buckets `avatars`, `chat-images`, `chat-evidence` and `legal-hold` (database dumps never include files).
-3. Optionally (`verify_restore` on a manual run) restores the dump into a throwaway local database on the runner and prints `RESTORE PASS` or `RESTORE FAIL` only.
+3. Optionally (`verify_restore` on a manual run) restores the dump into a throwaway, empty local Supabase stack on the runner (started in an empty directory, so none of this repository's migrations or seeds are applied first) and prints `RESTORE PASS`, or `RESTORE FAIL` with where it stopped (file and line; the error text only for the roles and schema files, never for data).
 4. Packs everything, encrypts it with `age` to the public key in `vars.BACKUP_AGE_RECIPIENT`, and uploads only the encrypted file as a release asset of the private repository `vars.BACKUP_REPO`. The newest 30 releases are kept.
 
 Nothing readable reaches this public repository: every command that could print data writes to `/dev/null`, there are no workflow artifacts, and the plaintext is deleted from the runner before the job ends.

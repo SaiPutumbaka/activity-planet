@@ -42,7 +42,8 @@ begin
   if (select string_to_array(value, '.')::int[] from public.meta where key = 'schema_version') < array[2, 74] then
     raise exception 'FAIL 1 schema_version is older than 2.74';
   end if;
-  if not has_function_privilege('anon', 'public.event_owner_ok(uuid,uuid)', 'execute')
+  -- Migration 79 replaced event_owner_ok(hub, host) with event_owner_ok(event).
+  if not has_function_privilege('anon', 'public.event_owner_ok(uuid)', 'execute')
      or has_function_privilege('anon', 'public.export_my_data()', 'execute')
      or not has_function_privilege('authenticated', 'public.export_my_data()', 'execute')
      or has_function_privilege('anon', 'public.mod_copyright_strikes(uuid)', 'execute')

@@ -87,7 +87,7 @@ const PROCESSORS: [string, React.ReactNode][] = [
   ],
   [
     "Sightengine",
-    "Checks every photo sent in a chat before anyone sees it, for nudity, violence, hate symbols and similar content. Our servers send it the photo itself and nothing about you or the conversation; Sightengine returns scores and handles the photo under its own terms as our processor. When the check is unsure, unavailable or over its monthly allowance, a moderator looks at the photo instead.",
+    "Checks photos sent in a chat before anyone sees them, for nudity, violence, hate symbols and similar content. Our servers send it the photo itself and nothing about you or the conversation; Sightengine returns scores and handles the photo under its own terms as our processor. When the check is unsure or unavailable, or a usage limit is reached (our monthly or daily allowance, or more than a few photos from one person in a day), a moderator looks at the photo instead.",
   ],
   [
     "Cloudflare Turnstile",
@@ -214,7 +214,7 @@ export default function PrivacyPage() {
             ],
             [
               "Chat photos",
-              "Photos you send in a chat are stored privately, for the people in that conversation only. Each one is fingerprinted (a hash, to block images removed for abuse) and checked automatically by Sightengine before it is shown; when that check is unsure, unavailable or over its monthly allowance, a moderator looks at it first, even if nobody reported it. A photo is deleted when its message is deleted, when the conversation expires, or with your account. If a photo is reported, a copy is kept as evidence for the report (see the table below).",
+              "Photos you send in a chat are stored privately, for the people in that conversation only. Each one is fingerprinted (a hash, to block images removed for abuse) and checked before it is shown: automatically by Sightengine, or, when that check is unsure or unavailable or a usage limit is reached (our monthly or daily allowance, or more than a few photos from one person in a day), by a moderator first, even if nobody reported it. A photo is deleted when its message is deleted, when the conversation expires, or with your account. If a photo is reported, a copy is kept as evidence for the report (see the table below).",
             ],
             [
               "Your agreement",

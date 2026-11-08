@@ -161,6 +161,8 @@ export default defineConfig(({ mode }) => ({
   ],
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   server: { port: 3001 },
-  // Launch audit L11: source maps are built for debugging but not linked from the bundle.
-  build: { sourcemap: "hidden" },
+  // Launch audit L11: no source maps in the build. Vercel serves everything in dist, so a
+  // "hidden" map (no link comment) would still be public at /assets/*.js.map. Nothing uploads
+  // maps anywhere, so none are written; set this to true locally when debugging a build.
+  build: { sourcemap: false },
 }));
