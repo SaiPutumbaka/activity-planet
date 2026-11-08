@@ -142,6 +142,9 @@ begin
   perform set_config('test.e1', v_e::text, true);
   insert into public.rsvps (event_id, user_id, status) values (v_e, pg_temp.uid('a'), 'going');
 
+  -- Migration 78: a shared plan counts for messaging once the RSVP is a day old.
+  update public.rsvps set created_at = now() - interval '2 days' where event_id = v_e;
+
   -- e2: a and m1 to m4 checked in (people_you_met, all with the same starts_at).
   insert into public.events (hub_id, host_id, title, starts_at, ends_at, location_hint)
   values (v_hub, pg_temp.uid('b'), 'Review fixes check-in plan', now() + interval '3 days',
@@ -150,6 +153,9 @@ begin
   insert into public.rsvps (event_id, user_id, status, checked_in_at)
   select v_e, u, 'going', now()
     from unnest(array[pg_temp.uid('a'), pg_temp.uid('m1'), pg_temp.uid('m2'), pg_temp.uid('m3'), pg_temp.uid('m4')]) u;
+
+  -- Migration 78: a shared plan counts for messaging once the RSVP is a day old.
+  update public.rsvps set created_at = now() - interval '2 days' where event_id = v_e;
 
   -- 105 groups b owns with a in them, each with one unread message, all at now().
   for i in 1..105 loop

@@ -23,6 +23,10 @@
 -- ============================================================================
 begin;
 
+-- Migration 77: the account-wide email budget must not hide the rows under test.
+insert into public.meta (key, value) values ('email_daily_cap_total', '9999999'), ('email_monthly_cap_total', '9999999')
+  on conflict (key) do update set value = excluded.value;
+
 create function pg_temp.uid(p_name text) returns uuid language sql stable as $$
   select current_setting('test.' || p_name)::uuid;
 $$;
@@ -96,6 +100,9 @@ begin
   perform set_config('test.e1', v_e::text, true);
   insert into public.rsvps (event_id, user_id, status)
   select v_e, u, 'going' from unnest(array[pg_temp.uid('b'), pg_temp.uid('g'), pg_temp.uid('o'), pg_temp.uid('m2')]) u;
+
+  -- Migration 78: a shared plan counts for messaging once the RSVP is a day old.
+  update public.rsvps set created_at = now() - interval '2 days' where event_id = v_e;
   insert into public.blocks (blocker_id, blocked_id) values (pg_temp.uid('g'), pg_temp.uid('o'));
   insert into public.notification_prefs (user_id) values (pg_temp.uid('b')) on conflict do nothing;
   update public.notification_prefs set quiet_start = null, quiet_end = null where user_id = pg_temp.uid('b');

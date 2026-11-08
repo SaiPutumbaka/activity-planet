@@ -19,6 +19,10 @@
 -- ============================================================================
 begin;
 
+-- Migration 77: the account-wide email budget must not hide the rows under test.
+insert into public.meta (key, value) values ('email_daily_cap_total', '9999999'), ('email_monthly_cap_total', '9999999')
+  on conflict (key) do update set value = excluded.value;
+
 -- ---------------------------------------------------------------------------
 -- 1. Static
 -- ---------------------------------------------------------------------------

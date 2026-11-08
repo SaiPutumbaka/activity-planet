@@ -82,3 +82,5 @@ chat_image_evidence_fixes.sql
 switch_on_keys.sql
 switch_on_review_fixes.sql
 atlanta_calendars_production.sql
+launch_audit_ops.sql
+launch_audit_safety.sql

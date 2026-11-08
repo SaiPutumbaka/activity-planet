@@ -168,6 +168,9 @@ begin
   insert into public.rsvps (event_id, user_id, status)
   select v_e, u, 'going' from unnest(array[pg_temp.uid('a'), pg_temp.uid('b'), pg_temp.uid('k'), pg_temp.uid('y'),
                                            pg_temp.uid('f'), pg_temp.uid('p')]) u;
+
+  -- Migration 78: a shared plan counts for messaging once the RSVP is a day old.
+  update public.rsvps set created_at = now() - interval '2 days' where event_id = v_e;
   -- a, b and s in the hub; a and b for days, s for an hour.
   insert into public.hub_members (user_id, hub_id, joined_at)
   values (pg_temp.uid('a'), v_hub, now() - interval '3 days'), (pg_temp.uid('b'), v_hub, now() - interval '3 days'),
