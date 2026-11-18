@@ -1,0 +1,120 @@
+name: Supabase Auth settings
+
+# Launch audit H1, L3 and L18 (FOUNDER-TODO items 9 and 10), done with the Management API instead
+# of the dashboard. On production only, three fields of the project's Auth config are set and
+# nothing else (SMTP, email templates, providers and every other field are never sent):
+#   rate_limit_email_sent  20 emails an hour (the custom SMTP default is 30; Resend's free tier is
+#                          100 a day, shared with the notification worker)
+#   uri_allow_list         every localhost / 127.0.0.1 entry removed, the rest kept as they are
+#   site_url               https://app.activityplanet.app (the public app; the vercel.app host sits
+#                          behind Vercel Authentication, so links to it fail for members)
+# It GETs the current config first and PATCHes only the fields that differ, so a second run changes
+# nothing. Then it GETs again and fails unless all three hold. Staging is only read and reported.
+# Logs show counts and booleans only; the config (which holds SMTP settings) is written to a
+# private temporary file and deleted.
+#
+# Runs once when this file reaches main, and by hand (Run workflow) from main for production; on
+# any other branch only the staging report runs. Production uses SUPABASE_PROD_ACCESS_TOKEN (the
+# production environment) or, until the token split, SUPABASE_ACCESS_TOKEN. The token needs the
+# Auth Read-write scope on its project (Account, Access Tokens).
+
+on:
+  # Any branch: a push that changes this file runs the staging report; only main also runs the
+  # production job.
+  push:
+    paths:
+      - ".github/workflows/auth-config.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: auth-config
+  cancel-in-progress: false
+
+env:
+  STAGING_PROJECT_REF: gzrscndzzggxmcwnvvcq
+  PROD_PROJECT_REF: gtesfiqxqontescqpllo
+  TARGET_SITE_URL: https://app.activityplanet.app
+  TARGET_EMAIL_PER_HOUR: "20"
+
+jobs:
+  staging-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Staging, read the Auth config (no change)
+        env:
+          TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          f="$RUNNER_TEMP/auth.json"
+          code=$(curl -sS -o "$f" -w '%{http_code}' --max-time 30 \
+            -H "Authorization: Bearer $TOKEN" "https://api.supabase.com/v1/projects/$STAGING_PROJECT_REF/config/auth" || echo "000")
+          echo "staging GET HTTP $code"
+          if [ "$code" != 200 ]; then rm -f "$f"; echo "::warning::Could not read staging's Auth config (the token may lack Auth Read)."; exit 0; fi
+          jq -r --arg target "$TARGET_SITE_URL" '
+            (.uri_allow_list // "" | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))) as $l |
+            "staging: email per hour \(.rate_limit_email_sent // "unset")",
+            "staging: redirect entries \($l | length), localhost entries \($l | map(select(test("localhost|127\\.0\\.0\\.1"))) | length)",
+            "staging: site_url is localhost \((.site_url // "") | test("localhost|127\\.0\\.0\\.1")), equals the production app \((.site_url // "") == $target)"' "$f"
+          rm -f "$f"
+
+  production:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - name: Production, set the email rate limit, redirect list and Site URL
+        env:
+          TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          api="https://api.supabase.com/v1/projects/$PROD_PROJECT_REF/config/auth"
+          f="$RUNNER_TEMP/auth.json"; trap 'rm -f "$f" "$RUNNER_TEMP/patch.json"' EXIT
+          get() {
+            code=$(curl -sS -o "$f" -w '%{http_code}' --max-time 30 -H "Authorization: Bearer $TOKEN" "$api" || echo "000")
+            [ "$code" = 200 ] || { echo "::error::GET Auth config answered HTTP $code"; exit 1; }
+            for k in rate_limit_email_sent uri_allow_list site_url; do
+              jq -e --arg k "$k" 'has($k)' "$f" > /dev/null || { echo "::error::The Auth config has no $k field; nothing changed."; exit 1; }
+            done
+          }
+          # The three fields as they should be, computed from the current ones.
+          desired() {
+            jq -c --arg site "$TARGET_SITE_URL" --argjson rate "$TARGET_EMAIL_PER_HOUR" '
+              (.uri_allow_list // "" | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))) as $l |
+              {rate_limit_email_sent: $rate,
+               uri_allow_list: ($l | map(select(test("localhost|127\\.0\\.0\\.1") | not)) | join(",")),
+               site_url: $site}' "$f"
+          }
+          report() {
+            jq -r --arg target "$TARGET_SITE_URL" --arg when "$1" '
+              (.uri_allow_list // "" | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))) as $l |
+              "\($when): email per hour \(.rate_limit_email_sent // "unset"), redirect entries \($l | length), localhost entries \($l | map(select(test("localhost|127\\.0\\.0\\.1"))) | length), site_url is the production app \((.site_url // "") == $target)"' "$f"
+          }
+          get; report "before"
+          want=$(desired)
+          # Only the fields that differ go into the PATCH.
+          echo "$want" | jq -c --slurpfile cur "$f" '
+            ($cur[0]) as $c |
+            with_entries(select((.value | tostring) != (($c[.key] // "") | tostring)))' > "$RUNNER_TEMP/patch.json"
+          n=$(jq 'length' "$RUNNER_TEMP/patch.json")
+          echo "fields to change: $n ($(jq -r 'keys | join(", ")' "$RUNNER_TEMP/patch.json"))"
+          if [ "$n" -gt 0 ]; then
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 -X PATCH \
+              -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+              --data @"$RUNNER_TEMP/patch.json" "$api" || echo "000")
+            echo "PATCH HTTP $code"
+            case "$code" in 200|204) ;; *) echo "::error::PATCH failed (does the token have Auth Read-write?)"; exit 1 ;; esac
+          fi
+          get; report "after"
+          ok=$(jq -r --arg site "$TARGET_SITE_URL" --argjson rate "$TARGET_EMAIL_PER_HOUR" '
+            (.uri_allow_list // "" | split(",")) as $l |
+            ((.rate_limit_email_sent == $rate) and (.site_url == $site)
+             and ($l | map(select(test("localhost|127\\.0\\.0\\.1"))) | length) == 0)' "$f")
+          echo "all three hold: $ok"
+          [ "$ok" = true ]
