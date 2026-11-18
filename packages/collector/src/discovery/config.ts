@@ -27,16 +27,29 @@ export interface DiscoveryCaps {
 }
 
 export interface GateExpectation {
-  /** The hand-written seed id in the city file. */
+  /**
+   * The hand-written seed id in the city file, or `discovered:<site>` for a discovered source
+   * verified on staging (origin "discovered").
+   */
   seed: string;
-  /** Its site (siteOf of the seed's host): a probe result on this site counts as found. */
+  /** Its site (siteOf of the source's host): a probe result on this site counts as found. */
   site: string;
+  /** "discovered" for a source found by discovery itself, not a city-file seed. */
+  origin?: "seed" | "discovered";
+  /** For a discovered source: the runs that verified it. */
+  evidence?: string;
 }
 
 export interface DiscoveryConfig {
   caps: DiscoveryCaps;
   euGate: { enabled: boolean; countries: string[] };
-  gate: { city: string; required: number; expected: GateExpectation[] };
+  gate: {
+    city: string;
+    required: number;
+    expected: GateExpectation[];
+    /** Enabled city seeds left out: no OSM place or Wikidata venue links them. */
+    withoutCandidate?: GateExpectation[];
+  };
 }
 
 export const DISCOVERY_CONFIG_PATH = new URL("../../data/discovery.json", import.meta.url);
@@ -83,7 +96,22 @@ export function parseDiscoveryConfig(text: string): DiscoveryConfig {
     const o = (e ?? {}) as Record<string, unknown>;
     if (typeof o.seed !== "string" || typeof o.site !== "string")
       fail("gate.expected entries need seed and site");
+    if (o.origin !== undefined && o.origin !== "seed" && o.origin !== "discovered")
+      fail("gate.expected origin must be seed or discovered");
+    if (o.origin === "discovered" && (o.seed !== `discovered:${o.site}` || !o.evidence))
+      fail("a discovered gate source needs seed discovered:<site> and its evidence");
   }
+  const sites = (gate.expected as { site: string }[]).map((e) => e.site);
+  if (new Set(sites).size !== sites.length) fail("gate.expected sites must be distinct");
+  if (
+    gate.withoutCandidate !== undefined &&
+    (!Array.isArray(gate.withoutCandidate) ||
+      (gate.withoutCandidate as unknown[]).some((e) => {
+        const o = (e ?? {}) as Record<string, unknown>;
+        return typeof o.seed !== "string" || typeof o.site !== "string";
+      }))
+  )
+    fail("gate.withoutCandidate entries need seed and site");
   const req = gate.required;
   if (
     typeof req !== "number" ||

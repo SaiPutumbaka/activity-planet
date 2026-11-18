@@ -9,9 +9,11 @@ import {
 } from "@tanstack/react-query";
 import {
   CHAT_POLL_MS,
+  CHECKING_REFRESH_MS,
   MESSAGES_PAGE,
   TYPING_SEND_MS,
   TYPING_TTL_MS,
+  checkingImageSeqs,
   createMessagingApi,
   mergeMessages,
   subscribeConversation,
@@ -360,6 +362,26 @@ export function useConversationLive(
   );
   const typing = typingEnabled ? typingLine(typingNames(named, opts.members, userId, now)) : null;
   return { live, typing, notifyTyping };
+}
+
+/**
+ * Re-reads the viewer's own photos that are still being checked every CHECKING_REFRESH_MS while
+ * the tab is visible, so their "Photo is being checked" label clears once image-guard's verdict
+ * is stored even when the msg_update signal was missed (the poll fallback reads only newer
+ * messages). Stops as soon as no photo of theirs is being checked.
+ */
+export function useRefreshCheckingImages(conversationId: string, messages: readonly ChatMessage[]) {
+  const queryClient = useQueryClient();
+  const seqs = checkingImageSeqs(messages).join(",");
+  useEffect(() => {
+    if (!seqs) return;
+    const list = seqs.split(",").map(Number);
+    const t = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      for (const seq of list) void fetchNewer(queryClient, conversationId, seq).catch(() => {});
+    }, CHECKING_REFRESH_MS);
+    return () => window.clearInterval(t);
+  }, [conversationId, queryClient, seqs]);
 }
 
 /**

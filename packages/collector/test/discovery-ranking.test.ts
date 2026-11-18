@@ -102,6 +102,10 @@ describe("candidate ranking", () => {
       "piedmontpark.org",
       "atlantahistorycenter.com",
       "alliancetheatre.org",
+      // Discovered sources the gate expects since Nov 18 (they replace three seeds no place links).
+      "tuckerga.gov",
+      "brookhavenga.gov",
+      "lakecityga.net",
     ]) {
       ranks[site] = list.findIndex((c) => c.host === site) + 1;
       expect(ranks[site], site).toBeGreaterThan(0);

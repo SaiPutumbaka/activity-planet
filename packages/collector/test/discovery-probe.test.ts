@@ -21,7 +21,11 @@ import {
   type TileRow,
   tilesForRegion,
 } from "../src/discovery/candidates.ts";
-import { loadDiscoveryConfig, parseDiscoveryConfig } from "../src/discovery/config.ts";
+import {
+  DISCOVERY_CONFIG_PATH,
+  loadDiscoveryConfig,
+  parseDiscoveryConfig,
+} from "../src/discovery/config.ts";
 import { foundCalendar, gateReport, maxPerHost, probeAll } from "../src/discovery/discover.ts";
 import { candidateGate, euGated, zoneCountry } from "../src/discovery/eu.ts";
 import { guessedPaths, keywordsFor, keywordStrength } from "../src/discovery/keywords.ts";
@@ -80,16 +84,50 @@ const row = (
 ): TileRow => [ref, lng, lat, kind, name, [], null, null, null, website, tags];
 
 describe("discovery config", () => {
-  it("lists exactly the Atlanta seeds that are on today as the gate's expectations", () => {
+  it("lists the Atlanta seeds that are on today, as expectations or as unreachable, plus verified discovered sources", () => {
     const atl = loadCities().find((c) => c.region.id === cfg.gate.city)!;
     const on = atl.seeds.filter((s) => s.enabled !== false);
-    expect(cfg.gate.expected.map((e) => e.seed).sort()).toEqual(on.map((s) => s.id).sort());
-    for (const e of cfg.gate.expected) {
+    const seeds = cfg.gate.expected.filter((e) => e.origin !== "discovered");
+    const without = cfg.gate.withoutCandidate ?? [];
+    // Every enabled seed is either expected or listed as one no run from scratch can reach.
+    expect([...seeds, ...without].map((e) => e.seed).sort()).toEqual(on.map((s) => s.id).sort());
+    for (const e of [...seeds, ...without]) {
       const seed = on.find((s) => s.id === e.seed)!;
       expect(siteOf(hostOf(seed.url))).toBe(e.site);
     }
+    // Discovered sources are not city-file seeds (an enabled seed would be expected as a seed).
+    const seedSites = new Set(atl.seeds.map((s) => siteOf(hostOf(s.url))));
+    const discovered = cfg.gate.expected.filter((e) => e.origin === "discovered");
+    expect(discovered).toHaveLength(3);
+    for (const e of discovered) {
+      expect(seedSites.has(e.site), e.site).toBe(false);
+      expect(e.seed).toBe(`discovered:${e.site}`);
+      expect(e.evidence).toBeTruthy();
+    }
+    expect(without.map((e) => e.site).sort()).toEqual([
+      "artsatl.org",
+      "contradance.org",
+      "parkpride.org",
+    ]);
     expect(cfg.gate.expected).toHaveLength(9);
     expect(cfg.gate.required).toBe(6);
+    expect(cfg.caps.requestsPerHostPerProbe).toBe(8);
+  });
+
+  it("refuses a discovered gate source without its evidence or with a seed id of another site", () => {
+    const base = JSON.parse(readFileSync(DISCOVERY_CONFIG_PATH, "utf8")) as {
+      gate: { expected: Record<string, unknown>[] };
+    };
+    const bad1 = structuredClone(base);
+    delete bad1.gate.expected[8]!.evidence;
+    expect(() => parseDiscoveryConfig(JSON.stringify(bad1))).toThrow(/evidence/);
+    const bad2 = structuredClone(base);
+    bad2.gate.expected[8]!.seed = "discovered:other.org";
+    expect(() => parseDiscoveryConfig(JSON.stringify(bad2))).toThrow(/discovered/);
+    const bad3 = structuredClone(base);
+    bad3.gate.expected[7]!.site = bad3.gate.expected[8]!.site;
+    bad3.gate.expected[7]!.seed = `discovered:${String(bad3.gate.expected[8]!.site)}`;
+    expect(() => parseDiscoveryConfig(JSON.stringify(bad3))).toThrow(/distinct/);
   });
 
   it("keeps the EU gate's countries in step with source_discovery_allowed (migration 46)", () => {

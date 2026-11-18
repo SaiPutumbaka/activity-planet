@@ -91,6 +91,42 @@ describe("Ticketmaster anywhere", () => {
   });
 });
 
+// Nov 18 check of "exactly 715 upcoming" (Ticketmaster and SeatGeek, Nov 9): every production run
+// from Nov 9 to Nov 17 read Atlanta's last page short of the caps (Ticketmaster 4 of 5 pages, the
+// fourth 54 to 139 events; SeatGeek 7 or 8 of 10, the last 1 to 61), so neither set was cut. The
+// counts follow the 60-day window and 50 km radius. These pin that a read ending below the cap is
+// complete and one reaching it is a sample.
+describe("paging ends where the listing ends", () => {
+  it("Ticketmaster: the last page below the cap is complete, not a sample", () => {
+    const u = new URL(ticketmaster.firstUrl(ATL, window, "k"));
+    u.searchParams.set("page", "2");
+    const mid = ticketmaster.parse(tmBody([], 2, 4), u.toString());
+    expect(new URL(mid.next!).searchParams.get("page")).toBe("3");
+    u.searchParams.set("page", "3");
+    const last = ticketmaster.parse(tmBody([], 3, 4), u.toString());
+    expect(last.next).toBeNull();
+    expect(last.truncated).toBe(false);
+  });
+
+  it("SeatGeek: follows pages to the listing's total and marks only a capped read as a sample", () => {
+    const sgBody = (page: number, total: number) =>
+      JSON.stringify({ events: [], meta: { page, per_page: 100, total } });
+    const u = new URL(seatgeek.firstUrl(ATL, window, "k"));
+    expect(u.searchParams.get("per_page")).toBe("100");
+    u.searchParams.set("page", "7");
+    const seventh = seatgeek.parse(sgBody(7, 710), u.toString());
+    expect(new URL(seventh.next!).searchParams.get("page")).toBe("8");
+    u.searchParams.set("page", "8");
+    const last = seatgeek.parse(sgBody(8, 710), u.toString());
+    expect(last.next).toBeNull();
+    expect(last.truncated).toBe(false);
+    u.searchParams.set("page", "10");
+    const capped = seatgeek.parse(sgBody(10, 1500), u.toString());
+    expect(capped.next).toBeNull();
+    expect(capped.truncated).toBe(true);
+  });
+});
+
 describe("prices", () => {
   it("formats the lowest price in its currency", () => {
     expect(fromPrice(24.5, "USD")).toBe("From $25");

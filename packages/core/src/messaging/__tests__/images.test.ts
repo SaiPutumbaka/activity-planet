@@ -5,6 +5,7 @@ import {
   CHAT_IMAGE_MAX_SIDE,
   canAttachImages,
   chatImagePath,
+  checkingImageSeqs,
   fitWithin,
   imageLabel,
   imageLoadable,
@@ -93,5 +94,33 @@ describe("send with a photo", () => {
       p_client_id: img,
       p_body: "hi",
     });
+  });
+});
+
+describe("checkingImageSeqs", () => {
+  const m = (seq: number, state: string | null, mine = true, kind: "image" | "text" = "image") => ({
+    seq,
+    kind,
+    mine,
+    image: kind === "image" ? { state, path: null } : null,
+  });
+  it("lists only the viewer's own photos still being checked, oldest first", () => {
+    expect(
+      checkingImageSeqs([
+        m(9, "pending"),
+        m(3, "classifying"),
+        m(5, "visible"),
+        m(6, "queued", false),
+        m(7, null, true, "text"),
+        m(4, "queued"),
+        m(8, "blocked"),
+      ]),
+    ).toEqual([3, 4, 9]);
+  });
+  it("is empty once every photo has a verdict, and capped", () => {
+    expect(checkingImageSeqs([m(1, "visible"), m(2, "removed")])).toEqual([]);
+    expect(checkingImageSeqs([m(1, "pending"), m(2, "pending"), m(3, "pending")], 2)).toEqual([
+      1, 2,
+    ]);
   });
 });

@@ -3,9 +3,11 @@
 // once as "Photo is being checked"; B never sees it until image-guard's pHash check and the
 // Sightengine classifier pass, then it shows for both; B reports it, which files the evidence
 // row the next image-guard sweep copies into chat-evidence (checked on staging with counts, not
-// here). Needs the Sightengine keys on the project. Two accounts at 390x844; reuses the DM of
-// 07-messaging.mjs (a request is sent and accepted when there is none). Output names steps
-// only, never user rows.
+// here). Needs the Sightengine keys on the project. Two accounts at 390x844 (1280x800 with
+// E2E_VIEWPORT=desktop); reuses the DM of 07-messaging.mjs (a request is sent and accepted when
+// there is none). The photo carries a caption unique to the run and every check looks at that
+// bubble only. A's open copy must clear without a reload. Output names steps only, never user
+// rows.
 import {
   env,
   skipUnless,
@@ -109,23 +111,26 @@ await r.step("the photo button shows while chat images are on", async () => {
   await assertNoHorizontalScroll(pa, "conversation with the photo button");
 });
 
-let before = 0;
-let aPendingBefore = 0;
-const pendingLabels = (page) => history(page).getByText("Photo is being checked");
+// The new photo is found by its caption (unique to this run), never by counting photos: older
+// photos in the same DM render their <img> only once their signed URL loads, so a count taken
+// right after a reload can be short and make an old photo look new (the Nov 9 desktop failure).
+const caption = `Photo check ${stamp}`;
+const newBubble = (page) => history(page).getByRole("listitem").filter({ hasText: caption });
+const isPending = async (page) =>
+  (await newBubble(page).getByText("Photo is being checked").count()) > 0;
+
 await r.step("A sends a plain landscape photo; A sees it as being checked", async () => {
-  await pb.goto(`${env.base}${convPath}`);
-  await composer(pb).waitFor({ timeout: 20000 });
-  before = await history(pb).getByRole("img", { name: "Photo" }).count();
-  aPendingBefore = await pendingLabels(pa).count();
+  await composer(pa).fill(caption);
   await pa.locator('input[type="file"][accept="image/*"]').setInputFiles({
     name: "landscape.jpg",
     mimeType: "image/jpeg",
     buffer: await landscapeJpeg(),
   });
+  await newBubble(pa).first().waitFor({ timeout: 30000 });
   // The pending label shows on A's own copy until both checks pass (it can clear quickly).
-  const pending = await pendingLabels(pa)
-    .nth(aPendingBefore)
-    .waitFor({ timeout: 20000 })
+  const pending = await newBubble(pa)
+    .getByText("Photo is being checked")
+    .waitFor({ timeout: 5000 })
     .then(() => true)
     .catch(() => false);
   await shot(pa, "chatimg-02-sender-pending");
@@ -134,54 +139,59 @@ await r.step("A sends a plain landscape photo; A sees it as being checked", asyn
 });
 
 await r.step("B does not see it while it is being checked", async () => {
-  // B looks first, then A's copy is read again: when A's copy is still labelled after B's look,
-  // B's look happened before the verdict, so B must not have had the new photo. When the verdict
-  // came first nothing is proven and the step fails as inconclusive (run the flow again).
-  await pb.reload();
+  // B looks first (after its history has rendered), then A's copy is read again: when A's copy
+  // is still labelled after B's look, B's look happened before the verdict, so B must not have
+  // had the photo. When the verdict came first nothing is proven and the step fails as
+  // inconclusive (run the flow again).
+  await pb.goto(`${env.base}${convPath}`);
   await composer(pb).waitFor({ timeout: 20000 });
-  const early = await history(pb).getByRole("img", { name: "Photo" }).count();
+  await history(pb).getByRole("listitem").first().waitFor({ timeout: 20000 });
+  const early = await newBubble(pb).count();
   await pa.reload();
   await composer(pa).waitFor({ timeout: 20000 });
-  await history(pa).getByRole("listitem").first().waitFor({ timeout: 20000 });
-  const stillPending = (await pendingLabels(pa).count()) > aPendingBefore;
-  if (stillPending && early > before)
+  await newBubble(pa).first().waitFor({ timeout: 20000 });
+  const stillPending = await isPending(pa);
+  if (stillPending && early > 0)
     throw new Error("B saw the new photo while A's copy was still being checked");
   if (!stillPending)
     throw new Error("inconclusive: the verdict came before B's first look; run the flow again");
   await shot(pb, "chatimg-03a-recipient-pending");
 });
 
-await r.step("B sees it once it passes", async () => {
-  const t0 = Date.now();
-  let now = before;
-  while (now <= before && Date.now() - t0 < VERDICT_MS) {
-    await pb.waitForTimeout(10000);
-    await pb.reload();
-    await composer(pb).waitFor({ timeout: 20000 });
-    now = await history(pb).getByRole("img", { name: "Photo" }).count();
-  }
-  if (now <= before) {
-    const label = await history(pb)
-      .getByText(/Photo is being checked|can't be shared/)
-      .count();
-    throw new Error(`no visible photo for B after ${VERDICT_MS / 1000}s (labels: ${label})`);
-  }
-  console.log(
-    `NOTE chat-images / verdict: visible for B after about ${Math.round((Date.now() - t0) / 1000)}s`,
-  );
-  await history(pb).getByRole("img", { name: "Photo" }).first().scrollIntoViewIfNeeded();
-  await shot(pb, "chatimg-03-recipient-visible");
-});
-
-await r.step("A's copy is no longer labelled once it passed", async () => {
-  await pa.reload();
-  await composer(pa).waitFor({ timeout: 20000 });
-  await history(pa).getByRole("img", { name: "Photo" }).first().waitFor({ timeout: 20000 });
+await r.step("A's open copy clears by itself once it passes (no reload)", async () => {
+  // The label follows the msg_update signal, and the conversation re-reads its own photos
+  // that are still being checked, so the sender never needs a reload.
+  await newBubble(pa).getByRole("img", { name: "Photo" }).waitFor({ timeout: VERDICT_MS });
+  if (await isPending(pa)) throw new Error("A's copy is still labelled after the photo showed");
   await shot(pa, "chatimg-04-sender-visible");
 });
 
+await r.step("B sees it once it passes", async () => {
+  const t0 = Date.now();
+  let seen = false;
+  while (!seen && Date.now() - t0 < 60000) {
+    await pb.reload();
+    await composer(pb).waitFor({ timeout: 20000 });
+    seen = await newBubble(pb)
+      .getByRole("img", { name: "Photo" })
+      .waitFor({ timeout: 15000 })
+      .then(() => true)
+      .catch(() => false);
+  }
+  if (!seen) throw new Error("no visible photo for B after A's copy passed");
+  await newBubble(pb).first().scrollIntoViewIfNeeded();
+  await shot(pb, "chatimg-03-recipient-visible");
+});
+
+await r.step("A's copy is not labelled after a reload either", async () => {
+  await pa.reload();
+  await composer(pa).waitFor({ timeout: 20000 });
+  await newBubble(pa).getByRole("img", { name: "Photo" }).waitFor({ timeout: 20000 });
+  if (await isPending(pa)) throw new Error("A's copy is labelled after a reload");
+});
+
 await r.step("B reports the photo (the evidence row for the copy)", async () => {
-  await pb
+  await newBubble(pb)
     .getByRole("button", { name: new RegExp(`^Options for the message from ${aName}`) })
     .first()
     .click({ timeout: 20000 });

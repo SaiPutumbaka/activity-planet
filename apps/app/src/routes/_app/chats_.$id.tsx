@@ -63,6 +63,7 @@ import {
   messagesQuery,
   useConversationLive,
   useMarkRead,
+  useRefreshCheckingImages,
 } from "@/lib/messaging";
 import {
   chatImageErrorMessage,
@@ -187,6 +188,8 @@ function Conversation({ info }: { info: ConversationInfo }) {
 
   const newestSeq = highestSeq(messages);
   useMarkRead(id, userId, newestSeq, bottomVisible);
+  // The sender's own photos re-read until their checks finish (the label never goes stale).
+  useRefreshCheckingImages(id, messages);
 
   // Sent bubbles leave the outbox once their row is in the history.
   useEffect(() => {

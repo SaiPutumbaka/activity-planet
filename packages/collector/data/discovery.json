@@ -1,5 +1,5 @@
 {
-  "$comment": "Automatic source discovery (D-042 slice 8, docs/design/auto-coverage/AUTO_COVERAGE_DESIGN.md 6 and 7). Caps are per collector region per UTC day unless named otherwise. euGate: automatic discovery (OSM and Wikidata candidates, and probing them) stays off for regions in these countries until the attorney review of the EU database right (FOUNDER-TODO item 12); the database keeps the same list in source_discovery_allowed (migration 46) behind meta.eu_discovery, and test/discovery-config.test.ts keeps the two in step. A region's country comes from its time zone (src/discovery/eu.ts); a European zone not in that table counts as gated. The gate lists the Atlanta seeds that work today (enabled in data/cities/atl.json): before the probe may read candidates for any region, an Atlanta run from scratch must rediscover at least 'required' of them.",
+  "$comment": "Automatic source discovery (D-042 slice 8, docs/design/auto-coverage/AUTO_COVERAGE_DESIGN.md 6 and 7). Caps are per collector region per UTC day unless named otherwise. euGate: automatic discovery (OSM and Wikidata candidates, and probing them) stays off for regions in these countries until the attorney review of the EU database right (FOUNDER-TODO item 12); the database keeps the same list in source_discovery_allowed (migration 46) behind meta.eu_discovery, and test/discovery-config.test.ts keeps the two in step. A region's country comes from its time zone (src/discovery/eu.ts); a European zone not in that table counts as gated. The gate lists 9 Atlanta sources that work today: the seeds enabled in data/cities/atl.json that a run from scratch can reach (an OSM place or Wikidata venue links them), plus discovered sources (origin 'discovered', seed 'discovered:<site>') verified on staging. Before the probe may read candidates for any region, an Atlanta run from scratch must rediscover at least 'required' of them. 'withoutCandidate' lists the enabled seeds left out because no OSM place or Wikidata venue names them, so no run from scratch can ever find them (Nov 18, D-042).",
   "caps": {
     "newRegionsPerDay": 10,
     "probeHostsPerRegionPerDay": 150,
@@ -56,11 +56,31 @@
       { "seed": "atl-botanical-garden", "site": "atlantabg.org" },
       { "seed": "atl-marietta-civicplus", "site": "mariettaga.gov" },
       { "seed": "atl-piedmont-park", "site": "piedmontpark.org" },
-      { "seed": "atl-artsatl-calendar", "site": "artsatl.org" },
       { "seed": "atl-history-center", "site": "atlantahistorycenter.com" },
+      { "seed": "atl-alliance-offstage", "site": "alliancetheatre.org" },
+      {
+        "seed": "discovered:tuckerga.gov",
+        "site": "tuckerga.gov",
+        "origin": "discovered",
+        "evidence": "City of Tucker (OSM place). The Events Calendar ICS: 5 items in region in gate runs 42493117791 and 42527003957; enabled on staging (5 good runs on 4 days, no empty or error run, Nov 18)."
+      },
+      {
+        "seed": "discovered:brookhavenga.gov",
+        "site": "brookhavenga.gov",
+        "origin": "discovered",
+        "evidence": "City of Brookhaven (Wikidata). CivicPlus ICS: 6 items in region in gate runs 42493117791 and 42527003957; enabled on staging (5 good runs on 4 days, no empty or error run, Nov 18)."
+      },
+      {
+        "seed": "discovered:lakecityga.net",
+        "site": "lakecityga.net",
+        "origin": "discovered",
+        "evidence": "City of Lake City (Wikidata). The Events Calendar ICS: 10 items in region in gate runs 42493117791 and 42527003957; enabled on staging (5 good runs on 4 days, no empty or error run, Nov 18)."
+      }
+    ],
+    "withoutCandidate": [
+      { "seed": "atl-artsatl-calendar", "site": "artsatl.org" },
       { "seed": "atl-contra-dance", "site": "contradance.org" },
-      { "seed": "atl-park-pride", "site": "parkpride.org" },
-      { "seed": "atl-alliance-offstage", "site": "alliancetheatre.org" }
+      { "seed": "atl-park-pride", "site": "parkpride.org" }
     ]
   }
 }

@@ -24,8 +24,9 @@ name: Source discovery
 #
 # Where it runs:
 #   * STAGING for a push to a branch other than main that changes the collector's code or data
-#     (gate), a push of packages/collector/discovery_request.json (its mode), a workflow_dispatch,
-#     and the nightly schedule. No pull_request trigger: the branch push already ran the gate for
+#     (gate), a push of packages/collector/discovery_request.json (its mode), a workflow_dispatch
+#     from any branch other than main, a gate dispatch from main, and (only while
+#     DISCOVERY_PRODUCTION is "false") the nightly schedule. No pull_request trigger: the branch push already ran the gate for
 #     that commit, and a second copy would read the same Atlanta sites again in parallel.
 #
 # Politeness of the gate (it reads about 150 Atlanta hosts): every run waits for any other run of
@@ -33,8 +34,10 @@ name: Source discovery
 # code already passed (discover status) and skips the gate when it did, and the database records
 # at most 2 gate runs in 24 hours (migration 50): discover gate --record stops before fetching
 # anything once they are spent (exit 4).
-#   * PRODUCTION only from main (schedule or dispatch) when the repository variable
-#     DISCOVERY_PRODUCTION is "true" (default off).
+#   * PRODUCTION for the nightly schedule and for nightly, rescore and rescore-dry dispatches from
+#     main, by default (Sai's yes of Nov 18). The repository variable DISCOVERY_PRODUCTION set to
+#     exactly "false" is the off switch: those runs then go to staging as before. Gate mode never
+#     targets production, branch runs always stay on staging, and the EU gate is untouched.
 #
 # Secrets: none of its own; like collector-ingest.yml it reads the collector secret from the
 # target project's vault and masks it. Logs are public: counts, and for the gate only the hosts
@@ -109,7 +112,7 @@ jobs:
           case "$mode" in gate|nightly) ;; rescore|rescore-dry) if [ "$EVENT" != "workflow_dispatch" ]; then echo "Refusing mode $mode outside workflow_dispatch"; exit 1; fi ;; *) echo "Refusing mode: $mode"; exit 1 ;; esac
           case "$hosts" in ""|[0-9]|[0-9][0-9]|[0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]) ;; *) echo "Refusing max_hosts: $hosts"; exit 1 ;; esac
           production=false
-          if { [ "$mode" = "nightly" ] || [ "$mode" = "rescore" ] || [ "$mode" = "rescore-dry" ]; } && [ "$EVENT" != "push" ] && [ "$REF" = "refs/heads/main" ] && [ "$PROD_VAR" = "true" ]; then production=true; fi
+          if { [ "$mode" = "nightly" ] || [ "$mode" = "rescore" ] || [ "$mode" = "rescore-dry" ]; } && [ "$EVENT" != "push" ] && [ "$REF" = "refs/heads/main" ] && [ "$PROD_VAR" != "false" ]; then production=true; fi
           echo "event=$EVENT mode=$mode production=$production max_hosts=${hosts:-default}"
           {
             echo "mode=$mode"

@@ -69,3 +69,26 @@ export function imageLoadable(m: Pick<ChatMessage, "kind" | "image" | "mine">): 
   const s = m.image.state;
   return s === "visible" || (m.mine && (s === "pending" || s === "classifying" || s === "queued"));
 }
+
+/** The states in which the sender's photo is still being checked. */
+const CHECKING = new Set(["pending", "classifying", "queued"]);
+
+/** How often an open conversation re-reads the sender's photos that are still being checked. */
+export const CHECKING_REFRESH_MS = 10_000;
+
+/**
+ * The seqs of the viewer's own photos still being checked, oldest first (at most `max`). The
+ * open conversation re-reads these rows on a timer, so the "being checked" label clears even
+ * when the msg_update signal was missed or the channel is down (the poll fallback only reads
+ * newer messages).
+ */
+export function checkingImageSeqs(
+  messages: readonly Pick<ChatMessage, "kind" | "image" | "mine" | "seq">[],
+  max = 5,
+): number[] {
+  return messages
+    .filter((m) => m.mine && m.kind === "image" && CHECKING.has(m.image?.state ?? ""))
+    .map((m) => m.seq)
+    .sort((a, b) => a - b)
+    .slice(0, Math.max(0, max));
+}
