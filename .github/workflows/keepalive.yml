@@ -1,28 +1,48 @@
 name: Keep the free-tier databases awake
 
-# Supabase pauses free projects after seven idle days. Every six hours this job makes one real
-# query against each project's REST API with its publishable key (the same key the apps ship to
-# browsers; Row Level Security governs what it can read). It talks to Supabase directly rather
-# than through the site, because the vercel.app URL sits behind Vercel Authentication until a
-# custom domain is attached, and a request that never reaches the database does not count as
-# activity.
+# Two jobs in one file (so a branch can dispatch both, and GitHub keeps one schedule list):
+#
+# ping (every six hours): Supabase pauses free projects after seven idle days. This job makes one
+# real query against each project's REST API with its publishable key (the same key the apps ship
+# to browsers; Row Level Security governs what it can read). It talks to Supabase directly rather
+# than through the site, because a request that never reaches the database does not count.
+#
+# uptime (every 15 minutes, launch audit M11): checks the production site's /api/health (which
+# also reads the schema version, so it fails when the database is down or a deploy outran its
+# migration) and the app's root page. Any check that does not answer 200 within 30 seconds, twice
+# in a row a minute apart, fails the run, and GitHub emails the repository owner about a failed
+# scheduled run. On main the failure also becomes an in-app and emailed ops_alert for every
+# moderator (public.ops_uptime_alert, migration 80, at most one per six hours), through the
+# Management API with the production token. Logs show URLs, HTTP codes and counts only.
 #
 # Repository variables (Settings, Secrets and variables, Actions, Variables tab):
 #   SUPABASE_PROD_URL, SUPABASE_PROD_PUBLISHABLE_KEY
 #   SUPABASE_STAGING_URL, SUPABASE_STAGING_PUBLISHABLE_KEY
-#   HEALTH_URL (optional): a public URL of the site's /api/health once a custom domain exists.
+#   HEALTH_URL (optional): overrides the site health URL below.
+#   APP_URL (optional): overrides the app URL below.
+#   UPTIME_ENABLED (optional): "false" turns the uptime checks off.
 
 on:
   schedule:
     - cron: "17 */6 * * *"
+    - cron: "4,19,34,49 * * * *"
   workflow_dispatch:
 
 # Launch audit L6: read-only token.
 permissions:
   contents: read
 
+env:
+  PROD_PROJECT_REF: gtesfiqxqontescqpllo
+  # The production domains (FOUNDER-TODO item 1, attached Nov 8). The vercel.app hosts sit behind
+  # Vercel Authentication and answer 401 to anyone not signed in to Vercel, so they cannot be the
+  # public check.
+  DEFAULT_HEALTH_URL: https://activityplanet.app/api/health
+  DEFAULT_APP_URL: https://app.activityplanet.app/
+
 jobs:
   ping:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 */6 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -59,11 +79,64 @@ jobs:
           echo "staging HTTP $code"; cat /tmp/body; echo
           case "$code" in 200|404|406) ;; *) exit 1 ;; esac
 
-      - name: Probe site health (optional)
-        if: ${{ vars.HEALTH_URL != '' }}
+  uptime:
+    if: vars.UPTIME_ENABLED != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      failed: ${{ steps.check.outputs.failed }}
+    steps:
+      - name: Check the site health and the app
+        id: check
         env:
-          HEALTH_URL: ${{ vars.HEALTH_URL }}
+          HEALTH_URL: ${{ vars.HEALTH_URL || env.DEFAULT_HEALTH_URL }}
+          APP_URL: ${{ vars.APP_URL || env.DEFAULT_APP_URL }}
         run: |
-          code=$(curl -sS -o /tmp/body -w '%{http_code}' --max-time 30 "$HEALTH_URL" || echo "000")
-          echo "health HTTP $code"; cat /tmp/body; echo
-          test "$code" = "200"
+          # One probe: the HTTP code only (bodies go to /dev/null; the health body holds the schema
+          # version and nothing else, but nothing from a response is printed). Retried once after
+          # a minute so one slow cold start is not an outage.
+          probe() { curl -sS -o /dev/null -w '%{http_code}' --max-time 30 -A "activity-planet-uptime/1" "$1" 2>/dev/null || echo "000"; }
+          failed=0
+          for target in "site health|$HEALTH_URL" "app|$APP_URL"; do
+            name=${target%%|*}; url=${target#*|}
+            code=$(probe "$url")
+            if [ "$code" != 200 ]; then sleep 60; code=$(probe "$url"); fi
+            echo "$name $url HTTP $code"
+            if [ "$code" != 200 ]; then
+              failed=$((failed + 1))
+              case "$code" in
+                401|403) echo "::error::$name answered $code: is it behind Vercel Authentication? Set HEALTH_URL / APP_URL to a public address." ;;
+                *) echo "::error::$name is down (HTTP $code)." ;;
+              esac
+            fi
+          done
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+          echo "$failed of 2 checks failed."
+          [ "$failed" = 0 ]
+
+  # Main only, and only after a failed check: one ops_alert for the moderators (deduplicated per
+  # six hours in the database). Runs in the production environment, the only place the production
+  # token lives. Prints the HTTP code and the number of notices queued, nothing else.
+  alert:
+    needs: uptime
+    if: ${{ failure() && needs.uptime.result == 'failure' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    environment: production
+    steps:
+      - name: Tell the moderators in the app
+        env:
+          TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
+          FAILED: ${{ needs.uptime.outputs.failed }}
+        run: |
+          case "$FAILED" in ''|*[!0-9]*) FAILED=1 ;; esac
+          [ "$FAILED" -gt 0 ] || FAILED=1
+          if [ -z "$TOKEN" ]; then echo "::warning::No production token; moderators were not told."; exit 0; fi
+          body=$(jq -nc --arg q "select public.ops_uptime_alert($FAILED) as notices" '{query: $q}')
+          code=$(curl -sS -o /tmp/alert.json -w '%{http_code}' --max-time 30 -X POST \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            "https://api.supabase.com/v1/projects/$PROD_PROJECT_REF/database/query" -d "$body" || echo "000")
+          notices=$(jq -r '.[0].notices // empty' /tmp/alert.json 2>/dev/null || true)
+          rm -f /tmp/alert.json
+          echo "alert HTTP $code, notices queued: ${notices:-unknown}"
+          case "$code" in 200|201) ;; *) exit 1 ;; esac
