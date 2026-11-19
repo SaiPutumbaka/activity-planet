@@ -41,8 +41,9 @@ function areaChoice(a: Area, all: readonly Area[]): HomeChoice {
 
 /**
  * Pick a home anywhere (D-040): "Use my location" (asked only on this tap, rounded to about 1 km)
- * or a search for a city or neighborhood. With VITE_GEOAPIFY_KEY the search is Geoapify's city
- * autocomplete; without it, a starter list of major world cities. Named areas from the areas table
+ * or a search for a city or neighborhood. The search is Geoapify's city autocomplete through the
+ * geo-search Edge Function; when the server has no key, or the search fails or is over its daily
+ * cap, a starter list of major world cities. Named areas from the areas table
  * (seeded neighborhoods) match too. Picking calls `onPick`; saving is the caller's job.
  */
 export function HomePicker({
@@ -82,9 +83,10 @@ export function HomePicker({
       areaMatches.map((c) => normalizePlaceText((c.label ?? "").split(",")[0] ?? "")),
     );
 
-    const useRemote = hasCitySearch && remote.isSuccess && debounced.trim() === q && q.length >= 3;
+    const useRemote =
+      remote.isSuccess && remote.data.enabled && debounced.trim() === q && q.length >= 3;
     const cities: HomeChoice[] = useRemote
-      ? remote.data
+      ? remote.data.places
           .filter((p) => !areaNames.has(normalizePlaceText(p.name)))
           .map((p) => ({
             kind: "point",
@@ -104,7 +106,7 @@ export function HomePicker({
   }, [query, debounced, areas.data, remote.isSuccess, remote.data]);
 
   const searching =
-    hasCitySearch && query.trim().length >= 3 && (debounced !== query || remote.isFetching);
+    hasCitySearch() && query.trim().length >= 3 && (debounced !== query || remote.isFetching);
 
   async function onLocate() {
     setLocating(true);
@@ -190,7 +192,7 @@ export function HomePicker({
           </div>
         ) : searching ? null : (
           <p className="text-[14px] text-text-2">
-            {hasCitySearch
+            {remote.isSuccess && remote.data.enabled
               ? `No city matches “${query.trim()}”. Check the spelling, or use your location.`
               : `“${query.trim()}” isn't on our list yet. Try the nearest big city, or use your location.`}
           </p>

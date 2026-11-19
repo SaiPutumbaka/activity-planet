@@ -502,6 +502,7 @@ const OPS_ALERTS: Record<string, string> = {
   http_errors: "Server calls failed in the last day.",
   cron_failures: "Scheduled jobs failed in the last day.",
   no_upcoming_events: "There are no upcoming plans in the feed.",
+  site_down: "The site or the app did not answer the uptime check.",
 };
 
 /** "2 reports overdue. 1 takedowns due within 4 hours" (zero counts left out). */

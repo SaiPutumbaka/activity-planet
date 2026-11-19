@@ -401,6 +401,11 @@ describe("moderator alerts (migration 77)", () => {
       payload: parsePayload({ alert: "no_upcoming_events" }),
     });
     expect(notificationCopy(ops, NOW).body).toContain("no upcoming plans");
+    const down = item("ops_alert", {
+      event_id: null,
+      payload: parsePayload({ alert: "site_down", count: 2 }),
+    });
+    expect(notificationCopy(down, NOW).body).toContain("uptime check");
     const col = item("collector_alert", {
       event_id: null,
       payload: parsePayload({ alert: "sources_stale" }),

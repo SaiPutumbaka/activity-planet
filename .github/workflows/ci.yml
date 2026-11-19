@@ -67,6 +67,9 @@ jobs:
       # image-guard decodes JPEG and PNG with npm packages (jpeg-js, fast-png); without a
       # node_modules folder Deno must fetch them itself, hence --node-modules-dir=none.
       - run: deno test --allow-read --node-modules-dir=none supabase/functions/image-guard
+      # Migration 80: geo-search (address and city autocomplete), fake Supabase and Geoapify.
+      - run: deno test --allow-read --node-modules-dir=none supabase/functions/geo-search
+      - run: deno check --node-modules-dir=none supabase/functions/geo-search/index.ts
       - run: deno check --node-modules-dir=none supabase/functions/image-guard/index.ts
 
   # Hub map place rules (D-041): rebuild the JSON from the research tables, regenerate the seed and

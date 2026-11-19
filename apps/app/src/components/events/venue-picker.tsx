@@ -11,11 +11,11 @@ import { Switch } from "@/components/ui/switch";
 import { sessionQuery } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { eventErrorMessage } from "@/lib/events";
+import { geoSearchAvailable } from "@/lib/geo-search";
 import { feedPrefsQuery } from "@/lib/location";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import {
   formatVenueAddress,
-  geoapifyKey,
   geoapifyQuery,
   upsertVenue,
   venueSearchQuery,
@@ -330,9 +330,13 @@ function AddPlaceForm({
           maxLength={200}
           autoComplete="street-address"
           disabled={busy}
-          hint={geoapifyKey ? "Start typing and pick a match to place it on the map." : undefined}
+          hint={
+            geoSearchAvailable()
+              ? "Start typing and pick a match to place it on the map."
+              : undefined
+          }
         />
-        {geoapifyKey && !picked && suggestions.data && suggestions.data.length > 0 ? (
+        {!picked && suggestions.data && suggestions.data.length > 0 ? (
           <ul className="divide-y divide-border overflow-hidden rounded-input border border-border">
             {suggestions.data.map((s) => (
               <li key={s.place_id}>

@@ -12,7 +12,7 @@ import type { Database } from "@ap/core/types";
 
 import { supabase } from "./supabase";
 import { DISTANCE_UNIT } from "./units";
-import { geoapifyKey } from "./venues";
+import { geoSearch, geoSearchAvailable } from "./geo-search";
 
 /**
  * Where the feed is centred (D-036, D-040). The saved home (a point anywhere in the world with a
@@ -123,26 +123,21 @@ export async function setHomeLocation(
 }
 
 /**
- * Up to eight cities and neighborhoods anywhere in the world for the home search, from Geoapify.
- * Empty without a key (the starter list is used then). Streets and venues are left out.
+ * Up to eight cities and neighborhoods anywhere in the world for the home search, from Geoapify
+ * through the geo-search Edge Function. `enabled` is false when the server has no key (the
+ * starter list is used then). Streets and venues are left out.
  */
 export async function geoapifyCitySearch(
   text: string,
   signal?: AbortSignal,
-): Promise<PlaceResult[]> {
-  if (!geoapifyKey) return [];
-  const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
-  url.searchParams.set("text", text);
-  url.searchParams.set("limit", "10");
-  url.searchParams.set("format", "json");
+): Promise<{ enabled: boolean; places: PlaceResult[] }> {
   const lang = typeof navigator !== "undefined" ? navigator.language?.slice(0, 2) : "";
-  if (lang && /^[a-z]{2}$/.test(lang)) url.searchParams.set("lang", lang);
-  url.searchParams.set("apiKey", geoapifyKey);
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error(`City lookup failed (${res.status}).`);
-  const body = (await res.json()) as { results?: Parameters<typeof geoapifyCityToPlace>[0][] };
+  const { enabled, results } = await geoSearch("city", text, {
+    lang: lang && /^[a-z]{2}$/.test(lang) ? lang : null,
+    signal,
+  });
   const seen = new Set<string>();
-  return (body.results ?? [])
+  const places = results
     .flatMap((r) => {
       const place = geoapifyCityToPlace(r);
       if (!place || seen.has(place.label)) return [];
@@ -150,6 +145,7 @@ export async function geoapifyCitySearch(
       return [place];
     })
     .slice(0, 8);
+  return { enabled, places };
 }
 
 export const citySearchQuery = (text: string) => {
@@ -157,7 +153,7 @@ export const citySearchQuery = (text: string) => {
   return queryOptions({
     queryKey: ["geoapify-city", q.toLowerCase()] as const,
     queryFn: ({ signal }) => geoapifyCitySearch(q, signal),
-    enabled: geoapifyKey !== null && q.length >= 3,
+    enabled: geoSearchAvailable() && q.length >= 3,
     staleTime: 10 * 60_000,
     retry: 0,
   });
@@ -177,8 +173,11 @@ export function homeChoiceLabel(choice: HomeChoice): string {
   return choice.label ?? "Your current location";
 }
 
-/** Whether city search goes to Geoapify (true) or to the built-in starter list (false). */
-export const hasCitySearch = geoapifyKey !== null;
+/**
+ * Whether city search may go to Geoapify (true) or only to the built-in starter list (false):
+ * false once geo-search said the server has no key.
+ */
+export const hasCitySearch = (): boolean => geoSearchAvailable();
 
 const AREA_MESSAGES: Record<string, string> = {
   not_authenticated: "Your session ended. Sign in again.",

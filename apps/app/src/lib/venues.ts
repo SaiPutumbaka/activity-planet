@@ -5,16 +5,17 @@ import type { Database, Json } from "@ap/core/types";
 
 import { isFilePlaceId, placeRowId } from "./file-place-row";
 import { isNamedPlace } from "./geo-place";
+import { geoSearch, geoSearchAvailable } from "./geo-search";
 import { supabase } from "./supabase";
 
 /**
  * Places. Public venues are searchable by name; every new place goes through upsert_venue,
  * which keeps it private (someone's home) unless is_public: true is passed (D-038; a geocoder
- * place_id no longer implies public). When VITE_GEOAPIFY_KEY is set, the address sub-form offers
- * Geoapify suggestions that fill lat/lng/place_id.
+ * place_id no longer implies public). The address sub-form offers Geoapify suggestions that fill
+ * lat/lng/place_id, through the geo-search Edge Function (migration 80; the key stays on the server).
  *
  *   useQuery(venueSearchQuery("piedmont"))   // public venues, name ilike
- *   useQuery(geoapifyQuery("25 park pl"))    // [] when the key is absent
+ *   useQuery(geoapifyQuery("25 park pl"))    // [] when the server has no key
  *   await upsertVenue({ name, address_line1, city, state, postal_code, is_public })
  */
 export type Venue = Database["public"]["Tables"]["venues"]["Row"];
@@ -177,10 +178,8 @@ export function formatVenueAddress(v: {
 }
 
 /* ------------------------------------------------------------------ */
-/* Geoapify autocomplete (optional)                                    */
+/* Geoapify autocomplete (geo-search Edge Function)                    */
 /* ------------------------------------------------------------------ */
-
-export const geoapifyKey = (import.meta.env.VITE_GEOAPIFY_KEY as string | undefined) || null;
 
 export interface GeoSuggestion {
   label: string;
@@ -197,45 +196,20 @@ export interface GeoSuggestion {
   namedPlace: boolean;
 }
 
-interface GeoapifyResult {
-  formatted?: string;
-  name?: string;
-  address_line1?: string;
-  housenumber?: string;
-  result_type?: string;
-  city?: string;
-  state_code?: string;
-  state?: string;
-  postcode?: string;
-  country_code?: string;
-  lat?: number;
-  lon?: number;
-  place_id?: string;
-}
-
 /** A point to rank nearby suggestions first (the host's saved home); none means no bias. */
 export type GeoBias = { lat: number; lng: number } | null;
 
 /**
- * Up to five address suggestions anywhere in the world (D-040), ranked near `bias` when given.
- * Empty without a key.
+ * Up to five address suggestions anywhere in the world (D-040), ranked near `bias` when given,
+ * from the geo-search Edge Function. Empty when the server has no Geoapify key.
  */
 export async function geoapifyAutocomplete(
   text: string,
   bias: GeoBias = null,
   signal?: AbortSignal,
 ): Promise<GeoSuggestion[]> {
-  if (!geoapifyKey) return [];
-  const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
-  url.searchParams.set("text", text);
-  url.searchParams.set("limit", "5");
-  if (bias) url.searchParams.set("bias", `proximity:${bias.lng},${bias.lat}`);
-  url.searchParams.set("format", "json");
-  url.searchParams.set("apiKey", geoapifyKey);
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error(`Address lookup failed (${res.status}).`);
-  const body = (await res.json()) as { results?: GeoapifyResult[] };
-  return (body.results ?? []).flatMap((r) => {
+  const { results } = await geoSearch("address", text, { bias, signal });
+  return results.flatMap((r) => {
     if (typeof r.lat !== "number" || typeof r.lon !== "number" || !r.place_id) return [];
     return [
       {
@@ -260,7 +234,7 @@ export const geoapifyQuery = (text: string, bias: GeoBias = null) => {
   return queryOptions({
     queryKey: ["geoapify", q.toLowerCase(), bias?.lat ?? null, bias?.lng ?? null] as const,
     queryFn: ({ signal }) => geoapifyAutocomplete(q, bias, signal),
-    enabled: geoapifyKey !== null && q.length >= 4,
+    enabled: geoSearchAvailable() && q.length >= 4,
     staleTime: 5 * 60_000,
     retry: 0,
   });

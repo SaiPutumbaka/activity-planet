@@ -279,6 +279,8 @@ Deno.test("moderator alerts name the queue and open it", () => {
   assertEquals(pathFor(due), "/admin");
   const ops = n({ kind: "ops_alert", event_id: null, payload: { alert: "no_upcoming_events" } });
   assertStringIncludes(copyFor(ops).body ?? "", "no upcoming plans");
+  const down = n({ kind: "ops_alert", event_id: null, payload: { alert: "site_down", count: 2 } });
+  assertStringIncludes(copyFor(down).body ?? "", "uptime check");
   assertEquals(pathFor(ops), "/admin/health");
 });
 

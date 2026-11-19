@@ -165,3 +165,11 @@ verify_jwt = false
 # and SCORECARD_TO are optional Edge Function secrets; without either the run is recorded as
 # skipped_no_key and nothing is sent.
 verify_jwt = false
+
+[functions.geo-search]
+# Address and city autocomplete for signed-in members (migration 80), so the Geoapify key never
+# reaches a browser. The gateway JWT check stays on and the function also verifies the user JWT
+# itself against the project's JWKS (role must be authenticated). GEOAPIFY_SERVER_KEY is an
+# optional Edge Function secret; without it every answer is {"enabled": false} and the app uses
+# its starter city list and typed addresses.
+verify_jwt = true

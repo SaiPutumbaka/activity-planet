@@ -317,6 +317,8 @@ const OPS_ALERTS: Record<string, string> = {
   http_errors: "Server calls failed in the last day. Check the function logs.",
   cron_failures: "Scheduled jobs failed in the last day. Check cron.job_run_details.",
   no_upcoming_events: "There are no upcoming plans in the feed. Check the collector.",
+  site_down:
+    "The site or the app did not answer the uptime check. Check Vercel and the keepalive run.",
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

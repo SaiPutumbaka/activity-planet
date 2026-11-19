@@ -3,18 +3,29 @@ name: Back up production
 # Launch audit C2: production is on the Supabase Free plan, which has no daily backups or point in
 # time restore. Every day this dumps production's roles, schema and data with the Supabase CLI,
 # copies the private and public Storage buckets (dumps do not include files), encrypts the bundle
-# with age to a public key, and uploads only the encrypted file as a release asset of a PRIVATE
-# repository. Nothing readable ever reaches this public repository's logs or artifacts: every
-# command's output that could hold data goes to /dev/null, and the plaintext never leaves the
-# runner's temporary disk. Restore steps: docs/ops/backup-restore.md.
+# with age to a public key, and uploads only the encrypted file to one or both free targets:
 #
-# Runs from main only (the production environment). Until Sai sets all three of these it is a
-# no-op that says what is missing:
-#   vars.BACKUP_AGE_RECIPIENT  the age public key (age1...); the private key stays offline with Sai
-#   vars.BACKUP_REPO           the private repository for the encrypted files (owner/name)
-#   secrets.BACKUP_REPO_TOKEN  a fine-grained token with Contents read-write on that one repository
-# Kept: the newest 30 daily releases. verify_restore restores the dump into a throwaway local
-# database on the runner (never staging or production) and prints pass or fail only.
+#   staging   the private Storage bucket prod-backups on the STAGING project (migration 80, staging
+#             only, no policies: service role only). Needs no new token: the staging access token
+#             the other workflows already use reads the staging service key at run time. Parts of
+#             at most 45 MB (the Free plan's file limit is 50 MB) under <stamp>/, with SHA256SUMS;
+#             the newest 14 stamps are kept. Turn it off with vars.BACKUP_STAGING = "false".
+#   repo      a release asset of a PRIVATE GitHub repository (vars.BACKUP_REPO and
+#             secrets.BACKUP_REPO_TOKEN, optional). The newest 30 releases are kept.
+#
+# The only required setting is vars.BACKUP_AGE_RECIPIENT, the age public key (age1...); the
+# private key stays offline with Sai and is never in GitHub, Supabase or this repository. Until it
+# is set the job only says what is missing. Fail-safe: the recipient is checked by encrypting a
+# test string before anything is dumped; every step runs with set -euo pipefail; the plaintext only
+# ever exists in the runner's temporary disk (umask 077) and is deleted before upload; tar's output
+# goes straight into age, so no unencrypted archive is written; a run with no working target fails.
+# Nothing readable reaches this public repository's logs or artifacts: every command whose output
+# could hold data goes to /dev/null, and logs show sizes, counts and HTTP codes only. Restore steps:
+# docs/ops/backup-restore.md.
+#
+# The backup job runs from main only (the production environment). From any branch, Run workflow
+# with storage_selftest ticked checks the staging target alone: it uploads 1 KB of random bytes
+# (no data) to prod-backups/selftest/, lists it and deletes it, and prints pass or fail.
 
 on:
   schedule:
@@ -23,6 +34,10 @@ on:
     inputs:
       verify_restore:
         description: "Also restore the dump into a throwaway local database on the runner (pass or fail only)"
+        type: boolean
+        default: false
+      storage_selftest:
+        description: "Only check the staging bucket target with 1 KB of random bytes (any branch; no production access)"
         type: boolean
         default: false
 
@@ -35,11 +50,39 @@ concurrency:
 
 env:
   PROD_PROJECT_REF: gtesfiqxqontescqpllo
+  STAGING_PROJECT_REF: gzrscndzzggxmcwnvvcq
+  BACKUP_BUCKET: prod-backups
+  BACKUP_KEEP_STAGING: "14"
   SUPABASE_CLI_VERSION: 2.122.0
 
 jobs:
+  storage-selftest:
+    if: inputs.storage_selftest == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Upload, list and delete 1 KB of random bytes in the staging bucket
+        env:
+          STAGING_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          source .github/scripts/backup-staging.sh
+          staging_key
+          f="$RUNNER_TEMP/selftest.bin"; head -c 1024 /dev/urandom > "$f"
+          name="selftest/$(date -u +%Y%m%dT%H%M%SZ)-$RANDOM.bin"
+          put "$name" "$f" application/octet-stream
+          n=$(list_names "selftest/" | grep -c . || true)
+          echo "objects under selftest/: $n"
+          remove_paths "$name"
+          rm -f "$f"
+          left=$(list_names "selftest/" | grep -cF "${name#selftest/}" || true)
+          [ "$n" -ge 1 ] && [ "$left" = 0 ] || { echo "::error::SELFTEST FAIL"; exit 1; }
+          echo "SELFTEST PASS"
+
   backup:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && inputs.storage_selftest != true
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: production
@@ -49,18 +92,31 @@ jobs:
         env:
           RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
           REPO: ${{ vars.BACKUP_REPO }}
-          TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+          REPO_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+          STAGING: ${{ vars.BACKUP_STAGING }}
+          STAGING_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          missing=""
-          case "$RECIPIENT" in age1*) ;; *) missing="$missing BACKUP_AGE_RECIPIENT" ;; esac
-          case "$REPO" in */*) ;; *) missing="$missing BACKUP_REPO" ;; esac
-          [ -n "$TOKEN" ] || missing="$missing BACKUP_REPO_TOKEN"
-          if [ -n "$missing" ]; then
-            echo "::warning::Backups are off until these are set:$missing (docs/ops/backup-restore.md)."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=true" >> "$GITHUB_OUTPUT"
+          RECIPIENT=$(printf '%s' "$RECIPIENT" | tr -d '[:space:]')
+          if [ -z "$RECIPIENT" ]; then
+            echo "::warning::Backups are off until the BACKUP_AGE_RECIPIENT variable (an age1... public key) is set (docs/ops/backup-restore.md)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
+          case "$RECIPIENT" in
+            age1*) ;;
+            *) echo "::error::BACKUP_AGE_RECIPIENT is not an age public key (it must start with age1; never paste the private AGE-SECRET-KEY)."; exit 1 ;;
+          esac
+          to_repo=false; to_staging=false
+          if [ -n "$REPO" ] || [ -n "$REPO_TOKEN" ]; then
+            case "$REPO" in */*) ;; *) echo "::error::BACKUP_REPO must be owner/name."; exit 1 ;; esac
+            [ -n "$REPO_TOKEN" ] || { echo "::error::BACKUP_REPO is set but BACKUP_REPO_TOKEN is not."; exit 1; }
+            to_repo=true
+          fi
+          if [ "$STAGING" != "false" ] && [ -n "$STAGING_TOKEN" ]; then to_staging=true; fi
+          if [ "$to_repo" != true ] && [ "$to_staging" != true ]; then
+            echo "::error::No backup target: the staging bucket is off or has no token, and BACKUP_REPO is unset."; exit 1
+          fi
+          echo "targets: staging bucket $to_staging, private repository $to_repo"
+          { echo "ready=true"; echo "to_repo=$to_repo"; echo "to_staging=$to_staging"; } >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: steps.cfg.outputs.ready == 'true'
@@ -69,9 +125,30 @@ jobs:
         with:
           version: 2.122.0
 
-      - name: Install age
+      - name: Install age and check the recipient
         if: steps.cfg.outputs.ready == 'true'
-        run: sudo apt-get update -qq > /dev/null && sudo apt-get install -y -qq age > /dev/null
+        env:
+          RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq > /dev/null && sudo apt-get install -y -qq age > /dev/null
+          RECIPIENT=$(printf '%s' "$RECIPIENT" | tr -d '[:space:]')
+          # Fails here, before any dump exists, when the key is malformed.
+          printf 'recipient check' | age -r "$RECIPIENT" -o /dev/null \
+            || { echo "::error::age rejected BACKUP_AGE_RECIPIENT; nothing was dumped."; exit 1; }
+          echo "recipient accepted"
+
+      # The staging target first, so a broken token fails the run before production is read.
+      - name: Check the staging bucket target
+        if: steps.cfg.outputs.to_staging == 'true'
+        env:
+          STAGING_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          source .github/scripts/backup-staging.sh
+          staging_key
+          list_names "" > /dev/null
+          echo "staging bucket reachable"
 
       - name: Dump roles, schema and data
         if: steps.cfg.outputs.ready == 'true'
@@ -99,6 +176,7 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -euo pipefail
+          umask 077
           dir="$RUNNER_TEMP/ap-backup/storage"
           for b in avatars chat-images chat-evidence legal-hold; do
             mkdir -p "$dir/$b"
@@ -143,28 +221,89 @@ jobs:
           supabase stop --no-backup > /dev/null 2>&1 || true
           [ "$ok" = 1 ]
 
-      - name: Encrypt and upload to the private repository
+      # tar writes straight into age: no unencrypted archive ever exists. The plaintext folder is
+      # deleted right after, before any upload.
+      - name: Encrypt
+        id: enc
         if: steps.cfg.outputs.ready == 'true'
         env:
           RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
-          REPO: ${{ vars.BACKUP_REPO }}
-          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
         run: |
           set -euo pipefail
           umask 077
+          RECIPIENT=$(printf '%s' "$RECIPIENT" | tr -d '[:space:]')
           stamp=$(date -u +%Y%m%dT%H%MZ)
           out="$RUNNER_TEMP/activity-planet-prod-$stamp.tar.gz.age"
           tar -C "$RUNNER_TEMP" -czf - ap-backup | age -r "$RECIPIENT" -o "$out"
           rm -rf "$RUNNER_TEMP/ap-backup"
-          gh release create "backup-$stamp" "$out" --repo "$REPO" --title "Production backup $stamp" \
+          # age output always starts with this header; anything else is not encrypted.
+          head -c 21 "$out" | grep -q '^age-encryption.org/v1' || { rm -f "$out"; echo "::error::the output is not an age file"; exit 1; }
+          echo "Encrypted: $(du -h "$out" | cut -f1)"
+          { echo "stamp=$stamp"; echo "out=$out"; } >> "$GITHUB_OUTPUT"
+
+      - name: Upload to the staging bucket
+        id: up_staging
+        if: steps.cfg.outputs.to_staging == 'true'
+        continue-on-error: true
+        env:
+          STAGING_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
+          STAMP: ${{ steps.enc.outputs.stamp }}
+          OUT: ${{ steps.enc.outputs.out }}
+        run: |
+          set -euo pipefail
+          umask 077
+          source .github/scripts/backup-staging.sh
+          staging_key
+          parts="$RUNNER_TEMP/parts"; rm -rf "$parts"; mkdir -p "$parts"
+          split -b 45M -d -a 3 "$OUT" "$parts/part-"
+          (cd "$parts" && sha256sum part-* > SHA256SUMS && sha256sum "$OUT" | sed "s|  .*|  activity-planet-prod-$STAMP.tar.gz.age|" >> SHA256SUMS)
+          n=0
+          for p in "$parts"/part-*; do
+            put "$STAMP/$(basename "$p")" "$p" application/octet-stream; n=$((n + 1))
+          done
+          put "$STAMP/SHA256SUMS" "$parts/SHA256SUMS" text/plain
+          rm -rf "$parts"
+          got=$(list_names "$STAMP/" | grep -c '^part-' || true)
+          [ "$got" = "$n" ] || { echo "::error::uploaded $n parts but the bucket lists $got"; exit 1; }
+          echo "Uploaded $n parts as $STAMP."
+          # Keep the newest 14 stamps (folder names sort by time).
+          list_names "" | grep -E '^[0-9]{8}T[0-9]{4}Z$' | sort -r | tail -n +$((BACKUP_KEEP_STAGING + 1)) | while read -r old; do
+            files=$(list_names "$old/" | sed "s|^|$old/|")
+            [ -z "$files" ] || remove_paths $files
+            echo "removed $old"
+          done
+
+      - name: Upload to the private repository
+        id: up_repo
+        if: steps.cfg.outputs.to_repo == 'true'
+        continue-on-error: true
+        env:
+          REPO: ${{ vars.BACKUP_REPO }}
+          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+          STAMP: ${{ steps.enc.outputs.stamp }}
+          OUT: ${{ steps.enc.outputs.out }}
+        run: |
+          set -euo pipefail
+          gh release create "backup-$STAMP" "$OUT" --repo "$REPO" --title "Production backup $STAMP" \
             --notes "Encrypted with age (docs/ops/backup-restore.md)." > /dev/null
-          echo "Uploaded $(du -h "$out" | cut -f1) as backup-$stamp."
-          rm -f "$out"
+          echo "Uploaded $(du -h "$OUT" | cut -f1) as backup-$STAMP."
           # Keep the newest 30.
           gh release list --repo "$REPO" --limit 200 --json tagName --jq '.[].tagName' \
             | grep '^backup-' | sort -r | tail -n +31 \
             | while read -r tag; do gh release delete "$tag" --repo "$REPO" --yes --cleanup-tag > /dev/null; done
 
+      # Both uploads are continue-on-error so one failing target does not stop the other; this
+      # turns any failed target red, so a missed backup is never a green run.
+      - name: Fail if a target failed
+        if: ${{ !cancelled() && steps.cfg.outputs.ready == 'true' }}
+        env:
+          STAGING: ${{ steps.up_staging.outcome }}
+          REPO: ${{ steps.up_repo.outcome }}
+        run: |
+          echo "staging bucket: ${STAGING:-skipped}, private repository: ${REPO:-skipped}"
+          [ "$STAGING" != failure ] && [ "$REPO" != failure ]
+          [ "$STAGING" = success ] || [ "$REPO" = success ] || { echo "::error::no target received the backup"; exit 1; }
+
       - name: Clean up
         if: always()
-        run: rm -rf "$RUNNER_TEMP/ap-backup" "$RUNNER_TEMP/ap-restore" "$RUNNER_TEMP/ap-restore.log" "$RUNNER_TEMP"/activity-planet-prod-*.age
+        run: rm -rf "$RUNNER_TEMP/ap-backup" "$RUNNER_TEMP/ap-restore" "$RUNNER_TEMP/ap-restore.log" "$RUNNER_TEMP/parts" "$RUNNER_TEMP"/activity-planet-prod-*.age "$RUNNER_TEMP/staging-key"
