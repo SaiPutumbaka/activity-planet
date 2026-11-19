@@ -1,6 +1,6 @@
 /**
  * Database types, generated from the staging project with the Supabase CLI after
- * migrations 1 to 78 (schema_version 2.74). Regenerate after every migration; do not hand-edit.
+ * migrations 1 to 80 (schema_version 2.76). Regenerate after every migration; do not hand-edit.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -2405,6 +2405,50 @@ export type Database = {
             columns: ["organizer_hub_id"];
             isOneToOne: false;
             referencedRelation: "hubs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      geo_search_cache: {
+        Row: {
+          created_at: string;
+          key: string;
+          results: Json;
+        };
+        Insert: {
+          created_at?: string;
+          key: string;
+          results: Json;
+        };
+        Update: {
+          created_at?: string;
+          key?: string;
+          results?: Json;
+        };
+        Relationships: [];
+      };
+      geo_search_usage: {
+        Row: {
+          day: string;
+          used: number;
+          user_id: string;
+        };
+        Insert: {
+          day: string;
+          used?: number;
+          user_id: string;
+        };
+        Update: {
+          day?: string;
+          used?: number;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "geo_search_usage_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -6460,6 +6504,14 @@ export type Database = {
         Returns: Json;
       };
       generate_handle: { Args: { p_email: string }; Returns: string };
+      geo_search_store: {
+        Args: { p_key: string; p_results: Json };
+        Returns: undefined;
+      };
+      geo_search_take: {
+        Args: { p_key: string; p_user_id: string };
+        Returns: Json;
+      };
       get_booking: { Args: { p_id: string }; Returns: Json };
       get_coach: { Args: { p_handle: string }; Returns: Json };
       get_messages: {
@@ -6922,6 +6974,7 @@ export type Database = {
       open_event_chat: { Args: { p_event: string }; Returns: Json };
       open_hub_chat: { Args: { p_hub: string }; Returns: Json };
       ops_health_alerts: { Args: never; Returns: number };
+      ops_uptime_alert: { Args: { p_failed?: number }; Returns: number };
       organizer_claim_apply: { Args: { p_claim: string }; Returns: undefined };
       organizer_claim_check: { Args: { p_claim: string }; Returns: Json };
       organizer_claim_proofs: {

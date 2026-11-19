@@ -65,6 +65,51 @@ async function acceptGuidelinesIfAsked(page) {
     await assertNoHorizontalScroll(page, "event page");
   });
 
+  // Migration 80: address suggestions come from the geo-search Edge Function; the browser never
+  // calls Geoapify. Without GEOAPIFY_SERVER_KEY on the project the function answers
+  // {enabled: false} and the form stays a plain address form (a NOTE, not a failure).
+  await r.step("address search goes through geo-search", async () => {
+    const direct = [];
+    const answers = [];
+    const onReq = (req) => {
+      if (new URL(req.url()).hostname.endsWith("geoapify.com")) direct.push(req.url());
+    };
+    const onRes = (res) => {
+      if (res.url().includes("/functions/v1/geo-search")) answers.push(res);
+    };
+    page.on("request", onReq);
+    page.on("response", onRes);
+    try {
+      await page.goto(`${env.base}/post`);
+      await page.getByLabel("Title").waitFor({ timeout: 20000 });
+      await page
+        .getByRole("radio", { name: "Add a place" })
+        .or(page.getByRole("tab", { name: "Add a place" }))
+        .or(page.getByRole("button", { name: "Add a place" }))
+        .first()
+        .click();
+      await page.getByLabel("Address line 1").fill("10 Downing Street");
+      for (let i = 0; i < 40 && answers.length === 0; i++) await page.waitForTimeout(250);
+      if (direct.length > 0) throw new Error("the browser called Geoapify directly");
+      if (answers.length === 0) throw new Error("no geo-search request was made");
+      const res = answers[0];
+      if (res.status() !== 200) throw new Error(`geo-search answered ${res.status()}`);
+      const body = await res.json();
+      if (body.enabled === false) {
+        console.log("  NOTE: this project has no GEOAPIFY_SERVER_KEY; suggestions are off");
+      } else {
+        const list = page.locator("ul li button").filter({ hasText: /Downing|London/ });
+        await list.first().waitFor({ timeout: 10000 });
+        console.log(`  geo-search: ${body.results?.length ?? 0} suggestions`);
+      }
+      await shot(page, "plan-01a-address-search");
+      await assertNoHorizontalScroll(page, "post, add a place");
+    } finally {
+      page.off("request", onReq);
+      page.off("response", onRes);
+    }
+  });
+
   await r.step("post as a chapter (when one is managed)", async () => {
     await page.goto(`${env.base}/post`);
     await page.getByLabel("Title").waitFor({ timeout: 20000 });
