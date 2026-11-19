@@ -46,6 +46,11 @@ export interface DiscoveryConfig {
   gate: {
     city: string;
     required: number;
+    /**
+     * Of `required`, at least this many must be hand-written city seeds (origin "seed"), so the
+     * discovered sources (found by discovery itself, so circular evidence) cannot carry a pass.
+     */
+    requiredSeeds?: number;
     expected: GateExpectation[];
     /** Enabled city seeds left out: no OSM place or Wikidata venue links them. */
     withoutCandidate?: GateExpectation[];
@@ -120,6 +125,26 @@ export function parseDiscoveryConfig(text: string): DiscoveryConfig {
     req > (gate.expected as unknown[]).length
   )
     fail("gate.required must be 1..expected");
+  const seeds = (gate.expected as GateExpectation[]).filter(
+    (e) => e.origin !== "discovered",
+  ).length;
+  const discovered = (gate.expected as unknown[]).length - seeds;
+  const rs = gate.requiredSeeds;
+  if (discovered > 0) {
+    // Discovered sources were found by discovery itself, so they may not carry a pass on their
+    // own: a pass also needs at least requiredSeeds of the hand-written seeds.
+    if (typeof rs !== "number" || !Number.isInteger(rs) || rs < 1 || rs > seeds)
+      fail("gate.requiredSeeds must be 1..seeds when the gate lists discovered sources");
+    // The database decides "passed" from found >= required alone (source_discovery_gate_record),
+    // so required must make the seed floor follow from the count: required >= requiredSeeds +
+    // the discovered sources.
+    if ((req as number) < (rs as number) + discovered)
+      fail("gate.required must be at least requiredSeeds plus the discovered sources");
+  } else if (
+    rs !== undefined &&
+    (typeof rs !== "number" || !Number.isInteger(rs) || rs < 1 || rs > seeds)
+  )
+    fail("gate.requiredSeeds must be 1..seeds");
   return d as unknown as DiscoveryConfig;
 }
 

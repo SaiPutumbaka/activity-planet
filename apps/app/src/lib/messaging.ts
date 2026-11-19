@@ -242,7 +242,7 @@ export function mergeIntoPages(
 export async function fetchNewer(
   queryClient: QueryClient,
   conversationId: string,
-  updatedSeq?: number,
+  updated?: number | readonly number[],
 ): Promise<void> {
   const key = chatKeys.messages(conversationId);
   const data = queryClient.getQueryData<MessagePages>(key);
@@ -252,18 +252,27 @@ export async function fetchNewer(
   }
   const newest = data.pages[0]?.[0]?.seq ?? 0;
   const tasks: Promise<ChatMessage[]>[] = [chat.messages(conversationId, { after: newest })];
-  if (updatedSeq != null && updatedSeq <= newest) {
-    // An update to a message already shown: read that one row again.
-    tasks.push(chat.messages(conversationId, { before: updatedSeq + 1, limit: 1 }));
+  // Updates to messages already shown: read those rows again, in one range read when they sit
+  // within a page of each other (the photo-label refresh asks for several at once).
+  const shown = (updated == null ? [] : typeof updated === "number" ? [updated] : [...updated])
+    .filter((s) => s <= newest)
+    .sort((a, b) => a - b);
+  if (shown.length > 0) {
+    const lo = shown[0]!;
+    const hi = shown[shown.length - 1]!;
+    if (hi - lo + 1 <= MESSAGES_PAGE)
+      tasks.push(chat.messages(conversationId, { before: hi + 1, limit: hi - lo + 1 }));
+    else
+      for (const s of shown) tasks.push(chat.messages(conversationId, { before: s + 1, limit: 1 }));
   }
   const results = (await Promise.all(tasks)).flat();
   // An updated row the reader may no longer see (a block, a ban) is dropped from the cache.
-  const gone =
-    updatedSeq != null && updatedSeq <= newest && !results.some((m) => m.seq === updatedSeq);
+  const got = new Set(results.map((m) => m.seq));
+  const gone = new Set(shown.filter((s) => !got.has(s)));
   queryClient.setQueryData<MessagePages>(key, (old) => {
     const merged = mergeIntoPages(old, results);
-    if (!merged || !gone) return merged;
-    return { ...merged, pages: merged.pages.map((p) => p.filter((m) => m.seq !== updatedSeq)) };
+    if (!merged || gone.size === 0) return merged;
+    return { ...merged, pages: merged.pages.map((p) => p.filter((m) => !gone.has(m.seq))) };
   });
 }
 
@@ -378,7 +387,8 @@ export function useRefreshCheckingImages(conversationId: string, messages: reado
     const list = seqs.split(",").map(Number);
     const t = window.setInterval(() => {
       if (document.visibilityState !== "visible") return;
-      for (const seq of list) void fetchNewer(queryClient, conversationId, seq).catch(() => {});
+      // One call a tick: the newer-messages read once, and the pending photos in one range read.
+      void fetchNewer(queryClient, conversationId, list).catch(() => {});
     }, CHECKING_REFRESH_MS);
     return () => window.clearInterval(t);
   }, [conversationId, queryClient, seqs]);

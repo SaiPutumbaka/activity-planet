@@ -7,13 +7,17 @@ name: Source discovery
 #   * gate: the quality gate (design 6.4), and this repository's CI check for the probe code. An
 #     Atlanta run from scratch (candidates only from the OSM website tags of staging's Atlanta
 #     place tiles and from Wikidata; no seed URL, no stored candidate, no HTTP cache) must find a
-#     calendar on at least 6 of the 9 Atlanta sources that work today
-#     (packages/collector/data/discovery.json). The job fails when it does not. The result is
-#     recorded on staging under the probe code's hash (POST /collector/discovery/gate).
+#     calendar on at least 8 of the 9 Atlanta sources that work today, 5 of them hand-written
+#     seeds (packages/collector/data/discovery.json). The job fails when it does not. The result
+#     is recorded on staging under the probe code's hash (POST /collector/discovery/gate). The
+#     gate only ever runs on staging (staging's tiles, staging's 2-runs-a-day limit).
 #   * nightly: on the target project, (1) the gate for the current probe code unless a passing run
-#     of the same code is on record there from the last 30 days, then (2) candidates for the
-#     collector regions due (10 a night, never in the EU gate's countries), then (3) probes of
-#     the queue the database offers (150 hosts a region a day, 8 requests a host), each result
+#     of the same code is on record there from the last 30 days (on production: staging's passing
+#     run of the same code is copied over, after the run is checked to be a successful run of this
+#     workflow; the gate runs on staging first when staging has none, so production never reads
+#     the Atlanta sites itself and a probe-code change reads them once, not once per project),
+#     then (2) candidates for the collector regions due (10 a night, never in the EU gate's
+#     countries), then (3) probes of the queue the database offers (150 hosts a region a day, 8 requests a host), each result
 #     posted to the lifecycle (probation after one good day; the nightly collector run enables a
 #     source after a second). The database refuses the probe queue while the gate is closed for
 #     this code (discovery_gate_closed), so a failing gate stops discovery everywhere.
@@ -26,8 +30,9 @@ name: Source discovery
 #   * STAGING for a push to a branch other than main that changes the collector's code or data
 #     (gate), a push of packages/collector/discovery_request.json (its mode), a workflow_dispatch
 #     from any branch other than main, a gate dispatch from main, and (only while
-#     DISCOVERY_PRODUCTION is "false") the nightly schedule. No pull_request trigger: the branch push already ran the gate for
-#     that commit, and a second copy would read the same Atlanta sites again in parallel.
+#     DISCOVERY_PRODUCTION is the off switch, below) the nightly schedule. No pull_request
+#     trigger: the branch push already ran the gate for that commit, and a second copy would read
+#     the same Atlanta sites again in parallel.
 #
 # Politeness of the gate (it reads about 150 Atlanta hosts): every run waits for any other run of
 # this workflow (one concurrency group), gate mode first asks the database whether this probe
@@ -36,8 +41,9 @@ name: Source discovery
 # anything once they are spent (exit 4).
 #   * PRODUCTION for the nightly schedule and for nightly, rescore and rescore-dry dispatches from
 #     main, by default (Sai's yes of Nov 18). The repository variable DISCOVERY_PRODUCTION set to
-#     exactly "false" is the off switch: those runs then go to staging as before. Gate mode never
-#     targets production, branch runs always stay on staging, and the EU gate is untouched.
+#     "false" (or off, no, 0; any case, spaces ignored) is the off switch: those runs then go to
+#     staging as before. The gate never runs on production (see nightly above), branch runs
+#     always stay on staging, and the EU gate is untouched.
 #
 # Secrets: none of its own; like collector-ingest.yml it reads the collector secret from the
 # target project's vault and masks it. Logs are public: counts, and for the gate only the hosts
@@ -67,6 +73,9 @@ on:
 
 permissions:
   contents: read
+  # The production nightly checks that the staging gate run it copies is a successful run of this
+  # workflow (GET /repos/.../actions/runs/{id}).
+  actions: read
 
 # One group for every ref and event, so two runs never probe the same sites at once.
 concurrency:
@@ -112,7 +121,10 @@ jobs:
           case "$mode" in gate|nightly) ;; rescore|rescore-dry) if [ "$EVENT" != "workflow_dispatch" ]; then echo "Refusing mode $mode outside workflow_dispatch"; exit 1; fi ;; *) echo "Refusing mode: $mode"; exit 1 ;; esac
           case "$hosts" in ""|[0-9]|[0-9][0-9]|[0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]) ;; *) echo "Refusing max_hosts: $hosts"; exit 1 ;; esac
           production=false
-          if { [ "$mode" = "nightly" ] || [ "$mode" = "rescore" ] || [ "$mode" = "rescore-dry" ]; } && [ "$EVENT" != "push" ] && [ "$REF" = "refs/heads/main" ] && [ "$PROD_VAR" != "false" ]; then production=true; fi
+          # The off switch: false, off, no or 0 in any case and with stray spaces all mean off.
+          prod_off=false
+          case "$(printf '%s' "$PROD_VAR" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')" in false|off|no|0) prod_off=true ;; esac
+          if { [ "$mode" = "nightly" ] || [ "$mode" = "rescore" ] || [ "$mode" = "rescore-dry" ]; } && [ "$EVENT" != "push" ] && [ "$REF" = "refs/heads/main" ] && [ "$prod_off" = "false" ]; then production=true; fi
           echo "event=$EVENT mode=$mode production=$production max_hosts=${hosts:-default}"
           {
             echo "mode=$mode"
@@ -169,12 +181,49 @@ jobs:
         if: steps.mode.outputs.mode == 'nightly'
         env:
           RUN_ID: ${{ steps.mode.outputs.run_id }}
+          PRODUCTION: ${{ steps.mode.outputs.production }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          THIS_RUN: ${{ github.run_id }}
+          STAGING_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
           if pnpm --silent --filter collector discover status --from "$COLLECTOR_BASE"; then
             echo "Gate already passed for this probe code."
-          else
-            pnpm --silent --filter collector discover gate --from "$COLLECTOR_BASE" --record --run-id "$RUN_ID-gate"
+            exit 0
           fi
+          if [ "$PRODUCTION" != "true" ]; then
+            pnpm --silent --filter collector discover gate --from "$COLLECTOR_BASE" --record --run-id "$RUN_ID-gate"
+            exit $?
+          fi
+          # Production: the gate runs on staging only. Read staging's collector secret (masked),
+          # run the gate there if this code has no pass on staging, then copy the passing run.
+          SUPABASE_ACCESS_TOKEN="$STAGING_TOKEN" SUPABASE_DB_PASSWORD="$STAGING_DB_PASSWORD" \
+            supabase link --project-ref "$STAGING_PROJECT_REF" > /dev/null
+          out=$(SUPABASE_ACCESS_TOKEN="$STAGING_TOKEN" supabase db query --linked "select 'CSECRET:' || ds.decrypted_secret as v from vault.decrypted_secrets ds where ds.name = 'collector_secret'" 2>/dev/null || true)
+          ssecret=$(printf '%s' "$out" | grep -o 'CSECRET:[0-9a-f]\{64\}' | head -1 | cut -d: -f2)
+          unset out
+          if [ -z "$ssecret" ]; then echo "staging collector_secret not found"; exit 1; fi
+          echo "::add-mask::$ssecret"
+          sbase="https://$STAGING_PROJECT_REF.supabase.co/functions/v1/collector"
+          if ! COLLECTOR_SECRET="$ssecret" pnpm --silent --filter collector discover status --from "$sbase"; then
+            echo "No staging pass for this probe code: running the gate on staging."
+            COLLECTOR_SECRET="$ssecret" pnpm --silent --filter collector discover gate --from "$sbase" --record --run-id "$RUN_ID-gate"
+          fi
+          COLLECTOR_SECRET="$ssecret" pnpm --silent --filter collector discover gate-source --from "$sbase" --out "$RUNNER_TEMP/gate-source.json"
+          src_run=$(python3 -I -c 'import json,sys;print(json.load(open(sys.argv[1]))["run_id"])' "$RUNNER_TEMP/gate-source.json")
+          gh_run=$(printf '%s' "$src_run" | sed -n 's/^gh-\([0-9]\{1,20\}\)-[0-9]\{1,5\}-gate$/\1/p')
+          if [ -z "$gh_run" ]; then echo "staging gate run $src_run is not a run of this workflow; not copied"; exit 1; fi
+          if [ "$gh_run" != "$THIS_RUN" ]; then
+            info=$(gh api "repos/$REPO/actions/runs/$gh_run" --jq '[.path, .conclusion] | @tsv' 2>/dev/null || true)
+            case "$info" in
+              ".github/workflows/discovery.yml"*"success") ;;
+              *) echo "staging gate run $gh_run is not a successful discovery.yml run; not copied"; exit 1 ;;
+            esac
+          fi
+          echo "Copying staging gate run $src_run to production."
+          pnpm --silent --filter collector discover gate-adopt --from "$COLLECTOR_BASE" --source-file "$RUNNER_TEMP/gate-source.json"
+          rm -f "$RUNNER_TEMP/gate-source.json"
 
       - name: Nightly, candidates for due regions
         if: steps.mode.outputs.mode == 'nightly'

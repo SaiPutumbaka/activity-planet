@@ -13,10 +13,12 @@ Every day at 03:41 UTC, from `main` only, under the `production` GitHub Environm
 5. Packs everything and encrypts it with `age` to the public key in `vars.BACKUP_AGE_RECIPIENT` (`tar` writes straight into `age`, so no unencrypted archive is ever written; the plaintext folder is deleted before any upload, and the output is checked to start with the `age` header).
 6. Uploads only the encrypted file to each target that is set up:
    - **Staging bucket (default):** the private bucket `prod-backups` on the staging project (`gzrscndzzggxmcwnvvcq`), created by migration 80 on staging only, with no policies (only the service role reaches it). The file is split into parts of at most 45 MB (the Free plan's per-file limit is 50 MB) and stored as `prod-backups/<stamp>/part-000`, `part-001`, ... with `<stamp>/SHA256SUMS` (the checksum of each part and of the whole file). The newest **14** stamps are kept. It needs no new token: the step reads the staging service key at run time through the Management API with the staging access token the other workflows already use (`SUPABASE_STAGING_ACCESS_TOKEN`, or `SUPABASE_ACCESS_TOKEN` until the split), and the key is masked in the log. Set the variable `BACKUP_STAGING` to `false` to turn this target off.
-   - **Private repository (optional):** a release asset of the private repository `vars.BACKUP_REPO`, with `secrets.BACKUP_REPO_TOKEN`. The newest 30 releases are kept.
+   - **Private repository (recommended, not required):** a release asset of the private repository `vars.BACKUP_REPO`, with `secrets.BACKUP_REPO_TOKEN`. The newest 30 releases are kept.
 7. Fails the run if any target that was set up did not get the backup (GitHub then emails the repository owner).
 
 Nothing readable reaches this public repository: every command that could print data writes to `/dev/null`, logs show sizes, counts and HTTP codes only, there are no workflow artifacts, and the plaintext is deleted from the runner before the job ends. The staging project only ever holds the encrypted parts; without the private key they cannot be read, so staging's wider access (test accounts, branch workflows) does not widen access to production data.
+
+It does widen who can **delete** the backups. Every branch workflow can use the repository-level staging token, which can read staging's service key or run SQL on staging, so a mistaken or hostile branch run (a `storage_selftest`, or a `staging_only` migrate SQL file that touches `storage.objects`) could delete or overwrite the `prod-backups` objects. Production is on the Free plan, so these may be the only backups there are. That is the main reason to set up the private repository target below as well: its token sits in the `production` environment (main only), so no branch can reach it. Until then, review any branch change that touches Storage on staging with this in mind, and check the backup job's object count after such a run.
 
 Storage budget: the staging project's Free plan has 1 GB of Storage in all. 14 copies must fit next to staging's own files, so while a compressed, encrypted backup is under about 50 MB this is fine. If it grows past that, lower `BACKUP_KEEP_STAGING` in the workflow or add the private repository target (a release asset may be up to 2 GB).
 
@@ -30,7 +32,7 @@ The only required step:
 2. In this repository, Settings, Secrets and variables, Actions, Variables: `BACKUP_AGE_RECIPIENT` = the `age1...` public key. (A value that does not start with `age1` fails the run before anything is dumped, so a pasted private key is refused.)
 3. Run the workflow once by hand from `main` with `verify_restore` ticked and check that it ends with `RESTORE PASS` and `Uploaded N parts as <stamp>`.
 
-Optional second copy off Supabase: create a **private** GitHub repository (for example `SaiPutumbaka/activity-planet-backups`), a fine-grained personal access token with access to that one repository only (Contents: Read and write, one-year expiry), then set the variable `BACKUP_REPO` = `owner/name` and the secret `BACKUP_REPO_TOKEN` (in the `production` environment).
+Recommended second copy off Supabase (branches cannot delete it, see above): create a **private** GitHub repository (for example `SaiPutumbaka/activity-planet-backups`), a fine-grained personal access token with access to that one repository only (Contents: Read and write, one-year expiry), then set the variable `BACKUP_REPO` = `owner/name` and the secret `BACKUP_REPO_TOKEN` (in the `production` environment).
 
 Until `BACKUP_AGE_RECIPIENT` is set the job is a no-op that says so.
 

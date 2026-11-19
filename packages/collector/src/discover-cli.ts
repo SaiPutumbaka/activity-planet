@@ -19,6 +19,12 @@
 //       With --record, gate first asks the same endpoint how many gate runs were recorded in the
 //       last 24 hours and exits 4 without fetching anything once the database's 2 are spent.
 //
+//   pnpm --filter collector discover gate-source --from <staging base> --out <file>
+//   pnpm --filter collector discover gate-adopt --from <production base> --source-file <file>
+//       Production nightly (discovery.yml): the gate runs on staging only. gate-source writes
+//       staging's passing run of this probe code (exit 3 when there is none); gate-adopt records
+//       it on production (run id <staging run>-staging). No site is fetched.
+//
 //   pnpm --filter collector discover candidates --from <base> [--limit 10]
 //       Builds candidates for the collector regions due (GET /collector/discovery/regions: never
 //       built or built 30 days ago, 10 a night), skipping regions in the EU gate's countries,
@@ -39,12 +45,13 @@
 //       the gate passed for this code) and posts each result to the lifecycle
 //       (POST /collector/sources/record, run id probe-<id>).
 
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { loadCities } from "./config.ts";
 import { parseYield } from "./discovery/candidates.ts";
 import { loadDiscoveryConfig } from "./discovery/config.ts";
 import {
+  adoptableGate,
   buildCandidates,
   fetchTileRows,
   foundCalendar,
@@ -95,6 +102,7 @@ async function main(argv: string[]): Promise<number> {
     options: {
       from: { type: "string" },
       out: { type: "string" },
+      "source-file": { type: "string" },
       record: { type: "boolean", default: false },
       "run-id": { type: "string" },
       "max-hosts": { type: "string" },
@@ -122,6 +130,48 @@ async function main(argv: string[]): Promise<number> {
     const open = (gate.body as { open?: unknown })?.open === true;
     console.log(`[gate] probe_hash=${hash} open=${open}`);
     return open ? 0 : 3;
+  }
+
+  if (command === "gate-source") {
+    // Production nightly (discovery.yml): the staging run production may copy, to --out.
+    const gate = await call(svc, `/discovery/gate?hash=${hash}`);
+    if (gate.status !== 200) throw new Error(`GET /discovery/gate failed: ${gate.status}`);
+    const got = adoptableGate(gate.body, hash, cfg.gate);
+    if (typeof got === "string") {
+      console.log(`[gate] probe_hash=${hash} staging run not adoptable: ${got}`);
+      return 3;
+    }
+    if (!values.out) throw new Error("gate-source needs --out");
+    writeFileSync(values.out, JSON.stringify(got));
+    console.log(
+      `[gate] probe_hash=${hash} staging run ${got.run_id} passed ${got.found} of ${got.expected} (required ${got.required})`,
+    );
+    return 0;
+  }
+
+  if (command === "gate-adopt") {
+    // Records the staging run (from gate-source) on --from. The database checks it again and
+    // decides passed itself; nothing is fetched from any site.
+    if (!values["source-file"]) throw new Error("gate-adopt needs --source-file");
+    const src = JSON.parse(readFileSync(values["source-file"], "utf8")) as Record<string, unknown>;
+    const got = adoptableGate({ open: true, last: { ...src, passed: true } }, hash, cfg.gate);
+    if (typeof got === "string" || src.probe_hash !== hash)
+      throw new Error(`source run not adoptable: ${typeof got === "string" ? got : "other hash"}`);
+    const { status, body } = await call(svc, "/discovery/gate", {
+      method: "POST",
+      body: JSON.stringify({
+        run_id: `${got.run_id}-staging`,
+        probe_hash: hash,
+        region: got.region,
+        expected: got.expected,
+        required: got.required,
+        found: got.found,
+        counts: { adopted_from_staging: 1 },
+      }),
+    });
+    if (status !== 200) throw new Error(`POST /discovery/gate failed: ${status}`);
+    console.log(`[gate] adopted ${JSON.stringify(body)}`);
+    return (body as { passed?: unknown })?.passed === true ? 0 : 1;
   }
 
   if (command === "gate") {
@@ -193,7 +243,13 @@ async function main(argv: string[]): Promise<number> {
         if (mark) for (const t of r.trace) console.log(`[trace] ${r.candidate.host} ${t}`);
       },
     });
-    const report = gateReport(results, built.candidates, cfg.gate.expected, cfg.gate.required);
+    const report = gateReport(
+      results,
+      built.candidates,
+      cfg.gate.expected,
+      cfg.gate.required,
+      cfg.gate.requiredSeeds ?? 0,
+    );
     const found = results.filter(foundCalendar);
     const counts: Record<string, number> = {
       tiles: tiles.tiles,
@@ -217,7 +273,7 @@ async function main(argv: string[]): Promise<number> {
       );
     console.log(`[gate] counts ${JSON.stringify(counts)}`);
     console.log(
-      `[gate] ${report.passed ? "PASS" : "FAIL"} rediscovered ${report.found} of ${report.expected} (required ${report.required}; ${report.foundWithItems} with items, ${report.found - report.foundWithItems} needs_permission)`,
+      `[gate] ${report.passed ? "PASS" : "FAIL"} rediscovered ${report.found} of ${report.expected} (required ${report.required}; seeds ${report.foundSeeds} of required ${report.requiredSeeds}; ${report.foundWithItems} with items, ${report.found - report.foundWithItems} needs_permission)`,
     );
     if (values.out)
       writeFileSync(
@@ -518,7 +574,7 @@ async function main(argv: string[]): Promise<number> {
   }
 
   console.error(
-    "usage: discover gate|candidates|rescore|probe --from <collector base URL> (see src/discover-cli.ts)",
+    "usage: discover status|gate|gate-source|gate-adopt|candidates|rescore|probe --from <collector base URL> (see src/discover-cli.ts)",
   );
   return 2;
 }

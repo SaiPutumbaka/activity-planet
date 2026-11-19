@@ -26,7 +26,13 @@ import {
   loadDiscoveryConfig,
   parseDiscoveryConfig,
 } from "../src/discovery/config.ts";
-import { foundCalendar, gateReport, maxPerHost, probeAll } from "../src/discovery/discover.ts";
+import {
+  adoptableGate,
+  foundCalendar,
+  gateReport,
+  maxPerHost,
+  probeAll,
+} from "../src/discovery/discover.ts";
 import { candidateGate, euGated, zoneCountry } from "../src/discovery/eu.ts";
 import { guessedPaths, keywordsFor, keywordStrength } from "../src/discovery/keywords.ts";
 import {
@@ -110,7 +116,9 @@ describe("discovery config", () => {
       "parkpride.org",
     ]);
     expect(cfg.gate.expected).toHaveLength(9);
-    expect(cfg.gate.required).toBe(6);
+    // One miss in all, and the discovered three cannot carry a pass: 5 of the 6 seeds (Nov 19).
+    expect(cfg.gate.required).toBe(8);
+    expect(cfg.gate.requiredSeeds).toBe(5);
     expect(cfg.caps.requestsPerHostPerProbe).toBe(8);
   });
 
@@ -150,6 +158,14 @@ describe("discovery config", () => {
     expect(() => parseDiscoveryConfig(JSON.stringify(bad))).toThrow(/2\.\.8/);
     const req = { ...base, gate: { ...base.gate, required: 10 } };
     expect(() => parseDiscoveryConfig(JSON.stringify(req))).toThrow(/required/);
+    const noSeeds = structuredClone(base) as { gate: Record<string, unknown> };
+    delete noSeeds.gate.requiredSeeds;
+    expect(() => parseDiscoveryConfig(JSON.stringify(noSeeds))).toThrow(/requiredSeeds/);
+    const tooMany = { ...base, gate: { ...base.gate, requiredSeeds: 7 } };
+    expect(() => parseDiscoveryConfig(JSON.stringify(tooMany))).toThrow(/requiredSeeds/);
+    // The database decides passed from found >= required alone, so required must imply the floor.
+    const loose = { ...base, gate: { ...base.gate, required: 7 } };
+    expect(() => parseDiscoveryConfig(JSON.stringify(loose))).toThrow(/plus the discovered/);
   });
 });
 
@@ -724,6 +740,59 @@ describe("gate report", () => {
     expect(report.passed).toBe(true);
     expect(report.rows.map((r) => r.found)).toEqual([true, true, false, false]);
     expect(gateReport([], [], expected, 3).passed).toBe(false);
+  });
+
+  it("copies only a passing staging run of this workflow that meets this code's bar", () => {
+    const gate = { city: "atl", required: 8, expected: new Array(9).fill(0) };
+    const last = {
+      run_id: "gh-44373594652-1-gate",
+      region: "atl",
+      expected: 9,
+      required: 8,
+      found: 9,
+      passed: true,
+    };
+    const ok = adoptableGate({ open: true, last }, "ab".repeat(16), gate);
+    expect(ok).toMatchObject({ run_id: last.run_id, found: 9, required: 8, expected: 9 });
+    expect(adoptableGate({ open: false, last }, "x", gate)).toBe("not open");
+    expect(adoptableGate({ open: true, last: { ...last, run_id: "manual-1" } }, "x", gate)).toBe(
+      "not a workflow run id",
+    );
+    expect(adoptableGate({ open: true, last: { ...last, required: 6 } }, "x", gate)).toBe(
+      "lower required",
+    );
+    expect(adoptableGate({ open: true, last: { ...last, region: "nyc" } }, "x", gate)).toBe(
+      "other region",
+    );
+    expect(adoptableGate({ open: true, last: { ...last, passed: false } }, "x", gate)).toBe(
+      "best run did not pass",
+    );
+    expect(adoptableGate({ open: true, last: { ...last, found: 7 } }, "x", gate)).toBe("bad found");
+  });
+
+  it("needs requiredSeeds hand-written seeds: discovered sources cannot carry a pass alone", () => {
+    const res = (host: string) =>
+      ({
+        candidate: { host },
+        outcome: "ok",
+        in_region: 3,
+        url: null,
+        kind: null,
+        platform: null,
+      }) as unknown as ProbeResult;
+    const expected = [
+      { seed: "a", site: "a.org" },
+      { seed: "b", site: "b.org" },
+      { seed: "discovered:c.org", site: "c.org", origin: "discovered" as const, evidence: "x" },
+      { seed: "discovered:d.org", site: "d.org", origin: "discovered" as const, evidence: "x" },
+    ];
+    const some = [res("a.org"), res("c.org"), res("d.org")];
+    const one = gateReport(some, [], expected, 3, 2);
+    expect(one.found).toBe(3);
+    expect(one.foundSeeds).toBe(1);
+    expect(one.passed).toBe(false);
+    expect(gateReport([...some, res("b.org")], [], expected, 3, 2).passed).toBe(true);
+    expect(gateReport(some, [], expected, 3).passed).toBe(true);
   });
 
   it("probes several hosts with one shared fetcher", async () => {

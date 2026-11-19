@@ -5,7 +5,8 @@ name: Supabase Auth settings
 # nothing else (SMTP, email templates, providers and every other field are never sent):
 #   rate_limit_email_sent  20 emails an hour (the custom SMTP default is 30; Resend's free tier is
 #                          100 a day, shared with the notification worker)
-#   uri_allow_list         every localhost / 127.0.0.1 entry removed, the rest kept as they are
+#   uri_allow_list         every entry whose host is localhost, 127.0.0.1 or [::1] removed (an
+#                          entry that only contains the word elsewhere is kept), the rest kept
 #   site_url               https://app.activityplanet.app (the public app; the vercel.app host sits
 #                          behind Vercel Authentication, so links to it fail for members)
 # It GETs the current config first and PATCHes only the fields that differ, so a second run changes
@@ -16,7 +17,8 @@ name: Supabase Auth settings
 # Runs once when this file reaches main, and by hand (Run workflow) from main for production; on
 # any other branch only the staging report runs. Production uses SUPABASE_PROD_ACCESS_TOKEN (the
 # production environment) or, until the token split, SUPABASE_ACCESS_TOKEN. The token needs the
-# Auth Read-write scope on its project (Account, Access Tokens).
+# Auth Read-write scope on its project (Account, Access Tokens). On the push that merges this file a
+# token without that scope (HTTP 401 or 403) only warns; a run by hand fails on it.
 
 on:
   # Any branch: a push that changes this file runs the staging report; only main also runs the
@@ -56,10 +58,11 @@ jobs:
           echo "staging GET HTTP $code"
           if [ "$code" != 200 ]; then rm -f "$f"; echo "::warning::Could not read staging's Auth config (the token may lack Auth Read)."; exit 0; fi
           jq -r --arg target "$TARGET_SITE_URL" '
+            def islocal: test("^([a-z][a-z0-9+.-]*://)?(localhost|127\\.0\\.0\\.1|\\[::1\\])(:[0-9*]+)?([/?#*]|$)"; "i");
             (.uri_allow_list // "" | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))) as $l |
             "staging: email per hour \(.rate_limit_email_sent // "unset")",
-            "staging: redirect entries \($l | length), localhost entries \($l | map(select(test("localhost|127\\.0\\.0\\.1"))) | length)",
-            "staging: site_url is localhost \((.site_url // "") | test("localhost|127\\.0\\.0\\.1")), equals the production app \((.site_url // "") == $target)"' "$f"
+            "staging: redirect entries \($l | length), localhost entries \($l | map(select(islocal)) | length)",
+            "staging: site_url is localhost \((.site_url // "") | islocal), equals the production app \((.site_url // "") == $target)"' "$f"
           rm -f "$f"
 
   production:
@@ -71,14 +74,25 @@ jobs:
       - name: Production, set the email rate limit, redirect list and Site URL
         env:
           TOKEN: ${{ secrets.SUPABASE_PROD_ACCESS_TOKEN || secrets.SUPABASE_ACCESS_TOKEN }}
+          EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
           umask 077
           api="https://api.supabase.com/v1/projects/$PROD_PROJECT_REF/config/auth"
           f="$RUNNER_TEMP/auth.json"; trap 'rm -f "$f" "$RUNNER_TEMP/patch.json"' EXIT
+          # On the push that merges this file the token may still be the shared fallback without
+          # Auth Read-write (FOUNDER-TODO item 3): a 401 or 403 then only warns, so the merge does
+          # not go red. A run by hand (Run workflow) fails on it.
+          scope_or_fail() {
+            if [ "$EVENT" = "push" ] && { [ "$code" = 401 ] || [ "$code" = 403 ]; }; then
+              echo "::warning::$1: the token lacks Auth Read-write; nothing changed. Run this workflow by hand from main after the token split."
+              exit 0
+            fi
+            echo "::error::$1"; exit 1
+          }
           get() {
             code=$(curl -sS -o "$f" -w '%{http_code}' --max-time 30 -H "Authorization: Bearer $TOKEN" "$api" || echo "000")
-            [ "$code" = 200 ] || { echo "::error::GET Auth config answered HTTP $code"; exit 1; }
+            if [ "$code" != 200 ]; then rm -f "$f"; scope_or_fail "GET Auth config answered HTTP $code"; fi
             for k in rate_limit_email_sent uri_allow_list site_url; do
               jq -e --arg k "$k" 'has($k)' "$f" > /dev/null || { echo "::error::The Auth config has no $k field; nothing changed."; exit 1; }
             done
@@ -86,22 +100,27 @@ jobs:
           # The three fields as they should be, computed from the current ones.
           desired() {
             jq -c --arg site "$TARGET_SITE_URL" --argjson rate "$TARGET_EMAIL_PER_HOUR" '
+              def islocal: test("^([a-z][a-z0-9+.-]*://)?(localhost|127\\.0\\.0\\.1|\\[::1\\])(:[0-9*]+)?([/?#*]|$)"; "i");
               (.uri_allow_list // "" | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))) as $l |
               {rate_limit_email_sent: $rate,
-               uri_allow_list: ($l | map(select(test("localhost|127\\.0\\.0\\.1") | not)) | join(",")),
+               uri_allow_list: ($l | map(select(islocal | not)) | join(",")),
                site_url: $site}' "$f"
           }
           report() {
             jq -r --arg target "$TARGET_SITE_URL" --arg when "$1" '
+              def islocal: test("^([a-z][a-z0-9+.-]*://)?(localhost|127\\.0\\.0\\.1|\\[::1\\])(:[0-9*]+)?([/?#*]|$)"; "i");
               (.uri_allow_list // "" | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))) as $l |
-              "\($when): email per hour \(.rate_limit_email_sent // "unset"), redirect entries \($l | length), localhost entries \($l | map(select(test("localhost|127\\.0\\.0\\.1"))) | length), site_url is the production app \((.site_url // "") == $target)"' "$f"
+              "\($when): email per hour \(.rate_limit_email_sent // "unset"), redirect entries \($l | length), localhost entries \($l | map(select(islocal)) | length), site_url is the production app \((.site_url // "") == $target)"' "$f"
           }
           get; report "before"
           want=$(desired)
           # Only the fields that differ go into the PATCH.
           echo "$want" | jq -c --slurpfile cur "$f" '
             ($cur[0]) as $c |
-            with_entries(select((.value | tostring) != (($c[.key] // "") | tostring)))' > "$RUNNER_TEMP/patch.json"
+            # The redirect list is compared in its normal form (entries trimmed, joined by ","),
+            # so spaces after the commas alone never send it.
+            ($c + {uri_allow_list: ($c.uri_allow_list // "" | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != "")) | join(","))}) as $n |
+            with_entries(select((.value | tostring) != (($n[.key] // "") | tostring)))' > "$RUNNER_TEMP/patch.json"
           n=$(jq 'length' "$RUNNER_TEMP/patch.json")
           echo "fields to change: $n ($(jq -r 'keys | join(", ")' "$RUNNER_TEMP/patch.json"))"
           if [ "$n" -gt 0 ]; then
@@ -109,12 +128,13 @@ jobs:
               -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
               --data @"$RUNNER_TEMP/patch.json" "$api" || echo "000")
             echo "PATCH HTTP $code"
-            case "$code" in 200|204) ;; *) echo "::error::PATCH failed (does the token have Auth Read-write?)"; exit 1 ;; esac
+            case "$code" in 200|204) ;; *) scope_or_fail "PATCH answered HTTP $code (does the token have Auth Read-write?)" ;; esac
           fi
           get; report "after"
           ok=$(jq -r --arg site "$TARGET_SITE_URL" --argjson rate "$TARGET_EMAIL_PER_HOUR" '
-            (.uri_allow_list // "" | split(",")) as $l |
+            def islocal: test("^([a-z][a-z0-9+.-]*://)?(localhost|127\\.0\\.0\\.1|\\[::1\\])(:[0-9*]+)?([/?#*]|$)"; "i");
+            (.uri_allow_list // "" | split(",") | map(gsub("^\\s+|\\s+$"; ""))) as $l |
             ((.rate_limit_email_sent == $rate) and (.site_url == $site)
-             and ($l | map(select(test("localhost|127\\.0\\.0\\.1"))) | length) == 0)' "$f")
+             and ($l | map(select(islocal)) | length) == 0)' "$f")
           echo "all three hold: $ok"
           [ "$ok" = true ]

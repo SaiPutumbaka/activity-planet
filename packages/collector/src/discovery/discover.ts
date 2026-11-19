@@ -208,6 +208,10 @@ export function foundCalendar(r: ProbeResult): boolean {
 export interface GateReport {
   expected: number;
   required: number;
+  /** Hand-written seeds (origin "seed") that must be among the found (0: no such floor). */
+  requiredSeeds: number;
+  /** Hand-written seeds found. */
+  foundSeeds: number;
   found: number;
   /** Found with items inside the region (needs_permission not counted). */
   foundWithItems: number;
@@ -215,6 +219,8 @@ export interface GateReport {
   rows: {
     seed: string;
     site: string;
+    /** A discovered source (origin "discovered"), not a hand-written seed. */
+    discovered: boolean;
     found: boolean;
     candidate: boolean;
     outcome: string | null;
@@ -233,6 +239,7 @@ export function gateReport(
   candidates: Candidate[],
   expected: GateExpectation[],
   required: number,
+  requiredSeeds = 0,
 ): GateReport {
   const siteHits = (r: ProbeResult) =>
     new Set([siteOf(r.candidate.host), ...(r.url ? [siteOf(hostOf(r.url))] : [])]);
@@ -243,6 +250,7 @@ export function gateReport(
     return {
       seed: e.seed,
       site: e.site,
+      discovered: e.origin === "discovered",
       found: Boolean(hit),
       candidate: candidates.some((c) => siteOf(c.host) === e.site),
       outcome: best?.outcome ?? null,
@@ -252,12 +260,57 @@ export function gateReport(
     };
   });
   const found = rows.filter((r) => r.found).length;
+  const foundSeeds = rows.filter((r) => r.found && !r.discovered).length;
   return {
     expected: expected.length,
     required,
+    requiredSeeds,
+    foundSeeds,
     found,
     foundWithItems: rows.filter((r) => r.found && r.outcome === "ok").length,
-    passed: found >= required,
+    passed: found >= required && foundSeeds >= requiredSeeds,
     rows,
+  };
+}
+
+/** A passing gate run on staging that production may copy (discover gate-source / gate-adopt). */
+export interface AdoptedGate {
+  run_id: string;
+  probe_hash: string;
+  region: string;
+  expected: number;
+  required: number;
+  found: number;
+}
+
+const GATE_RUN_ID = /^gh-[0-9]{1,20}-[0-9]{1,5}-gate$/;
+
+/**
+ * Reads GET /collector/discovery/gate?hash= from staging and returns its best run when production
+ * may copy it: open for this hash, a passing run of this workflow (run id gh-<run>-<attempt>-gate),
+ * of the gate city, with this code's expected list and at least this code's required count.
+ */
+export function adoptableGate(
+  body: unknown,
+  hash: string,
+  gate: { city: string; required: number; expected: unknown[] },
+): AdoptedGate | string {
+  const b = (body ?? {}) as { open?: unknown; last?: Record<string, unknown> | null };
+  if (b.open !== true) return "not open";
+  const l = b.last ?? {};
+  if (l.passed !== true) return "best run did not pass";
+  if (typeof l.run_id !== "string" || !GATE_RUN_ID.test(l.run_id)) return "not a workflow run id";
+  if (l.region !== gate.city) return "other region";
+  if (l.expected !== gate.expected.length) return "other expected count";
+  if (typeof l.required !== "number" || l.required < gate.required) return "lower required";
+  if (typeof l.found !== "number" || l.found < l.required || l.found > gate.expected.length)
+    return "bad found";
+  return {
+    run_id: l.run_id,
+    probe_hash: hash,
+    region: gate.city,
+    expected: gate.expected.length,
+    required: l.required,
+    found: l.found,
   };
 }

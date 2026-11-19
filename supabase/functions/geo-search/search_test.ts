@@ -164,3 +164,23 @@ Deno.test(
     assertEquals(down.stored.length, 0);
   },
 );
+
+Deno.test("handle: a malformed or empty upstream answer is never cached", async () => {
+  const notJson = deps({ fetch: () => Promise.resolve(new Response("<html>oops</html>")) });
+  assertEquals((await handle("good", { kind: "city", text: "Lisbon" }, notJson)).status, 502);
+  assertEquals(notJson.stored.length, 0);
+
+  const noResults = deps({
+    fetch: () => Promise.resolve(new Response(JSON.stringify({ error: "x" }))),
+  });
+  assertEquals((await handle("good", { kind: "city", text: "Lisbon" }, noResults)).status, 502);
+  assertEquals(noResults.stored.length, 0);
+
+  const empty = deps({
+    fetch: () => Promise.resolve(new Response(JSON.stringify({ results: [] }))),
+  });
+  const e = await handle("good", { kind: "city", text: "Nowhereville" }, empty);
+  assertEquals(e.status, 200);
+  assertEquals(e.body, { enabled: true, results: [] });
+  assertEquals(empty.stored.length, 0);
+});

@@ -9,7 +9,9 @@
 staging_key() {
   [ -n "${STAGING_TOKEN:-}" ] || { echo "::error::no staging access token"; return 1; }
   local f="$RUNNER_TEMP/staging-key" code
-  code=$(curl -sS -o "$f" -w '%{http_code}' --max-time 30 -H "Authorization: Bearer $STAGING_TOKEN" \
+  # The response holds every staging API key: the file is private to this user (umask in a
+  # subshell, so the caller's umask is unchanged).
+  code=$(umask 077; curl -sS -o "$f" -w '%{http_code}' --max-time 30 -H "Authorization: Bearer $STAGING_TOKEN" \
     "https://api.supabase.com/v1/projects/$STAGING_PROJECT_REF/api-keys?reveal=true" || echo "000")
   if [ "$code" != 200 ]; then rm -f "$f"; echo "::error::reading the staging keys answered HTTP $code"; return 1; fi
   SKEY=$(jq -r '[.[] | select(.name == "service_role" and (.api_key // "") != "")][0].api_key // empty' "$f")

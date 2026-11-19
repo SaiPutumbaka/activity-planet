@@ -95,6 +95,13 @@ export function geoapifyUrl(r: GeoRequest, apiKey: string): URL {
   return u;
 }
 
+/** True for a well-formed Geoapify answer: an object with a results array. */
+export function wellFormed(body: unknown): boolean {
+  return (
+    !!body && typeof body === "object" && Array.isArray((body as { results?: unknown }).results)
+  );
+}
+
 /** Geoapify's results trimmed to FIELDS; a result without a point or place_id is dropped. */
 export function pickResults(body: unknown): GeoResult[] {
   const results = (body as { results?: unknown })?.results;
@@ -170,11 +177,20 @@ export async function handle(token: string | null, body: unknown, deps: Deps): P
     await res.body?.cancel();
     return { status: 502, body: { error: "lookup_failed", upstream: res.status } };
   }
-  const results = pickResults(await res.json().catch(() => null));
-  try {
-    await deps.store(key, results);
-  } catch {
-    // A failed cache write still answers.
+  const raw: unknown = await res.json().catch(() => null);
+  // A 200 that is not JSON or has no results array is an upstream fault, not "nothing found":
+  // answer 502 and cache nothing, so one bad answer is not served to everyone for 30 days.
+  if (!wellFormed(raw))
+    return { status: 502, body: { error: "lookup_failed", upstream: res.status } };
+  const results = pickResults(raw);
+  // Only non-empty answers are cached: an empty one may be a passing upstream hiccup, and the
+  // next member's search simply asks again (still counted against both daily limits).
+  if (results.length > 0) {
+    try {
+      await deps.store(key, results);
+    } catch {
+      // A failed cache write still answers.
+    }
   }
   return { status: 200, body: { enabled: true, results } };
 }

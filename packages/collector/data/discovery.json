@@ -1,5 +1,5 @@
 {
-  "$comment": "Automatic source discovery (D-042 slice 8, docs/design/auto-coverage/AUTO_COVERAGE_DESIGN.md 6 and 7). Caps are per collector region per UTC day unless named otherwise. euGate: automatic discovery (OSM and Wikidata candidates, and probing them) stays off for regions in these countries until the attorney review of the EU database right (FOUNDER-TODO item 12); the database keeps the same list in source_discovery_allowed (migration 46) behind meta.eu_discovery, and test/discovery-config.test.ts keeps the two in step. A region's country comes from its time zone (src/discovery/eu.ts); a European zone not in that table counts as gated. The gate lists 9 Atlanta sources that work today: the seeds enabled in data/cities/atl.json that a run from scratch can reach (an OSM place or Wikidata venue links them), plus discovered sources (origin 'discovered', seed 'discovered:<site>') verified on staging. Before the probe may read candidates for any region, an Atlanta run from scratch must rediscover at least 'required' of them. 'withoutCandidate' lists the enabled seeds left out because no OSM place or Wikidata venue names them, so no run from scratch can ever find them (Nov 18, D-042).",
+  "$comment": "Automatic source discovery (D-042 slice 8, docs/design/auto-coverage/AUTO_COVERAGE_DESIGN.md 6 and 7). Caps are per collector region per UTC day unless named otherwise. euGate: automatic discovery (OSM and Wikidata candidates, and probing them) stays off for regions in these countries until the attorney review of the EU database right (FOUNDER-TODO item 12); the database keeps the same list in source_discovery_allowed (migration 46) behind meta.eu_discovery, and test/discovery-config.test.ts keeps the two in step. A region's country comes from its time zone (src/discovery/eu.ts); a European zone not in that table counts as gated. The gate lists 9 Atlanta sources that work today: the seeds enabled in data/cities/atl.json that a run from scratch can reach (an OSM place or Wikidata venue links them), plus discovered sources (origin 'discovered', seed 'discovered:<site>') verified on staging. Before the probe may read candidates for any region, an Atlanta run from scratch must rediscover at least 'required' of them, at least 'requiredSeeds' of them hand-written seeds (the discovered ones are discovery's own earlier output, so they cannot carry a pass alone). 8 of 9 with 5 of the 6 seeds allows one miss in all (Nov 8: Marietta answered robots); the bar before Nov 18 was all 6 reachable seeds. 'withoutCandidate' lists the enabled seeds left out because no OSM place or Wikidata venue names them, so no run from scratch can ever find them (Nov 18, D-042).",
   "caps": {
     "newRegionsPerDay": 10,
     "probeHostsPerRegionPerDay": 150,
@@ -50,7 +50,8 @@
   },
   "gate": {
     "city": "atl",
-    "required": 6,
+    "required": 8,
+    "requiredSeeds": 5,
     "expected": [
       { "seed": "atl-kennesaw-state", "site": "kennesaw.edu" },
       { "seed": "atl-botanical-garden", "site": "atlantabg.org" },
