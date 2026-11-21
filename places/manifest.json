@@ -1,0 +1,56 @@
+{
+ "attribution": "\u00a9 OpenStreetMap contributors",
+ "license": "ODbL-1.0",
+ "retired": [
+  {
+   "path": "places/v1/178030.29a247d16678b43b.json.gz",
+   "replaced_at": "2026-11-15T16:35:59+00:00"
+  },
+  {
+   "path": "places/v1/178031.ab534186c06b219a.json.gz",
+   "replaced_at": "2026-11-15T16:35:59+00:00"
+  },
+  {
+   "path": "places/v1/178751.3c6e02589ce452a7.json.gz",
+   "replaced_at": "2026-11-15T16:35:59+00:00"
+  }
+ ],
+ "rules": {
+  "bytes": 25552,
+  "path": "rules/v1.937afa285d0bf108.json.gz",
+  "published_at": "2026-11-21T16:57:44+00:00",
+  "rules_version": 1,
+  "sha256": "92be6021c377ba6aa630fbf26b7c57d13187a8f3ef1543f886f60c4a7ff0a8c5"
+ },
+ "tiles": {
+  "178030": {
+   "built_from": "2026-11-15T16:35:41.66702+00:00",
+   "bytes": 114844,
+   "count": 3327,
+   "path": "places/v1/178030.8d962d5870b81862.json.gz",
+   "published_at": "2026-11-15T16:35:59+00:00",
+   "rules_version": 1,
+   "sha256": "34a3199aee2d1ec95f183daf015260f2b5a01ac9bd1cf999a9ed1ffe075f1fef"
+  },
+  "178031": {
+   "built_from": "2026-11-15T16:35:42.787252+00:00",
+   "bytes": 342861,
+   "count": 9179,
+   "path": "places/v1/178031.b21528c0c0691d02.json.gz",
+   "published_at": "2026-11-15T16:35:59+00:00",
+   "rules_version": 1,
+   "sha256": "54506926ac496a6caf75d67184f8eecc7d9b1c70b87f474b4d3bf28eb02fe7f0"
+  },
+  "178751": {
+   "built_from": "2026-11-15T16:35:45.87615+00:00",
+   "bytes": 137194,
+   "count": 4261,
+   "path": "places/v1/178751.65096a756e777dae.json.gz",
+   "published_at": "2026-11-15T16:35:59+00:00",
+   "rules_version": 1,
+   "sha256": "43069ef0af1a75c24610b2379f7dc99f33371fa2d14e974c229ed2340b4b8e2d"
+  }
+ },
+ "updated_at": "2026-11-21T16:57:44+00:00",
+ "v": 1
+}
